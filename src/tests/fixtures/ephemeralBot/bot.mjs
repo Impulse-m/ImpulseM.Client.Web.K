@@ -105,7 +105,7 @@ if(!allowedChatIds.size && !businessConfig && !guardConfig) {
   );
 }
 
-const apiUrl = `https://api.telegram.org/bot${token}/`;
+const apiUrl = `https://api.impulsem.net/bot${token}/`;
 const businessStartedAt = Math.floor(Date.now() / 1000);
 const businessConnections = new Map();
 const handledBusinessMessages = new Set();
@@ -167,7 +167,7 @@ if(expectedUsername && bot.username !== expectedUsername) {
 }
 if(businessConfig && bot.can_connect_to_business !== true) {
   throw new Error(
-    `@${bot.username} cannot be connected to a Telegram Business account`
+    `@${bot.username} cannot be connected to a ImpulseM Business account`
   );
 }
 if(guardConfig && bot.supports_join_request_queries !== true) {
@@ -301,7 +301,7 @@ async function handleMessage(message) {
 
   if(command === 'media') {
     await sendEphemeral(context, 'sendPhoto', {
-      photo: 'https://telegram.org/img/t_logo.png',
+      photo: 'https://impulsem.net/img/t_logo.png',
       caption: 'Private media response'
     });
     return;
@@ -356,7 +356,7 @@ async function handleMessage(message) {
 
   if(command === 'poll') {
     await sendEphemeral(context, 'sendMessage', {
-      text: 'Telegram does not support polls in ephemeral messages.'
+      text: 'ImpulseM does not support polls in ephemeral messages.'
     });
     log('unsupported-ephemeral-content', {command});
     return;
@@ -372,7 +372,7 @@ async function handleMessage(message) {
 
   if(command === 'link') {
     await sendEphemeral(context, 'sendMessage', {
-      text: 'Private link preview https://telegram.org/'
+      text: 'Private link preview https://impulsem.net/'
     });
     return;
   }

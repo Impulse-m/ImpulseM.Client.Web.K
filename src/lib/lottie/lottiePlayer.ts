@@ -490,12 +490,14 @@ export default class LottiePlayer extends EventListenerBase<LottiePlayerEvents> 
       toneIndex: this.toneIndex,
       raw: this.raw,
       offscreen
-    }, transfer).then(({frameCount, fps}) => {
-      if(this.destroyed) {
+    }, transfer).then((result) => {
+      // The worker settles without a result when the item was torn down while it
+      // was still loading - there is nothing left to hand over.
+      if(this.destroyed || !result) {
         return;
       }
 
-      return this.onLoad(frameCount, fps);
+      return this.onLoad(result.frameCount, result.fps);
     }).catch((err) => {
       if(this.offscreen && !this.offscreenLoadFailed && !this.destroyed) {
         // belt: retry once in legacy mode with fresh canvases (safe - nothing is DOM-appended before firstFrame)
@@ -515,7 +517,10 @@ export default class LottiePlayer extends EventListenerBase<LottiePlayerEvents> 
         return this.loadFromData(data, wasmUrl);
       }
 
-      console.error(err, data, this);
+      if(!this.destroyed) {
+        console.error(err, data, this);
+      }
+
       throw err;
     });
   }

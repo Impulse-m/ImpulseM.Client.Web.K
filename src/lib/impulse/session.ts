@@ -12,14 +12,19 @@
  * not force a re-login.
  */
 
+import {createClient} from '@connectrpc/connect';
+
 import AccountController from '@lib/accounts/accountController';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getLogger} from '@lib/impulseLogger';
-import {setGrpcSessionToken, setGrpcUserId} from './grpc/transport';
+import {AuthService} from './grpc/gen/v1/internal/impulse/auth/auth_service_pb';
+import {grpcTransport, setGrpcSessionToken, setGrpcUserId} from './grpc/transport';
 
 const logger = getLogger('impulse-session');
 
 let currentAccount: ActiveAccountNumber | undefined;
+let currentRefreshToken: string | undefined;
+let refreshInFlight: Promise<boolean> | undefined;
 
 export function setImpulseAccount(accountNumber: ActiveAccountNumber): void {
   currentAccount = accountNumber;
@@ -39,24 +44,78 @@ export function captureImpulseSessionToken(result: unknown): void {
     return;
   }
 
-  const token = (result as {session_token?: unknown}).session_token;
+  const {session_token: token, refresh_token: refresh} = result as {
+    session_token?: unknown,
+    refresh_token?: unknown
+  };
+
   if(typeof token !== 'string' || !token) {
     return;
   }
 
-  setGrpcSessionToken(token);
-  persistToken(token);
+  applyTokens(token, typeof refresh === 'string' && refresh ? refresh : undefined);
 }
 
-function persistToken(token: string): void {
+function applyTokens(token: string, refresh?: string): void {
+  setGrpcSessionToken(token);
+  if(refresh) {
+    currentRefreshToken = refresh;
+  }
+
   if(currentAccount === undefined) {
     return;
   }
 
   try {
-    AccountController.update(currentAccount, {impulse_session_token: token});
+    AccountController.update(currentAccount, {
+      impulse_session_token: token,
+      impulse_refresh_token: refresh ?? currentRefreshToken
+    });
   } catch(err) {
-    logger.warn('Failed to persist the session token', undefined, err);
+    logger.warn('Failed to persist the session tokens', undefined, err);
+  }
+}
+
+/**
+ * The gateway's access token lives `AccessTokenExpiryMinutes` (15 by default),
+ * after which every call comes back AUTH_KEY_UNREGISTERED. The authorization
+ * response carries a long-lived refresh token for exactly this, and
+ * impulse.auth.RefreshSession trades it for a fresh pair.
+ *
+ * Single-flight: a expired token fails many in-flight calls at once, and they
+ * must not each open their own renewal.
+ */
+export function refreshImpulseSession(): Promise<boolean> {
+  if(refreshInFlight) {
+    return refreshInFlight;
+  }
+
+  refreshInFlight = runRefresh().finally(() => {
+    refreshInFlight = undefined;
+  });
+
+  return refreshInFlight;
+}
+
+async function runRefresh(): Promise<boolean> {
+  if(!currentRefreshToken) {
+    return false;
+  }
+
+  try {
+    const client = createClient(AuthService, grpcTransport);
+    const authorization = await client.refreshSession({refreshToken: currentRefreshToken});
+    if(!authorization?.sessionToken) {
+      logger.warn('Session refresh returned no token');
+      return false;
+    }
+
+    applyTokens(authorization.sessionToken, authorization.refreshToken || undefined);
+    logger.info('Session refreshed');
+    return true;
+  } catch(err) {
+    logger.warn('Session refresh failed', undefined, err);
+    return false;
   }
 }
 
@@ -74,6 +133,10 @@ export async function restoreImpulseSession(accountNumber: ActiveAccountNumber):
       applyImpulseUserId(data.userId as unknown as string);
     }
 
+    if(data.impulse_refresh_token) {
+      currentRefreshToken = data.impulse_refresh_token;
+    }
+
     if(data.impulse_session_token) {
       setGrpcSessionToken(data.impulse_session_token);
     }
@@ -85,13 +148,17 @@ export async function restoreImpulseSession(accountNumber: ActiveAccountNumber):
 export function clearImpulseSession(): void {
   setGrpcUserId(undefined);
   setGrpcSessionToken(undefined);
+  currentRefreshToken = undefined;
 
   if(currentAccount === undefined) {
     return;
   }
 
   try {
-    AccountController.update(currentAccount, {impulse_session_token: undefined});
+    AccountController.update(currentAccount, {
+      impulse_session_token: undefined,
+      impulse_refresh_token: undefined
+    });
   } catch(err) {
     logger.warn('Failed to clear the session token', undefined, err);
   }

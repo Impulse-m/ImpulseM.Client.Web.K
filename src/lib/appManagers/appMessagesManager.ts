@@ -4683,7 +4683,7 @@ export class AppMessagesManager extends AppManager {
 
       if(!peerId && !offsetDate) {
         log('adding missed dialogs');
-        // telegramMeWebManager.setAuthorized(true);
+        // impulsemMeWebManager.setAuthorized(true);
         this.appDraftsManager.addMissedDialogs();
       }
 
@@ -9927,7 +9927,7 @@ export class AppMessagesManager extends AppManager {
         id: fromId,
         pFlags: {verified: true},
         access_hash: '0',
-        first_name: 'Telegram',
+        first_name: 'ImpulseM',
         phone: '42777'
       }]);
     }
@@ -10822,7 +10822,7 @@ export class AppMessagesManager extends AppManager {
   }
 
   /**
-   * * https://core.telegram.org/api/offsets, offset_id is inclusive
+   * * https://core.impulsem.net/api/offsets, offset_id is inclusive
    */
   public getHistory(options: RequestHistoryOptions & {
     backLimit?: number,

@@ -28,7 +28,7 @@ describeOrSkip('unread_mark filter index staleness', () => {
     const filtersStorage: any = client.managers.filtersStorage;
     const appUsersManager: any = client.managers.appUsersManager;
 
-    const userId = 777000; // Telegram service notifications user id; harmless synthetic peer
+    const userId = 777000; // ImpulseM service notifications user id; harmless synthetic peer
     const peerId = userId;
 
     // make the peer a known contact user so it can match a `contacts` filter category

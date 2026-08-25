@@ -76,7 +76,7 @@ export const AppDirectMessagesTab =
 
 export const AppNotificationsTab =
   scaffoldSolidJSTab({
-    title: 'Telegram.NotificationSettingsViewController',
+    title: 'ImpulseM.NotificationSettingsViewController',
     getComponentModule: () => import('../sidebarLeft/tabs/notifications')
   });
 
@@ -159,7 +159,7 @@ export const AppArchiveSettingsTab =
 
 export const AppGeneralSettingsTab =
   scaffoldSolidJSTab({
-    title: 'Telegram.GeneralSettingsViewController',
+    title: 'ImpulseM.GeneralSettingsViewController',
     getComponentModule: () => import('../sidebarLeft/tabs/generalSettings')
   });
 
@@ -173,7 +173,7 @@ export const AppChatBackgroundTab =
 
 export const AppLanguageTab =
   scaffoldSolidJSTab({
-    title: 'Telegram.LanguageViewController',
+    title: 'ImpulseM.LanguageViewController',
     getComponentModule: () => import('../sidebarLeft/tabs/language')
   });
 

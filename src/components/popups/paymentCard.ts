@@ -17,7 +17,7 @@ import {getPaymentBrandIconPath, PaymentButton, PaymentsCredentialsToken} from '
 import {createVerificationIframe} from '@components/popups/paymentVerification';
 import {PasswordInputHelpers} from '@components/passwordInputField';
 import SettingSection from '@components/settingSection';
-import TelegramWebView from '@components/telegramWebView';
+import ImpulseMWebView from '@components/impulsemWebView';
 import {formatPhoneNumber} from '@helpers/formatPhoneNumber';
 
 export type PaymentCardDetails = {
@@ -211,7 +211,7 @@ const SUPPORTED_NATIVE_PROVIDERS: Set<PaymentsNativeProvider> = new Set(['stripe
 export default class PopupPaymentCard extends PopupElement<{
   finish: (obj: {token: any, card: PaymentCardDetailsResult}) => void
 }> {
-  protected telegramWebView: TelegramWebView;
+  protected impulsemWebView: ImpulseMWebView;
 
   constructor(
     private paymentForm: PaymentsPaymentForm.paymentsPaymentForm,
@@ -230,11 +230,11 @@ export default class PopupPaymentCard extends PopupElement<{
     if(SUPPORTED_NATIVE_PROVIDERS.has(paymentForm.native_provider as PaymentsNativeProvider) && !method) {
       this.d();
     } else {
-      const telegramWebView = this.telegramWebView = createVerificationIframe({
+      const impulsemWebView = this.impulsemWebView = createVerificationIframe({
         url: method?.url || paymentForm.url
       });
 
-      telegramWebView.addEventListener('payment_form_submit', (data) => {
+      impulsemWebView.addEventListener('payment_form_submit', (data) => {
         const cardOut = {title: data.title, save: false} as any as PaymentCardDetails;
         this.dispatchEvent('finish', {
           token: data.credentials,
@@ -257,14 +257,14 @@ export default class PopupPaymentCard extends PopupElement<{
       });
 
       // putPreloader(this.body, true);
-      this.body.append(telegramWebView.iframe);
+      this.body.append(impulsemWebView.iframe);
       this.show();
-      telegramWebView.onMount();
+      impulsemWebView.onMount();
     }
   }
 
   protected destroy() {
-    this.telegramWebView?.destroy();
+    this.impulsemWebView?.destroy();
     return super.destroy();
   }
 

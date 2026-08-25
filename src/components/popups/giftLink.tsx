@@ -107,7 +107,7 @@ export default class PopupGiftLink extends PopupElement {
     let content: [LangPackKey, JSX.Element][] = [
       ['BoostingFrom', makePeer(fromPeerId)],
       ['BoostingTo', toPeerId ? makePeer(toPeerId) : i18n('BoostingNoRecipient')],
-      ['BoostingGift', i18n('BoostingTelegramPremiumFor', [formatDaysDuration(this.checkedGiftCode.days)])],
+      ['BoostingGift', i18n('BoostingImpulseMPremiumFor', [formatDaysDuration(this.checkedGiftCode.days)])],
       !this.isInChat && ['BoostingReason', reasonValue],
       ['BoostingDate', formatFullSentTime(this.checkedGiftCode.date, undefined, true)]
     ];

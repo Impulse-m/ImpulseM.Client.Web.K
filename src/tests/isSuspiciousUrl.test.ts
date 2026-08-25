@@ -1,7 +1,7 @@
 import {describe, expect, test} from 'vitest';
 import isSuspiciousUrl from '../helpers/string/isSuspiciousUrl';
 
-// Reference: telegram-tt src/util/browser/url.ts (isMixedScriptUrl), which feeds the
+// Reference: impulsem-tt src/util/browser/url.ts (isMixedScriptUrl), which feeds the
 // raw url through ensureProtocol() before `new URL(...)`. The tweb port dropped that
 // step, so a protocol-less url makes `new URL(...)` throw and the catch wrongly
 // classifies it as suspicious. These cases lock in the corrected behaviour.

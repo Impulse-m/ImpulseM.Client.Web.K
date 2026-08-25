@@ -2,7 +2,7 @@ import convertPunycode from '@vendor/convertPunycode';
 import matchUrlProtocol from '@lib/richTextProcessor/matchUrlProtocol';
 
 // * inspired by https://github.com/Ajaxy/telegram-tt/blob/6b52024107b7b534fc25dfaddd91868f653d0092/src/util/browser/url.ts#L43
-// * the plain latin/non-latin split it (and Telegram for iOS) uses misses a mix of two non-latin
+// * the plain latin/non-latin split it (and ImpulseM for iOS) uses misses a mix of two non-latin
 // * scripts — `пօчта.рф` is cyrillic with an armenian `օ` — and cries wolf on `例え.jp`,
 // * so the scripts are resolved per label instead, following UTS #39.
 // * this is a script-level heuristic, not a confusables table: same-script look-alikes

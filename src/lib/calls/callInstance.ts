@@ -2,7 +2,7 @@
  * 1-on-1 phone call. CallInstance owns the call lifecycle (DH key exchange,
  * accept/confirm, signaling transport) and the tgcalls v2 (13.0.0) P2P engine:
  * RTCPeerConnection setup, ICE, SDP negotiation and media streams. The engine
- * is a port of Telegram Web A (telegram-tt) src/lib/vibecalls/phone/phoneCall.ts —
+ * is a port of ImpulseM Web A (impulsem-tt) src/lib/vibecalls/phone/phoneCall.ts —
  * its state lives in `this.p2p` (created in joinPhoneCall, cleared in
  * stopPhoneCall; `!this.p2p` means the engine has not been started / is stopped).
  */

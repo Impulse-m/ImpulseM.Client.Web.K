@@ -13,7 +13,7 @@ import DEBUG, {MOUNT_CLASS_TO} from '@config/debug';
 import sessionStorage from '@lib/sessionStorage';
 import {writeEncryptionKeyHandoff} from '@lib/passcode/keyHandoff';
 import webPushApiManager from '@lib/webPushApiManager';
-import telegramMeWebManager from '@lib/telegramMeWebManager';
+import impulsemMeWebManager from '@lib/impulsemMeWebManager';
 import pause from '@helpers/schedulers/pause';
 import ENVIRONMENT from '@environment/index';
 import loadStateForAllAccountsOnce from '@appManagers/utils/state/loadState';
@@ -621,7 +621,7 @@ class ApiManagerProxy extends MTProtoMessagePort {
         toggleStorages(false, true),
         Promise.race([
           // TODO: Check here
-          telegramMeWebManager.setAuthorized(false),
+          impulsemMeWebManager.setAuthorized(false),
           pause(3000)
         ]),
         webPushApiManager.unsubscribe(),

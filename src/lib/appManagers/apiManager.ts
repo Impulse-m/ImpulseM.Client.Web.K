@@ -5,13 +5,16 @@
  * https://github.com/zhukov/webogram/blob/master/LICENSE
  */
 
+import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
+import {applyImpulseUserId, clearImpulseSession, restoreImpulseSession} from '@lib/impulse/session';
+import {setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
 import type {MethodDeclMap} from '@layer';
 import type TcpObfuscated from '@lib/mtproto/transports/tcpObfuscated';
 import sessionStorage from '@lib/sessionStorage';
 import MTPNetworker, {MTMessage} from '@lib/mtproto/networker';
-import {ConnectionType, constructTelegramWebSocketUrl, DcConfigurator, TransportType} from '@lib/mtproto/dcConfigurator';
+import {ConnectionType, constructImpulseMWebSocketUrl, DcConfigurator, TransportType} from '@lib/mtproto/dcConfigurator';
 import deferredPromise, {CancellablePromise} from '@helpers/cancellablePromise';
 import App from '@config/app';
 import {MOUNT_CLASS_TO} from '@config/debug';
@@ -89,7 +92,7 @@ export class ApiManager extends ApiManagerMethods {
     this.transportType = Modes.transport;
 
     // * Make sure that the used autologin_token is no more than 10000 seconds old
-    // * https://core.telegram.org/api/url-authorization
+    // * https://core.impulsem.net/api/url-authorization
     const REFRESH_CONFIG_INTERVAL = (10000 - 30) * 1000;
     setInterval(() => {
       this.getConfig(true);
@@ -98,6 +101,21 @@ export class ApiManager extends ApiManagerMethods {
 
   protected after() {
     const result = super.after();
+
+    // Arm the gateway auth headers from stored session data before anything
+    // issues an RPC, then bring up the push channel for an already-signed-in
+    // session.
+    setRealtimeSink((update, date) => {
+      this.apiUpdatesManager.processUpdateMessage({_: 'updateShort', update, date});
+    });
+
+    restoreImpulseSession(this.getAccountNumber()).then(() => {
+      AccountController.get(this.getAccountNumber()).then((data) => {
+        if(data?.userId !== undefined) {
+          startImpulseRealtime(String(data.userId));
+        }
+      });
+    });
 
     if(import.meta.env.VITE_MTPROTO_AUTO && Modes.multipleTransports) {
       transportController.addEventListener('transport', (transportType) => {
@@ -131,7 +149,7 @@ export class ApiManager extends ApiManagerMethods {
         }
 
         if((transport as TcpObfuscated).connection) {
-          const url = constructTelegramWebSocketUrl(dcId, connectionType, isPremium);
+          const url = constructImpulseMWebSocketUrl(dcId, connectionType, isPremium);
           (transport as TcpObfuscated).changeUrl(url);
         }
       });
@@ -235,6 +253,9 @@ export class ApiManager extends ApiManagerMethods {
 
     this.rootScope.dispatchEvent('user_auth', userAuth);
 
+    applyImpulseUserId((userAuth as UserAuth).id as unknown as string);
+    startImpulseRealtime(String((userAuth as UserAuth).id));
+
     if(!userAuth.dcID) {
       const baseDcId = await this.getBaseDcId();
       userAuth.dcID = baseDcId;
@@ -272,6 +293,11 @@ export class ApiManager extends ApiManagerMethods {
     }
 
     this.loggingOut = true;
+
+    // Drop the push channel and the gateway credentials first: a socket left
+    // open under the old identity would keep delivering that account's updates.
+    stopImpulseRealtime();
+    clearImpulseSession();
 
     const totalAccounts = await AccountController.getTotalAccounts();
     const accountNumber = this.getAccountNumber();
@@ -370,6 +396,15 @@ export class ApiManager extends ApiManagerMethods {
   }
 
   public getNetworker(dcId: DcId, options: InvokeApiOptions = {}): Promise<MTPNetworker> {
+    // ImpulseM: every request reaches the gateway over gRPC, so an MTProto
+    // connection is never established. Left to run, this path builds HTTP/WS
+    // transports that retry unreachable DCs forever and never settle, so every
+    // caller — getNetworkerVoid on the sign-in screen among them — hangs
+    // indefinitely. Refuse up front instead: callers already handle rejection,
+    // and no transport is created, which also ends the reconnect loop.
+    return Promise.reject(makeError('NETWORKER_DISABLED'));
+
+    // eslint-disable-next-line no-unreachable
     const connectionType: ConnectionType = options.fileDownload ? 'download' : (options.fileUpload ? 'upload' : 'client');
     // const connectionType: ConnectionType = 'client';
 
@@ -595,6 +630,13 @@ export class ApiManager extends ApiManagerMethods {
       });
     }
 
+    // Declared before the watchdog below, which reads it from a setInterval
+    // callback. Any early return between the two -- the gRPC branch takes one --
+    // leaves this binding in its temporal dead zone, and the interval then throws
+    // ReferenceError every 5s for the life of the request, uncaught, straight
+    // into the worker's error handler.
+    let cachedNetworker: MTPNetworker;
+
     if(MOUNT_CLASS_TO) {
       const startTime = Date.now();
       const interval = ctx.setInterval(() => {
@@ -647,9 +689,27 @@ export class ApiManager extends ApiManagerMethods {
       throw error;
     };
 
+    // ImpulseM transport: every mapped method goes to the gateway over gRPC-web
+    // instead of MTProto, so no networker (and therefore no auth-key handshake,
+    // no DC migration, no transport selection) is needed. Failures are still
+    // routed through rejectPromise so 401 -> logOut and the error-box policy
+    // behave exactly as they did on MTProto.
+    if(isGrpcAvailable(method)) {
+      // deferred.resolve/reject read `this`, so they must be called on the deferred
+      // rather than passed as bare references — an unbound resolve throws inside the
+      // promise chain and the deferred never settles.
+      grpcInvoke(method, params).then(
+        (result) => deferred.resolve(result),
+        (error: ApiError) => {
+          rejectPromise(error).catch((finalError: ApiError) => deferred.reject(finalError));
+        }
+      );
+
+      return deferred;
+    }
+
     let dcId: DcId;
 
-    let cachedNetworker: MTPNetworker;
     // const stack = (new Error()).stack || 'empty stack';
     const performRequest = (): Promise<any> => {
       if(afterMessageId) {

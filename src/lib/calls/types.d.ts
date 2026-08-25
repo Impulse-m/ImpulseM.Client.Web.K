@@ -93,7 +93,7 @@ export type P2PPayloadType = {
 
 export type P2PSsrcGroup = {
   semantics: string,
-  // strings on the wire per tgcalls; tolerate numbers too (telegram-tt emits numbers)
+  // strings on the wire per tgcalls; tolerate numbers too (impulsem-tt emits numbers)
   ssrcs: (string | number)[]
 };
 

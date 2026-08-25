@@ -4,12 +4,12 @@
  * instead it gets a fresh, independent authorization minted via a real login.
  *
  * The seed accounts are PRODUCTION accounts, so the login code is not
- * deterministic — it is delivered, in-app, as a message in the Telegram
+ * deterministic — it is delivered, in-app, as a message in the ImpulseM
  * service chat (777000). The still-authorized seed session is used to read it.
  *
  * Phases:
  *   1. probe  — boot with the seed: discover the phone + remember the latest
- *               message id in the Telegram service chat (777000)
+ *               message id in the ImpulseM service chat (777000)
  *   2. login  — boot with NO keys (fresh DH handshake) and run the real
  *               auth.sendCode flow; read the login code via the seed session,
  *               then auth.signIn -> auth.checkPassword
@@ -32,8 +32,8 @@ const describeOrSkip = ENABLED && seedPath ? describe : describe.skip;
 
 // cloud (2FA) password for the seed accounts is a single space
 const CLOUD_PASSWORD = ' ';
-// Telegram service notifications peer — login codes are delivered here in-app
-const TELEGRAM_SERVICE_ID = 777000;
+// ImpulseM service notifications peer — login codes are delivered here in-app
+const IMPULSEM_SERVICE_ID = 777000;
 
 function delay(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -42,7 +42,7 @@ function delay(ms: number) {
 /** Pull a login code of `codeLength` digits out of a service message. */
 function extractLoginCode(text: string, codeLength: number): string | undefined {
   if(!text) return undefined;
-  // Telegram may print the code split by a space/hyphen ("12 345"): join those
+  // ImpulseM may print the code split by a space/hyphen ("12 345"): join those
   const joined = text.replace(/(\d)[\s\-]+(\d)/g, '$1$2');
   const standalone = joined.match(new RegExp(`(?<!\\d)\\d{${codeLength}}(?!\\d)`));
   return standalone?.[0];
@@ -107,7 +107,7 @@ describeOrSkip('preview auth', () => {
       console.log(`[previewAuth] seed account: userId=${seed.userId} dc=${homeDc} phone=${phone}`);
       expect(phone.length).toBeGreaterThan(0);
 
-      const servicePeer = {_: 'inputPeerUser', user_id: TELEGRAM_SERVICE_ID, access_hash: '0'};
+      const servicePeer = {_: 'inputPeerUser', user_id: IMPULSEM_SERVICE_ID, access_hash: '0'};
       const serviceHistory = (limit: number) => probe.apiManager.invokeApi('messages.getHistory', {
         peer: servicePeer as any,
         offset_id: 0,
@@ -138,7 +138,7 @@ describeOrSkip('preview auth', () => {
       const codeLength: number = sentCode?.type?.length || 5;
       console.log(`[previewAuth] auth.sendCode ok — type=${sentCode?.type?._} length=${codeLength}`);
 
-      // read the login code from the Telegram service chat via the seed session
+      // read the login code from the ImpulseM service chat via the seed session
       let code: string | undefined;
       for(let attempt = 0; attempt < 20 && !code; attempt++) {
         await delay(1500);

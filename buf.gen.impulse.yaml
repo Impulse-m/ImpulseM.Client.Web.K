@@ -1,0 +1,11 @@
+# ImpulseM-native services (package impulse.*): sync, search, notifications,
+# stories, bots, config. Include root is the protos/ module root, whose buf.yaml
+# already excludes generated/, vendor/ and internal/.
+version: v2
+plugins:
+  - local: ["node", "./node_modules/@bufbuild/protoc-gen-es/bin/protoc-gen-es"]
+    out: src/lib/impulse/grpc/gen/v1/internal
+    opt:
+      - target=ts
+inputs:
+  - directory: ../ImpulseM/protos

@@ -32,13 +32,13 @@ const PREMIUM_SUFFIX = '_premium';
 const RETRY_TIMEOUT_CLIENT = 3000;
 const RETRY_TIMEOUT_DOWNLOAD = 3000;
 
-export function getTelegramConnectionSuffix(connectionType: ConnectionType) {
+export function getImpulseMConnectionSuffix(connectionType: ConnectionType) {
   return connectionType === 'client' ? '' : '-1';
 }
 
 // A dcId can arrive from the service worker's `stream/` route, i.e. from a URL any page
 // can craft: interpolated unchecked it turns the endpoint into an attacker-chosen host
-// (`1.evil.com/` -> wss://kws1.evil.com/-1.web.telegram.org/apiws). Telegram has exactly
+// (`1.evil.com/` -> wss://kws1.evil.com/-1.web.impulsem.net/apiws). ImpulseM has exactly
 // five DCs, so validate here, before the value can reach a URL or a storage key.
 export function assertValidDcId(dcId: DcId): DcId {
   const id = +dcId;
@@ -49,15 +49,15 @@ export function assertValidDcId(dcId: DcId): DcId {
   return id as DcId;
 }
 
-export function constructTelegramWebSocketUrl(_dcId: DcId, connectionType: ConnectionType, premium?: boolean) {
+export function constructImpulseMWebSocketUrl(_dcId: DcId, connectionType: ConnectionType, premium?: boolean) {
   if(!import.meta.env.VITE_MTPROTO_HAS_WS) {
     return;
   }
 
   const dcId = assertValidDcId(_dcId);
-  const suffix = getTelegramConnectionSuffix(connectionType);
+  const suffix = getImpulseMConnectionSuffix(connectionType);
   const path = connectionType !== 'client' ? 'apiws' + TEST_SUFFIX + (premium ? PREMIUM_SUFFIX : '') : ('apiws' + TEST_SUFFIX);
-  const chosenServer = `wss://${App.suffix.toLowerCase()}ws${dcId}${suffix}.web.telegram.org/${path}`;
+  const chosenServer = `wss://${App.suffix.toLowerCase()}ws${dcId}${suffix}.web.impulsem.net/${path}`;
 
   return chosenServer;
 }
@@ -86,7 +86,7 @@ export class DcConfigurator {
       return;
     }
 
-    const chosenServer = constructTelegramWebSocketUrl(dcId, connectionType, premium);
+    const chosenServer = constructImpulseMWebSocketUrl(dcId, connectionType, premium);
     const logSuffix = connectionType === 'upload' ? '-U' : connectionType === 'download' ? '-D' : '';
 
     const retryTimeout = connectionType === 'client' ? RETRY_TIMEOUT_CLIENT : RETRY_TIMEOUT_DOWNLOAD;
@@ -108,10 +108,10 @@ export class DcConfigurator {
 
     let chosenServer: string;
     if(Modes.ssl || !Modes.http) {
-      const suffix = getTelegramConnectionSuffix(connectionType);
+      const suffix = getImpulseMConnectionSuffix(connectionType);
       const subdomain = this.sslSubdomains[dcId - 1] + suffix;
       const path = Modes.test ? 'apiw_test1' : 'apiw1';
-      chosenServer = 'https://' + subdomain + '.web.telegram.org/' + path;
+      chosenServer = 'https://' + subdomain + '.web.impulsem.net/' + path;
     } else {
       for(const dcOption of this.dcOptions) {
         if(dcOption.id === dcId) {

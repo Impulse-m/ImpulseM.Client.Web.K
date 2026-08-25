@@ -21,7 +21,7 @@ import Icon from '@components/icon';
 import toggleDisability from '@helpers/dom/toggleDisability';
 import {JSX} from 'solid-js';
 import {render} from 'solid-js/web';
-import MarkupTooltip from '@components/chat/markupTooltip';
+import type MarkupTooltip from '@components/chat/markupTooltip';
 
 export type PopupButton = {
   text?: HTMLElement | DocumentFragment | Text,
@@ -57,6 +57,32 @@ export type PopupOptions = Partial<{
 export interface PopupElementConstructable<T extends PopupElement = any> {
   new(...args: any[]): T;
 }
+
+// PopupElement is the base every popup extends, so a static import of the chat
+// markup tooltip drags the whole chat subtree into that base -- and closes an
+// import cycle: popups/peer -> popups -> chat/markupTooltip -> ... ->
+// chat/topbar -> popups/mute -> popups/peer. Whichever module the bundle happens
+// to enter that ring from ends up reading a class that has not been initialised
+// yet ("can't access lexical declaration 'PopupPeer' before initialization").
+//
+// Load it on demand instead. The tooltip is a singleton created by the chat
+// input, so if the module has not been pulled in yet there is nothing on screen
+// to hide; from the first call onwards the reference is cached and the hide is
+// synchronous.
+let markupTooltipClass: typeof MarkupTooltip | undefined;
+
+function hideMarkupTooltip() {
+  if(markupTooltipClass) {
+    markupTooltipClass.getInstance().hide();
+    return;
+  }
+
+  import('@components/chat/markupTooltip').then((module) => {
+    markupTooltipClass = module.default;
+    markupTooltipClass.getInstance().hide();
+  });
+}
+
 
 const DEFAULT_APPEND_TO = document.body;
 // Resolved lazily: a fullscreen element wins, otherwise the active app window's body (the tab, or the
@@ -421,7 +447,7 @@ export default class PopupElement<T extends EventListenerListeners = {}> extends
     this.element.classList.remove('active');
     this.listenerSetter.removeAll();
     this.middlewareHelper.destroy();
-    MarkupTooltip.getInstance().hide();
+    hideMarkupTooltip();
 
     if(this.shown && !this.withoutOverlay) {
       overlayCounter.isOverlayActive = false;

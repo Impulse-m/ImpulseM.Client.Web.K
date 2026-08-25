@@ -103,7 +103,7 @@ const MAX_WIDTH = 400 - 16;
 
 // A "compressed photo" heavier than this is re-encoded to JPEG at PHOTO_COMPRESSED_QUALITY,
 // otherwise the server rejects it with PHOTO_SAVE_FILE_INVALID (a detailed 2560px PNG is
-// ~10MB). Used for both the direct send (scaleImageForTelegram) and the edited result
+// ~10MB). Used for both the direct send (scaleImageForImpulseM) and the edited result
 // (passed into the media editor), so the policy lives in one place.
 const PHOTO_HEAVY_BYTES = 2 * 1024 * 1024;
 const PHOTO_COMPRESSED_QUALITY = 0.9;
@@ -1119,11 +1119,11 @@ export default class PopupNewMedia extends PopupElement {
     this.hide();
   }
 
-  private modifyMimeTypeForTelegram(mimeType: MTMimeType): MTMimeType {
+  private modifyMimeTypeForImpulseM(mimeType: MTMimeType): MTMimeType {
     return SERVER_IMAGE_MIME_TYPES.has(mimeType) ? 'image/jpeg' : mimeType;
   }
 
-  private async scaleImageForTelegram(
+  private async scaleImageForImpulseM(
     image: HTMLImageElement,
     mimeType: MTMimeType,
     fileSize: number,
@@ -1152,7 +1152,7 @@ export default class PopupNewMedia extends PopupElement {
           Math.min(image.naturalHeight, PHOTO_SIDE_LIMIT)
         ),
         mediaSize: makeMediaSize(image.naturalWidth, image.naturalHeight),
-        mimeType: this.modifyMimeTypeForTelegram(mimeType) as any,
+        mimeType: this.modifyMimeTypeForImpulseM(mimeType) as any,
         // Only drop quality when compressing a heavy image; a plain >2560 resize or
         // a format conversion keeps the default (near-lossless) quality.
         quality: isHeavyLossless ? PHOTO_COMPRESSED_QUALITY : undefined
@@ -1464,7 +1464,7 @@ export default class PopupNewMedia extends PopupElement {
       await renderImageFromUrlPromise(img, url);
 
       const mimeType = getFileMimeType(params.file) as MTMimeType;
-      const scaled = await this.scaleImageForTelegram(img, mimeType, file.size, params.objectURLs, true);
+      const scaled = await this.scaleImageForImpulseM(img, mimeType, file.size, params.objectURLs, true);
       if(scaled) {
         params.objectURL = scaled.url;
         params.scaledBlob = scaled.blob;
@@ -1682,7 +1682,7 @@ export default class PopupNewMedia extends PopupElement {
     if(isPhoto && params.objectURL) {
       img = new Image();
       await renderImageFromUrlPromise(img, params.objectURL);
-      const scaled = await this.scaleImageForTelegram(img, file.type as MTMimeType, file.size, params.objectURLs);
+      const scaled = await this.scaleImageForImpulseM(img, file.type as MTMimeType, file.size, params.objectURLs);
       if(scaled) {
         params.objectURL = scaled.url;
       }

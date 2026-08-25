@@ -1,6 +1,6 @@
 import type {ChatSetPeerOptions} from '@lib/appImManager';
 
-// * https://core.telegram.org/api/links
+// * https://core.impulsem.net/api/links
 
 export enum INTERNAL_LINK_TYPE {
   MESSAGE,
@@ -130,7 +130,7 @@ export namespace InternalLink {
   export interface InternalLinkAttachMenuBot {
     _: INTERNAL_LINK_TYPE.ATTACH_MENU_BOT,
     startattach?: string,
-    choose?: TelegramChoosePeerType,
+    choose?: ImpulseMChoosePeerType,
     attach?: string,
     domain?: string,
     nestedLink?: InternalLink

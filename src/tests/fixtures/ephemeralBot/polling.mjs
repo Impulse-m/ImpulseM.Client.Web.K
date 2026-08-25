@@ -10,7 +10,7 @@ export class BotApiError extends Error {
 
 export class UpdateHandlingError extends Error {
   constructor(updateId, cause) {
-    super(`Failed to handle Telegram update ${updateId}`, {cause});
+    super(`Failed to handle ImpulseM update ${updateId}`, {cause});
     this.name = 'UpdateHandlingError';
     this.updateId = updateId;
   }

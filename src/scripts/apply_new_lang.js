@@ -72,7 +72,7 @@ const onResponse = (response) => {
 };
 
 const applyNewLang = () => {
-  https.get('https://translations.telegram.org/en/webk/export?mode=prod', onResponse).on("error", (err) => {
+  https.get('https://translations.impulsem.net/en/webk/export?mode=prod', onResponse).on("error", (err) => {
     throw new Error('Failed to fetch translations: ' + err.message);
   });
 };

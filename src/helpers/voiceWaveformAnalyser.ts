@@ -10,7 +10,7 @@ export const WAVEFORM_SAMPLES_COUNT = 100;
 export const WAVEFORM_BYTES_LENGTH = Math.ceil(WAVEFORM_SAMPLES_COUNT * 5 / 8); // 63
 const DOWNSAMPLE_THRESHOLD = WAVEFORM_SAMPLES_COUNT * 2; // 200
 
-// ScriptProcessorNode is deprecated but present in every browser Telegram Web
+// ScriptProcessorNode is deprecated but present in every browser ImpulseM Web
 // targets — opus-recorder uses it too, so this adds no compatibility risk.
 // Migrating both to AudioWorkletNode would be a separate, larger change.
 const SCRIPT_PROCESSOR_BUFFER_LENGTH = 4096;

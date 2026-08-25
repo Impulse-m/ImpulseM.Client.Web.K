@@ -1,6 +1,6 @@
 // OGG container muxer for Opus packets, per RFC 7845 (Opus-in-Ogg) and RFC 3533 (Ogg).
 // Used to wrap raw Opus packets emitted by WebCodecs AudioEncoder into the
-// `audio/ogg;codecs=opus` container that Telegram expects for voice messages.
+// `audio/ogg;codecs=opus` container that ImpulseM expects for voice messages.
 
 const OGG_CRC_TABLE = (() => {
   const table = new Uint32Array(256);

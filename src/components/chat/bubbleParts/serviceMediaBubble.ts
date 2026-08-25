@@ -38,7 +38,7 @@ export type WrapServiceMediaBubbleOptions = {
 /**
  * Renders a service-message bubble whose body is a centered round media (a
  * profile Photo) plus an optional caption and an optional action button — the
- * shape Telegram uses for the "suggested profile photo" service message.
+ * shape ImpulseM uses for the "suggested profile photo" service message.
  *
  * Kept generic on purpose: any media-carrying service action (suggested photo,
  * and future ones) can reuse this. Modeled on the story-mention service bubble.

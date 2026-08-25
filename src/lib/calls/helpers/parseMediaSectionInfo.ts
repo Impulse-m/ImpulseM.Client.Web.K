@@ -1,6 +1,6 @@
 import SDP from '@lib/calls/sdp';
 import SDPMediaSection from '@lib/calls/sdp/mediaSection';
-import {toTelegramSource} from '@lib/calls/utils';
+import {toImpulseMSource} from '@lib/calls/utils';
 import {parseSourceGroups} from '@lib/calls/helpers/parseSourceGroups';
 
 export default function parseMediaSectionInfo(sdp: SDP, channel: SDPMediaSection) {
@@ -19,10 +19,10 @@ export default function parseMediaSectionInfo(sdp: SDP, channel: SDPMediaSection
     clientInfo.fingerprint = line.parsed.value;
   }
 
-  const telegramSourceGroups = parseSourceGroups(clientInfo['ssrc-group']);
+  const impulsemSourceGroups = parseSourceGroups(clientInfo['ssrc-group']);
   const [hash, fingerprint] = clientInfo.fingerprint.split(' ', 2);
-  const ssrc = clientInfo.ssrc && toTelegramSource(+clientInfo.ssrc.split(' ', 1)[0]);
-  // ssrc = telegramSourceGroups ? telegramSourceGroups[0].sources[0] : ssrc;
+  const ssrc = clientInfo.ssrc && toImpulseMSource(+clientInfo.ssrc.split(' ', 1)[0]);
+  // ssrc = impulsemSourceGroups ? impulsemSourceGroups[0].sources[0] : ssrc;
 
   return {
     raw: clientInfo,
@@ -34,7 +34,7 @@ export default function parseMediaSectionInfo(sdp: SDP, channel: SDPMediaSection
       hash
     },
     source: ssrc,
-    sourceGroups: telegramSourceGroups,
+    sourceGroups: impulsemSourceGroups,
     mid: clientInfo.mid
   };
 }

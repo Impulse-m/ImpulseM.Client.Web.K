@@ -3,7 +3,7 @@ import wrapUrl from '@lib/richTextProcessor/wrapUrl';
 import cancelEvent from '@helpers/dom/cancelEvent';
 import parseUriParams from '@helpers/string/parseUriParams';
 
-// * https://core.telegram.org/api/links
+// * https://core.impulsem.net/api/links
 
 type InternalLinkAnchorType =
   | 'showMaskedAlert'

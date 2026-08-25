@@ -2,7 +2,7 @@
  * Emoji fingerprint mapping tests.
  *
  * The big property we care about: a given 32-byte hash maps to the SAME
- * 4-emoji sequence on every Telegram client. We can't run the C++ reference
+ * 4-emoji sequence on every ImpulseM client. We can't run the C++ reference
  * here, but we can pin:
  *   1. Length & shape (always 4 emojis from 32 bytes).
  *   2. Determinism.

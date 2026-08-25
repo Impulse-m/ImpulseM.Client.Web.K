@@ -24,7 +24,7 @@ function parseChatIds(value) {
   const invalidChatId = chatIds.find((chatId) => !/^-?\d+$/.test(chatId));
   if(invalidChatId) {
     throw new Error(
-      `Invalid Telegram chat ID in ${GUARD_CHAT_IDS_ENV}: ${invalidChatId}`
+      `Invalid ImpulseM chat ID in ${GUARD_CHAT_IDS_ENV}: ${invalidChatId}`
     );
   }
 

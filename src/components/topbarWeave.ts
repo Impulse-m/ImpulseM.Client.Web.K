@@ -40,11 +40,11 @@ export class WeavingState {
     type ColorStop = [offset: number, color: string];
     type ColorStops = ColorStop[];
 
-    const MUTED_BY_ADMIN_STOPS: ColorStops = [[0, '#F05459'], [.4, '#766EE9'], [1, '#57A4FE']];
+    const MUTED_BY_ADMIN_STOPS: ColorStops = [[0, '#F05459'], [.4, '#2085DF'], [1, '#57A4FE']];
     const UNMUTED_STOPS: ColorStops = [[0, '#52CE5D'], [1, '#00B1C0']];
     const MUTED_STOPS: ColorStops = [[0, '#0976E3'], [1, '#2BCEFF']];
     const CONNECTING_STOPS: ColorStops = [[0, '#8599aa'], [1, '#8599aa']];
-    const RTMP_STOPS: ColorStops = [[0, '#4588E3'], [.5, '#976FFF'], [1, '#E46ACE']];
+    const RTMP_STOPS: ColorStops = [[0, '#4588E3'], [.5, '#2085DF'], [1, '#58AEEE']];
 
     const map: {[key in WeavingCallType]?: [states: WeavingCallState[], stops: ColorStops][]} = {
       group: [

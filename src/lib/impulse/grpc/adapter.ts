@@ -26,7 +26,7 @@ import {Code, ConnectError, createClient} from '@connectrpc/connect';
 
 import Schema from '@lib/mtproto/schema';
 import {getLogger} from '@lib/impulseLogger';
-import {captureImpulseSessionToken} from '../session';
+import {captureImpulseSessionToken, refreshImpulseSession} from '../session';
 import {getServiceAndMethod} from './serviceMap';
 import {grpcTransport} from './transport';
 
@@ -94,34 +94,62 @@ function predicateForTypeName(typeName: string): string | undefined {
 // not a Photo problem — it is every flag-conditional vector in canon.
 const CONDITIONAL_VECTOR_PATTERN = /^flags\d*\.\d+\?Vector</i;
 
-let conditionalVectorsByPredicate: Map<string, Set<string>> | undefined;
+// ── flag booleans ──────────────────────────────────────────────────────────
+// A TL `flags.N?true` param is not a field at all: the deserialiser puts it in
+// `pFlags` and only when the bit is set (see TLDeserialization#fetchObject), so
+// the whole app reads `user.pFlags.bot`, `message.pFlags.out`,
+// `chat.pFlags.creator` and never the object root. Proto has no bit field, so
+// the generator flattens each one into a top-level `optional bool`. Left as
+// they arrive, `pFlags` stays empty forever and every one of those checks
+// silently reads undefined — no message is ever outgoing, no user is ever
+// deleted or a bot, no chat ever has a creator.
+const FLAG_BOOL_PATTERN = /^flags\d*\.\d+\?true$/i;
 
-function getConditionalVectors(predicate: string): Set<string> | undefined {
-  if(!conditionalVectorsByPredicate) {
-    const built = new Map<string, Set<string>>();
+type PredicateInfo = {
+  /** `flags.N?Vector<...>` — absent and empty are different things in TL. */
+  conditionalVectors: Set<string>,
+  /** `flags.N?true` — belongs in `pFlags`, not on the object. */
+  boolFlags: Set<string>,
+  /** The `#` params themselves, which TL keeps out of the result entirely. */
+  flagWords: Set<string>
+};
+
+let predicateInfoByName: Map<string, PredicateInfo> | undefined;
+
+/** Everything the TL schema knows about how a predicate's params must be placed. */
+function getPredicateInfo(predicate: string): PredicateInfo | undefined {
+  if(!predicateInfoByName) {
+    const built = new Map<string, PredicateInfo>();
     for(const constructor of Schema.API.constructors) {
-      const conditional = new Set<string>();
+      const conditionalVectors = new Set<string>();
+      const boolFlags = new Set<string>();
+      const flagWords = new Set<string>();
+
       for(const param of constructor.params || []) {
-        if(CONDITIONAL_VECTOR_PATTERN.test(param.type)) {
-          conditional.add(param.name);
+        if(param.type === '#') {
+          flagWords.add(param.name);
+        } else if(FLAG_BOOL_PATTERN.test(param.type)) {
+          boolFlags.add(param.name);
+        } else if(CONDITIONAL_VECTOR_PATTERN.test(param.type)) {
+          conditionalVectors.add(param.name);
         }
       }
 
-      if(conditional.size) {
-        built.set(constructor.predicate, conditional);
+      if(conditionalVectors.size || boolFlags.size || flagWords.size) {
+        built.set(constructor.predicate, {conditionalVectors, boolFlags, flagWords});
       }
     }
 
-    conditionalVectorsByPredicate = built;
+    predicateInfoByName = built;
   }
 
-  return conditionalVectorsByPredicate.get(predicate);
+  return predicateInfoByName.get(predicate);
 }
 
 /** Drop the empty vectors TL would not have put on the wire at all. */
 function omitAbsentConditionalVectors(predicate: string, plain: Record<string, any>): void {
-  const conditional = getConditionalVectors(predicate);
-  if(!conditional) {
+  const conditional = getPredicateInfo(predicate)?.conditionalVectors;
+  if(!conditional || !conditional.size) {
     return;
   }
 
@@ -152,6 +180,14 @@ function buildProtoInit(tlValue: any, schema: DescMessage): any {
     let raw = tlValue[field.name];
     if(raw === undefined) {
       raw = tlValue[field.localName];
+    }
+
+    // TLSerialization#storeBody reads `flags.N?true` params from `obj.pFlags`
+    // when the object has one and from the object itself otherwise. Requests are
+    // normally built with the flags at the root, but mirror both so an object
+    // built the other way round still serialises the same.
+    if(raw === undefined && tlValue.pFlags) {
+      raw = tlValue.pFlags[field.name];
     }
 
     if(raw === undefined || raw === null) {
@@ -202,6 +238,30 @@ function convertFieldValue(raw: any, field: DescField): any {
 
 // ── proto -> TL ────────────────────────────────────────────────────────────
 
+// protobuf-es represents every int64/uint64/fixed64 as a JS bigint, but TL
+// `long` reaches the app as a number when it fits into a safe integer and as a
+// decimal string when it does not -- see TLDeserialization#fetchLong, which is
+// the contract the whole app was written against (`type Long = string | number`).
+//
+// A bigint that leaks past this point poisons everything it touches: the peerId
+// helpers are installed on Number.prototype and String.prototype only, so
+// `user.id.toPeerId()` throws; `bigint === number` is always false, so every
+// cache lookup silently misses; JSON.stringify throws outright on a bigint; and
+// mixing one into arithmetic throws as well. Every response and every realtime
+// update passes through protoToTL, so normalising here keeps all of that away
+// from the app.
+const MAX_SAFE_LONG = BigInt(Number.MAX_SAFE_INTEGER);
+const MIN_SAFE_LONG = -MAX_SAFE_LONG;
+
+function longToTL(value: bigint): number | string {
+  if(value <= MAX_SAFE_LONG && value >= MIN_SAFE_LONG) {
+    return Number(value);
+  }
+
+  return value.toString(10);
+}
+
+
 export function protoToTL(value: any, schema?: DescMessage): any {
   if(value === null || value === undefined) {
     return value;
@@ -212,7 +272,11 @@ export function protoToTL(value: any, schema?: DescMessage): any {
   }
 
   const type = typeof value;
-  if(type === 'string' || type === 'number' || type === 'boolean' || type === 'bigint') {
+  if(type === 'bigint') {
+    return longToTL(value as bigint);
+  }
+
+  if(type === 'string' || type === 'number' || type === 'boolean') {
     return value;
   }
 
@@ -238,6 +302,15 @@ export function protoToTL(value: any, schema?: DescMessage): any {
     out._ = predicate;
   }
 
+  const info = predicate ? getPredicateInfo(predicate) : undefined;
+
+  // TL creates `pFlags` off the `#` param, so a constructor that has one always
+  // carries the bag even when no bit is set — code does `user.pFlags.bot`
+  // unguarded and would throw on a missing bag.
+  if(info?.flagWords.size) {
+    out.pFlags = {};
+  }
+
   let oneofValue: any;
   let hasOwnFields = false;
 
@@ -252,6 +325,23 @@ export function protoToTL(value: any, schema?: DescMessage): any {
     }
 
     hasOwnFields = true;
+
+    // The flags word is bookkeeping for the wire format; TL never puts it on
+    // the result, and downstream would mistake it for a real field.
+    if(info?.flagWords.has(field.name)) {
+      continue;
+    }
+
+    if(info?.boolFlags.has(field.name)) {
+      // Only a set bit is recorded. TL cannot express `false` here — the param
+      // is simply absent — and readers test for truthiness or for presence.
+      if(raw === true) {
+        (out.pFlags ??= {})[field.name] = true;
+      }
+
+      continue;
+    }
+
     out[field.name] = protoToTL(raw, field.message);
   }
 
@@ -345,7 +435,12 @@ export function isGrpcAvailable(method: string): boolean {
   return Boolean(method) && getServiceAndMethod(method) !== undefined;
 }
 
-export async function grpcInvoke(method: string, params: any = {}, abortSignal?: AbortSignal): Promise<any> {
+export async function grpcInvoke(
+  method: string,
+  params: any = {},
+  abortSignal?: AbortSignal,
+  isRetry = false
+): Promise<any> {
   const mapping = getServiceAndMethod(method);
   if(!mapping) {
     throw {type: 'GRPC_METHOD_UNMAPPED', message: `No gRPC mapping for ${method}`, code: 501} as ApiError;
@@ -367,6 +462,15 @@ export async function grpcInvoke(method: string, params: any = {}, abortSignal?:
     return result;
   } catch(err) {
     const apiError = toApiError(err);
+
+    // The access token expires after AccessTokenExpiryMinutes and every call then
+    // comes back AUTH_KEY_UNREGISTERED. Renew once with the refresh token and
+    // replay, rather than dropping a signed-in user onto the login screen.
+    if(apiError.type === 'AUTH_KEY_UNREGISTERED' && !isRetry && await refreshImpulseSession()) {
+      logger.info('Retrying after session refresh', {method});
+      return grpcInvoke(method, params, abortSignal, true);
+    }
+
     logger.debug('gRPC invocation failed', {
       method,
       service: service.typeName,

@@ -41,7 +41,7 @@ import MEDIA_MIME_TYPES_SUPPORTED from '@environment/mediaMimeTypesSupport';
 import {isConvertibleMov} from '@helpers/movToVideo';
 import IMAGE_MIME_TYPES_SUPPORTED from '@environment/imageMimeTypesSupport';
 import {NULL_PEER_ID, STARS_CURRENCY} from '@appManagers/constants';
-import telegramMeWebManager from '@lib/telegramMeWebManager';
+import impulsemMeWebManager from '@lib/impulsemMeWebManager';
 import {formatDate, ONE_DAY} from '@helpers/date';
 import createTopbarCall, {TopbarCallController} from '@components/topbarCall';
 import confirmationPopup from '@components/confirmationPopup';
@@ -859,7 +859,7 @@ export class AppImManager extends EventListenerBase<{
     singleInstance.activateInstance();
 
     const setAuthorized = () => {
-      telegramMeWebManager.setAuthorized(true);
+      impulsemMeWebManager.setAuthorized(true);
     };
 
     // ! THANKS TO CHROMIUM DEVELOPERS FOR THIS BUG

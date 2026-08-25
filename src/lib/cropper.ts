@@ -18,9 +18,7 @@ function resizeableImage(originalImage: HTMLImageElement, canvas?: HTMLCanvasEle
     container_top: number
   }> = {};
   const MINWIDTH = 50,
-    MINHEIGHT = 50,
-    CROPWIDTH = 200,
-    CROPHEIGHT = 200;
+    MINHEIGHT = 50;
 
   if(originalImage.complete) init();
   else originalImage.onload = init;
@@ -84,10 +82,16 @@ function resizeableImage(originalImage: HTMLImageElement, canvas?: HTMLCanvasEle
 
     scaledRatio = originalImage.naturalWidth / originalImage.offsetWidth;
 
-    const left = originalImage.offsetWidth / 2 - CROPWIDTH / 2;
-    const top = originalImage.offsetHeight / 2 - CROPHEIGHT / 2;
+    // Open at the largest circle the picture can hold: the crop is square, so the
+    // shorter displayed edge is the limit. The previous fixed 200px box left a
+    // small circle floating in the middle of any sizeable photo, and the only way
+    // to grow it is the wheel -- which does not exist on touch devices at all.
+    // Starting at the maximum means zooming is only ever needed to crop tighter.
+    const cropSize = Math.min(originalImage.offsetWidth, originalImage.offsetHeight);
+    const left = originalImage.offsetWidth / 2 - cropSize / 2;
+    const top = originalImage.offsetHeight / 2 - cropSize / 2;
 
-    updateCropSize(CROPWIDTH, CROPHEIGHT);
+    updateCropSize(cropSize, cropSize);
     updateCropImage(left, top);
     updateContainer(left, top);
     addHandlers();

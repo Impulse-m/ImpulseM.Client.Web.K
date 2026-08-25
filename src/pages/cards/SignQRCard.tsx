@@ -87,10 +87,17 @@ export default function SignQRCard(_props: {spec: Spec}) {
     const textColor = style.getPropertyValue('--primary-text-color').trim();
     const primaryColor = style.getPropertyValue('--primary-color').trim();
 
+    // Draw into a detached holder. paintQrCode appends the canvas to its host up
+    // front and only then awaits the draw (which waits on the logo image, up to a
+    // second), so painting straight into the live container leaves two full-size
+    // canvases sharing the box for that whole time — that is what made the code
+    // jump on every rotation. Off-DOM the half-drawn canvas costs no layout.
+    const holder = document.createElement('div');
+
     const {canvas} = await paintQrCode({
       data: url,
       size: QR_SIZE,
-      host: stickerHost,
+      host: holder,
       background: surfaceColor,
       foreground: textColor,
       logoColor: primaryColor,
@@ -98,9 +105,11 @@ export default function SignQRCard(_props: {spec: Spec}) {
       QRCodeStylingCtor
     });
 
-    // ! costyl, but the library doesn't expose any events
     if(preloader) {
-      preloader.style.animation = 'hide-icon .4s forwards';
+      // First paint: reveal the code and fade the spinner out.
+      const spinner = preloader;
+      stickerHost.append(canvas);
+      spinner.style.animation = 'hide-icon .4s forwards';
 
       canvas.style.display = 'none';
       canvas.style.animation = 'grow-icon .4s forwards';
@@ -109,10 +118,18 @@ export default function SignQRCard(_props: {spec: Spec}) {
       }, 150);
       setTimeout(() => {
         canvas.style.animation = '';
+        spinner.remove();
       }, 500);
       preloader = undefined;
     } else {
-      Array.from(stickerHost.children).slice(0, -1).forEach((el) => el.remove());
+      // Rotation: one atomic swap, so the container is never empty and never
+      // holds two canvases.
+      const previous = stickerHost.querySelector('canvas');
+      if(previous) {
+        previous.replaceWith(canvas);
+      } else {
+        stickerHost.append(canvas);
+      }
     }
 
     lastDrawnToken = token;

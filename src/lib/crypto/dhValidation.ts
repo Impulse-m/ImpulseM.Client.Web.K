@@ -9,7 +9,7 @@
  *   - substitute a degenerate peer public value (0, 1, p-1) to force the key.
  *
  * Mirrors tdesktop's MTP::IsPrimeAndGood / IsGoodModExpFirst
- * (Telegram/SourceFiles/mtproto/mtproto_dh_utils.cpp) and the same checks
+ * (ImpulseM/SourceFiles/mtproto/mtproto_dh_utils.cpp) and the same checks
  * already applied to the MTProto auth handshake in authorizer.ts verifyDhParams.
  */
 import bigInt from 'big-integer';
@@ -17,7 +17,7 @@ import {bigIntFromBytes} from '@helpers/bigInt/bigIntConversion';
 import bytesToHex from '@helpers/bytes/bytesToHex';
 
 // The well-known 2048-bit safe prime, from
-// https://core.telegram.org/mtproto/security_guidelines — the same value
+// https://core.impulsem.net/mtproto/security_guidelines — the same value
 // pinned in authorizer.ts for the auth-key handshake.
 const KNOWN_DH_PRIME_HEX =
   'c71caeb9c6b1c9048e6c522f70f13f73980d40238e3e21c14934d037563d930f' +
@@ -61,7 +61,7 @@ function isGoodGeneratorForPrime(g: number, p: bigInt.BigInteger): boolean {
 }
 
 // Validate the server-supplied DH prime p and generator g. Throws on failure.
-// Fast path pins the known-good prime (what Telegram always serves); the slow
+// Fast path pins the known-good prime (what ImpulseM always serves); the slow
 // path verifies safe-prime structure so a future server-rotated prime still
 // works — exactly tdesktop's IsPrimeAndGood.
 // Deliberately NOT checked here: the prime's encoded byte length. Neither tdlib's

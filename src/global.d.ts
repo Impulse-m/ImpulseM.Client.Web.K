@@ -160,12 +160,20 @@ declare global {
   type LocalFileError = ApiFileManagerError | ReferenceError | StorageError;
   type LocalErrorType = LocalFileError | NetworkerError | FiltersError | LottieError |
     'UNKNOWN' | 'NO_DOC' | 'MIDDLEWARE' | 'PORT_DISCONNECTED' | 'NO_AUTO_DOWNLOAD' | 'CHAT_PRIVATE' | 'NO_WASM' |
-    'CANCELED' | 'TIMEOUT' | 'TAB_ALREADY_OPEN';
+    'CANCELED' | 'TIMEOUT' | 'TAB_ALREADY_OPEN' |
+    // ImpulseM gRPC transport invariants — a TL method reached the gateway
+    // bridge without a proto mapping, or the generated client lacks it.
+    'GRPC_METHOD_UNMAPPED' | 'GRPC_METHOD_MISSING' |
+    // Raised instead of opening an MTProto connection: the gateway speaks gRPC only.
+    'NETWORKER_DISABLED';
 
   type ServerErrorType =
     | 'FILE_REFERENCE_EXPIRED'
     | 'SESSION_REVOKED'
     | 'AUTH_KEY_DUPLICATED'
+    // Canon error the gateway returns once the access token expires; the list
+    // here is hand-maintained and simply never enumerated it.
+    | 'AUTH_KEY_UNREGISTERED'
     | 'SESSION_PASSWORD_NEEDED'
     | 'CONNECTION_NOT_INITED'
     | 'ERROR_EMPTY'
@@ -286,7 +294,7 @@ declare global {
 
   type ErrorType = LocalErrorType | ServerErrorType;
 
-  type TelegramChoosePeerType = 'users' | 'bots' | 'groups' | 'channels';
+  type ImpulseMChoosePeerType = 'users' | 'bots' | 'groups' | 'channels';
 
   type TranslatableLanguageISO = typeof Languages[number][0];
 

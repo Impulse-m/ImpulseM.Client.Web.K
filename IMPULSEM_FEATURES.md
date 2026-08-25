@@ -1,4 +1,4 @@
-# Telegram Features — Complete List & Implementation Status
+# ImpulseM Features — Complete List & Implementation Status
 
 Legend:
 - ✅ = Implemented
@@ -251,7 +251,7 @@ Legend:
 
 ---
 
-## 4. TELEGRAM PREMIUM
+## 4. IMPULSEM PREMIUM
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -281,7 +281,7 @@ Legend:
 
 ---
 
-## 5. TELEGRAM STARS & MONETIZATION
+## 5. IMPULSEM STARS & MONETIZATION
 
 ### 5.1 Stars Currency
 
@@ -437,7 +437,7 @@ Legend:
 | Web app emoji status access | ✅ | `webAppEmojiStatusAccess.tsx` |
 | Web app prepared message | ✅ | |
 | Allowed protocols | ✅ | |
-| Telegram WebView container | ✅ | `telegramWebView.ts` |
+| ImpulseM WebView container | ✅ | `impulsemWebView.ts` |
 
 ---
 
@@ -495,7 +495,7 @@ Legend:
 | Read dates privacy | ✅ | `toggleReadDate.tsx` |
 | Account freeze handling | ✅ | `frozen.tsx` |
 | Secret chats (E2E encrypted) | ❌ | |
-| Telegram Passport (full flow) | ❌ | |
+| ImpulseM Passport (full flow) | ❌ | |
 | Age verification | ✅ | `ageVerification.tsx` |
 
 ### 10.3 Account Management
@@ -512,7 +512,7 @@ Legend:
 
 ---
 
-## 11. TELEGRAM BUSINESS
+## 11. IMPULSEM BUSINESS
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -645,7 +645,7 @@ Legend:
 | Virtual/lazy lists | ✅ | |
 | Swipe gestures | ✅ | |
 | Ripple effects | ✅ | |
-| Log In With Telegram | ❌ | |
+| Log In With ImpulseM | ❌ | |
 | Default Profile Tab | ❌ | |
 | Video storyboards | ✅ | |
 | Sponsored in Video player | ❌ | |

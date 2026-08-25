@@ -586,7 +586,7 @@ export default class AppSelectPeers {
     }, 0);
   }
 
-  public static convertPeerTypes(types: TelegramChoosePeerType[]) {
+  public static convertPeerTypes(types: ImpulseMChoosePeerType[]) {
     const isPeerTypeMap: {
       [type in typeof types[0]]: IsPeerType
     } = {

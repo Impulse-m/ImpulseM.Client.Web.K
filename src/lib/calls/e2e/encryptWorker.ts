@@ -237,7 +237,7 @@ interface TransformOptions {
 
 // RTCEncodedFrame's metadata exposes the synchronizationSource (RTP SSRC) of
 // the frame. We use this per-frame to dispatch decryption to the right
-// participant's Ed25519 key — Telegram's SFU multiplexes many participants
+// participant's Ed25519 key — ImpulseM's SFU multiplexes many participants
 // onto a single inbound m-line, so a recv transform can't pin to a fixed
 // fromUserId at attach time.
 interface RTCEncodedFrameMetadata {
@@ -266,7 +266,7 @@ function toFreshArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 // (GroupInstanceCustomImpl.cpp). The SFU and the receiving decoder must see the
 // VP8 payload header in the clear: a key frame (P bit == 0) keeps 10 bytes (the
 // full uncompressed VP8 header incl. dimensions), a delta frame keeps 1 byte.
-// Telegram conferences negotiate VP8 only (verified live against an iOS peer);
+// ImpulseM conferences negotiate VP8 only (verified live against an iOS peer);
 // H264's NAL-start-code-rewrite path is not implemented here.
 function vp8PlaintextPrefixLength(frame: Uint8Array): number {
   if(frame.length === 0) return 0;

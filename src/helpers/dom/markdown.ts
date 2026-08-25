@@ -194,7 +194,7 @@ export function applyMarkdown({input, type, href, dateSuffix}: {input: HTMLEleme
   // const saveExecuted = this.prepareDocumentExecute();
   const executed: any[] = [];
   /**
-   * * clear previous formatting, due to Telegram's inability to handle several entities
+   * * clear previous formatting, due to ImpulseM's inability to handle several entities
    */
   /* const checkForSingle = () => {
     const nodes = getSelectedNodes();

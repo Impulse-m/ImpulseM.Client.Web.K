@@ -1,4 +1,4 @@
-// Taken from https://core.telegram.org/bots/payments/currencies.json
+// Taken from https://core.impulsem.net/bots/payments/currencies.json
 export type Currency = {
   code: string,
   title: string,

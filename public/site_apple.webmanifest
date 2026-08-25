@@ -1,6 +1,6 @@
 {
-    "name": "Telegram Web",
-    "short_name": "Telegram Web",
+    "name": "ImpulseM Web",
+    "short_name": "ImpulseM Web",
     "id": "/k/",
     "start_url": "./",
     "scope": "./",
@@ -14,7 +14,7 @@
             "origin": "https://telegram.me"
         }
     ],
-    "description": "Telegram is a cloud-based mobile and desktop messaging app with a focus on security and speed.",
+    "description": "ImpulseM is a cloud-based mobile and desktop messaging app with a focus on security and speed.",
     "icons": [
         {
             "src": "assets/img/icon_square_192.png?v=jw3mK7G9Ry",

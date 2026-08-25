@@ -24,7 +24,7 @@ describe('parseAllowedChatIds', () => {
 
   it('rejects malformed chat IDs', () => {
     expect(() => parseAllowedChatIds('-1001,chat')).toThrow(
-      'Invalid Telegram chat ID: chat'
+      'Invalid ImpulseM chat ID: chat'
     );
   });
 });

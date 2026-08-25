@@ -116,7 +116,7 @@ const Settings = () => {
     makeSubTabConfig('unmute', 'AccountSettings.Notifications', AppNotificationsTab, tab),
     makeSubTabConfig('data', 'DataSettings', AppDataAndStorageTab, tab),
     makeSubTabConfig('lock', 'AccountSettings.PrivacyAndSecurity', AppPrivacyAndSecurityTab, tab),
-    makeSubTabConfig('settings', 'Telegram.GeneralSettingsViewController', AppGeneralSettingsTab, tab),
+    makeSubTabConfig('settings', 'ImpulseM.GeneralSettingsViewController', AppGeneralSettingsTab, tab),
     makeSubTabConfig('folder', 'AccountSettings.Filters', AppChatFoldersTab, tab),
     makeSubTabConfig('stickers_face', 'StickersName', AppStickersAndEmojiTab, tab),
     makeSubTabConfig('videocamera', 'AccountSettings.SpeakersAndCamera', AppSpeakersAndCameraTab, tab)
@@ -287,7 +287,7 @@ const Settings = () => {
             <Row clickable={() => PopupElement.createPopup(PopupStars)}>
               <Row.Icon icon="star" class="row-icon-stars-color" />
               <Row.Title titleRight={'' + stars()} titleRightSecondary>
-                {i18n('MenuTelegramStars')}
+                {i18n('MenuImpulseMStars')}
               </Row.Title>
             </Row>
           </Show>
@@ -295,7 +295,7 @@ const Settings = () => {
             <Row clickable={() => PopupElement.createPopup(PopupStars, {ton: true})}>
               <Row.Icon icon="ton" />
               <Row.Title titleRight={formatNanoton(starsTon())} titleRightSecondary>
-                {i18n('MenuTelegramStarsTon')}
+                {i18n('MenuImpulseMStarsTon')}
               </Row.Title>
             </Row>
           </Show>

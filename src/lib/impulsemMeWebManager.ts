@@ -12,7 +12,7 @@ import loadScript from '@helpers/dom/loadScript';
 import tsNow from '@helpers/tsNow';
 import sessionStorage from '@lib/sessionStorage';
 
-export class TelegramMeWebManager {
+export class ImpulseMMeWebManager {
   private disabled = /* false &&  */(Modes.test || !App.domains.includes(location.hostname));
 
   public setAuthorized(canRedirect: boolean) {
@@ -54,6 +54,6 @@ export class TelegramMeWebManager {
   }
 }
 
-const telegramMeWebManager = new TelegramMeWebManager();
-MOUNT_CLASS_TO && (MOUNT_CLASS_TO.telegramMeWebManager = telegramMeWebManager);
-export default telegramMeWebManager;
+const impulsemMeWebManager = new ImpulseMMeWebManager();
+MOUNT_CLASS_TO && (MOUNT_CLASS_TO.impulsemMeWebManager = impulsemMeWebManager);
+export default impulsemMeWebManager;

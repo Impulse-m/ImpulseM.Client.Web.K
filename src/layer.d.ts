@@ -1,5 +1,5 @@
 /**
- * @link https://core.telegram.org/type/Error
+ * @link https://core.impulsem.net/type/Error
  */
 export type Error = Error.error;
 
@@ -12,7 +12,7 @@ export namespace Error {
 }
 
 /**
- * @link https://core.telegram.org/type/InputPeer
+ * @link https://core.impulsem.net/type/InputPeer
  */
 export type InputPeer = InputPeer.inputPeerEmpty | InputPeer.inputPeerSelf | InputPeer.inputPeerChat | InputPeer.inputPeerUser | InputPeer.inputPeerChannel | InputPeer.inputPeerUserFromMessage | InputPeer.inputPeerChannelFromMessage;
 
@@ -58,7 +58,7 @@ export namespace InputPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/InputUser
+ * @link https://core.impulsem.net/type/InputUser
  */
 export type InputUser = InputUser.inputUserEmpty | InputUser.inputUserSelf | InputUser.inputUser | InputUser.inputUserFromMessage;
 
@@ -86,7 +86,7 @@ export namespace InputUser {
 }
 
 /**
- * @link https://core.telegram.org/type/InputContact
+ * @link https://core.impulsem.net/type/InputContact
  */
 export type InputContact = InputContact.inputPhoneContact;
 
@@ -103,7 +103,7 @@ export namespace InputContact {
 }
 
 /**
- * @link https://core.telegram.org/type/InputFile
+ * @link https://core.impulsem.net/type/InputFile
  */
 export type InputFile = InputFile.inputFile | InputFile.inputFileBig | InputFile.inputFileStoryDocument;
 
@@ -130,7 +130,7 @@ export namespace InputFile {
 }
 
 /**
- * @link https://core.telegram.org/type/InputMedia
+ * @link https://core.impulsem.net/type/InputMedia
  */
 export type InputMedia = InputMedia.inputMediaEmpty | InputMedia.inputMediaUploadedPhoto | InputMedia.inputMediaPhoto | InputMedia.inputMediaGeoPoint | InputMedia.inputMediaContact | InputMedia.inputMediaUploadedDocument | InputMedia.inputMediaDocument | InputMedia.inputMediaVenue | InputMedia.inputMediaPhotoExternal | InputMedia.inputMediaDocumentExternal | InputMedia.inputMediaGame | InputMedia.inputMediaInvoice | InputMedia.inputMediaGeoLive | InputMedia.inputMediaPoll | InputMedia.inputMediaDice | InputMedia.inputMediaStory | InputMedia.inputMediaWebPage | InputMedia.inputMediaPaidMedia | InputMedia.inputMediaTodo | InputMedia.inputMediaStakeDice;
 
@@ -327,7 +327,7 @@ export namespace InputMedia {
 }
 
 /**
- * @link https://core.telegram.org/type/InputChatPhoto
+ * @link https://core.impulsem.net/type/InputChatPhoto
  */
 export type InputChatPhoto = InputChatPhoto.inputChatPhotoEmpty | InputChatPhoto.inputChatUploadedPhoto | InputChatPhoto.inputChatPhoto;
 
@@ -352,7 +352,7 @@ export namespace InputChatPhoto {
 }
 
 /**
- * @link https://core.telegram.org/type/InputGeoPoint
+ * @link https://core.impulsem.net/type/InputGeoPoint
  */
 export type InputGeoPoint = InputGeoPoint.inputGeoPointEmpty | InputGeoPoint.inputGeoPoint;
 
@@ -371,7 +371,7 @@ export namespace InputGeoPoint {
 }
 
 /**
- * @link https://core.telegram.org/type/InputPhoto
+ * @link https://core.impulsem.net/type/InputPhoto
  */
 export type InputPhoto = InputPhoto.inputPhotoEmpty | InputPhoto.inputPhoto;
 
@@ -389,7 +389,7 @@ export namespace InputPhoto {
 }
 
 /**
- * @link https://core.telegram.org/type/InputFileLocation
+ * @link https://core.impulsem.net/type/InputFileLocation
  */
 export type InputFileLocation = InputFileLocation.inputFileLocation | InputFileLocation.inputEncryptedFileLocation | InputFileLocation.inputDocumentFileLocation | InputFileLocation.inputSecureFileLocation | InputFileLocation.inputTakeoutFileLocation | InputFileLocation.inputPhotoFileLocation | InputFileLocation.inputPhotoLegacyFileLocation | InputFileLocation.inputPeerPhotoFileLocation | InputFileLocation.inputStickerSetThumb | InputFileLocation.inputGroupCallStream;
 
@@ -472,7 +472,7 @@ export namespace InputFileLocation {
 }
 
 /**
- * @link https://core.telegram.org/type/Peer
+ * @link https://core.impulsem.net/type/Peer
  */
 export type Peer = Peer.peerUser | Peer.peerChat | Peer.peerChannel;
 
@@ -494,7 +494,7 @@ export namespace Peer {
 }
 
 /**
- * @link https://core.telegram.org/type/storage.FileType
+ * @link https://core.impulsem.net/type/storage.FileType
  */
 export type StorageFileType = StorageFileType.storageFileUnknown | StorageFileType.storageFilePartial | StorageFileType.storageFileJpeg | StorageFileType.storageFileGif | StorageFileType.storageFilePng | StorageFileType.storageFilePdf | StorageFileType.storageFileMp3 | StorageFileType.storageFileMov | StorageFileType.storageFileMp4 | StorageFileType.storageFileWebp;
 
@@ -541,7 +541,7 @@ export namespace StorageFileType {
 }
 
 /**
- * @link https://core.telegram.org/type/User
+ * @link https://core.impulsem.net/type/User
  */
 export type User = User.userEmpty | User.user;
 
@@ -613,7 +613,7 @@ export namespace User {
 }
 
 /**
- * @link https://core.telegram.org/type/UserProfilePhoto
+ * @link https://core.impulsem.net/type/UserProfilePhoto
  */
 export type UserProfilePhoto = UserProfilePhoto.userProfilePhotoEmpty | UserProfilePhoto.userProfilePhoto;
 
@@ -636,7 +636,7 @@ export namespace UserProfilePhoto {
 }
 
 /**
- * @link https://core.telegram.org/type/UserStatus
+ * @link https://core.impulsem.net/type/UserStatus
  */
 export type UserStatus = UserStatus.userStatusEmpty | UserStatus.userStatusOnline | UserStatus.userStatusOffline | UserStatus.userStatusRecently | UserStatus.userStatusLastWeek | UserStatus.userStatusLastMonth;
 
@@ -681,7 +681,7 @@ export namespace UserStatus {
 }
 
 /**
- * @link https://core.telegram.org/type/Chat
+ * @link https://core.impulsem.net/type/Chat
  */
 export type Chat = Chat.chatEmpty | Chat.chat | Chat.chatForbidden | Chat.channel | Chat.channelForbidden | Chat.communityForbidden | Chat.community;
 
@@ -821,7 +821,7 @@ export namespace Chat {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatFull
+ * @link https://core.impulsem.net/type/ChatFull
  */
 export type ChatFull = ChatFull.chatFull | ChatFull.channelFull | ChatFull.communityFull;
 
@@ -942,7 +942,7 @@ export namespace ChatFull {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatParticipant
+ * @link https://core.impulsem.net/type/ChatParticipant
  */
 export type ChatParticipant = ChatParticipant.chatParticipant | ChatParticipant.chatParticipantCreator | ChatParticipant.chatParticipantAdmin;
 
@@ -974,7 +974,7 @@ export namespace ChatParticipant {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatParticipants
+ * @link https://core.impulsem.net/type/ChatParticipants
  */
 export type ChatParticipants = ChatParticipants.chatParticipantsForbidden | ChatParticipants.chatParticipants;
 
@@ -995,7 +995,7 @@ export namespace ChatParticipants {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatPhoto
+ * @link https://core.impulsem.net/type/ChatPhoto
  */
 export type ChatPhoto = ChatPhoto.chatPhotoEmpty | ChatPhoto.chatPhoto;
 
@@ -1017,7 +1017,7 @@ export namespace ChatPhoto {
 }
 
 /**
- * @link https://core.telegram.org/type/Message
+ * @link https://core.impulsem.net/type/Message
  */
 export type Message = Message.messageEmpty | Message.message | Message.messageService;
 
@@ -1158,7 +1158,7 @@ export namespace Message {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageMedia
+ * @link https://core.impulsem.net/type/MessageMedia
  */
 export type MessageMedia = MessageMedia.messageMediaEmpty | MessageMedia.messageMediaPhoto | MessageMedia.messageMediaGeo | MessageMedia.messageMediaContact | MessageMedia.messageMediaUnsupported | MessageMedia.messageMediaDocument | MessageMedia.messageMediaWebPage | MessageMedia.messageMediaVenue | MessageMedia.messageMediaGame | MessageMedia.messageMediaInvoice | MessageMedia.messageMediaGeoLive | MessageMedia.messageMediaPoll | MessageMedia.messageMediaDice | MessageMedia.messageMediaStory | MessageMedia.messageMediaGiveaway | MessageMedia.messageMediaGiveawayResults | MessageMedia.messageMediaPaidMedia | MessageMedia.messageMediaToDo | MessageMedia.messageMediaVideoStream | MessageMedia.messageMediaCall | MessageMedia.messageMediaPhotoExternal | MessageMedia.messageMediaDocumentExternal;
 
@@ -1368,7 +1368,7 @@ export namespace MessageMedia {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageAction
+ * @link https://core.impulsem.net/type/MessageAction
  */
 export type MessageAction = MessageAction.messageActionEmpty | MessageAction.messageActionChatCreate | MessageAction.messageActionChatEditTitle | MessageAction.messageActionChatEditPhoto | MessageAction.messageActionChatDeletePhoto | MessageAction.messageActionChatAddUser | MessageAction.messageActionChatDeleteUser | MessageAction.messageActionChatJoinedByLink | MessageAction.messageActionChannelCreate | MessageAction.messageActionChatMigrateTo | MessageAction.messageActionChannelMigrateFrom | MessageAction.messageActionPinMessage | MessageAction.messageActionHistoryClear | MessageAction.messageActionGameScore | MessageAction.messageActionPaymentSentMe | MessageAction.messageActionPaymentSent | MessageAction.messageActionPhoneCall | MessageAction.messageActionScreenshotTaken | MessageAction.messageActionCustomAction | MessageAction.messageActionBotAllowed | MessageAction.messageActionSecureValuesSentMe | MessageAction.messageActionSecureValuesSent | MessageAction.messageActionContactSignUp | MessageAction.messageActionGeoProximityReached | MessageAction.messageActionGroupCall | MessageAction.messageActionInviteToGroupCall | MessageAction.messageActionSetMessagesTTL | MessageAction.messageActionGroupCallScheduled | MessageAction.messageActionSetChatTheme | MessageAction.messageActionChatJoinedByRequest | MessageAction.messageActionWebViewDataSentMe | MessageAction.messageActionWebViewDataSent | MessageAction.messageActionGiftPremium | MessageAction.messageActionTopicCreate | MessageAction.messageActionTopicEdit | MessageAction.messageActionSuggestProfilePhoto | MessageAction.messageActionRequestedPeer | MessageAction.messageActionSetChatWallPaper | MessageAction.messageActionGiftCode | MessageAction.messageActionGiveawayLaunch | MessageAction.messageActionGiveawayResults | MessageAction.messageActionBoostApply | MessageAction.messageActionRequestedPeerSentMe | MessageAction.messageActionPaymentRefunded | MessageAction.messageActionGiftStars | MessageAction.messageActionPrizeStars | MessageAction.messageActionStarGift | MessageAction.messageActionStarGiftUnique | MessageAction.messageActionPaidMessagesRefunded | MessageAction.messageActionPaidMessagesPrice | MessageAction.messageActionConferenceCall | MessageAction.messageActionTodoCompletions | MessageAction.messageActionTodoAppendTasks | MessageAction.messageActionSuggestedPostApproval | MessageAction.messageActionSuggestedPostSuccess | MessageAction.messageActionSuggestedPostRefund | MessageAction.messageActionGiftTon | MessageAction.messageActionSuggestBirthday | MessageAction.messageActionStarGiftPurchaseOffer | MessageAction.messageActionStarGiftPurchaseOfferDeclined | MessageAction.messageActionNewCreatorPending | MessageAction.messageActionChangeCreator | MessageAction.messageActionNoForwardsToggle | MessageAction.messageActionNoForwardsRequest | MessageAction.messageActionPollAppendAnswer | MessageAction.messageActionPollDeleteAnswer | MessageAction.messageActionManagedBotCreated | MessageAction.messageActionChangeCommunity | MessageAction.messageActionDiscussionStarted | MessageAction.messageActionChannelJoined | MessageAction.messageActionChatLeave | MessageAction.messageActionChannelDeletePhoto | MessageAction.messageActionChannelEditTitle | MessageAction.messageActionChannelEditPhoto | MessageAction.messageActionChannelEditVideo | MessageAction.messageActionChatEditVideo | MessageAction.messageActionChatAddUsers | MessageAction.messageActionChatJoined | MessageAction.messageActionChatReturn | MessageAction.messageActionChatJoinedYou | MessageAction.messageActionChatReturnYou;
 
@@ -1965,7 +1965,7 @@ export namespace MessageAction {
 }
 
 /**
- * @link https://core.telegram.org/type/Dialog
+ * @link https://core.impulsem.net/type/Dialog
  */
 export type Dialog = Dialog.dialog | Dialog.dialogFolder | Dialog.dialogCommunity;
 
@@ -2058,7 +2058,7 @@ export namespace Dialog {
 }
 
 /**
- * @link https://core.telegram.org/type/Photo
+ * @link https://core.impulsem.net/type/Photo
  */
 export type Photo = Photo.photoEmpty | Photo.photo;
 
@@ -2085,7 +2085,7 @@ export namespace Photo {
 }
 
 /**
- * @link https://core.telegram.org/type/PhotoSize
+ * @link https://core.impulsem.net/type/PhotoSize
  */
 export type PhotoSize = PhotoSize.photoSizeEmpty | PhotoSize.photoSize | PhotoSize.photoCachedSize | PhotoSize.photoStrippedSize | PhotoSize.photoSizeProgressive | PhotoSize.photoPathSize;
 
@@ -2136,7 +2136,7 @@ export namespace PhotoSize {
 }
 
 /**
- * @link https://core.telegram.org/type/GeoPoint
+ * @link https://core.impulsem.net/type/GeoPoint
  */
 export type GeoPoint = GeoPoint.geoPointEmpty | GeoPoint.geoPoint;
 
@@ -2156,7 +2156,7 @@ export namespace GeoPoint {
 }
 
 /**
- * @link https://core.telegram.org/type/auth.SentCode
+ * @link https://core.impulsem.net/type/auth.SentCode
  */
 export type AuthSentCode = AuthSentCode.authSentCode | AuthSentCode.authSentCodeSuccess | AuthSentCode.authSentCodePaymentRequired;
 
@@ -2189,7 +2189,7 @@ export namespace AuthSentCode {
 }
 
 /**
- * @link https://core.telegram.org/type/auth.Authorization
+ * @link https://core.impulsem.net/type/auth.Authorization
  */
 export type AuthAuthorization = AuthAuthorization.authAuthorization | AuthAuthorization.authAuthorizationSignUpRequired;
 
@@ -2214,7 +2214,7 @@ export namespace AuthAuthorization {
 }
 
 /**
- * @link https://core.telegram.org/type/auth.ExportedAuthorization
+ * @link https://core.impulsem.net/type/auth.ExportedAuthorization
  */
 export type AuthExportedAuthorization = AuthExportedAuthorization.authExportedAuthorization;
 
@@ -2227,7 +2227,7 @@ export namespace AuthExportedAuthorization {
 }
 
 /**
- * @link https://core.telegram.org/type/InputNotifyPeer
+ * @link https://core.impulsem.net/type/InputNotifyPeer
  */
 export type InputNotifyPeer = InputNotifyPeer.inputNotifyPeer | InputNotifyPeer.inputNotifyUsers | InputNotifyPeer.inputNotifyChats | InputNotifyPeer.inputNotifyBroadcasts | InputNotifyPeer.inputNotifyForumTopic | InputNotifyPeer.inputNotifyCommunity;
 
@@ -2262,7 +2262,7 @@ export namespace InputNotifyPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/InputPeerNotifySettings
+ * @link https://core.impulsem.net/type/InputPeerNotifySettings
  */
 export type InputPeerNotifySettings = InputPeerNotifySettings.inputPeerNotifySettings;
 
@@ -2281,7 +2281,7 @@ export namespace InputPeerNotifySettings {
 }
 
 /**
- * @link https://core.telegram.org/type/PeerNotifySettings
+ * @link https://core.impulsem.net/type/PeerNotifySettings
  */
 export type PeerNotifySettings = PeerNotifySettings.peerNotifySettings;
 
@@ -2304,7 +2304,7 @@ export namespace PeerNotifySettings {
 }
 
 /**
- * @link https://core.telegram.org/type/PeerSettings
+ * @link https://core.impulsem.net/type/PeerSettings
  */
 export type PeerSettings = PeerSettings.peerSettings;
 
@@ -2339,7 +2339,7 @@ export namespace PeerSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/WallPaper
+ * @link https://core.impulsem.net/type/WallPaper
  */
 export type WallPaper = WallPaper.wallPaper | WallPaper.wallPaperNoFile;
 
@@ -2373,7 +2373,7 @@ export namespace WallPaper {
 }
 
 /**
- * @link https://core.telegram.org/type/ReportReason
+ * @link https://core.impulsem.net/type/ReportReason
  */
 export type ReportReason = ReportReason.inputReportReasonSpam | ReportReason.inputReportReasonViolence | ReportReason.inputReportReasonPornography | ReportReason.inputReportReasonChildAbuse | ReportReason.inputReportReasonOther | ReportReason.inputReportReasonCopyright | ReportReason.inputReportReasonGeoIrrelevant | ReportReason.inputReportReasonFake | ReportReason.inputReportReasonIllegalDrugs | ReportReason.inputReportReasonPersonalDetails;
 
@@ -2420,7 +2420,7 @@ export namespace ReportReason {
 }
 
 /**
- * @link https://core.telegram.org/type/UserFull
+ * @link https://core.impulsem.net/type/UserFull
  */
 export type UserFull = UserFull.userFull;
 
@@ -2493,7 +2493,7 @@ export namespace UserFull {
 }
 
 /**
- * @link https://core.telegram.org/type/Contact
+ * @link https://core.impulsem.net/type/Contact
  */
 export type Contact = Contact.contact;
 
@@ -2506,7 +2506,7 @@ export namespace Contact {
 }
 
 /**
- * @link https://core.telegram.org/type/ImportedContact
+ * @link https://core.impulsem.net/type/ImportedContact
  */
 export type ImportedContact = ImportedContact.importedContact;
 
@@ -2519,7 +2519,7 @@ export namespace ImportedContact {
 }
 
 /**
- * @link https://core.telegram.org/type/ContactStatus
+ * @link https://core.impulsem.net/type/ContactStatus
  */
 export type ContactStatus = ContactStatus.contactStatus;
 
@@ -2532,7 +2532,7 @@ export namespace ContactStatus {
 }
 
 /**
- * @link https://core.telegram.org/type/contacts.Contacts
+ * @link https://core.impulsem.net/type/contacts.Contacts
  */
 export type ContactsContacts = ContactsContacts.contactsContactsNotModified | ContactsContacts.contactsContacts;
 
@@ -2550,7 +2550,7 @@ export namespace ContactsContacts {
 }
 
 /**
- * @link https://core.telegram.org/type/contacts.ImportedContacts
+ * @link https://core.impulsem.net/type/contacts.ImportedContacts
  */
 export type ContactsImportedContacts = ContactsImportedContacts.contactsImportedContacts;
 
@@ -2565,7 +2565,7 @@ export namespace ContactsImportedContacts {
 }
 
 /**
- * @link https://core.telegram.org/type/contacts.Blocked
+ * @link https://core.impulsem.net/type/contacts.Blocked
  */
 export type ContactsBlocked = ContactsBlocked.contactsBlocked | ContactsBlocked.contactsBlockedSlice;
 
@@ -2587,7 +2587,7 @@ export namespace ContactsBlocked {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.Dialogs
+ * @link https://core.impulsem.net/type/messages.Dialogs
  */
 export type MessagesDialogs = MessagesDialogs.messagesDialogs | MessagesDialogs.messagesDialogsSlice | MessagesDialogs.messagesDialogsNotModified;
 
@@ -2616,7 +2616,7 @@ export namespace MessagesDialogs {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.Messages
+ * @link https://core.impulsem.net/type/messages.Messages
  */
 export type MessagesMessages = MessagesMessages.messagesMessages | MessagesMessages.messagesMessagesSlice | MessagesMessages.messagesChannelMessages | MessagesMessages.messagesMessagesNotModified;
 
@@ -2667,7 +2667,7 @@ export namespace MessagesMessages {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.Chats
+ * @link https://core.impulsem.net/type/messages.Chats
  */
 export type MessagesChats = MessagesChats.messagesChats | MessagesChats.messagesChatsSlice;
 
@@ -2685,7 +2685,7 @@ export namespace MessagesChats {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.ChatFull
+ * @link https://core.impulsem.net/type/messages.ChatFull
  */
 export type MessagesChatFull = MessagesChatFull.messagesChatFull;
 
@@ -2699,7 +2699,7 @@ export namespace MessagesChatFull {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.AffectedHistory
+ * @link https://core.impulsem.net/type/messages.AffectedHistory
  */
 export type MessagesAffectedHistory = MessagesAffectedHistory.messagesAffectedHistory;
 
@@ -2713,7 +2713,7 @@ export namespace MessagesAffectedHistory {
 }
 
 /**
- * @link https://core.telegram.org/type/MessagesFilter
+ * @link https://core.impulsem.net/type/MessagesFilter
  */
 export type MessagesFilter = MessagesFilter.inputMessagesFilterEmpty | MessagesFilter.inputMessagesFilterPhotos | MessagesFilter.inputMessagesFilterVideo | MessagesFilter.inputMessagesFilterPhotoVideo | MessagesFilter.inputMessagesFilterDocument | MessagesFilter.inputMessagesFilterUrl | MessagesFilter.inputMessagesFilterGif | MessagesFilter.inputMessagesFilterVoice | MessagesFilter.inputMessagesFilterMusic | MessagesFilter.inputMessagesFilterChatPhotos | MessagesFilter.inputMessagesFilterPhoneCalls | MessagesFilter.inputMessagesFilterRoundVoice | MessagesFilter.inputMessagesFilterRoundVideo | MessagesFilter.inputMessagesFilterMyMentions | MessagesFilter.inputMessagesFilterGeo | MessagesFilter.inputMessagesFilterContacts | MessagesFilter.inputMessagesFilterPinned | MessagesFilter.inputMessagesFilterPoll;
 
@@ -2796,7 +2796,7 @@ export namespace MessagesFilter {
 }
 
 /**
- * @link https://core.telegram.org/type/Update
+ * @link https://core.impulsem.net/type/Update
  */
 export type Update = Update.updateNewMessage | Update.updateMessageID | Update.updateDeleteMessages | Update.updateUserTyping | Update.updateChatUserTyping | Update.updateChatParticipants | Update.updateUserStatus | Update.updateUserName | Update.updateNewAuthorization | Update.updateNewEncryptedMessage | Update.updateEncryptedChatTyping | Update.updateEncryption | Update.updateEncryptedMessagesRead | Update.updateChatParticipantAdd | Update.updateChatParticipantDelete | Update.updateDcOptions | Update.updateNotifySettings | Update.updateServiceNotification | Update.updatePrivacy | Update.updateUserPhone | Update.updateReadHistoryInbox | Update.updateReadHistoryOutbox | Update.updateWebPage | Update.updateReadMessagesContents | Update.updateChannelTooLong | Update.updateChannel | Update.updateNewChannelMessage | Update.updateReadChannelInbox | Update.updateDeleteChannelMessages | Update.updateChannelMessageViews | Update.updateChatParticipantAdmin | Update.updateNewStickerSet | Update.updateStickerSetsOrder | Update.updateStickerSets | Update.updateSavedGifs | Update.updateBotInlineQuery | Update.updateBotInlineSend | Update.updateEditChannelMessage | Update.updateBotCallbackQuery | Update.updateEditMessage | Update.updateInlineBotCallbackQuery | Update.updateReadChannelOutbox | Update.updateDraftMessage | Update.updateReadFeaturedStickers | Update.updateRecentStickers | Update.updateConfig | Update.updatePtsChanged | Update.updateChannelWebPage | Update.updateDialogPinned | Update.updatePinnedDialogs | Update.updateBotWebhookJSON | Update.updateBotWebhookJSONQuery | Update.updateBotShippingQuery | Update.updateBotPrecheckoutQuery | Update.updatePhoneCall | Update.updateLangPackTooLong | Update.updateLangPack | Update.updateFavedStickers | Update.updateChannelReadMessagesContents | Update.updateContactsReset | Update.updateChannelAvailableMessages | Update.updateDialogUnreadMark | Update.updateMessagePoll | Update.updateChatDefaultBannedRights | Update.updateFolderPeers | Update.updatePeerSettings | Update.updatePeerLocated | Update.updateNewScheduledMessage | Update.updateDeleteScheduledMessages | Update.updateTheme | Update.updateGeoLiveViewed | Update.updateLoginToken | Update.updateMessagePollVote | Update.updateDialogFilter | Update.updateDialogFilterOrder | Update.updateDialogFilters | Update.updatePhoneCallSignalingData | Update.updateChannelMessageForwards | Update.updateReadChannelDiscussionInbox | Update.updateReadChannelDiscussionOutbox | Update.updatePeerBlocked | Update.updateChannelUserTyping | Update.updatePinnedMessages | Update.updatePinnedChannelMessages | Update.updateChat | Update.updateGroupCallParticipants | Update.updateGroupCall | Update.updatePeerHistoryTTL | Update.updateChatParticipant | Update.updateChannelParticipant | Update.updateBotStopped | Update.updateGroupCallConnection | Update.updateBotCommands | Update.updatePendingJoinRequests | Update.updateBotChatInviteRequester | Update.updateMessageReactions | Update.updateAttachMenuBots | Update.updateWebViewResultSent | Update.updateBotMenuButton | Update.updateSavedRingtones | Update.updateTranscribedAudio | Update.updateReadFeaturedEmojiStickers | Update.updateUserEmojiStatus | Update.updateRecentEmojiStatuses | Update.updateRecentReactions | Update.updateMoveStickerSetToTop | Update.updateMessageExtendedMedia | Update.updateUser | Update.updateAutoSaveSettings | Update.updateStory | Update.updateReadStories | Update.updateStoryID | Update.updateStoriesStealthMode | Update.updateSentStoryReaction | Update.updateBotChatBoost | Update.updateChannelViewForumAsMessages | Update.updatePeerWallpaper | Update.updateBotMessageReaction | Update.updateBotMessageReactions | Update.updateSavedDialogPinned | Update.updatePinnedSavedDialogs | Update.updateSavedReactionTags | Update.updateSmsJob | Update.updateQuickReplies | Update.updateNewQuickReply | Update.updateDeleteQuickReply | Update.updateQuickReplyMessage | Update.updateDeleteQuickReplyMessages | Update.updateBotBusinessConnect | Update.updateBotNewBusinessMessage | Update.updateBotEditBusinessMessage | Update.updateBotDeleteBusinessMessage | Update.updateNewStoryReaction | Update.updateStarsBalance | Update.updateBusinessBotCallbackQuery | Update.updateStarsRevenueStatus | Update.updateBotPurchasedPaidMedia | Update.updatePaidReactionPrivacy | Update.updateSentPhoneCode | Update.updateGroupCallChainBlocks | Update.updateReadMonoForumInbox | Update.updateReadMonoForumOutbox | Update.updateMonoForumNoPaidException | Update.updateGroupCallMessage | Update.updateGroupCallEncryptedMessage | Update.updatePinnedForumTopic | Update.updatePinnedForumTopics | Update.updateDeleteGroupCallMessages | Update.updateStarGiftAuctionState | Update.updateStarGiftAuctionUserState | Update.updateEmojiGameInfo | Update.updateStarGiftCraftFail | Update.updateChatParticipantRank | Update.updateManagedBot | Update.updateBotGuestChatQuery | Update.updateAiComposeTones | Update.updateJoinChatWebViewDecision | Update.updateNewBotConnection | Update.updateWebBrowserSettings | Update.updateWebBrowserException | Update.updateNewEphemeralMessage | Update.updateDeleteEphemeralMessages | Update.updateEditEphemeralMessage | Update.updateEphemeralBotCallbackQuery | Update.updateBotStarsSubscription | Update.updateNewDiscussionMessage | Update.updateDeleteDiscussionMessages | Update.updateChannelReload | Update.updatePts;
 
@@ -4029,7 +4029,7 @@ export namespace Update {
 }
 
 /**
- * @link https://core.telegram.org/type/updates.State
+ * @link https://core.impulsem.net/type/updates.State
  */
 export type UpdatesState = UpdatesState.updatesState;
 
@@ -4045,7 +4045,7 @@ export namespace UpdatesState {
 }
 
 /**
- * @link https://core.telegram.org/type/updates.Difference
+ * @link https://core.impulsem.net/type/updates.Difference
  */
 export type UpdatesDifference = UpdatesDifference.updatesDifferenceEmpty | UpdatesDifference.updatesDifference | UpdatesDifference.updatesDifferenceSlice | UpdatesDifference.updatesDifferenceTooLong;
 
@@ -4083,7 +4083,7 @@ export namespace UpdatesDifference {
 }
 
 /**
- * @link https://core.telegram.org/type/Updates
+ * @link https://core.impulsem.net/type/Updates
  */
 export type Updates = Updates.updatesTooLong | Updates.updateShortMessage | Updates.updateShortChatMessage | Updates.updateShort | Updates.updatesCombined | Updates.updates | Updates.updateShortSentMessage;
 
@@ -4179,7 +4179,7 @@ export namespace Updates {
 }
 
 /**
- * @link https://core.telegram.org/type/photos.Photos
+ * @link https://core.impulsem.net/type/photos.Photos
  */
 export type PhotosPhotos = PhotosPhotos.photosPhotos | PhotosPhotos.photosPhotosSlice;
 
@@ -4199,7 +4199,7 @@ export namespace PhotosPhotos {
 }
 
 /**
- * @link https://core.telegram.org/type/photos.Photo
+ * @link https://core.impulsem.net/type/photos.Photo
  */
 export type PhotosPhoto = PhotosPhoto.photosPhoto;
 
@@ -4212,7 +4212,7 @@ export namespace PhotosPhoto {
 }
 
 /**
- * @link https://core.telegram.org/type/upload.File
+ * @link https://core.impulsem.net/type/upload.File
  */
 export type UploadFile = UploadFile.uploadFile | UploadFile.uploadFileCdnRedirect;
 
@@ -4235,7 +4235,7 @@ export namespace UploadFile {
 }
 
 /**
- * @link https://core.telegram.org/type/DcOption
+ * @link https://core.impulsem.net/type/DcOption
  */
 export type DcOption = DcOption.dcOption;
 
@@ -4259,7 +4259,7 @@ export namespace DcOption {
 }
 
 /**
- * @link https://core.telegram.org/type/Config
+ * @link https://core.impulsem.net/type/Config
  */
 export type Config = Config.config;
 
@@ -4320,7 +4320,7 @@ export namespace Config {
 }
 
 /**
- * @link https://core.telegram.org/type/NearestDc
+ * @link https://core.impulsem.net/type/NearestDc
  */
 export type NearestDc = NearestDc.nearestDc;
 
@@ -4334,7 +4334,7 @@ export namespace NearestDc {
 }
 
 /**
- * @link https://core.telegram.org/type/help.AppUpdate
+ * @link https://core.impulsem.net/type/help.AppUpdate
  */
 export type HelpAppUpdate = HelpAppUpdate.helpAppUpdate | HelpAppUpdate.helpNoAppUpdate;
 
@@ -4360,7 +4360,7 @@ export namespace HelpAppUpdate {
 }
 
 /**
- * @link https://core.telegram.org/type/help.InviteText
+ * @link https://core.impulsem.net/type/help.InviteText
  */
 export type HelpInviteText = HelpInviteText.helpInviteText;
 
@@ -4372,7 +4372,7 @@ export namespace HelpInviteText {
 }
 
 /**
- * @link https://core.telegram.org/type/EncryptedChat
+ * @link https://core.impulsem.net/type/EncryptedChat
  */
 export type EncryptedChat = EncryptedChat.encryptedChatEmpty | EncryptedChat.encryptedChatWaiting | EncryptedChat.encryptedChatRequested | EncryptedChat.encryptedChat | EncryptedChat.encryptedChatDiscarded;
 
@@ -4425,7 +4425,7 @@ export namespace EncryptedChat {
 }
 
 /**
- * @link https://core.telegram.org/type/InputEncryptedChat
+ * @link https://core.impulsem.net/type/InputEncryptedChat
  */
 export type InputEncryptedChat = InputEncryptedChat.inputEncryptedChat;
 
@@ -4438,7 +4438,7 @@ export namespace InputEncryptedChat {
 }
 
 /**
- * @link https://core.telegram.org/type/EncryptedFile
+ * @link https://core.impulsem.net/type/EncryptedFile
  */
 export type EncryptedFile = EncryptedFile.encryptedFileEmpty | EncryptedFile.encryptedFile;
 
@@ -4458,7 +4458,7 @@ export namespace EncryptedFile {
 }
 
 /**
- * @link https://core.telegram.org/type/InputEncryptedFile
+ * @link https://core.impulsem.net/type/InputEncryptedFile
  */
 export type InputEncryptedFile = InputEncryptedFile.inputEncryptedFileEmpty | InputEncryptedFile.inputEncryptedFileUploaded | InputEncryptedFile.inputEncryptedFile | InputEncryptedFile.inputEncryptedFileBigUploaded;
 
@@ -4490,7 +4490,7 @@ export namespace InputEncryptedFile {
 }
 
 /**
- * @link https://core.telegram.org/type/EncryptedMessage
+ * @link https://core.impulsem.net/type/EncryptedMessage
  */
 export type EncryptedMessage = EncryptedMessage.encryptedMessage | EncryptedMessage.encryptedMessageService;
 
@@ -4514,7 +4514,7 @@ export namespace EncryptedMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.DhConfig
+ * @link https://core.impulsem.net/type/messages.DhConfig
  */
 export type MessagesDhConfig = MessagesDhConfig.messagesDhConfigNotModified | MessagesDhConfig.messagesDhConfig;
 
@@ -4534,7 +4534,7 @@ export namespace MessagesDhConfig {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.SentEncryptedMessage
+ * @link https://core.impulsem.net/type/messages.SentEncryptedMessage
  */
 export type MessagesSentEncryptedMessage = MessagesSentEncryptedMessage.messagesSentEncryptedMessage | MessagesSentEncryptedMessage.messagesSentEncryptedFile;
 
@@ -4552,7 +4552,7 @@ export namespace MessagesSentEncryptedMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/InputDocument
+ * @link https://core.impulsem.net/type/InputDocument
  */
 export type InputDocument = InputDocument.inputDocumentEmpty | InputDocument.inputDocument;
 
@@ -4570,7 +4570,7 @@ export namespace InputDocument {
 }
 
 /**
- * @link https://core.telegram.org/type/Document
+ * @link https://core.impulsem.net/type/Document
  */
 export type Document = Document.documentEmpty | Document.document;
 
@@ -4611,7 +4611,7 @@ export namespace Document {
 }
 
 /**
- * @link https://core.telegram.org/type/help.Support
+ * @link https://core.impulsem.net/type/help.Support
  */
 export type HelpSupport = HelpSupport.helpSupport;
 
@@ -4624,7 +4624,7 @@ export namespace HelpSupport {
 }
 
 /**
- * @link https://core.telegram.org/type/NotifyPeer
+ * @link https://core.impulsem.net/type/NotifyPeer
  */
 export type NotifyPeer = NotifyPeer.notifyPeer | NotifyPeer.notifyUsers | NotifyPeer.notifyChats | NotifyPeer.notifyBroadcasts | NotifyPeer.notifyForumTopic | NotifyPeer.notifyCommunity;
 
@@ -4659,7 +4659,7 @@ export namespace NotifyPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/SendMessageAction
+ * @link https://core.impulsem.net/type/SendMessageAction
  */
 export type SendMessageAction = SendMessageAction.sendMessageTypingAction | SendMessageAction.sendMessageCancelAction | SendMessageAction.sendMessageRecordVideoAction | SendMessageAction.sendMessageUploadVideoAction | SendMessageAction.sendMessageRecordAudioAction | SendMessageAction.sendMessageUploadAudioAction | SendMessageAction.sendMessageUploadPhotoAction | SendMessageAction.sendMessageUploadDocumentAction | SendMessageAction.sendMessageGeoLocationAction | SendMessageAction.sendMessageChooseContactAction | SendMessageAction.sendMessageGamePlayAction | SendMessageAction.sendMessageRecordRoundAction | SendMessageAction.sendMessageUploadRoundAction | SendMessageAction.speakingInGroupCallAction | SendMessageAction.sendMessageHistoryImportAction | SendMessageAction.sendMessageChooseStickerAction | SendMessageAction.sendMessageEmojiInteraction | SendMessageAction.sendMessageEmojiInteractionSeen | SendMessageAction.sendMessageTextDraftAction | SendMessageAction.inputSendMessageRichMessageDraftAction | SendMessageAction.sendMessageRichMessageDraftAction;
 
@@ -4766,7 +4766,7 @@ export namespace SendMessageAction {
 }
 
 /**
- * @link https://core.telegram.org/type/contacts.Found
+ * @link https://core.impulsem.net/type/contacts.Found
  */
 export type ContactsFound = ContactsFound.contactsFound;
 
@@ -4781,7 +4781,7 @@ export namespace ContactsFound {
 }
 
 /**
- * @link https://core.telegram.org/type/InputPrivacyKey
+ * @link https://core.impulsem.net/type/InputPrivacyKey
  */
 export type InputPrivacyKey = InputPrivacyKey.inputPrivacyKeyStatusTimestamp | InputPrivacyKey.inputPrivacyKeyChatInvite | InputPrivacyKey.inputPrivacyKeyPhoneCall | InputPrivacyKey.inputPrivacyKeyPhoneP2P | InputPrivacyKey.inputPrivacyKeyForwards | InputPrivacyKey.inputPrivacyKeyProfilePhoto | InputPrivacyKey.inputPrivacyKeyPhoneNumber | InputPrivacyKey.inputPrivacyKeyAddedByPhone | InputPrivacyKey.inputPrivacyKeyVoiceMessages | InputPrivacyKey.inputPrivacyKeyAbout | InputPrivacyKey.inputPrivacyKeyBirthday | InputPrivacyKey.inputPrivacyKeyStarGiftsAutoSave | InputPrivacyKey.inputPrivacyKeyNoPaidMessages | InputPrivacyKey.inputPrivacyKeySavedMusic;
 
@@ -4844,7 +4844,7 @@ export namespace InputPrivacyKey {
 }
 
 /**
- * @link https://core.telegram.org/type/PrivacyKey
+ * @link https://core.impulsem.net/type/PrivacyKey
  */
 export type PrivacyKey = PrivacyKey.privacyKeyStatusTimestamp | PrivacyKey.privacyKeyChatInvite | PrivacyKey.privacyKeyPhoneCall | PrivacyKey.privacyKeyPhoneP2P | PrivacyKey.privacyKeyForwards | PrivacyKey.privacyKeyProfilePhoto | PrivacyKey.privacyKeyPhoneNumber | PrivacyKey.privacyKeyAddedByPhone | PrivacyKey.privacyKeyVoiceMessages | PrivacyKey.privacyKeyAbout | PrivacyKey.privacyKeyBirthday | PrivacyKey.privacyKeyStarGiftsAutoSave | PrivacyKey.privacyKeyNoPaidMessages | PrivacyKey.privacyKeySavedMusic;
 
@@ -4907,7 +4907,7 @@ export namespace PrivacyKey {
 }
 
 /**
- * @link https://core.telegram.org/type/InputPrivacyRule
+ * @link https://core.impulsem.net/type/InputPrivacyRule
  */
 export type InputPrivacyRule = InputPrivacyRule.inputPrivacyValueAllowContacts | InputPrivacyRule.inputPrivacyValueAllowAll | InputPrivacyRule.inputPrivacyValueAllowUsers | InputPrivacyRule.inputPrivacyValueDisallowContacts | InputPrivacyRule.inputPrivacyValueDisallowAll | InputPrivacyRule.inputPrivacyValueDisallowUsers | InputPrivacyRule.inputPrivacyValueAllowChatParticipants | InputPrivacyRule.inputPrivacyValueDisallowChatParticipants | InputPrivacyRule.inputPrivacyValueAllowCloseFriends | InputPrivacyRule.inputPrivacyValueAllowPremium | InputPrivacyRule.inputPrivacyValueAllowBots | InputPrivacyRule.inputPrivacyValueDisallowBots;
 
@@ -4966,7 +4966,7 @@ export namespace InputPrivacyRule {
 }
 
 /**
- * @link https://core.telegram.org/type/PrivacyRule
+ * @link https://core.impulsem.net/type/PrivacyRule
  */
 export type PrivacyRule = PrivacyRule.privacyValueAllowContacts | PrivacyRule.privacyValueAllowAll | PrivacyRule.privacyValueAllowUsers | PrivacyRule.privacyValueDisallowContacts | PrivacyRule.privacyValueDisallowAll | PrivacyRule.privacyValueDisallowUsers | PrivacyRule.privacyValueAllowChatParticipants | PrivacyRule.privacyValueDisallowChatParticipants | PrivacyRule.privacyValueAllowCloseFriends | PrivacyRule.privacyValueAllowPremium | PrivacyRule.privacyValueAllowBots | PrivacyRule.privacyValueDisallowBots;
 
@@ -5025,7 +5025,7 @@ export namespace PrivacyRule {
 }
 
 /**
- * @link https://core.telegram.org/type/account.PrivacyRules
+ * @link https://core.impulsem.net/type/account.PrivacyRules
  */
 export type AccountPrivacyRules = AccountPrivacyRules.accountPrivacyRules;
 
@@ -5039,7 +5039,7 @@ export namespace AccountPrivacyRules {
 }
 
 /**
- * @link https://core.telegram.org/type/AccountDaysTTL
+ * @link https://core.impulsem.net/type/AccountDaysTTL
  */
 export type AccountDaysTTL = AccountDaysTTL.accountDaysTTL;
 
@@ -5051,7 +5051,7 @@ export namespace AccountDaysTTL {
 }
 
 /**
- * @link https://core.telegram.org/type/DocumentAttribute
+ * @link https://core.impulsem.net/type/DocumentAttribute
  */
 export type DocumentAttribute = DocumentAttribute.documentAttributeImageSize | DocumentAttribute.documentAttributeAnimated | DocumentAttribute.documentAttributeSticker | DocumentAttribute.documentAttributeVideo | DocumentAttribute.documentAttributeAudio | DocumentAttribute.documentAttributeFilename | DocumentAttribute.documentAttributeHasStickers | DocumentAttribute.documentAttributeCustomEmoji;
 
@@ -5127,7 +5127,7 @@ export namespace DocumentAttribute {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.Stickers
+ * @link https://core.impulsem.net/type/messages.Stickers
  */
 export type MessagesStickers = MessagesStickers.messagesStickersNotModified | MessagesStickers.messagesStickers;
 
@@ -5144,7 +5144,7 @@ export namespace MessagesStickers {
 }
 
 /**
- * @link https://core.telegram.org/type/StickerPack
+ * @link https://core.impulsem.net/type/StickerPack
  */
 export type StickerPack = StickerPack.stickerPack;
 
@@ -5157,7 +5157,7 @@ export namespace StickerPack {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.AllStickers
+ * @link https://core.impulsem.net/type/messages.AllStickers
  */
 export type MessagesAllStickers = MessagesAllStickers.messagesAllStickersNotModified | MessagesAllStickers.messagesAllStickers;
 
@@ -5174,7 +5174,7 @@ export namespace MessagesAllStickers {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.AffectedMessages
+ * @link https://core.impulsem.net/type/messages.AffectedMessages
  */
 export type MessagesAffectedMessages = MessagesAffectedMessages.messagesAffectedMessages;
 
@@ -5187,7 +5187,7 @@ export namespace MessagesAffectedMessages {
 }
 
 /**
- * @link https://core.telegram.org/type/WebPage
+ * @link https://core.impulsem.net/type/WebPage
  */
 export type WebPage = WebPage.webPageEmpty | WebPage.webPagePending | WebPage.webPage | WebPage.webPageNotModified;
 
@@ -5243,7 +5243,7 @@ export namespace WebPage {
 }
 
 /**
- * @link https://core.telegram.org/type/Authorization
+ * @link https://core.impulsem.net/type/Authorization
  */
 export type Authorization = Authorization.authorization;
 
@@ -5275,7 +5275,7 @@ export namespace Authorization {
 }
 
 /**
- * @link https://core.telegram.org/type/account.Authorizations
+ * @link https://core.impulsem.net/type/account.Authorizations
  */
 export type AccountAuthorizations = AccountAuthorizations.accountAuthorizations;
 
@@ -5288,7 +5288,7 @@ export namespace AccountAuthorizations {
 }
 
 /**
- * @link https://core.telegram.org/type/account.Password
+ * @link https://core.impulsem.net/type/account.Password
  */
 export type AccountPassword = AccountPassword.accountPassword;
 
@@ -5315,7 +5315,7 @@ export namespace AccountPassword {
 }
 
 /**
- * @link https://core.telegram.org/type/account.PasswordSettings
+ * @link https://core.impulsem.net/type/account.PasswordSettings
  */
 export type AccountPasswordSettings = AccountPasswordSettings.accountPasswordSettings;
 
@@ -5329,7 +5329,7 @@ export namespace AccountPasswordSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/account.PasswordInputSettings
+ * @link https://core.impulsem.net/type/account.PasswordInputSettings
  */
 export type AccountPasswordInputSettings = AccountPasswordInputSettings.accountPasswordInputSettings;
 
@@ -5346,7 +5346,7 @@ export namespace AccountPasswordInputSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/auth.PasswordRecovery
+ * @link https://core.impulsem.net/type/auth.PasswordRecovery
  */
 export type AuthPasswordRecovery = AuthPasswordRecovery.authPasswordRecovery;
 
@@ -5358,7 +5358,7 @@ export namespace AuthPasswordRecovery {
 }
 
 /**
- * @link https://core.telegram.org/type/ReceivedNotifyMessage
+ * @link https://core.impulsem.net/type/ReceivedNotifyMessage
  */
 export type ReceivedNotifyMessage = ReceivedNotifyMessage.receivedNotifyMessage;
 
@@ -5371,7 +5371,7 @@ export namespace ReceivedNotifyMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/ExportedChatInvite
+ * @link https://core.impulsem.net/type/ExportedChatInvite
  */
 export type ExportedChatInvite = ExportedChatInvite.chatInviteExported | ExportedChatInvite.chatInvitePublicJoinRequests;
 
@@ -5403,7 +5403,7 @@ export namespace ExportedChatInvite {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatInvite
+ * @link https://core.impulsem.net/type/ChatInvite
  */
 export type ChatInvite = ChatInvite.chatInviteAlready | ChatInvite.chatInvite | ChatInvite.chatInvitePeek;
 
@@ -5446,7 +5446,7 @@ export namespace ChatInvite {
 }
 
 /**
- * @link https://core.telegram.org/type/InputStickerSet
+ * @link https://core.impulsem.net/type/InputStickerSet
  */
 export type InputStickerSet = InputStickerSet.inputStickerSetEmpty | InputStickerSet.inputStickerSetID | InputStickerSet.inputStickerSetShortName | InputStickerSet.inputStickerSetAnimatedEmoji | InputStickerSet.inputStickerSetDice | InputStickerSet.inputStickerSetAnimatedEmojiAnimations | InputStickerSet.inputStickerSetPremiumGifts | InputStickerSet.inputStickerSetEmojiGenericAnimations | InputStickerSet.inputStickerSetEmojiDefaultStatuses | InputStickerSet.inputStickerSetEmojiDefaultTopicIcons | InputStickerSet.inputStickerSetEmojiChannelDefaultStatuses | InputStickerSet.inputStickerSetTonGifts;
 
@@ -5505,7 +5505,7 @@ export namespace InputStickerSet {
 }
 
 /**
- * @link https://core.telegram.org/type/StickerSet
+ * @link https://core.impulsem.net/type/StickerSet
  */
 export type StickerSet = StickerSet.stickerSet;
 
@@ -5537,7 +5537,7 @@ export namespace StickerSet {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.StickerSet
+ * @link https://core.impulsem.net/type/messages.StickerSet
  */
 export type MessagesStickerSet = MessagesStickerSet.messagesStickerSet | MessagesStickerSet.messagesStickerSetNotModified;
 
@@ -5557,7 +5557,7 @@ export namespace MessagesStickerSet {
 }
 
 /**
- * @link https://core.telegram.org/type/BotCommand
+ * @link https://core.impulsem.net/type/BotCommand
  */
 export type BotCommand = BotCommand.botCommand;
 
@@ -5574,7 +5574,7 @@ export namespace BotCommand {
 }
 
 /**
- * @link https://core.telegram.org/type/BotInfo
+ * @link https://core.impulsem.net/type/BotInfo
  */
 export type BotInfo = BotInfo.botInfo;
 
@@ -5598,7 +5598,7 @@ export namespace BotInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/KeyboardButton
+ * @link https://core.impulsem.net/type/KeyboardButton
  */
 export type KeyboardButton = KeyboardButton.keyboardButton | KeyboardButton.keyboardButtonUrl | KeyboardButton.keyboardButtonCallback | KeyboardButton.keyboardButtonRequestPhone | KeyboardButton.keyboardButtonRequestGeoLocation | KeyboardButton.keyboardButtonSwitchInline | KeyboardButton.keyboardButtonGame | KeyboardButton.keyboardButtonBuy | KeyboardButton.keyboardButtonUrlAuth | KeyboardButton.inputKeyboardButtonUrlAuth | KeyboardButton.keyboardButtonRequestPoll | KeyboardButton.inputKeyboardButtonUserProfile | KeyboardButton.keyboardButtonUserProfile | KeyboardButton.keyboardButtonWebView | KeyboardButton.keyboardButtonSimpleWebView | KeyboardButton.keyboardButtonRequestPeer | KeyboardButton.inputKeyboardButtonRequestPeer | KeyboardButton.keyboardButtonCopy;
 
@@ -5767,7 +5767,7 @@ export namespace KeyboardButton {
 }
 
 /**
- * @link https://core.telegram.org/type/KeyboardButtonRow
+ * @link https://core.impulsem.net/type/KeyboardButtonRow
  */
 export type KeyboardButtonRow = KeyboardButtonRow.keyboardButtonRow;
 
@@ -5779,7 +5779,7 @@ export namespace KeyboardButtonRow {
 }
 
 /**
- * @link https://core.telegram.org/type/ReplyMarkup
+ * @link https://core.impulsem.net/type/ReplyMarkup
  */
 export type ReplyMarkup = ReplyMarkup.replyKeyboardHide | ReplyMarkup.replyKeyboardForceReply | ReplyMarkup.replyKeyboardMarkup | ReplyMarkup.replyInlineMarkup;
 
@@ -5830,7 +5830,7 @@ export namespace ReplyMarkup {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageEntity
+ * @link https://core.impulsem.net/type/MessageEntity
  */
 export type MessageEntity = MessageEntity.messageEntityUnknown | MessageEntity.messageEntityMention | MessageEntity.messageEntityHashtag | MessageEntity.messageEntityBotCommand | MessageEntity.messageEntityUrl | MessageEntity.messageEntityEmail | MessageEntity.messageEntityBold | MessageEntity.messageEntityItalic | MessageEntity.messageEntityCode | MessageEntity.messageEntityPre | MessageEntity.messageEntityTextUrl | MessageEntity.messageEntityMentionName | MessageEntity.inputMessageEntityMentionName | MessageEntity.messageEntityPhone | MessageEntity.messageEntityCashtag | MessageEntity.messageEntityUnderline | MessageEntity.messageEntityStrike | MessageEntity.messageEntityBankCard | MessageEntity.messageEntitySpoiler | MessageEntity.messageEntityCustomEmoji | MessageEntity.messageEntityBlockquote | MessageEntity.messageEntityFormattedDate | MessageEntity.messageEntityDiffInsert | MessageEntity.messageEntityDiffReplace | MessageEntity.messageEntityDiffDelete | MessageEntity.messageEntityEmoji | MessageEntity.messageEntityHighlight | MessageEntity.messageEntityLinebreak | MessageEntity.messageEntityCaret | MessageEntity.messageEntityTimestamp | MessageEntity.messageEntityImage | MessageEntity.messageEntitySubscript | MessageEntity.messageEntitySuperscript | MessageEntity.messageEntityAnchor;
 
@@ -6070,7 +6070,7 @@ export namespace MessageEntity {
 }
 
 /**
- * @link https://core.telegram.org/type/InputChannel
+ * @link https://core.impulsem.net/type/InputChannel
  */
 export type InputChannel = InputChannel.inputChannelEmpty | InputChannel.inputChannel | InputChannel.inputChannelFromMessage;
 
@@ -6094,7 +6094,7 @@ export namespace InputChannel {
 }
 
 /**
- * @link https://core.telegram.org/type/contacts.ResolvedPeer
+ * @link https://core.impulsem.net/type/contacts.ResolvedPeer
  */
 export type ContactsResolvedPeer = ContactsResolvedPeer.contactsResolvedPeer;
 
@@ -6108,7 +6108,7 @@ export namespace ContactsResolvedPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageRange
+ * @link https://core.impulsem.net/type/MessageRange
  */
 export type MessageRange = MessageRange.messageRange;
 
@@ -6121,7 +6121,7 @@ export namespace MessageRange {
 }
 
 /**
- * @link https://core.telegram.org/type/updates.ChannelDifference
+ * @link https://core.impulsem.net/type/updates.ChannelDifference
  */
 export type UpdatesChannelDifference = UpdatesChannelDifference.updatesChannelDifferenceEmpty | UpdatesChannelDifference.updatesChannelDifferenceTooLong | UpdatesChannelDifference.updatesChannelDifference;
 
@@ -6165,7 +6165,7 @@ export namespace UpdatesChannelDifference {
 }
 
 /**
- * @link https://core.telegram.org/type/ChannelMessagesFilter
+ * @link https://core.impulsem.net/type/ChannelMessagesFilter
  */
 export type ChannelMessagesFilter = ChannelMessagesFilter.channelMessagesFilterEmpty | ChannelMessagesFilter.channelMessagesFilter;
 
@@ -6185,7 +6185,7 @@ export namespace ChannelMessagesFilter {
 }
 
 /**
- * @link https://core.telegram.org/type/ChannelParticipant
+ * @link https://core.impulsem.net/type/ChannelParticipant
  */
 export type ChannelParticipant = ChannelParticipant.channelParticipant | ChannelParticipant.channelParticipantSelf | ChannelParticipant.channelParticipantCreator | ChannelParticipant.channelParticipantAdmin | ChannelParticipant.channelParticipantBanned | ChannelParticipant.channelParticipantLeft;
 
@@ -6256,7 +6256,7 @@ export namespace ChannelParticipant {
 }
 
 /**
- * @link https://core.telegram.org/type/ChannelParticipantsFilter
+ * @link https://core.impulsem.net/type/ChannelParticipantsFilter
  */
 export type ChannelParticipantsFilter = ChannelParticipantsFilter.channelParticipantsRecent | ChannelParticipantsFilter.channelParticipantsAdmins | ChannelParticipantsFilter.channelParticipantsKicked | ChannelParticipantsFilter.channelParticipantsBots | ChannelParticipantsFilter.channelParticipantsBanned | ChannelParticipantsFilter.channelParticipantsSearch | ChannelParticipantsFilter.channelParticipantsContacts | ChannelParticipantsFilter.channelParticipantsMentions;
 
@@ -6303,7 +6303,7 @@ export namespace ChannelParticipantsFilter {
 }
 
 /**
- * @link https://core.telegram.org/type/channels.ChannelParticipants
+ * @link https://core.impulsem.net/type/channels.ChannelParticipants
  */
 export type ChannelsChannelParticipants = ChannelsChannelParticipants.channelsChannelParticipants | ChannelsChannelParticipants.channelsChannelParticipantsNotModified;
 
@@ -6322,7 +6322,7 @@ export namespace ChannelsChannelParticipants {
 }
 
 /**
- * @link https://core.telegram.org/type/channels.ChannelParticipant
+ * @link https://core.impulsem.net/type/channels.ChannelParticipant
  */
 export type ChannelsChannelParticipant = ChannelsChannelParticipant.channelsChannelParticipant;
 
@@ -6336,7 +6336,7 @@ export namespace ChannelsChannelParticipant {
 }
 
 /**
- * @link https://core.telegram.org/type/help.TermsOfService
+ * @link https://core.impulsem.net/type/help.TermsOfService
  */
 export type HelpTermsOfService = HelpTermsOfService.helpTermsOfService;
 
@@ -6355,7 +6355,7 @@ export namespace HelpTermsOfService {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.SavedGifs
+ * @link https://core.impulsem.net/type/messages.SavedGifs
  */
 export type MessagesSavedGifs = MessagesSavedGifs.messagesSavedGifsNotModified | MessagesSavedGifs.messagesSavedGifs;
 
@@ -6372,7 +6372,7 @@ export namespace MessagesSavedGifs {
 }
 
 /**
- * @link https://core.telegram.org/type/InputBotInlineMessage
+ * @link https://core.impulsem.net/type/InputBotInlineMessage
  */
 export type InputBotInlineMessage = InputBotInlineMessage.inputBotInlineMessageMediaAuto | InputBotInlineMessage.inputBotInlineMessageText | InputBotInlineMessage.inputBotInlineMessageMediaGeo | InputBotInlineMessage.inputBotInlineMessageMediaVenue | InputBotInlineMessage.inputBotInlineMessageMediaContact | InputBotInlineMessage.inputBotInlineMessageGame | InputBotInlineMessage.inputBotInlineMessageMediaInvoice | InputBotInlineMessage.inputBotInlineMessageMediaWebPage | InputBotInlineMessage.inputBotInlineMessageRichMessage;
 
@@ -6475,7 +6475,7 @@ export namespace InputBotInlineMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/InputBotInlineResult
+ * @link https://core.impulsem.net/type/InputBotInlineResult
  */
 export type InputBotInlineResult = InputBotInlineResult.inputBotInlineResult | InputBotInlineResult.inputBotInlineResultPhoto | InputBotInlineResult.inputBotInlineResultDocument | InputBotInlineResult.inputBotInlineResultGame;
 
@@ -6521,7 +6521,7 @@ export namespace InputBotInlineResult {
 }
 
 /**
- * @link https://core.telegram.org/type/BotInlineMessage
+ * @link https://core.impulsem.net/type/BotInlineMessage
  */
 export type BotInlineMessage = BotInlineMessage.botInlineMessageMediaAuto | BotInlineMessage.botInlineMessageText | BotInlineMessage.botInlineMessageMediaGeo | BotInlineMessage.botInlineMessageMediaVenue | BotInlineMessage.botInlineMessageMediaContact | BotInlineMessage.botInlineMessageMediaInvoice | BotInlineMessage.botInlineMessageMediaWebPage | BotInlineMessage.botInlineMessageRichMessage;
 
@@ -6621,7 +6621,7 @@ export namespace BotInlineMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/BotInlineResult
+ * @link https://core.impulsem.net/type/BotInlineResult
  */
 export type BotInlineResult = BotInlineResult.botInlineResult | BotInlineResult.botInlineMediaResult;
 
@@ -6653,7 +6653,7 @@ export namespace BotInlineResult {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.BotResults
+ * @link https://core.impulsem.net/type/messages.BotResults
  */
 export type MessagesBotResults = MessagesBotResults.messagesBotResults;
 
@@ -6675,7 +6675,7 @@ export namespace MessagesBotResults {
 }
 
 /**
- * @link https://core.telegram.org/type/ExportedMessageLink
+ * @link https://core.impulsem.net/type/ExportedMessageLink
  */
 export type ExportedMessageLink = ExportedMessageLink.exportedMessageLink;
 
@@ -6688,7 +6688,7 @@ export namespace ExportedMessageLink {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageFwdHeader
+ * @link https://core.impulsem.net/type/MessageFwdHeader
  */
 export type MessageFwdHeader = MessageFwdHeader.messageFwdHeader;
 
@@ -6715,7 +6715,7 @@ export namespace MessageFwdHeader {
 }
 
 /**
- * @link https://core.telegram.org/type/auth.CodeType
+ * @link https://core.impulsem.net/type/auth.CodeType
  */
 export type AuthCodeType = AuthCodeType.authCodeTypeSms | AuthCodeType.authCodeTypeCall | AuthCodeType.authCodeTypeFlashCall | AuthCodeType.authCodeTypeMissedCall | AuthCodeType.authCodeTypeFragmentSms;
 
@@ -6742,7 +6742,7 @@ export namespace AuthCodeType {
 }
 
 /**
- * @link https://core.telegram.org/type/auth.SentCodeType
+ * @link https://core.impulsem.net/type/auth.SentCodeType
  */
 export type AuthSentCodeType = AuthSentCodeType.authSentCodeTypeApp | AuthSentCodeType.authSentCodeTypeSms | AuthSentCodeType.authSentCodeTypeCall | AuthSentCodeType.authSentCodeTypeFlashCall | AuthSentCodeType.authSentCodeTypeMissedCall | AuthSentCodeType.authSentCodeTypeEmailCode | AuthSentCodeType.authSentCodeTypeSetUpEmailRequired | AuthSentCodeType.authSentCodeTypeFragmentSms | AuthSentCodeType.authSentCodeTypeFirebaseSms | AuthSentCodeType.authSentCodeTypeSmsWord | AuthSentCodeType.authSentCodeTypeSmsPhrase;
 
@@ -6826,7 +6826,7 @@ export namespace AuthSentCodeType {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.BotCallbackAnswer
+ * @link https://core.impulsem.net/type/messages.BotCallbackAnswer
  */
 export type MessagesBotCallbackAnswer = MessagesBotCallbackAnswer.messagesBotCallbackAnswer;
 
@@ -6846,7 +6846,7 @@ export namespace MessagesBotCallbackAnswer {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.MessageEditData
+ * @link https://core.impulsem.net/type/messages.MessageEditData
  */
 export type MessagesMessageEditData = MessagesMessageEditData.messagesMessageEditData;
 
@@ -6861,7 +6861,7 @@ export namespace MessagesMessageEditData {
 }
 
 /**
- * @link https://core.telegram.org/type/InputBotInlineMessageID
+ * @link https://core.impulsem.net/type/InputBotInlineMessageID
  */
 export type InputBotInlineMessageID = InputBotInlineMessageID.inputBotInlineMessageID | InputBotInlineMessageID.inputBotInlineMessageID64;
 
@@ -6883,7 +6883,7 @@ export namespace InputBotInlineMessageID {
 }
 
 /**
- * @link https://core.telegram.org/type/InlineBotSwitchPM
+ * @link https://core.impulsem.net/type/InlineBotSwitchPM
  */
 export type InlineBotSwitchPM = InlineBotSwitchPM.inlineBotSwitchPM;
 
@@ -6896,7 +6896,7 @@ export namespace InlineBotSwitchPM {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.PeerDialogs
+ * @link https://core.impulsem.net/type/messages.PeerDialogs
  */
 export type MessagesPeerDialogs = MessagesPeerDialogs.messagesPeerDialogs;
 
@@ -6912,7 +6912,7 @@ export namespace MessagesPeerDialogs {
 }
 
 /**
- * @link https://core.telegram.org/type/TopPeer
+ * @link https://core.impulsem.net/type/TopPeer
  */
 export type TopPeer = TopPeer.topPeer;
 
@@ -6925,7 +6925,7 @@ export namespace TopPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/TopPeerCategory
+ * @link https://core.impulsem.net/type/TopPeerCategory
  */
 export type TopPeerCategory = TopPeerCategory.topPeerCategoryBotsPM | TopPeerCategory.topPeerCategoryBotsInline | TopPeerCategory.topPeerCategoryCorrespondents | TopPeerCategory.topPeerCategoryGroups | TopPeerCategory.topPeerCategoryChannels | TopPeerCategory.topPeerCategoryPhoneCalls | TopPeerCategory.topPeerCategoryForwardUsers | TopPeerCategory.topPeerCategoryForwardChats | TopPeerCategory.topPeerCategoryBotsApp | TopPeerCategory.topPeerCategoryBotsGuestChat;
 
@@ -6972,7 +6972,7 @@ export namespace TopPeerCategory {
 }
 
 /**
- * @link https://core.telegram.org/type/TopPeerCategoryPeers
+ * @link https://core.impulsem.net/type/TopPeerCategoryPeers
  */
 export type TopPeerCategoryPeers = TopPeerCategoryPeers.topPeerCategoryPeers;
 
@@ -6986,7 +6986,7 @@ export namespace TopPeerCategoryPeers {
 }
 
 /**
- * @link https://core.telegram.org/type/contacts.TopPeers
+ * @link https://core.impulsem.net/type/contacts.TopPeers
  */
 export type ContactsTopPeers = ContactsTopPeers.contactsTopPeersNotModified | ContactsTopPeers.contactsTopPeers | ContactsTopPeers.contactsTopPeersDisabled;
 
@@ -7008,7 +7008,7 @@ export namespace ContactsTopPeers {
 }
 
 /**
- * @link https://core.telegram.org/type/DraftMessage
+ * @link https://core.impulsem.net/type/DraftMessage
  */
 export type DraftMessage = DraftMessage.draftMessageEmpty | DraftMessage.draftMessage;
 
@@ -7038,7 +7038,7 @@ export namespace DraftMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.FeaturedStickers
+ * @link https://core.impulsem.net/type/messages.FeaturedStickers
  */
 export type MessagesFeaturedStickers = MessagesFeaturedStickers.messagesFeaturedStickersNotModified | MessagesFeaturedStickers.messagesFeaturedStickers;
 
@@ -7062,7 +7062,7 @@ export namespace MessagesFeaturedStickers {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.RecentStickers
+ * @link https://core.impulsem.net/type/messages.RecentStickers
  */
 export type MessagesRecentStickers = MessagesRecentStickers.messagesRecentStickersNotModified | MessagesRecentStickers.messagesRecentStickers;
 
@@ -7081,7 +7081,7 @@ export namespace MessagesRecentStickers {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.ArchivedStickers
+ * @link https://core.impulsem.net/type/messages.ArchivedStickers
  */
 export type MessagesArchivedStickers = MessagesArchivedStickers.messagesArchivedStickers;
 
@@ -7094,7 +7094,7 @@ export namespace MessagesArchivedStickers {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.StickerSetInstallResult
+ * @link https://core.impulsem.net/type/messages.StickerSetInstallResult
  */
 export type MessagesStickerSetInstallResult = MessagesStickerSetInstallResult.messagesStickerSetInstallResultSuccess | MessagesStickerSetInstallResult.messagesStickerSetInstallResultArchive;
 
@@ -7110,7 +7110,7 @@ export namespace MessagesStickerSetInstallResult {
 }
 
 /**
- * @link https://core.telegram.org/type/StickerSetCovered
+ * @link https://core.impulsem.net/type/StickerSetCovered
  */
 export type StickerSetCovered = StickerSetCovered.stickerSetCovered | StickerSetCovered.stickerSetMultiCovered | StickerSetCovered.stickerSetFullCovered | StickerSetCovered.stickerSetNoCovered;
 
@@ -7142,7 +7142,7 @@ export namespace StickerSetCovered {
 }
 
 /**
- * @link https://core.telegram.org/type/MaskCoords
+ * @link https://core.impulsem.net/type/MaskCoords
  */
 export type MaskCoords = MaskCoords.maskCoords;
 
@@ -7157,7 +7157,7 @@ export namespace MaskCoords {
 }
 
 /**
- * @link https://core.telegram.org/type/InputStickeredMedia
+ * @link https://core.impulsem.net/type/InputStickeredMedia
  */
 export type InputStickeredMedia = InputStickeredMedia.inputStickeredMediaPhoto | InputStickeredMedia.inputStickeredMediaDocument;
 
@@ -7174,7 +7174,7 @@ export namespace InputStickeredMedia {
 }
 
 /**
- * @link https://core.telegram.org/type/Game
+ * @link https://core.impulsem.net/type/Game
  */
 export type Game = Game.game;
 
@@ -7193,7 +7193,7 @@ export namespace Game {
 }
 
 /**
- * @link https://core.telegram.org/type/InputGame
+ * @link https://core.impulsem.net/type/InputGame
  */
 export type InputGame = InputGame.inputGameID | InputGame.inputGameShortName;
 
@@ -7212,7 +7212,7 @@ export namespace InputGame {
 }
 
 /**
- * @link https://core.telegram.org/type/HighScore
+ * @link https://core.impulsem.net/type/HighScore
  */
 export type HighScore = HighScore.highScore;
 
@@ -7226,7 +7226,7 @@ export namespace HighScore {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.HighScores
+ * @link https://core.impulsem.net/type/messages.HighScores
  */
 export type MessagesHighScores = MessagesHighScores.messagesHighScores;
 
@@ -7239,7 +7239,7 @@ export namespace MessagesHighScores {
 }
 
 /**
- * @link https://core.telegram.org/type/RichText
+ * @link https://core.impulsem.net/type/RichText
  */
 export type RichText = RichText.textEmpty | RichText.textPlain | RichText.textBold | RichText.textItalic | RichText.textUnderline | RichText.textStrike | RichText.textFixed | RichText.textUrl | RichText.textEmail | RichText.textConcat | RichText.textSubscript | RichText.textSuperscript | RichText.textMarked | RichText.textPhone | RichText.textImage | RichText.textAnchor | RichText.textMath | RichText.textCustomEmoji | RichText.textSpoiler | RichText.textMention | RichText.textHashtag | RichText.textBotCommand | RichText.textCashtag | RichText.textAutoUrl | RichText.textAutoEmail | RichText.textAutoPhone | RichText.textBankCard | RichText.textMentionName | RichText.textDate | RichText.textDiff;
 
@@ -7415,7 +7415,7 @@ export namespace RichText {
 }
 
 /**
- * @link https://core.telegram.org/type/PageBlock
+ * @link https://core.impulsem.net/type/PageBlock
  */
 export type PageBlock = PageBlock.pageBlockUnsupported | PageBlock.pageBlockTitle | PageBlock.pageBlockSubtitle | PageBlock.pageBlockAuthorDate | PageBlock.pageBlockHeader | PageBlock.pageBlockSubheader | PageBlock.pageBlockParagraph | PageBlock.pageBlockPreformatted | PageBlock.pageBlockFooter | PageBlock.pageBlockDivider | PageBlock.pageBlockAnchor | PageBlock.pageBlockList | PageBlock.pageBlockBlockquote | PageBlock.pageBlockPullquote | PageBlock.pageBlockPhoto | PageBlock.pageBlockVideo | PageBlock.pageBlockCover | PageBlock.pageBlockEmbed | PageBlock.pageBlockEmbedPost | PageBlock.pageBlockCollage | PageBlock.pageBlockSlideshow | PageBlock.pageBlockChannel | PageBlock.pageBlockAudio | PageBlock.pageBlockKicker | PageBlock.pageBlockTable | PageBlock.pageBlockOrderedList | PageBlock.pageBlockDetails | PageBlock.pageBlockRelatedArticles | PageBlock.pageBlockMap | PageBlock.pageBlockHeading1 | PageBlock.pageBlockHeading2 | PageBlock.pageBlockHeading3 | PageBlock.pageBlockHeading4 | PageBlock.pageBlockHeading5 | PageBlock.pageBlockHeading6 | PageBlock.pageBlockMath | PageBlock.pageBlockThinking | PageBlock.inputPageBlockMap | PageBlock.pageBlockBlockquoteBlocks;
 
@@ -7679,7 +7679,7 @@ export namespace PageBlock {
 }
 
 /**
- * @link https://core.telegram.org/type/PhoneCallDiscardReason
+ * @link https://core.impulsem.net/type/PhoneCallDiscardReason
  */
 export type PhoneCallDiscardReason = PhoneCallDiscardReason.phoneCallDiscardReasonMissed | PhoneCallDiscardReason.phoneCallDiscardReasonDisconnect | PhoneCallDiscardReason.phoneCallDiscardReasonHangup | PhoneCallDiscardReason.phoneCallDiscardReasonBusy | PhoneCallDiscardReason.phoneCallDiscardReasonMigrateConferenceCall;
 
@@ -7707,7 +7707,7 @@ export namespace PhoneCallDiscardReason {
 }
 
 /**
- * @link https://core.telegram.org/type/DataJSON
+ * @link https://core.impulsem.net/type/DataJSON
  */
 export type DataJSON = DataJSON.dataJSON;
 
@@ -7719,7 +7719,7 @@ export namespace DataJSON {
 }
 
 /**
- * @link https://core.telegram.org/type/LabeledPrice
+ * @link https://core.impulsem.net/type/LabeledPrice
  */
 export type LabeledPrice = LabeledPrice.labeledPrice;
 
@@ -7732,7 +7732,7 @@ export namespace LabeledPrice {
 }
 
 /**
- * @link https://core.telegram.org/type/Invoice
+ * @link https://core.impulsem.net/type/Invoice
  */
 export type Invoice = Invoice.invoice;
 
@@ -7761,7 +7761,7 @@ export namespace Invoice {
 }
 
 /**
- * @link https://core.telegram.org/type/PaymentCharge
+ * @link https://core.impulsem.net/type/PaymentCharge
  */
 export type PaymentCharge = PaymentCharge.paymentCharge;
 
@@ -7774,7 +7774,7 @@ export namespace PaymentCharge {
 }
 
 /**
- * @link https://core.telegram.org/type/PostAddress
+ * @link https://core.impulsem.net/type/PostAddress
  */
 export type PostAddress = PostAddress.postAddress;
 
@@ -7791,7 +7791,7 @@ export namespace PostAddress {
 }
 
 /**
- * @link https://core.telegram.org/type/PaymentRequestedInfo
+ * @link https://core.impulsem.net/type/PaymentRequestedInfo
  */
 export type PaymentRequestedInfo = PaymentRequestedInfo.paymentRequestedInfo;
 
@@ -7807,7 +7807,7 @@ export namespace PaymentRequestedInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/PaymentSavedCredentials
+ * @link https://core.impulsem.net/type/PaymentSavedCredentials
  */
 export type PaymentSavedCredentials = PaymentSavedCredentials.paymentSavedCredentialsCard;
 
@@ -7820,7 +7820,7 @@ export namespace PaymentSavedCredentials {
 }
 
 /**
- * @link https://core.telegram.org/type/WebDocument
+ * @link https://core.impulsem.net/type/WebDocument
  */
 export type WebDocument = WebDocument.webDocument | WebDocument.webDocumentNoProxy;
 
@@ -7848,7 +7848,7 @@ export namespace WebDocument {
 }
 
 /**
- * @link https://core.telegram.org/type/InputWebDocument
+ * @link https://core.impulsem.net/type/InputWebDocument
  */
 export type InputWebDocument = InputWebDocument.inputWebDocument;
 
@@ -7863,7 +7863,7 @@ export namespace InputWebDocument {
 }
 
 /**
- * @link https://core.telegram.org/type/InputWebFileLocation
+ * @link https://core.impulsem.net/type/InputWebFileLocation
  */
 export type InputWebFileLocation = InputWebFileLocation.inputWebFileLocation | InputWebFileLocation.inputWebFileGeoPointLocation | InputWebFileLocation.inputWebFileAudioAlbumThumbLocation;
 
@@ -7897,7 +7897,7 @@ export namespace InputWebFileLocation {
 }
 
 /**
- * @link https://core.telegram.org/type/upload.WebFile
+ * @link https://core.impulsem.net/type/upload.WebFile
  */
 export type UploadWebFile = UploadWebFile.uploadWebFile;
 
@@ -7913,7 +7913,7 @@ export namespace UploadWebFile {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.PaymentForm
+ * @link https://core.impulsem.net/type/payments.PaymentForm
  */
 export type PaymentsPaymentForm = PaymentsPaymentForm.paymentsPaymentForm | PaymentsPaymentForm.paymentsPaymentFormStars | PaymentsPaymentForm.paymentsPaymentFormStarGift;
 
@@ -7961,7 +7961,7 @@ export namespace PaymentsPaymentForm {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.ValidatedRequestedInfo
+ * @link https://core.impulsem.net/type/payments.ValidatedRequestedInfo
  */
 export type PaymentsValidatedRequestedInfo = PaymentsValidatedRequestedInfo.paymentsValidatedRequestedInfo;
 
@@ -7975,7 +7975,7 @@ export namespace PaymentsValidatedRequestedInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.PaymentResult
+ * @link https://core.impulsem.net/type/payments.PaymentResult
  */
 export type PaymentsPaymentResult = PaymentsPaymentResult.paymentsPaymentResult | PaymentsPaymentResult.paymentsPaymentVerificationNeeded;
 
@@ -7992,7 +7992,7 @@ export namespace PaymentsPaymentResult {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.PaymentReceipt
+ * @link https://core.impulsem.net/type/payments.PaymentReceipt
  */
 export type PaymentsPaymentReceipt = PaymentsPaymentReceipt.paymentsPaymentReceipt | PaymentsPaymentReceipt.paymentsPaymentReceiptStars;
 
@@ -8033,7 +8033,7 @@ export namespace PaymentsPaymentReceipt {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.SavedInfo
+ * @link https://core.impulsem.net/type/payments.SavedInfo
  */
 export type PaymentsSavedInfo = PaymentsSavedInfo.paymentsSavedInfo;
 
@@ -8049,7 +8049,7 @@ export namespace PaymentsSavedInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/InputPaymentCredentials
+ * @link https://core.impulsem.net/type/InputPaymentCredentials
  */
 export type InputPaymentCredentials = InputPaymentCredentials.inputPaymentCredentialsSaved | InputPaymentCredentials.inputPaymentCredentials | InputPaymentCredentials.inputPaymentCredentialsApplePay | InputPaymentCredentials.inputPaymentCredentialsGooglePay;
 
@@ -8081,7 +8081,7 @@ export namespace InputPaymentCredentials {
 }
 
 /**
- * @link https://core.telegram.org/type/account.TmpPassword
+ * @link https://core.impulsem.net/type/account.TmpPassword
  */
 export type AccountTmpPassword = AccountTmpPassword.accountTmpPassword;
 
@@ -8094,7 +8094,7 @@ export namespace AccountTmpPassword {
 }
 
 /**
- * @link https://core.telegram.org/type/ShippingOption
+ * @link https://core.impulsem.net/type/ShippingOption
  */
 export type ShippingOption = ShippingOption.shippingOption;
 
@@ -8108,7 +8108,7 @@ export namespace ShippingOption {
 }
 
 /**
- * @link https://core.telegram.org/type/InputStickerSetItem
+ * @link https://core.impulsem.net/type/InputStickerSetItem
  */
 export type InputStickerSetItem = InputStickerSetItem.inputStickerSetItem;
 
@@ -8124,7 +8124,7 @@ export namespace InputStickerSetItem {
 }
 
 /**
- * @link https://core.telegram.org/type/InputPhoneCall
+ * @link https://core.impulsem.net/type/InputPhoneCall
  */
 export type InputPhoneCall = InputPhoneCall.inputPhoneCall;
 
@@ -8137,7 +8137,7 @@ export namespace InputPhoneCall {
 }
 
 /**
- * @link https://core.telegram.org/type/PhoneCall
+ * @link https://core.impulsem.net/type/PhoneCall
  */
 export type PhoneCall = PhoneCall.phoneCallEmpty | PhoneCall.phoneCallWaiting | PhoneCall.phoneCallRequested | PhoneCall.phoneCallAccepted | PhoneCall.phoneCall | PhoneCall.phoneCallDiscarded;
 
@@ -8228,7 +8228,7 @@ export namespace PhoneCall {
 }
 
 /**
- * @link https://core.telegram.org/type/PhoneConnection
+ * @link https://core.impulsem.net/type/PhoneConnection
  */
 export type PhoneConnection = PhoneConnection.phoneConnection | PhoneConnection.phoneConnectionWebrtc;
 
@@ -8263,7 +8263,7 @@ export namespace PhoneConnection {
 }
 
 /**
- * @link https://core.telegram.org/type/PhoneCallProtocol
+ * @link https://core.impulsem.net/type/PhoneCallProtocol
  */
 export type PhoneCallProtocol = PhoneCallProtocol.phoneCallProtocol;
 
@@ -8282,7 +8282,7 @@ export namespace PhoneCallProtocol {
 }
 
 /**
- * @link https://core.telegram.org/type/phone.PhoneCall
+ * @link https://core.impulsem.net/type/phone.PhoneCall
  */
 export type PhonePhoneCall = PhonePhoneCall.phonePhoneCall;
 
@@ -8295,7 +8295,7 @@ export namespace PhonePhoneCall {
 }
 
 /**
- * @link https://core.telegram.org/type/upload.CdnFile
+ * @link https://core.impulsem.net/type/upload.CdnFile
  */
 export type UploadCdnFile = UploadCdnFile.uploadCdnFileReuploadNeeded | UploadCdnFile.uploadCdnFile;
 
@@ -8312,7 +8312,7 @@ export namespace UploadCdnFile {
 }
 
 /**
- * @link https://core.telegram.org/type/CdnPublicKey
+ * @link https://core.impulsem.net/type/CdnPublicKey
  */
 export type CdnPublicKey = CdnPublicKey.cdnPublicKey;
 
@@ -8325,7 +8325,7 @@ export namespace CdnPublicKey {
 }
 
 /**
- * @link https://core.telegram.org/type/CdnConfig
+ * @link https://core.impulsem.net/type/CdnConfig
  */
 export type CdnConfig = CdnConfig.cdnConfig;
 
@@ -8337,7 +8337,7 @@ export namespace CdnConfig {
 }
 
 /**
- * @link https://core.telegram.org/type/LangPackString
+ * @link https://core.impulsem.net/type/LangPackString
  */
 export type LangPackString = LangPackString.langPackString | LangPackString.langPackStringPluralized | LangPackString.langPackStringDeleted;
 
@@ -8367,7 +8367,7 @@ export namespace LangPackString {
 }
 
 /**
- * @link https://core.telegram.org/type/LangPackDifference
+ * @link https://core.impulsem.net/type/LangPackDifference
  */
 export type LangPackDifference = LangPackDifference.langPackDifference;
 
@@ -8384,7 +8384,7 @@ export namespace LangPackDifference {
 }
 
 /**
- * @link https://core.telegram.org/type/LangPackLanguage
+ * @link https://core.impulsem.net/type/LangPackLanguage
  */
 export type LangPackLanguage = LangPackLanguage.langPackLanguage;
 
@@ -8409,7 +8409,7 @@ export namespace LangPackLanguage {
 }
 
 /**
- * @link https://core.telegram.org/type/ChannelAdminLogEventAction
+ * @link https://core.impulsem.net/type/ChannelAdminLogEventAction
  */
 export type ChannelAdminLogEventAction = ChannelAdminLogEventAction.channelAdminLogEventActionChangeTitle | ChannelAdminLogEventAction.channelAdminLogEventActionChangeAbout | ChannelAdminLogEventAction.channelAdminLogEventActionChangeUsername | ChannelAdminLogEventAction.channelAdminLogEventActionChangePhoto | ChannelAdminLogEventAction.channelAdminLogEventActionToggleInvites | ChannelAdminLogEventAction.channelAdminLogEventActionToggleSignatures | ChannelAdminLogEventAction.channelAdminLogEventActionUpdatePinned | ChannelAdminLogEventAction.channelAdminLogEventActionEditMessage | ChannelAdminLogEventAction.channelAdminLogEventActionDeleteMessage | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantJoin | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantLeave | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantInvite | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantToggleBan | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantToggleAdmin | ChannelAdminLogEventAction.channelAdminLogEventActionChangeStickerSet | ChannelAdminLogEventAction.channelAdminLogEventActionTogglePreHistoryHidden | ChannelAdminLogEventAction.channelAdminLogEventActionDefaultBannedRights | ChannelAdminLogEventAction.channelAdminLogEventActionStopPoll | ChannelAdminLogEventAction.channelAdminLogEventActionChangeLinkedChat | ChannelAdminLogEventAction.channelAdminLogEventActionChangeLocation | ChannelAdminLogEventAction.channelAdminLogEventActionToggleSlowMode | ChannelAdminLogEventAction.channelAdminLogEventActionStartGroupCall | ChannelAdminLogEventAction.channelAdminLogEventActionDiscardGroupCall | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantMute | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantUnmute | ChannelAdminLogEventAction.channelAdminLogEventActionToggleGroupCallSetting | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantJoinByInvite | ChannelAdminLogEventAction.channelAdminLogEventActionExportedInviteDelete | ChannelAdminLogEventAction.channelAdminLogEventActionExportedInviteRevoke | ChannelAdminLogEventAction.channelAdminLogEventActionExportedInviteEdit | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantVolume | ChannelAdminLogEventAction.channelAdminLogEventActionChangeHistoryTTL | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantJoinByRequest | ChannelAdminLogEventAction.channelAdminLogEventActionToggleNoForwards | ChannelAdminLogEventAction.channelAdminLogEventActionSendMessage | ChannelAdminLogEventAction.channelAdminLogEventActionChangeAvailableReactions | ChannelAdminLogEventAction.channelAdminLogEventActionChangeUsernames | ChannelAdminLogEventAction.channelAdminLogEventActionToggleForum | ChannelAdminLogEventAction.channelAdminLogEventActionCreateTopic | ChannelAdminLogEventAction.channelAdminLogEventActionEditTopic | ChannelAdminLogEventAction.channelAdminLogEventActionDeleteTopic | ChannelAdminLogEventAction.channelAdminLogEventActionPinTopic | ChannelAdminLogEventAction.channelAdminLogEventActionToggleAntiSpam | ChannelAdminLogEventAction.channelAdminLogEventActionChangePeerColor | ChannelAdminLogEventAction.channelAdminLogEventActionChangeProfilePeerColor | ChannelAdminLogEventAction.channelAdminLogEventActionChangeWallpaper | ChannelAdminLogEventAction.channelAdminLogEventActionChangeEmojiStatus | ChannelAdminLogEventAction.channelAdminLogEventActionChangeEmojiStickerSet | ChannelAdminLogEventAction.channelAdminLogEventActionToggleSignatureProfiles | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantSubExtend | ChannelAdminLogEventAction.channelAdminLogEventActionToggleAutotranslation | ChannelAdminLogEventAction.channelAdminLogEventActionParticipantEditRank;
 
@@ -8706,7 +8706,7 @@ export namespace ChannelAdminLogEventAction {
 }
 
 /**
- * @link https://core.telegram.org/type/ChannelAdminLogEvent
+ * @link https://core.impulsem.net/type/ChannelAdminLogEvent
  */
 export type ChannelAdminLogEvent = ChannelAdminLogEvent.channelAdminLogEvent;
 
@@ -8721,7 +8721,7 @@ export namespace ChannelAdminLogEvent {
 }
 
 /**
- * @link https://core.telegram.org/type/channels.AdminLogResults
+ * @link https://core.impulsem.net/type/channels.AdminLogResults
  */
 export type ChannelsAdminLogResults = ChannelsAdminLogResults.channelsAdminLogResults;
 
@@ -8735,7 +8735,7 @@ export namespace ChannelsAdminLogResults {
 }
 
 /**
- * @link https://core.telegram.org/type/ChannelAdminLogEventsFilter
+ * @link https://core.impulsem.net/type/ChannelAdminLogEventsFilter
  */
 export type ChannelAdminLogEventsFilter = ChannelAdminLogEventsFilter.channelAdminLogEventsFilter;
 
@@ -8769,7 +8769,7 @@ export namespace ChannelAdminLogEventsFilter {
 }
 
 /**
- * @link https://core.telegram.org/type/PopularContact
+ * @link https://core.impulsem.net/type/PopularContact
  */
 export type PopularContact = PopularContact.popularContact;
 
@@ -8782,7 +8782,7 @@ export namespace PopularContact {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.FavedStickers
+ * @link https://core.impulsem.net/type/messages.FavedStickers
  */
 export type MessagesFavedStickers = MessagesFavedStickers.messagesFavedStickersNotModified | MessagesFavedStickers.messagesFavedStickers;
 
@@ -8800,7 +8800,7 @@ export namespace MessagesFavedStickers {
 }
 
 /**
- * @link https://core.telegram.org/type/RecentMeUrl
+ * @link https://core.impulsem.net/type/RecentMeUrl
  */
 export type RecentMeUrl = RecentMeUrl.recentMeUrlUnknown | RecentMeUrl.recentMeUrlUser | RecentMeUrl.recentMeUrlChat | RecentMeUrl.recentMeUrlChatInvite | RecentMeUrl.recentMeUrlStickerSet;
 
@@ -8836,7 +8836,7 @@ export namespace RecentMeUrl {
 }
 
 /**
- * @link https://core.telegram.org/type/help.RecentMeUrls
+ * @link https://core.impulsem.net/type/help.RecentMeUrls
  */
 export type HelpRecentMeUrls = HelpRecentMeUrls.helpRecentMeUrls;
 
@@ -8850,7 +8850,7 @@ export namespace HelpRecentMeUrls {
 }
 
 /**
- * @link https://core.telegram.org/type/InputSingleMedia
+ * @link https://core.impulsem.net/type/InputSingleMedia
  */
 export type InputSingleMedia = InputSingleMedia.inputSingleMedia;
 
@@ -8866,7 +8866,7 @@ export namespace InputSingleMedia {
 }
 
 /**
- * @link https://core.telegram.org/type/WebAuthorization
+ * @link https://core.impulsem.net/type/WebAuthorization
  */
 export type WebAuthorization = WebAuthorization.webAuthorization;
 
@@ -8886,7 +8886,7 @@ export namespace WebAuthorization {
 }
 
 /**
- * @link https://core.telegram.org/type/account.WebAuthorizations
+ * @link https://core.impulsem.net/type/account.WebAuthorizations
  */
 export type AccountWebAuthorizations = AccountWebAuthorizations.accountWebAuthorizations;
 
@@ -8899,7 +8899,7 @@ export namespace AccountWebAuthorizations {
 }
 
 /**
- * @link https://core.telegram.org/type/InputMessage
+ * @link https://core.impulsem.net/type/InputMessage
  */
 export type InputMessage = InputMessage.inputMessageID | InputMessage.inputMessageReplyTo | InputMessage.inputMessagePinned | InputMessage.inputMessageCallbackQuery;
 
@@ -8926,7 +8926,7 @@ export namespace InputMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/InputDialogPeer
+ * @link https://core.impulsem.net/type/InputDialogPeer
  */
 export type InputDialogPeer = InputDialogPeer.inputDialogPeer | InputDialogPeer.inputDialogPeerFolder | InputDialogPeer.inputDialogPeerCommunity;
 
@@ -8948,7 +8948,7 @@ export namespace InputDialogPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/DialogPeer
+ * @link https://core.impulsem.net/type/DialogPeer
  */
 export type DialogPeer = DialogPeer.dialogPeer | DialogPeer.dialogPeerFolder | DialogPeer.dialogPeerCommunity;
 
@@ -8970,7 +8970,7 @@ export namespace DialogPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.FoundStickerSets
+ * @link https://core.impulsem.net/type/messages.FoundStickerSets
  */
 export type MessagesFoundStickerSets = MessagesFoundStickerSets.messagesFoundStickerSetsNotModified | MessagesFoundStickerSets.messagesFoundStickerSets;
 
@@ -8987,7 +8987,7 @@ export namespace MessagesFoundStickerSets {
 }
 
 /**
- * @link https://core.telegram.org/type/FileHash
+ * @link https://core.impulsem.net/type/FileHash
  */
 export type FileHash = FileHash.fileHash;
 
@@ -9001,7 +9001,7 @@ export namespace FileHash {
 }
 
 /**
- * @link https://core.telegram.org/type/InputClientProxy
+ * @link https://core.impulsem.net/type/InputClientProxy
  */
 export type InputClientProxy = InputClientProxy.inputClientProxy;
 
@@ -9014,7 +9014,7 @@ export namespace InputClientProxy {
 }
 
 /**
- * @link https://core.telegram.org/type/help.TermsOfServiceUpdate
+ * @link https://core.impulsem.net/type/help.TermsOfServiceUpdate
  */
 export type HelpTermsOfServiceUpdate = HelpTermsOfServiceUpdate.helpTermsOfServiceUpdateEmpty | HelpTermsOfServiceUpdate.helpTermsOfServiceUpdate;
 
@@ -9032,7 +9032,7 @@ export namespace HelpTermsOfServiceUpdate {
 }
 
 /**
- * @link https://core.telegram.org/type/InputSecureFile
+ * @link https://core.impulsem.net/type/InputSecureFile
  */
 export type InputSecureFile = InputSecureFile.inputSecureFileUploaded | InputSecureFile.inputSecureFile;
 
@@ -9054,7 +9054,7 @@ export namespace InputSecureFile {
 }
 
 /**
- * @link https://core.telegram.org/type/SecureFile
+ * @link https://core.impulsem.net/type/SecureFile
  */
 export type SecureFile = SecureFile.secureFileEmpty | SecureFile.secureFile;
 
@@ -9076,7 +9076,7 @@ export namespace SecureFile {
 }
 
 /**
- * @link https://core.telegram.org/type/SecureData
+ * @link https://core.impulsem.net/type/SecureData
  */
 export type SecureData = SecureData.secureData;
 
@@ -9090,7 +9090,7 @@ export namespace SecureData {
 }
 
 /**
- * @link https://core.telegram.org/type/SecurePlainData
+ * @link https://core.impulsem.net/type/SecurePlainData
  */
 export type SecurePlainData = SecurePlainData.securePlainPhone | SecurePlainData.securePlainEmail;
 
@@ -9107,7 +9107,7 @@ export namespace SecurePlainData {
 }
 
 /**
- * @link https://core.telegram.org/type/SecureValueType
+ * @link https://core.impulsem.net/type/SecureValueType
  */
 export type SecureValueType = SecureValueType.secureValueTypePersonalDetails | SecureValueType.secureValueTypePassport | SecureValueType.secureValueTypeDriverLicense | SecureValueType.secureValueTypeIdentityCard | SecureValueType.secureValueTypeInternalPassport | SecureValueType.secureValueTypeAddress | SecureValueType.secureValueTypeUtilityBill | SecureValueType.secureValueTypeBankStatement | SecureValueType.secureValueTypeRentalAgreement | SecureValueType.secureValueTypePassportRegistration | SecureValueType.secureValueTypeTemporaryRegistration | SecureValueType.secureValueTypePhone | SecureValueType.secureValueTypeEmail;
 
@@ -9166,7 +9166,7 @@ export namespace SecureValueType {
 }
 
 /**
- * @link https://core.telegram.org/type/SecureValue
+ * @link https://core.impulsem.net/type/SecureValue
  */
 export type SecureValue = SecureValue.secureValue;
 
@@ -9187,7 +9187,7 @@ export namespace SecureValue {
 }
 
 /**
- * @link https://core.telegram.org/type/InputSecureValue
+ * @link https://core.impulsem.net/type/InputSecureValue
  */
 export type InputSecureValue = InputSecureValue.inputSecureValue;
 
@@ -9207,7 +9207,7 @@ export namespace InputSecureValue {
 }
 
 /**
- * @link https://core.telegram.org/type/SecureValueHash
+ * @link https://core.impulsem.net/type/SecureValueHash
  */
 export type SecureValueHash = SecureValueHash.secureValueHash;
 
@@ -9220,7 +9220,7 @@ export namespace SecureValueHash {
 }
 
 /**
- * @link https://core.telegram.org/type/SecureValueError
+ * @link https://core.impulsem.net/type/SecureValueError
  */
 export type SecureValueError = SecureValueError.secureValueErrorData | SecureValueError.secureValueErrorFrontSide | SecureValueError.secureValueErrorReverseSide | SecureValueError.secureValueErrorSelfie | SecureValueError.secureValueErrorFile | SecureValueError.secureValueErrorFiles | SecureValueError.secureValueError | SecureValueError.secureValueErrorTranslationFile | SecureValueError.secureValueErrorTranslationFiles;
 
@@ -9291,7 +9291,7 @@ export namespace SecureValueError {
 }
 
 /**
- * @link https://core.telegram.org/type/SecureCredentialsEncrypted
+ * @link https://core.impulsem.net/type/SecureCredentialsEncrypted
  */
 export type SecureCredentialsEncrypted = SecureCredentialsEncrypted.secureCredentialsEncrypted;
 
@@ -9305,7 +9305,7 @@ export namespace SecureCredentialsEncrypted {
 }
 
 /**
- * @link https://core.telegram.org/type/account.AuthorizationForm
+ * @link https://core.impulsem.net/type/account.AuthorizationForm
  */
 export type AccountAuthorizationForm = AccountAuthorizationForm.accountAuthorizationForm;
 
@@ -9322,7 +9322,7 @@ export namespace AccountAuthorizationForm {
 }
 
 /**
- * @link https://core.telegram.org/type/account.SentEmailCode
+ * @link https://core.impulsem.net/type/account.SentEmailCode
  */
 export type AccountSentEmailCode = AccountSentEmailCode.accountSentEmailCode;
 
@@ -9335,7 +9335,7 @@ export namespace AccountSentEmailCode {
 }
 
 /**
- * @link https://core.telegram.org/type/help.DeepLinkInfo
+ * @link https://core.impulsem.net/type/help.DeepLinkInfo
  */
 export type HelpDeepLinkInfo = HelpDeepLinkInfo.helpDeepLinkInfoEmpty | HelpDeepLinkInfo.helpDeepLinkInfo;
 
@@ -9356,7 +9356,7 @@ export namespace HelpDeepLinkInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/SavedContact
+ * @link https://core.impulsem.net/type/SavedContact
  */
 export type SavedContact = SavedContact.savedPhoneContact;
 
@@ -9371,7 +9371,7 @@ export namespace SavedContact {
 }
 
 /**
- * @link https://core.telegram.org/type/account.Takeout
+ * @link https://core.impulsem.net/type/account.Takeout
  */
 export type AccountTakeout = AccountTakeout.accountTakeout;
 
@@ -9383,7 +9383,7 @@ export namespace AccountTakeout {
 }
 
 /**
- * @link https://core.telegram.org/type/PasswordKdfAlgo
+ * @link https://core.impulsem.net/type/PasswordKdfAlgo
  */
 export type PasswordKdfAlgo = PasswordKdfAlgo.passwordKdfAlgoUnknown | PasswordKdfAlgo.passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow;
 
@@ -9402,7 +9402,7 @@ export namespace PasswordKdfAlgo {
 }
 
 /**
- * @link https://core.telegram.org/type/SecurePasswordKdfAlgo
+ * @link https://core.impulsem.net/type/SecurePasswordKdfAlgo
  */
 export type SecurePasswordKdfAlgo = SecurePasswordKdfAlgo.securePasswordKdfAlgoUnknown | SecurePasswordKdfAlgo.securePasswordKdfAlgoPBKDF2HMACSHA512iter100000 | SecurePasswordKdfAlgo.securePasswordKdfAlgoSHA512;
 
@@ -9423,7 +9423,7 @@ export namespace SecurePasswordKdfAlgo {
 }
 
 /**
- * @link https://core.telegram.org/type/SecureSecretSettings
+ * @link https://core.impulsem.net/type/SecureSecretSettings
  */
 export type SecureSecretSettings = SecureSecretSettings.secureSecretSettings;
 
@@ -9437,7 +9437,7 @@ export namespace SecureSecretSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/InputCheckPasswordSRP
+ * @link https://core.impulsem.net/type/InputCheckPasswordSRP
  */
 export type InputCheckPasswordSRP = InputCheckPasswordSRP.inputCheckPasswordEmpty | InputCheckPasswordSRP.inputCheckPasswordSRP;
 
@@ -9455,7 +9455,7 @@ export namespace InputCheckPasswordSRP {
 }
 
 /**
- * @link https://core.telegram.org/type/SecureRequiredType
+ * @link https://core.impulsem.net/type/SecureRequiredType
  */
 export type SecureRequiredType = SecureRequiredType.secureRequiredType | SecureRequiredType.secureRequiredTypeOneOf;
 
@@ -9478,7 +9478,7 @@ export namespace SecureRequiredType {
 }
 
 /**
- * @link https://core.telegram.org/type/help.PassportConfig
+ * @link https://core.impulsem.net/type/help.PassportConfig
  */
 export type HelpPassportConfig = HelpPassportConfig.helpPassportConfigNotModified | HelpPassportConfig.helpPassportConfig;
 
@@ -9495,7 +9495,7 @@ export namespace HelpPassportConfig {
 }
 
 /**
- * @link https://core.telegram.org/type/InputAppEvent
+ * @link https://core.impulsem.net/type/InputAppEvent
  */
 export type InputAppEvent = InputAppEvent.inputAppEvent;
 
@@ -9510,7 +9510,7 @@ export namespace InputAppEvent {
 }
 
 /**
- * @link https://core.telegram.org/type/JSONObjectValue
+ * @link https://core.impulsem.net/type/JSONObjectValue
  */
 export type JSONObjectValue = JSONObjectValue.jsonObjectValue;
 
@@ -9523,7 +9523,7 @@ export namespace JSONObjectValue {
 }
 
 /**
- * @link https://core.telegram.org/type/JSONValue
+ * @link https://core.impulsem.net/type/JSONValue
  */
 export type JSONValue = JSONValue.jsonNull | JSONValue.jsonBool | JSONValue.jsonNumber | JSONValue.jsonString | JSONValue.jsonArray | JSONValue.jsonObject;
 
@@ -9559,7 +9559,7 @@ export namespace JSONValue {
 }
 
 /**
- * @link https://core.telegram.org/type/PageTableCell
+ * @link https://core.impulsem.net/type/PageTableCell
  */
 export type PageTableCell = PageTableCell.pageTableCell;
 
@@ -9581,7 +9581,7 @@ export namespace PageTableCell {
 }
 
 /**
- * @link https://core.telegram.org/type/PageTableRow
+ * @link https://core.impulsem.net/type/PageTableRow
  */
 export type PageTableRow = PageTableRow.pageTableRow;
 
@@ -9593,7 +9593,7 @@ export namespace PageTableRow {
 }
 
 /**
- * @link https://core.telegram.org/type/PageCaption
+ * @link https://core.impulsem.net/type/PageCaption
  */
 export type PageCaption = PageCaption.pageCaption;
 
@@ -9606,7 +9606,7 @@ export namespace PageCaption {
 }
 
 /**
- * @link https://core.telegram.org/type/PageListItem
+ * @link https://core.impulsem.net/type/PageListItem
  */
 export type PageListItem = PageListItem.pageListItemText | PageListItem.pageListItemBlocks;
 
@@ -9633,7 +9633,7 @@ export namespace PageListItem {
 }
 
 /**
- * @link https://core.telegram.org/type/PageListOrderedItem
+ * @link https://core.impulsem.net/type/PageListOrderedItem
  */
 export type PageListOrderedItem = PageListOrderedItem.pageListOrderedItemText | PageListOrderedItem.pageListOrderedItemBlocks;
 
@@ -9666,7 +9666,7 @@ export namespace PageListOrderedItem {
 }
 
 /**
- * @link https://core.telegram.org/type/PageRelatedArticle
+ * @link https://core.impulsem.net/type/PageRelatedArticle
  */
 export type PageRelatedArticle = PageRelatedArticle.pageRelatedArticle;
 
@@ -9685,7 +9685,7 @@ export namespace PageRelatedArticle {
 }
 
 /**
- * @link https://core.telegram.org/type/Page
+ * @link https://core.impulsem.net/type/Page
  */
 export type Page = Page.page;
 
@@ -9707,7 +9707,7 @@ export namespace Page {
 }
 
 /**
- * @link https://core.telegram.org/type/help.SupportName
+ * @link https://core.impulsem.net/type/help.SupportName
  */
 export type HelpSupportName = HelpSupportName.helpSupportName;
 
@@ -9719,7 +9719,7 @@ export namespace HelpSupportName {
 }
 
 /**
- * @link https://core.telegram.org/type/help.UserInfo
+ * @link https://core.impulsem.net/type/help.UserInfo
  */
 export type HelpUserInfo = HelpUserInfo.helpUserInfoEmpty | HelpUserInfo.helpUserInfo;
 
@@ -9738,7 +9738,7 @@ export namespace HelpUserInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/PollAnswer
+ * @link https://core.impulsem.net/type/PollAnswer
  */
 export type PollAnswer = PollAnswer.pollAnswer | PollAnswer.inputPollAnswer;
 
@@ -9762,7 +9762,7 @@ export namespace PollAnswer {
 }
 
 /**
- * @link https://core.telegram.org/type/Poll
+ * @link https://core.impulsem.net/type/Poll
  */
 export type Poll = Poll.poll;
 
@@ -9795,7 +9795,7 @@ export namespace Poll {
 }
 
 /**
- * @link https://core.telegram.org/type/PollAnswerVoters
+ * @link https://core.impulsem.net/type/PollAnswerVoters
  */
 export type PollAnswerVoters = PollAnswerVoters.pollAnswerVoters;
 
@@ -9814,7 +9814,7 @@ export namespace PollAnswerVoters {
 }
 
 /**
- * @link https://core.telegram.org/type/PollResults
+ * @link https://core.impulsem.net/type/PollResults
  */
 export type PollResults = PollResults.pollResults;
 
@@ -9837,7 +9837,7 @@ export namespace PollResults {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatOnlines
+ * @link https://core.impulsem.net/type/ChatOnlines
  */
 export type ChatOnlines = ChatOnlines.chatOnlines;
 
@@ -9849,7 +9849,7 @@ export namespace ChatOnlines {
 }
 
 /**
- * @link https://core.telegram.org/type/StatsURL
+ * @link https://core.impulsem.net/type/StatsURL
  */
 export type StatsURL = StatsURL.statsURL;
 
@@ -9861,7 +9861,7 @@ export namespace StatsURL {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatAdminRights
+ * @link https://core.impulsem.net/type/ChatAdminRights
  */
 export type ChatAdminRights = ChatAdminRights.chatAdminRights;
 
@@ -9893,7 +9893,7 @@ export namespace ChatAdminRights {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatBannedRights
+ * @link https://core.impulsem.net/type/ChatBannedRights
  */
 export type ChatBannedRights = ChatBannedRights.chatBannedRights;
 
@@ -9931,7 +9931,7 @@ export namespace ChatBannedRights {
 }
 
 /**
- * @link https://core.telegram.org/type/InputWallPaper
+ * @link https://core.impulsem.net/type/InputWallPaper
  */
 export type InputWallPaper = InputWallPaper.inputWallPaper | InputWallPaper.inputWallPaperSlug | InputWallPaper.inputWallPaperNoFile;
 
@@ -9954,7 +9954,7 @@ export namespace InputWallPaper {
 }
 
 /**
- * @link https://core.telegram.org/type/account.WallPapers
+ * @link https://core.impulsem.net/type/account.WallPapers
  */
 export type AccountWallPapers = AccountWallPapers.accountWallPapersNotModified | AccountWallPapers.accountWallPapers;
 
@@ -9971,7 +9971,7 @@ export namespace AccountWallPapers {
 }
 
 /**
- * @link https://core.telegram.org/type/CodeSettings
+ * @link https://core.impulsem.net/type/CodeSettings
  */
 export type CodeSettings = CodeSettings.codeSettings;
 
@@ -9994,7 +9994,7 @@ export namespace CodeSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/WallPaperSettings
+ * @link https://core.impulsem.net/type/WallPaperSettings
  */
 export type WallPaperSettings = WallPaperSettings.wallPaperSettings;
 
@@ -10017,7 +10017,7 @@ export namespace WallPaperSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/AutoDownloadSettings
+ * @link https://core.impulsem.net/type/AutoDownloadSettings
  */
 export type AutoDownloadSettings = AutoDownloadSettings.autoDownloadSettings;
 
@@ -10042,7 +10042,7 @@ export namespace AutoDownloadSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/account.AutoDownloadSettings
+ * @link https://core.impulsem.net/type/account.AutoDownloadSettings
  */
 export type AccountAutoDownloadSettings = AccountAutoDownloadSettings.accountAutoDownloadSettings;
 
@@ -10056,7 +10056,7 @@ export namespace AccountAutoDownloadSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/EmojiKeyword
+ * @link https://core.impulsem.net/type/EmojiKeyword
  */
 export type EmojiKeyword = EmojiKeyword.emojiKeyword | EmojiKeyword.emojiKeywordDeleted;
 
@@ -10075,7 +10075,7 @@ export namespace EmojiKeyword {
 }
 
 /**
- * @link https://core.telegram.org/type/EmojiKeywordsDifference
+ * @link https://core.impulsem.net/type/EmojiKeywordsDifference
  */
 export type EmojiKeywordsDifference = EmojiKeywordsDifference.emojiKeywordsDifference;
 
@@ -10090,7 +10090,7 @@ export namespace EmojiKeywordsDifference {
 }
 
 /**
- * @link https://core.telegram.org/type/EmojiURL
+ * @link https://core.impulsem.net/type/EmojiURL
  */
 export type EmojiURL = EmojiURL.emojiURL;
 
@@ -10102,7 +10102,7 @@ export namespace EmojiURL {
 }
 
 /**
- * @link https://core.telegram.org/type/EmojiLanguage
+ * @link https://core.impulsem.net/type/EmojiLanguage
  */
 export type EmojiLanguage = EmojiLanguage.emojiLanguage;
 
@@ -10114,7 +10114,7 @@ export namespace EmojiLanguage {
 }
 
 /**
- * @link https://core.telegram.org/type/Folder
+ * @link https://core.impulsem.net/type/Folder
  */
 export type Folder = Folder.folder;
 
@@ -10134,7 +10134,7 @@ export namespace Folder {
 }
 
 /**
- * @link https://core.telegram.org/type/InputFolderPeer
+ * @link https://core.impulsem.net/type/InputFolderPeer
  */
 export type InputFolderPeer = InputFolderPeer.inputFolderPeer;
 
@@ -10147,7 +10147,7 @@ export namespace InputFolderPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/FolderPeer
+ * @link https://core.impulsem.net/type/FolderPeer
  */
 export type FolderPeer = FolderPeer.folderPeer;
 
@@ -10160,7 +10160,7 @@ export namespace FolderPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.SearchCounter
+ * @link https://core.impulsem.net/type/messages.SearchCounter
  */
 export type MessagesSearchCounter = MessagesSearchCounter.messagesSearchCounter;
 
@@ -10177,7 +10177,7 @@ export namespace MessagesSearchCounter {
 }
 
 /**
- * @link https://core.telegram.org/type/UrlAuthResult
+ * @link https://core.impulsem.net/type/UrlAuthResult
  */
 export type UrlAuthResult = UrlAuthResult.urlAuthResultRequest | UrlAuthResult.urlAuthResultAccepted | UrlAuthResult.urlAuthResultDefault;
 
@@ -10214,7 +10214,7 @@ export namespace UrlAuthResult {
 }
 
 /**
- * @link https://core.telegram.org/type/ChannelLocation
+ * @link https://core.impulsem.net/type/ChannelLocation
  */
 export type ChannelLocation = ChannelLocation.channelLocationEmpty | ChannelLocation.channelLocation;
 
@@ -10231,7 +10231,7 @@ export namespace ChannelLocation {
 }
 
 /**
- * @link https://core.telegram.org/type/PeerLocated
+ * @link https://core.impulsem.net/type/PeerLocated
  */
 export type PeerLocated = PeerLocated.peerLocated | PeerLocated.peerSelfLocated;
 
@@ -10250,7 +10250,7 @@ export namespace PeerLocated {
 }
 
 /**
- * @link https://core.telegram.org/type/RestrictionReason
+ * @link https://core.impulsem.net/type/RestrictionReason
  */
 export type RestrictionReason = RestrictionReason.restrictionReason;
 
@@ -10264,7 +10264,7 @@ export namespace RestrictionReason {
 }
 
 /**
- * @link https://core.telegram.org/type/InputTheme
+ * @link https://core.impulsem.net/type/InputTheme
  */
 export type InputTheme = InputTheme.inputTheme | InputTheme.inputThemeSlug;
 
@@ -10282,7 +10282,7 @@ export namespace InputTheme {
 }
 
 /**
- * @link https://core.telegram.org/type/Theme
+ * @link https://core.impulsem.net/type/Theme
  */
 export type Theme = Theme.theme;
 
@@ -10307,7 +10307,7 @@ export namespace Theme {
 }
 
 /**
- * @link https://core.telegram.org/type/account.Themes
+ * @link https://core.impulsem.net/type/account.Themes
  */
 export type AccountThemes = AccountThemes.accountThemesNotModified | AccountThemes.accountThemes;
 
@@ -10324,7 +10324,7 @@ export namespace AccountThemes {
 }
 
 /**
- * @link https://core.telegram.org/type/auth.LoginToken
+ * @link https://core.impulsem.net/type/auth.LoginToken
  */
 export type AuthLoginToken = AuthLoginToken.authLoginToken | AuthLoginToken.authLoginTokenMigrateTo | AuthLoginToken.authLoginTokenSuccess;
 
@@ -10348,7 +10348,7 @@ export namespace AuthLoginToken {
 }
 
 /**
- * @link https://core.telegram.org/type/account.ContentSettings
+ * @link https://core.impulsem.net/type/account.ContentSettings
  */
 export type AccountContentSettings = AccountContentSettings.accountContentSettings;
 
@@ -10364,7 +10364,7 @@ export namespace AccountContentSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.InactiveChats
+ * @link https://core.impulsem.net/type/messages.InactiveChats
  */
 export type MessagesInactiveChats = MessagesInactiveChats.messagesInactiveChats;
 
@@ -10378,7 +10378,7 @@ export namespace MessagesInactiveChats {
 }
 
 /**
- * @link https://core.telegram.org/type/BaseTheme
+ * @link https://core.impulsem.net/type/BaseTheme
  */
 export type BaseTheme = BaseTheme.baseThemeClassic | BaseTheme.baseThemeDay | BaseTheme.baseThemeNight | BaseTheme.baseThemeTinted | BaseTheme.baseThemeArctic;
 
@@ -10405,7 +10405,7 @@ export namespace BaseTheme {
 }
 
 /**
- * @link https://core.telegram.org/type/InputThemeSettings
+ * @link https://core.impulsem.net/type/InputThemeSettings
  */
 export type InputThemeSettings = InputThemeSettings.inputThemeSettings;
 
@@ -10426,7 +10426,7 @@ export namespace InputThemeSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/ThemeSettings
+ * @link https://core.impulsem.net/type/ThemeSettings
  */
 export type ThemeSettings = ThemeSettings.themeSettings;
 
@@ -10446,7 +10446,7 @@ export namespace ThemeSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/WebPageAttribute
+ * @link https://core.impulsem.net/type/WebPageAttribute
  */
 export type WebPageAttribute = WebPageAttribute.webPageAttributeTheme | WebPageAttribute.webPageAttributeStory | WebPageAttribute.webPageAttributeStickerSet | WebPageAttribute.webPageAttributeUniqueStarGift | WebPageAttribute.webPageAttributeStarGiftCollection | WebPageAttribute.webPageAttributeStarGiftAuction | WebPageAttribute.webPageAttributeAiComposeTone;
 
@@ -10499,7 +10499,7 @@ export namespace WebPageAttribute {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.VotesList
+ * @link https://core.impulsem.net/type/messages.VotesList
  */
 export type MessagesVotesList = MessagesVotesList.messagesVotesList;
 
@@ -10516,7 +10516,7 @@ export namespace MessagesVotesList {
 }
 
 /**
- * @link https://core.telegram.org/type/BankCardOpenUrl
+ * @link https://core.impulsem.net/type/BankCardOpenUrl
  */
 export type BankCardOpenUrl = BankCardOpenUrl.bankCardOpenUrl;
 
@@ -10529,7 +10529,7 @@ export namespace BankCardOpenUrl {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.BankCardData
+ * @link https://core.impulsem.net/type/payments.BankCardData
  */
 export type PaymentsBankCardData = PaymentsBankCardData.paymentsBankCardData;
 
@@ -10542,7 +10542,7 @@ export namespace PaymentsBankCardData {
 }
 
 /**
- * @link https://core.telegram.org/type/DialogFilter
+ * @link https://core.impulsem.net/type/DialogFilter
  */
 export type DialogFilter = DialogFilter.dialogFilter | DialogFilter.dialogFilterDefault | DialogFilter.dialogFilterChatlist;
 
@@ -10601,7 +10601,7 @@ export namespace DialogFilter {
 }
 
 /**
- * @link https://core.telegram.org/type/DialogFilterSuggested
+ * @link https://core.impulsem.net/type/DialogFilterSuggested
  */
 export type DialogFilterSuggested = DialogFilterSuggested.dialogFilterSuggested;
 
@@ -10614,7 +10614,7 @@ export namespace DialogFilterSuggested {
 }
 
 /**
- * @link https://core.telegram.org/type/StatsDateRangeDays
+ * @link https://core.impulsem.net/type/StatsDateRangeDays
  */
 export type StatsDateRangeDays = StatsDateRangeDays.statsDateRangeDays;
 
@@ -10627,7 +10627,7 @@ export namespace StatsDateRangeDays {
 }
 
 /**
- * @link https://core.telegram.org/type/StatsAbsValueAndPrev
+ * @link https://core.impulsem.net/type/StatsAbsValueAndPrev
  */
 export type StatsAbsValueAndPrev = StatsAbsValueAndPrev.statsAbsValueAndPrev;
 
@@ -10641,7 +10641,7 @@ export namespace StatsAbsValueAndPrev {
 }
 
 /**
- * @link https://core.telegram.org/type/StatsPercentValue
+ * @link https://core.impulsem.net/type/StatsPercentValue
  */
 export type StatsPercentValue = StatsPercentValue.statsPercentValue;
 
@@ -10654,7 +10654,7 @@ export namespace StatsPercentValue {
 }
 
 /**
- * @link https://core.telegram.org/type/StatsGraph
+ * @link https://core.impulsem.net/type/StatsGraph
  */
 export type StatsGraph = StatsGraph.statsGraphAsync | StatsGraph.statsGraphError | StatsGraph.statsGraph;
 
@@ -10678,7 +10678,7 @@ export namespace StatsGraph {
 }
 
 /**
- * @link https://core.telegram.org/type/stats.BroadcastStats
+ * @link https://core.impulsem.net/type/stats.BroadcastStats
  */
 export type StatsBroadcastStats = StatsBroadcastStats.statsBroadcastStats;
 
@@ -10711,7 +10711,7 @@ export namespace StatsBroadcastStats {
 }
 
 /**
- * @link https://core.telegram.org/type/help.PromoData
+ * @link https://core.impulsem.net/type/help.PromoData
  */
 export type HelpPromoData = HelpPromoData.helpPromoDataEmpty | HelpPromoData.helpPromoData;
 
@@ -10740,7 +10740,7 @@ export namespace HelpPromoData {
 }
 
 /**
- * @link https://core.telegram.org/type/VideoSize
+ * @link https://core.impulsem.net/type/VideoSize
  */
 export type VideoSize = VideoSize.videoSize | VideoSize.videoSizeEmojiMarkup | VideoSize.videoSizeStickerMarkup;
 
@@ -10770,7 +10770,7 @@ export namespace VideoSize {
 }
 
 /**
- * @link https://core.telegram.org/type/StatsGroupTopPoster
+ * @link https://core.impulsem.net/type/StatsGroupTopPoster
  */
 export type StatsGroupTopPoster = StatsGroupTopPoster.statsGroupTopPoster;
 
@@ -10784,7 +10784,7 @@ export namespace StatsGroupTopPoster {
 }
 
 /**
- * @link https://core.telegram.org/type/StatsGroupTopAdmin
+ * @link https://core.impulsem.net/type/StatsGroupTopAdmin
  */
 export type StatsGroupTopAdmin = StatsGroupTopAdmin.statsGroupTopAdmin;
 
@@ -10799,7 +10799,7 @@ export namespace StatsGroupTopAdmin {
 }
 
 /**
- * @link https://core.telegram.org/type/StatsGroupTopInviter
+ * @link https://core.impulsem.net/type/StatsGroupTopInviter
  */
 export type StatsGroupTopInviter = StatsGroupTopInviter.statsGroupTopInviter;
 
@@ -10812,7 +10812,7 @@ export namespace StatsGroupTopInviter {
 }
 
 /**
- * @link https://core.telegram.org/type/stats.MegagroupStats
+ * @link https://core.impulsem.net/type/stats.MegagroupStats
  */
 export type StatsMegagroupStats = StatsMegagroupStats.statsMegagroupStats;
 
@@ -10840,7 +10840,7 @@ export namespace StatsMegagroupStats {
 }
 
 /**
- * @link https://core.telegram.org/type/GlobalPrivacySettings
+ * @link https://core.impulsem.net/type/GlobalPrivacySettings
  */
 export type GlobalPrivacySettings = GlobalPrivacySettings.globalPrivacySettings;
 
@@ -10862,7 +10862,7 @@ export namespace GlobalPrivacySettings {
 }
 
 /**
- * @link https://core.telegram.org/type/help.CountryCode
+ * @link https://core.impulsem.net/type/help.CountryCode
  */
 export type HelpCountryCode = HelpCountryCode.helpCountryCode;
 
@@ -10877,7 +10877,7 @@ export namespace HelpCountryCode {
 }
 
 /**
- * @link https://core.telegram.org/type/help.Country
+ * @link https://core.impulsem.net/type/help.Country
  */
 export type HelpCountry = HelpCountry.helpCountry;
 
@@ -10896,7 +10896,7 @@ export namespace HelpCountry {
 }
 
 /**
- * @link https://core.telegram.org/type/help.CountriesList
+ * @link https://core.impulsem.net/type/help.CountriesList
  */
 export type HelpCountriesList = HelpCountriesList.helpCountriesListNotModified | HelpCountriesList.helpCountriesList;
 
@@ -10913,7 +10913,7 @@ export namespace HelpCountriesList {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageViews
+ * @link https://core.impulsem.net/type/MessageViews
  */
 export type MessageViews = MessageViews.messageViews;
 
@@ -10928,7 +10928,7 @@ export namespace MessageViews {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.MessageViews
+ * @link https://core.impulsem.net/type/messages.MessageViews
  */
 export type MessagesMessageViews = MessagesMessageViews.messagesMessageViews;
 
@@ -10942,7 +10942,7 @@ export namespace MessagesMessageViews {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.DiscussionMessage
+ * @link https://core.impulsem.net/type/messages.DiscussionMessage
  */
 export type MessagesDiscussionMessage = MessagesDiscussionMessage.messagesDiscussionMessage;
 
@@ -10961,7 +10961,7 @@ export namespace MessagesDiscussionMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageReplyHeader
+ * @link https://core.impulsem.net/type/MessageReplyHeader
  */
 export type MessageReplyHeader = MessageReplyHeader.messageReplyHeader | MessageReplyHeader.messageReplyStoryHeader;
 
@@ -10996,7 +10996,7 @@ export namespace MessageReplyHeader {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageReplies
+ * @link https://core.impulsem.net/type/MessageReplies
  */
 export type MessageReplies = MessageReplies.messageReplies;
 
@@ -11017,7 +11017,7 @@ export namespace MessageReplies {
 }
 
 /**
- * @link https://core.telegram.org/type/PeerBlocked
+ * @link https://core.impulsem.net/type/PeerBlocked
  */
 export type PeerBlocked = PeerBlocked.peerBlocked;
 
@@ -11030,7 +11030,7 @@ export namespace PeerBlocked {
 }
 
 /**
- * @link https://core.telegram.org/type/stats.MessageStats
+ * @link https://core.impulsem.net/type/stats.MessageStats
  */
 export type StatsMessageStats = StatsMessageStats.statsMessageStats;
 
@@ -11047,7 +11047,7 @@ export namespace StatsMessageStats {
 }
 
 /**
- * @link https://core.telegram.org/type/GroupCall
+ * @link https://core.impulsem.net/type/GroupCall
  */
 export type GroupCall = GroupCall.groupCallDiscarded | GroupCall.groupCall;
 
@@ -11094,7 +11094,7 @@ export namespace GroupCall {
 }
 
 /**
- * @link https://core.telegram.org/type/InputGroupCall
+ * @link https://core.impulsem.net/type/InputGroupCall
  */
 export type InputGroupCall = InputGroupCall.inputGroupCall | InputGroupCall.inputGroupCallSlug | InputGroupCall.inputGroupCallInviteMessage;
 
@@ -11117,7 +11117,7 @@ export namespace InputGroupCall {
 }
 
 /**
- * @link https://core.telegram.org/type/GroupCallParticipant
+ * @link https://core.impulsem.net/type/GroupCallParticipant
  */
 export type GroupCallParticipant = GroupCallParticipant.groupCallParticipant;
 
@@ -11151,7 +11151,7 @@ export namespace GroupCallParticipant {
 }
 
 /**
- * @link https://core.telegram.org/type/phone.GroupCall
+ * @link https://core.impulsem.net/type/phone.GroupCall
  */
 export type PhoneGroupCall = PhoneGroupCall.phoneGroupCall;
 
@@ -11167,7 +11167,7 @@ export namespace PhoneGroupCall {
 }
 
 /**
- * @link https://core.telegram.org/type/phone.GroupParticipants
+ * @link https://core.impulsem.net/type/phone.GroupParticipants
  */
 export type PhoneGroupParticipants = PhoneGroupParticipants.phoneGroupParticipants;
 
@@ -11184,7 +11184,7 @@ export namespace PhoneGroupParticipants {
 }
 
 /**
- * @link https://core.telegram.org/type/InlineQueryPeerType
+ * @link https://core.impulsem.net/type/InlineQueryPeerType
  */
 export type InlineQueryPeerType = InlineQueryPeerType.inlineQueryPeerTypeSameBotPM | InlineQueryPeerType.inlineQueryPeerTypePM | InlineQueryPeerType.inlineQueryPeerTypeChat | InlineQueryPeerType.inlineQueryPeerTypeMegagroup | InlineQueryPeerType.inlineQueryPeerTypeBroadcast | InlineQueryPeerType.inlineQueryPeerTypeBotPM;
 
@@ -11215,7 +11215,7 @@ export namespace InlineQueryPeerType {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.HistoryImport
+ * @link https://core.impulsem.net/type/messages.HistoryImport
  */
 export type MessagesHistoryImport = MessagesHistoryImport.messagesHistoryImport;
 
@@ -11227,7 +11227,7 @@ export namespace MessagesHistoryImport {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.HistoryImportParsed
+ * @link https://core.impulsem.net/type/messages.HistoryImportParsed
  */
 export type MessagesHistoryImportParsed = MessagesHistoryImportParsed.messagesHistoryImportParsed;
 
@@ -11244,7 +11244,7 @@ export namespace MessagesHistoryImportParsed {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.AffectedFoundMessages
+ * @link https://core.impulsem.net/type/messages.AffectedFoundMessages
  */
 export type MessagesAffectedFoundMessages = MessagesAffectedFoundMessages.messagesAffectedFoundMessages;
 
@@ -11259,7 +11259,7 @@ export namespace MessagesAffectedFoundMessages {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatInviteImporter
+ * @link https://core.impulsem.net/type/ChatInviteImporter
  */
 export type ChatInviteImporter = ChatInviteImporter.chatInviteImporter;
 
@@ -11279,7 +11279,7 @@ export namespace ChatInviteImporter {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.ExportedChatInvites
+ * @link https://core.impulsem.net/type/messages.ExportedChatInvites
  */
 export type MessagesExportedChatInvites = MessagesExportedChatInvites.messagesExportedChatInvites;
 
@@ -11293,7 +11293,7 @@ export namespace MessagesExportedChatInvites {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.ExportedChatInvite
+ * @link https://core.impulsem.net/type/messages.ExportedChatInvite
  */
 export type MessagesExportedChatInvite = MessagesExportedChatInvite.messagesExportedChatInvite | MessagesExportedChatInvite.messagesExportedChatInviteReplaced;
 
@@ -11313,7 +11313,7 @@ export namespace MessagesExportedChatInvite {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.ChatInviteImporters
+ * @link https://core.impulsem.net/type/messages.ChatInviteImporters
  */
 export type MessagesChatInviteImporters = MessagesChatInviteImporters.messagesChatInviteImporters;
 
@@ -11327,7 +11327,7 @@ export namespace MessagesChatInviteImporters {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatAdminWithInvites
+ * @link https://core.impulsem.net/type/ChatAdminWithInvites
  */
 export type ChatAdminWithInvites = ChatAdminWithInvites.chatAdminWithInvites;
 
@@ -11341,7 +11341,7 @@ export namespace ChatAdminWithInvites {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.ChatAdminsWithInvites
+ * @link https://core.impulsem.net/type/messages.ChatAdminsWithInvites
  */
 export type MessagesChatAdminsWithInvites = MessagesChatAdminsWithInvites.messagesChatAdminsWithInvites;
 
@@ -11354,7 +11354,7 @@ export namespace MessagesChatAdminsWithInvites {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.CheckedHistoryImportPeer
+ * @link https://core.impulsem.net/type/messages.CheckedHistoryImportPeer
  */
 export type MessagesCheckedHistoryImportPeer = MessagesCheckedHistoryImportPeer.messagesCheckedHistoryImportPeer;
 
@@ -11366,7 +11366,7 @@ export namespace MessagesCheckedHistoryImportPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/phone.JoinAsPeers
+ * @link https://core.impulsem.net/type/phone.JoinAsPeers
  */
 export type PhoneJoinAsPeers = PhoneJoinAsPeers.phoneJoinAsPeers;
 
@@ -11380,7 +11380,7 @@ export namespace PhoneJoinAsPeers {
 }
 
 /**
- * @link https://core.telegram.org/type/phone.ExportedGroupCallInvite
+ * @link https://core.impulsem.net/type/phone.ExportedGroupCallInvite
  */
 export type PhoneExportedGroupCallInvite = PhoneExportedGroupCallInvite.phoneExportedGroupCallInvite;
 
@@ -11392,7 +11392,7 @@ export namespace PhoneExportedGroupCallInvite {
 }
 
 /**
- * @link https://core.telegram.org/type/GroupCallParticipantVideoSourceGroup
+ * @link https://core.impulsem.net/type/GroupCallParticipantVideoSourceGroup
  */
 export type GroupCallParticipantVideoSourceGroup = GroupCallParticipantVideoSourceGroup.groupCallParticipantVideoSourceGroup;
 
@@ -11405,7 +11405,7 @@ export namespace GroupCallParticipantVideoSourceGroup {
 }
 
 /**
- * @link https://core.telegram.org/type/GroupCallParticipantVideo
+ * @link https://core.impulsem.net/type/GroupCallParticipantVideo
  */
 export type GroupCallParticipantVideo = GroupCallParticipantVideo.groupCallParticipantVideo;
 
@@ -11423,7 +11423,7 @@ export namespace GroupCallParticipantVideo {
 }
 
 /**
- * @link https://core.telegram.org/type/stickers.SuggestedShortName
+ * @link https://core.impulsem.net/type/stickers.SuggestedShortName
  */
 export type StickersSuggestedShortName = StickersSuggestedShortName.stickersSuggestedShortName;
 
@@ -11435,7 +11435,7 @@ export namespace StickersSuggestedShortName {
 }
 
 /**
- * @link https://core.telegram.org/type/BotCommandScope
+ * @link https://core.impulsem.net/type/BotCommandScope
  */
 export type BotCommandScope = BotCommandScope.botCommandScopeDefault | BotCommandScope.botCommandScopeUsers | BotCommandScope.botCommandScopeChats | BotCommandScope.botCommandScopeChatAdmins | BotCommandScope.botCommandScopePeer | BotCommandScope.botCommandScopePeerAdmins | BotCommandScope.botCommandScopePeerUser;
 
@@ -11474,7 +11474,7 @@ export namespace BotCommandScope {
 }
 
 /**
- * @link https://core.telegram.org/type/account.ResetPasswordResult
+ * @link https://core.impulsem.net/type/account.ResetPasswordResult
  */
 export type AccountResetPasswordResult = AccountResetPasswordResult.accountResetPasswordFailedWait | AccountResetPasswordResult.accountResetPasswordRequestedWait | AccountResetPasswordResult.accountResetPasswordOk;
 
@@ -11495,7 +11495,7 @@ export namespace AccountResetPasswordResult {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatTheme
+ * @link https://core.impulsem.net/type/ChatTheme
  */
 export type ChatTheme = ChatTheme.chatTheme | ChatTheme.chatThemeUniqueGift;
 
@@ -11513,7 +11513,7 @@ export namespace ChatTheme {
 }
 
 /**
- * @link https://core.telegram.org/type/account.ChatThemes
+ * @link https://core.impulsem.net/type/account.ChatThemes
  */
 export type AccountChatThemes = AccountChatThemes.accountChatThemesNotModified | AccountChatThemes.accountChatThemes;
 
@@ -11534,7 +11534,7 @@ export namespace AccountChatThemes {
 }
 
 /**
- * @link https://core.telegram.org/type/SponsoredMessage
+ * @link https://core.impulsem.net/type/SponsoredMessage
  */
 export type SponsoredMessage = SponsoredMessage.sponsoredMessage;
 
@@ -11564,7 +11564,7 @@ export namespace SponsoredMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.SponsoredMessages
+ * @link https://core.impulsem.net/type/messages.SponsoredMessages
  */
 export type MessagesSponsoredMessages = MessagesSponsoredMessages.messagesSponsoredMessages | MessagesSponsoredMessages.messagesSponsoredMessagesEmpty;
 
@@ -11586,7 +11586,7 @@ export namespace MessagesSponsoredMessages {
 }
 
 /**
- * @link https://core.telegram.org/type/SearchResultsCalendarPeriod
+ * @link https://core.impulsem.net/type/SearchResultsCalendarPeriod
  */
 export type SearchResultsCalendarPeriod = SearchResultsCalendarPeriod.searchResultsCalendarPeriod;
 
@@ -11601,7 +11601,7 @@ export namespace SearchResultsCalendarPeriod {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.SearchResultsCalendar
+ * @link https://core.impulsem.net/type/messages.SearchResultsCalendar
  */
 export type MessagesSearchResultsCalendar = MessagesSearchResultsCalendar.messagesSearchResultsCalendar;
 
@@ -11624,7 +11624,7 @@ export namespace MessagesSearchResultsCalendar {
 }
 
 /**
- * @link https://core.telegram.org/type/SearchResultsPosition
+ * @link https://core.impulsem.net/type/SearchResultsPosition
  */
 export type SearchResultsPosition = SearchResultsPosition.searchResultPosition;
 
@@ -11638,7 +11638,7 @@ export namespace SearchResultsPosition {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.SearchResultsPositions
+ * @link https://core.impulsem.net/type/messages.SearchResultsPositions
  */
 export type MessagesSearchResultsPositions = MessagesSearchResultsPositions.messagesSearchResultsPositions;
 
@@ -11651,7 +11651,7 @@ export namespace MessagesSearchResultsPositions {
 }
 
 /**
- * @link https://core.telegram.org/type/channels.SendAsPeers
+ * @link https://core.impulsem.net/type/channels.SendAsPeers
  */
 export type ChannelsSendAsPeers = ChannelsSendAsPeers.channelsSendAsPeers;
 
@@ -11665,7 +11665,7 @@ export namespace ChannelsSendAsPeers {
 }
 
 /**
- * @link https://core.telegram.org/type/users.UserFull
+ * @link https://core.impulsem.net/type/users.UserFull
  */
 export type UsersUserFull = UsersUserFull.usersUserFull;
 
@@ -11679,7 +11679,7 @@ export namespace UsersUserFull {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.PeerSettings
+ * @link https://core.impulsem.net/type/messages.PeerSettings
  */
 export type MessagesPeerSettings = MessagesPeerSettings.messagesPeerSettings;
 
@@ -11693,7 +11693,7 @@ export namespace MessagesPeerSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/auth.LoggedOut
+ * @link https://core.impulsem.net/type/auth.LoggedOut
  */
 export type AuthLoggedOut = AuthLoggedOut.authLoggedOut;
 
@@ -11706,7 +11706,7 @@ export namespace AuthLoggedOut {
 }
 
 /**
- * @link https://core.telegram.org/type/ReactionCount
+ * @link https://core.impulsem.net/type/ReactionCount
  */
 export type ReactionCount = ReactionCount.reactionCount;
 
@@ -11721,7 +11721,7 @@ export namespace ReactionCount {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageReactions
+ * @link https://core.impulsem.net/type/MessageReactions
  */
 export type MessageReactions = MessageReactions.messageReactions;
 
@@ -11741,7 +11741,7 @@ export namespace MessageReactions {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.MessageReactionsList
+ * @link https://core.impulsem.net/type/messages.MessageReactionsList
  */
 export type MessagesMessageReactionsList = MessagesMessageReactionsList.messagesMessageReactionsList;
 
@@ -11758,7 +11758,7 @@ export namespace MessagesMessageReactionsList {
 }
 
 /**
- * @link https://core.telegram.org/type/AvailableReaction
+ * @link https://core.impulsem.net/type/AvailableReaction
  */
 export type AvailableReaction = AvailableReaction.availableReaction;
 
@@ -11783,7 +11783,7 @@ export namespace AvailableReaction {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.AvailableReactions
+ * @link https://core.impulsem.net/type/messages.AvailableReactions
  */
 export type MessagesAvailableReactions = MessagesAvailableReactions.messagesAvailableReactionsNotModified | MessagesAvailableReactions.messagesAvailableReactions;
 
@@ -11800,7 +11800,7 @@ export namespace MessagesAvailableReactions {
 }
 
 /**
- * @link https://core.telegram.org/type/MessagePeerReaction
+ * @link https://core.impulsem.net/type/MessagePeerReaction
  */
 export type MessagePeerReaction = MessagePeerReaction.messagePeerReaction;
 
@@ -11820,7 +11820,7 @@ export namespace MessagePeerReaction {
 }
 
 /**
- * @link https://core.telegram.org/type/GroupCallStreamChannel
+ * @link https://core.impulsem.net/type/GroupCallStreamChannel
  */
 export type GroupCallStreamChannel = GroupCallStreamChannel.groupCallStreamChannel;
 
@@ -11834,7 +11834,7 @@ export namespace GroupCallStreamChannel {
 }
 
 /**
- * @link https://core.telegram.org/type/phone.GroupCallStreamChannels
+ * @link https://core.impulsem.net/type/phone.GroupCallStreamChannels
  */
 export type PhoneGroupCallStreamChannels = PhoneGroupCallStreamChannels.phoneGroupCallStreamChannels;
 
@@ -11846,7 +11846,7 @@ export namespace PhoneGroupCallStreamChannels {
 }
 
 /**
- * @link https://core.telegram.org/type/phone.GroupCallStreamRtmpUrl
+ * @link https://core.impulsem.net/type/phone.GroupCallStreamRtmpUrl
  */
 export type PhoneGroupCallStreamRtmpUrl = PhoneGroupCallStreamRtmpUrl.phoneGroupCallStreamRtmpUrl;
 
@@ -11859,7 +11859,7 @@ export namespace PhoneGroupCallStreamRtmpUrl {
 }
 
 /**
- * @link https://core.telegram.org/type/AttachMenuBotIconColor
+ * @link https://core.impulsem.net/type/AttachMenuBotIconColor
  */
 export type AttachMenuBotIconColor = AttachMenuBotIconColor.attachMenuBotIconColor;
 
@@ -11872,7 +11872,7 @@ export namespace AttachMenuBotIconColor {
 }
 
 /**
- * @link https://core.telegram.org/type/AttachMenuBotIcon
+ * @link https://core.impulsem.net/type/AttachMenuBotIcon
  */
 export type AttachMenuBotIcon = AttachMenuBotIcon.attachMenuBotIcon;
 
@@ -11887,7 +11887,7 @@ export namespace AttachMenuBotIcon {
 }
 
 /**
- * @link https://core.telegram.org/type/AttachMenuBot
+ * @link https://core.impulsem.net/type/AttachMenuBot
  */
 export type AttachMenuBot = AttachMenuBot.attachMenuBot;
 
@@ -11911,7 +11911,7 @@ export namespace AttachMenuBot {
 }
 
 /**
- * @link https://core.telegram.org/type/AttachMenuBots
+ * @link https://core.impulsem.net/type/AttachMenuBots
  */
 export type AttachMenuBots = AttachMenuBots.attachMenuBotsNotModified | AttachMenuBots.attachMenuBots;
 
@@ -11929,7 +11929,7 @@ export namespace AttachMenuBots {
 }
 
 /**
- * @link https://core.telegram.org/type/AttachMenuBotsBot
+ * @link https://core.impulsem.net/type/AttachMenuBotsBot
  */
 export type AttachMenuBotsBot = AttachMenuBotsBot.attachMenuBotsBot;
 
@@ -11942,7 +11942,7 @@ export namespace AttachMenuBotsBot {
 }
 
 /**
- * @link https://core.telegram.org/type/WebViewResult
+ * @link https://core.impulsem.net/type/WebViewResult
  */
 export type WebViewResult = WebViewResult.webViewResultUrl;
 
@@ -11961,7 +11961,7 @@ export namespace WebViewResult {
 }
 
 /**
- * @link https://core.telegram.org/type/WebViewMessageSent
+ * @link https://core.impulsem.net/type/WebViewMessageSent
  */
 export type WebViewMessageSent = WebViewMessageSent.webViewMessageSent;
 
@@ -11974,7 +11974,7 @@ export namespace WebViewMessageSent {
 }
 
 /**
- * @link https://core.telegram.org/type/BotMenuButton
+ * @link https://core.impulsem.net/type/BotMenuButton
  */
 export type BotMenuButton = BotMenuButton.botMenuButtonDefault | BotMenuButton.botMenuButtonCommands | BotMenuButton.botMenuButton;
 
@@ -11995,7 +11995,7 @@ export namespace BotMenuButton {
 }
 
 /**
- * @link https://core.telegram.org/type/account.SavedRingtones
+ * @link https://core.impulsem.net/type/account.SavedRingtones
  */
 export type AccountSavedRingtones = AccountSavedRingtones.accountSavedRingtonesNotModified | AccountSavedRingtones.accountSavedRingtones;
 
@@ -12012,7 +12012,7 @@ export namespace AccountSavedRingtones {
 }
 
 /**
- * @link https://core.telegram.org/type/NotificationSound
+ * @link https://core.impulsem.net/type/NotificationSound
  */
 export type NotificationSound = NotificationSound.notificationSoundDefault | NotificationSound.notificationSoundNone | NotificationSound.notificationSoundLocal | NotificationSound.notificationSoundRingtone;
 
@@ -12038,7 +12038,7 @@ export namespace NotificationSound {
 }
 
 /**
- * @link https://core.telegram.org/type/account.SavedRingtone
+ * @link https://core.impulsem.net/type/account.SavedRingtone
  */
 export type AccountSavedRingtone = AccountSavedRingtone.accountSavedRingtone | AccountSavedRingtone.accountSavedRingtoneConverted;
 
@@ -12054,7 +12054,7 @@ export namespace AccountSavedRingtone {
 }
 
 /**
- * @link https://core.telegram.org/type/AttachMenuPeerType
+ * @link https://core.impulsem.net/type/AttachMenuPeerType
  */
 export type AttachMenuPeerType = AttachMenuPeerType.attachMenuPeerTypeSameBotPM | AttachMenuPeerType.attachMenuPeerTypeBotPM | AttachMenuPeerType.attachMenuPeerTypePM | AttachMenuPeerType.attachMenuPeerTypeChat | AttachMenuPeerType.attachMenuPeerTypeBroadcast;
 
@@ -12081,7 +12081,7 @@ export namespace AttachMenuPeerType {
 }
 
 /**
- * @link https://core.telegram.org/type/InputInvoice
+ * @link https://core.impulsem.net/type/InputInvoice
  */
 export type InputInvoice = InputInvoice.inputInvoiceMessage | InputInvoice.inputInvoiceSlug | InputInvoice.inputInvoicePremiumGiftCode | InputInvoice.inputInvoiceStars | InputInvoice.inputInvoiceChatInviteSubscription | InputInvoice.inputInvoiceStarGift | InputInvoice.inputInvoiceStarGiftUpgrade | InputInvoice.inputInvoiceStarGiftTransfer | InputInvoice.inputInvoicePremiumGiftStars | InputInvoice.inputInvoiceBusinessBotTransferStars | InputInvoice.inputInvoiceStarGiftResale | InputInvoice.inputInvoiceStarGiftPrepaidUpgrade | InputInvoice.inputInvoicePremiumAuthCode | InputInvoice.inputInvoiceStarGiftDropOriginalDetails | InputInvoice.inputInvoiceStarGiftAuctionBid;
 
@@ -12195,7 +12195,7 @@ export namespace InputInvoice {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.ExportedInvoice
+ * @link https://core.impulsem.net/type/payments.ExportedInvoice
  */
 export type PaymentsExportedInvoice = PaymentsExportedInvoice.paymentsExportedInvoice;
 
@@ -12207,7 +12207,7 @@ export namespace PaymentsExportedInvoice {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.TranscribedAudio
+ * @link https://core.impulsem.net/type/messages.TranscribedAudio
  */
 export type MessagesTranscribedAudio = MessagesTranscribedAudio.messagesTranscribedAudio;
 
@@ -12226,7 +12226,7 @@ export namespace MessagesTranscribedAudio {
 }
 
 /**
- * @link https://core.telegram.org/type/help.PremiumPromo
+ * @link https://core.impulsem.net/type/help.PremiumPromo
  */
 export type HelpPremiumPromo = HelpPremiumPromo.helpPremiumPromo;
 
@@ -12243,7 +12243,7 @@ export namespace HelpPremiumPromo {
 }
 
 /**
- * @link https://core.telegram.org/type/InputStorePaymentPurpose
+ * @link https://core.impulsem.net/type/InputStorePaymentPurpose
  */
 export type InputStorePaymentPurpose = InputStorePaymentPurpose.inputStorePaymentPremiumSubscription | InputStorePaymentPurpose.inputStorePaymentGiftPremium | InputStorePaymentPurpose.inputStorePaymentPremiumGiftCode | InputStorePaymentPurpose.inputStorePaymentPremiumGiveaway | InputStorePaymentPurpose.inputStorePaymentStarsTopup | InputStorePaymentPurpose.inputStorePaymentStarsGift | InputStorePaymentPurpose.inputStorePaymentStarsGiveaway | InputStorePaymentPurpose.inputStorePaymentAuthCode;
 
@@ -12342,7 +12342,7 @@ export namespace InputStorePaymentPurpose {
 }
 
 /**
- * @link https://core.telegram.org/type/PaymentFormMethod
+ * @link https://core.impulsem.net/type/PaymentFormMethod
  */
 export type PaymentFormMethod = PaymentFormMethod.paymentFormMethod;
 
@@ -12355,7 +12355,7 @@ export namespace PaymentFormMethod {
 }
 
 /**
- * @link https://core.telegram.org/type/EmojiStatus
+ * @link https://core.impulsem.net/type/EmojiStatus
  */
 export type EmojiStatus = EmojiStatus.emojiStatusEmpty | EmojiStatus.emojiStatus | EmojiStatus.emojiStatusCollectible | EmojiStatus.inputEmojiStatusCollectible;
 
@@ -12395,7 +12395,7 @@ export namespace EmojiStatus {
 }
 
 /**
- * @link https://core.telegram.org/type/account.EmojiStatuses
+ * @link https://core.impulsem.net/type/account.EmojiStatuses
  */
 export type AccountEmojiStatuses = AccountEmojiStatuses.accountEmojiStatusesNotModified | AccountEmojiStatuses.accountEmojiStatuses;
 
@@ -12412,7 +12412,7 @@ export namespace AccountEmojiStatuses {
 }
 
 /**
- * @link https://core.telegram.org/type/Reaction
+ * @link https://core.impulsem.net/type/Reaction
  */
 export type Reaction = Reaction.reactionEmpty | Reaction.reactionEmoji | Reaction.reactionCustomEmoji | Reaction.reactionPaid;
 
@@ -12437,7 +12437,7 @@ export namespace Reaction {
 }
 
 /**
- * @link https://core.telegram.org/type/ChatReactions
+ * @link https://core.impulsem.net/type/ChatReactions
  */
 export type ChatReactions = ChatReactions.chatReactionsNone | ChatReactions.chatReactionsAll | ChatReactions.chatReactionsSome;
 
@@ -12461,7 +12461,7 @@ export namespace ChatReactions {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.Reactions
+ * @link https://core.impulsem.net/type/messages.Reactions
  */
 export type MessagesReactions = MessagesReactions.messagesReactionsNotModified | MessagesReactions.messagesReactions;
 
@@ -12478,7 +12478,7 @@ export namespace MessagesReactions {
 }
 
 /**
- * @link https://core.telegram.org/type/EmailVerifyPurpose
+ * @link https://core.impulsem.net/type/EmailVerifyPurpose
  */
 export type EmailVerifyPurpose = EmailVerifyPurpose.emailVerifyPurposeLoginSetup | EmailVerifyPurpose.emailVerifyPurposeLoginChange | EmailVerifyPurpose.emailVerifyPurposePassport;
 
@@ -12499,7 +12499,7 @@ export namespace EmailVerifyPurpose {
 }
 
 /**
- * @link https://core.telegram.org/type/EmailVerification
+ * @link https://core.impulsem.net/type/EmailVerification
  */
 export type EmailVerification = EmailVerification.emailVerificationCode | EmailVerification.emailVerificationGoogle | EmailVerification.emailVerificationApple;
 
@@ -12521,7 +12521,7 @@ export namespace EmailVerification {
 }
 
 /**
- * @link https://core.telegram.org/type/account.EmailVerified
+ * @link https://core.impulsem.net/type/account.EmailVerified
  */
 export type AccountEmailVerified = AccountEmailVerified.accountEmailVerified | AccountEmailVerified.accountEmailVerifiedLogin;
 
@@ -12539,7 +12539,7 @@ export namespace AccountEmailVerified {
 }
 
 /**
- * @link https://core.telegram.org/type/PremiumSubscriptionOption
+ * @link https://core.impulsem.net/type/PremiumSubscriptionOption
  */
 export type PremiumSubscriptionOption = PremiumSubscriptionOption.premiumSubscriptionOption;
 
@@ -12561,7 +12561,7 @@ export namespace PremiumSubscriptionOption {
 }
 
 /**
- * @link https://core.telegram.org/type/SendAsPeer
+ * @link https://core.impulsem.net/type/SendAsPeer
  */
 export type SendAsPeer = SendAsPeer.sendAsPeer;
 
@@ -12577,7 +12577,7 @@ export namespace SendAsPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageExtendedMedia
+ * @link https://core.impulsem.net/type/MessageExtendedMedia
  */
 export type MessageExtendedMedia = MessageExtendedMedia.messageExtendedMediaPreview | MessageExtendedMedia.messageExtendedMedia;
 
@@ -12598,7 +12598,7 @@ export namespace MessageExtendedMedia {
 }
 
 /**
- * @link https://core.telegram.org/type/StickerKeyword
+ * @link https://core.impulsem.net/type/StickerKeyword
  */
 export type StickerKeyword = StickerKeyword.stickerKeyword;
 
@@ -12611,7 +12611,7 @@ export namespace StickerKeyword {
 }
 
 /**
- * @link https://core.telegram.org/type/Username
+ * @link https://core.impulsem.net/type/Username
  */
 export type Username = Username.username;
 
@@ -12628,7 +12628,7 @@ export namespace Username {
 }
 
 /**
- * @link https://core.telegram.org/type/ForumTopic
+ * @link https://core.impulsem.net/type/ForumTopic
  */
 export type ForumTopic = ForumTopic.forumTopicDeleted | ForumTopic.forumTopic;
 
@@ -12671,7 +12671,7 @@ export namespace ForumTopic {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.ForumTopics
+ * @link https://core.impulsem.net/type/messages.ForumTopics
  */
 export type MessagesForumTopics = MessagesForumTopics.messagesForumTopics;
 
@@ -12692,7 +12692,7 @@ export namespace MessagesForumTopics {
 }
 
 /**
- * @link https://core.telegram.org/type/DefaultHistoryTTL
+ * @link https://core.impulsem.net/type/DefaultHistoryTTL
  */
 export type DefaultHistoryTTL = DefaultHistoryTTL.defaultHistoryTTL;
 
@@ -12704,7 +12704,7 @@ export namespace DefaultHistoryTTL {
 }
 
 /**
- * @link https://core.telegram.org/type/ExportedContactToken
+ * @link https://core.impulsem.net/type/ExportedContactToken
  */
 export type ExportedContactToken = ExportedContactToken.exportedContactToken;
 
@@ -12717,7 +12717,7 @@ export namespace ExportedContactToken {
 }
 
 /**
- * @link https://core.telegram.org/type/RequestPeerType
+ * @link https://core.impulsem.net/type/RequestPeerType
  */
 export type RequestPeerType = RequestPeerType.requestPeerTypeUser | RequestPeerType.requestPeerTypeChat | RequestPeerType.requestPeerTypeBroadcast | RequestPeerType.requestPeerTypeCreateBot;
 
@@ -12765,7 +12765,7 @@ export namespace RequestPeerType {
 }
 
 /**
- * @link https://core.telegram.org/type/EmojiList
+ * @link https://core.impulsem.net/type/EmojiList
  */
 export type EmojiList = EmojiList.emojiListNotModified | EmojiList.emojiList;
 
@@ -12782,7 +12782,7 @@ export namespace EmojiList {
 }
 
 /**
- * @link https://core.telegram.org/type/EmojiGroup
+ * @link https://core.impulsem.net/type/EmojiGroup
  */
 export type EmojiGroup = EmojiGroup.emojiGroup | EmojiGroup.emojiGroupGreeting | EmojiGroup.emojiGroupPremium;
 
@@ -12809,7 +12809,7 @@ export namespace EmojiGroup {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.EmojiGroups
+ * @link https://core.impulsem.net/type/messages.EmojiGroups
  */
 export type MessagesEmojiGroups = MessagesEmojiGroups.messagesEmojiGroupsNotModified | MessagesEmojiGroups.messagesEmojiGroups;
 
@@ -12826,7 +12826,7 @@ export namespace MessagesEmojiGroups {
 }
 
 /**
- * @link https://core.telegram.org/type/TextWithEntities
+ * @link https://core.impulsem.net/type/TextWithEntities
  */
 export type TextWithEntities = TextWithEntities.textWithEntities;
 
@@ -12839,7 +12839,7 @@ export namespace TextWithEntities {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.TranslatedText
+ * @link https://core.impulsem.net/type/messages.TranslatedText
  */
 export type MessagesTranslatedText = MessagesTranslatedText.messagesTranslateResult;
 
@@ -12851,7 +12851,7 @@ export namespace MessagesTranslatedText {
 }
 
 /**
- * @link https://core.telegram.org/type/AutoSaveSettings
+ * @link https://core.impulsem.net/type/AutoSaveSettings
  */
 export type AutoSaveSettings = AutoSaveSettings.autoSaveSettings;
 
@@ -12868,7 +12868,7 @@ export namespace AutoSaveSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/AutoSaveException
+ * @link https://core.impulsem.net/type/AutoSaveException
  */
 export type AutoSaveException = AutoSaveException.autoSaveException;
 
@@ -12881,7 +12881,7 @@ export namespace AutoSaveException {
 }
 
 /**
- * @link https://core.telegram.org/type/account.AutoSaveSettings
+ * @link https://core.impulsem.net/type/account.AutoSaveSettings
  */
 export type AccountAutoSaveSettings = AccountAutoSaveSettings.accountAutoSaveSettings;
 
@@ -12898,7 +12898,7 @@ export namespace AccountAutoSaveSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/help.AppConfig
+ * @link https://core.impulsem.net/type/help.AppConfig
  */
 export type HelpAppConfig = HelpAppConfig.helpAppConfigNotModified | HelpAppConfig.helpAppConfig;
 
@@ -12915,7 +12915,7 @@ export namespace HelpAppConfig {
 }
 
 /**
- * @link https://core.telegram.org/type/InputBotApp
+ * @link https://core.impulsem.net/type/InputBotApp
  */
 export type InputBotApp = InputBotApp.inputBotAppID | InputBotApp.inputBotAppShortName;
 
@@ -12934,7 +12934,7 @@ export namespace InputBotApp {
 }
 
 /**
- * @link https://core.telegram.org/type/BotApp
+ * @link https://core.impulsem.net/type/BotApp
  */
 export type BotApp = BotApp.botAppNotModified | BotApp.botApp;
 
@@ -12958,7 +12958,7 @@ export namespace BotApp {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.BotApp
+ * @link https://core.impulsem.net/type/messages.BotApp
  */
 export type MessagesBotApp = MessagesBotApp.messagesBotApp;
 
@@ -12976,7 +12976,7 @@ export namespace MessagesBotApp {
 }
 
 /**
- * @link https://core.telegram.org/type/InlineBotWebView
+ * @link https://core.impulsem.net/type/InlineBotWebView
  */
 export type InlineBotWebView = InlineBotWebView.inlineBotWebView;
 
@@ -12989,7 +12989,7 @@ export namespace InlineBotWebView {
 }
 
 /**
- * @link https://core.telegram.org/type/ReadParticipantDate
+ * @link https://core.impulsem.net/type/ReadParticipantDate
  */
 export type ReadParticipantDate = ReadParticipantDate.readParticipantDate;
 
@@ -13002,7 +13002,7 @@ export namespace ReadParticipantDate {
 }
 
 /**
- * @link https://core.telegram.org/type/InputChatlist
+ * @link https://core.impulsem.net/type/InputChatlist
  */
 export type InputChatlist = InputChatlist.inputChatlistDialogFilter;
 
@@ -13014,7 +13014,7 @@ export namespace InputChatlist {
 }
 
 /**
- * @link https://core.telegram.org/type/ExportedChatlistInvite
+ * @link https://core.impulsem.net/type/ExportedChatlistInvite
  */
 export type ExportedChatlistInvite = ExportedChatlistInvite.exportedChatlistInvite;
 
@@ -13029,7 +13029,7 @@ export namespace ExportedChatlistInvite {
 }
 
 /**
- * @link https://core.telegram.org/type/chatlists.ExportedChatlistInvite
+ * @link https://core.impulsem.net/type/chatlists.ExportedChatlistInvite
  */
 export type ChatlistsExportedChatlistInvite = ChatlistsExportedChatlistInvite.chatlistsExportedChatlistInvite;
 
@@ -13042,7 +13042,7 @@ export namespace ChatlistsExportedChatlistInvite {
 }
 
 /**
- * @link https://core.telegram.org/type/chatlists.ExportedInvites
+ * @link https://core.impulsem.net/type/chatlists.ExportedInvites
  */
 export type ChatlistsExportedInvites = ChatlistsExportedInvites.chatlistsExportedInvites;
 
@@ -13056,7 +13056,7 @@ export namespace ChatlistsExportedInvites {
 }
 
 /**
- * @link https://core.telegram.org/type/chatlists.ChatlistInvite
+ * @link https://core.impulsem.net/type/chatlists.ChatlistInvite
  */
 export type ChatlistsChatlistInvite = ChatlistsChatlistInvite.chatlistsChatlistInviteAlready | ChatlistsChatlistInvite.chatlistsChatlistInvite;
 
@@ -13085,7 +13085,7 @@ export namespace ChatlistsChatlistInvite {
 }
 
 /**
- * @link https://core.telegram.org/type/chatlists.ChatlistUpdates
+ * @link https://core.impulsem.net/type/chatlists.ChatlistUpdates
  */
 export type ChatlistsChatlistUpdates = ChatlistsChatlistUpdates.chatlistsChatlistUpdates;
 
@@ -13099,7 +13099,7 @@ export namespace ChatlistsChatlistUpdates {
 }
 
 /**
- * @link https://core.telegram.org/type/bots.BotInfo
+ * @link https://core.impulsem.net/type/bots.BotInfo
  */
 export type BotsBotInfo = BotsBotInfo.botsBotInfo;
 
@@ -13113,7 +13113,7 @@ export namespace BotsBotInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/MessagePeerVote
+ * @link https://core.impulsem.net/type/MessagePeerVote
  */
 export type MessagePeerVote = MessagePeerVote.messagePeerVote | MessagePeerVote.messagePeerVoteInputOption | MessagePeerVote.messagePeerVoteMultiple;
 
@@ -13140,7 +13140,7 @@ export namespace MessagePeerVote {
 }
 
 /**
- * @link https://core.telegram.org/type/StoryViews
+ * @link https://core.impulsem.net/type/StoryViews
  */
 export type StoryViews = StoryViews.storyViews;
 
@@ -13160,7 +13160,7 @@ export namespace StoryViews {
 }
 
 /**
- * @link https://core.telegram.org/type/StoryItem
+ * @link https://core.impulsem.net/type/StoryItem
  */
 export type StoryItem = StoryItem.storyItemDeleted | StoryItem.storyItemSkipped | StoryItem.storyItem;
 
@@ -13216,7 +13216,7 @@ export namespace StoryItem {
 }
 
 /**
- * @link https://core.telegram.org/type/stories.AllStories
+ * @link https://core.impulsem.net/type/stories.AllStories
  */
 export type StoriesAllStories = StoriesAllStories.storiesAllStoriesNotModified | StoriesAllStories.storiesAllStories;
 
@@ -13244,7 +13244,7 @@ export namespace StoriesAllStories {
 }
 
 /**
- * @link https://core.telegram.org/type/stories.Stories
+ * @link https://core.impulsem.net/type/stories.Stories
  */
 export type StoriesStories = StoriesStories.storiesStories;
 
@@ -13261,7 +13261,7 @@ export namespace StoriesStories {
 }
 
 /**
- * @link https://core.telegram.org/type/StoryView
+ * @link https://core.impulsem.net/type/StoryView
  */
 export type StoryView = StoryView.storyView | StoryView.storyViewPublicForward | StoryView.storyViewPublicRepost;
 
@@ -13301,7 +13301,7 @@ export namespace StoryView {
 }
 
 /**
- * @link https://core.telegram.org/type/stories.StoryViewsList
+ * @link https://core.impulsem.net/type/stories.StoryViewsList
  */
 export type StoriesStoryViewsList = StoriesStoryViewsList.storiesStoryViewsList;
 
@@ -13321,7 +13321,7 @@ export namespace StoriesStoryViewsList {
 }
 
 /**
- * @link https://core.telegram.org/type/stories.StoryViews
+ * @link https://core.impulsem.net/type/stories.StoryViews
  */
 export type StoriesStoryViews = StoriesStoryViews.storiesStoryViews;
 
@@ -13334,7 +13334,7 @@ export namespace StoriesStoryViews {
 }
 
 /**
- * @link https://core.telegram.org/type/InputReplyTo
+ * @link https://core.impulsem.net/type/InputReplyTo
  */
 export type InputReplyTo = InputReplyTo.inputReplyToMessage | InputReplyTo.inputReplyToStory | InputReplyTo.inputReplyToMonoForum | InputReplyTo.inputReplyToEphemeralMessage;
 
@@ -13371,7 +13371,7 @@ export namespace InputReplyTo {
 }
 
 /**
- * @link https://core.telegram.org/type/ExportedStoryLink
+ * @link https://core.impulsem.net/type/ExportedStoryLink
  */
 export type ExportedStoryLink = ExportedStoryLink.exportedStoryLink;
 
@@ -13383,7 +13383,7 @@ export namespace ExportedStoryLink {
 }
 
 /**
- * @link https://core.telegram.org/type/StoriesStealthMode
+ * @link https://core.impulsem.net/type/StoriesStealthMode
  */
 export type StoriesStealthMode = StoriesStealthMode.storiesStealthMode;
 
@@ -13397,7 +13397,7 @@ export namespace StoriesStealthMode {
 }
 
 /**
- * @link https://core.telegram.org/type/MediaAreaCoordinates
+ * @link https://core.impulsem.net/type/MediaAreaCoordinates
  */
 export type MediaAreaCoordinates = MediaAreaCoordinates.mediaAreaCoordinates;
 
@@ -13415,7 +13415,7 @@ export namespace MediaAreaCoordinates {
 }
 
 /**
- * @link https://core.telegram.org/type/MediaArea
+ * @link https://core.impulsem.net/type/MediaArea
  */
 export type MediaArea = MediaArea.mediaAreaVenue | MediaArea.inputMediaAreaVenue | MediaArea.mediaAreaGeoPoint | MediaArea.mediaAreaSuggestedReaction | MediaArea.mediaAreaChannelPost | MediaArea.inputMediaAreaChannelPost | MediaArea.mediaAreaUrl | MediaArea.mediaAreaWeather | MediaArea.mediaAreaStarGift;
 
@@ -13493,7 +13493,7 @@ export namespace MediaArea {
 }
 
 /**
- * @link https://core.telegram.org/type/PeerStories
+ * @link https://core.impulsem.net/type/PeerStories
  */
 export type PeerStories = PeerStories.peerStories;
 
@@ -13508,7 +13508,7 @@ export namespace PeerStories {
 }
 
 /**
- * @link https://core.telegram.org/type/stories.PeerStories
+ * @link https://core.impulsem.net/type/stories.PeerStories
  */
 export type StoriesPeerStories = StoriesPeerStories.storiesPeerStories;
 
@@ -13522,7 +13522,7 @@ export namespace StoriesPeerStories {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.WebPage
+ * @link https://core.impulsem.net/type/messages.WebPage
  */
 export type MessagesWebPage = MessagesWebPage.messagesWebPage;
 
@@ -13536,7 +13536,7 @@ export namespace MessagesWebPage {
 }
 
 /**
- * @link https://core.telegram.org/type/PremiumGiftCodeOption
+ * @link https://core.impulsem.net/type/PremiumGiftCodeOption
  */
 export type PremiumGiftCodeOption = PremiumGiftCodeOption.premiumGiftCodeOption;
 
@@ -13554,7 +13554,7 @@ export namespace PremiumGiftCodeOption {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.CheckedGiftCode
+ * @link https://core.impulsem.net/type/payments.CheckedGiftCode
  */
 export type PaymentsCheckedGiftCode = PaymentsCheckedGiftCode.paymentsCheckedGiftCode;
 
@@ -13578,7 +13578,7 @@ export namespace PaymentsCheckedGiftCode {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.GiveawayInfo
+ * @link https://core.impulsem.net/type/payments.GiveawayInfo
  */
 export type PaymentsGiveawayInfo = PaymentsGiveawayInfo.paymentsGiveawayInfo | PaymentsGiveawayInfo.paymentsGiveawayInfoResults;
 
@@ -13613,7 +13613,7 @@ export namespace PaymentsGiveawayInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/PrepaidGiveaway
+ * @link https://core.impulsem.net/type/PrepaidGiveaway
  */
 export type PrepaidGiveaway = PrepaidGiveaway.prepaidGiveaway | PrepaidGiveaway.prepaidStarsGiveaway;
 
@@ -13637,7 +13637,7 @@ export namespace PrepaidGiveaway {
 }
 
 /**
- * @link https://core.telegram.org/type/Boost
+ * @link https://core.impulsem.net/type/Boost
  */
 export type Boost = Boost.boost;
 
@@ -13662,7 +13662,7 @@ export namespace Boost {
 }
 
 /**
- * @link https://core.telegram.org/type/premium.BoostsList
+ * @link https://core.impulsem.net/type/premium.BoostsList
  */
 export type PremiumBoostsList = PremiumBoostsList.premiumBoostsList;
 
@@ -13678,7 +13678,7 @@ export namespace PremiumBoostsList {
 }
 
 /**
- * @link https://core.telegram.org/type/MyBoost
+ * @link https://core.impulsem.net/type/MyBoost
  */
 export type MyBoost = MyBoost.myBoost;
 
@@ -13695,7 +13695,7 @@ export namespace MyBoost {
 }
 
 /**
- * @link https://core.telegram.org/type/premium.MyBoosts
+ * @link https://core.impulsem.net/type/premium.MyBoosts
  */
 export type PremiumMyBoosts = PremiumMyBoosts.premiumMyBoosts;
 
@@ -13709,7 +13709,7 @@ export namespace PremiumMyBoosts {
 }
 
 /**
- * @link https://core.telegram.org/type/premium.BoostsStatus
+ * @link https://core.impulsem.net/type/premium.BoostsStatus
  */
 export type PremiumBoostsStatus = PremiumBoostsStatus.premiumBoostsStatus;
 
@@ -13733,7 +13733,7 @@ export namespace PremiumBoostsStatus {
 }
 
 /**
- * @link https://core.telegram.org/type/StoryFwdHeader
+ * @link https://core.impulsem.net/type/StoryFwdHeader
  */
 export type StoryFwdHeader = StoryFwdHeader.storyFwdHeader;
 
@@ -13751,7 +13751,7 @@ export namespace StoryFwdHeader {
 }
 
 /**
- * @link https://core.telegram.org/type/PostInteractionCounters
+ * @link https://core.impulsem.net/type/PostInteractionCounters
  */
 export type PostInteractionCounters = PostInteractionCounters.postInteractionCountersMessage | PostInteractionCounters.postInteractionCountersStory;
 
@@ -13774,7 +13774,7 @@ export namespace PostInteractionCounters {
 }
 
 /**
- * @link https://core.telegram.org/type/stats.StoryStats
+ * @link https://core.impulsem.net/type/stats.StoryStats
  */
 export type StatsStoryStats = StatsStoryStats.statsStoryStats;
 
@@ -13791,7 +13791,7 @@ export namespace StatsStoryStats {
 }
 
 /**
- * @link https://core.telegram.org/type/PublicForward
+ * @link https://core.impulsem.net/type/PublicForward
  */
 export type PublicForward = PublicForward.publicForwardMessage | PublicForward.publicForwardStory;
 
@@ -13809,7 +13809,7 @@ export namespace PublicForward {
 }
 
 /**
- * @link https://core.telegram.org/type/stats.PublicForwards
+ * @link https://core.impulsem.net/type/stats.PublicForwards
  */
 export type StatsPublicForwards = StatsPublicForwards.statsPublicForwards;
 
@@ -13826,7 +13826,7 @@ export namespace StatsPublicForwards {
 }
 
 /**
- * @link https://core.telegram.org/type/PeerColor
+ * @link https://core.impulsem.net/type/PeerColor
  */
 export type PeerColor = PeerColor.peerColor | PeerColor.peerColorCollectible | PeerColor.inputPeerColorCollectible;
 
@@ -13857,7 +13857,7 @@ export namespace PeerColor {
 }
 
 /**
- * @link https://core.telegram.org/type/help.PeerColorSet
+ * @link https://core.impulsem.net/type/help.PeerColorSet
  */
 export type HelpPeerColorSet = HelpPeerColorSet.helpPeerColorSet | HelpPeerColorSet.helpPeerColorProfileSet;
 
@@ -13876,7 +13876,7 @@ export namespace HelpPeerColorSet {
 }
 
 /**
- * @link https://core.telegram.org/type/help.PeerColorOption
+ * @link https://core.impulsem.net/type/help.PeerColorOption
  */
 export type HelpPeerColorOption = HelpPeerColorOption.helpPeerColorOption;
 
@@ -13896,7 +13896,7 @@ export namespace HelpPeerColorOption {
 }
 
 /**
- * @link https://core.telegram.org/type/help.PeerColors
+ * @link https://core.impulsem.net/type/help.PeerColors
  */
 export type HelpPeerColors = HelpPeerColors.helpPeerColorsNotModified | HelpPeerColors.helpPeerColors;
 
@@ -13913,7 +13913,7 @@ export namespace HelpPeerColors {
 }
 
 /**
- * @link https://core.telegram.org/type/StoryReaction
+ * @link https://core.impulsem.net/type/StoryReaction
  */
 export type StoryReaction = StoryReaction.storyReaction | StoryReaction.storyReactionPublicForward | StoryReaction.storyReactionPublicRepost;
 
@@ -13938,7 +13938,7 @@ export namespace StoryReaction {
 }
 
 /**
- * @link https://core.telegram.org/type/stories.StoryReactionsList
+ * @link https://core.impulsem.net/type/stories.StoryReactionsList
  */
 export type StoriesStoryReactionsList = StoriesStoryReactionsList.storiesStoryReactionsList;
 
@@ -13955,7 +13955,7 @@ export namespace StoriesStoryReactionsList {
 }
 
 /**
- * @link https://core.telegram.org/type/SavedDialog
+ * @link https://core.impulsem.net/type/SavedDialog
  */
 export type SavedDialog = SavedDialog.savedDialog | SavedDialog.monoForumDialog;
 
@@ -13995,7 +13995,7 @@ export namespace SavedDialog {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.SavedDialogs
+ * @link https://core.impulsem.net/type/messages.SavedDialogs
  */
 export type MessagesSavedDialogs = MessagesSavedDialogs.messagesSavedDialogs | MessagesSavedDialogs.messagesSavedDialogsSlice | MessagesSavedDialogs.messagesSavedDialogsNotModified;
 
@@ -14024,7 +14024,7 @@ export namespace MessagesSavedDialogs {
 }
 
 /**
- * @link https://core.telegram.org/type/SavedReactionTag
+ * @link https://core.impulsem.net/type/SavedReactionTag
  */
 export type SavedReactionTag = SavedReactionTag.savedReactionTag;
 
@@ -14039,7 +14039,7 @@ export namespace SavedReactionTag {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.SavedReactionTags
+ * @link https://core.impulsem.net/type/messages.SavedReactionTags
  */
 export type MessagesSavedReactionTags = MessagesSavedReactionTags.messagesSavedReactionTagsNotModified | MessagesSavedReactionTags.messagesSavedReactionTags;
 
@@ -14056,7 +14056,7 @@ export namespace MessagesSavedReactionTags {
 }
 
 /**
- * @link https://core.telegram.org/type/OutboxReadDate
+ * @link https://core.impulsem.net/type/OutboxReadDate
  */
 export type OutboxReadDate = OutboxReadDate.outboxReadDate;
 
@@ -14068,7 +14068,7 @@ export namespace OutboxReadDate {
 }
 
 /**
- * @link https://core.telegram.org/type/smsjobs.EligibilityToJoin
+ * @link https://core.impulsem.net/type/smsjobs.EligibilityToJoin
  */
 export type SmsjobsEligibilityToJoin = SmsjobsEligibilityToJoin.smsjobsEligibleToJoin;
 
@@ -14081,7 +14081,7 @@ export namespace SmsjobsEligibilityToJoin {
 }
 
 /**
- * @link https://core.telegram.org/type/smsjobs.Status
+ * @link https://core.impulsem.net/type/smsjobs.Status
  */
 export type SmsjobsStatus = SmsjobsStatus.smsjobsStatus;
 
@@ -14103,7 +14103,7 @@ export namespace SmsjobsStatus {
 }
 
 /**
- * @link https://core.telegram.org/type/SmsJob
+ * @link https://core.impulsem.net/type/SmsJob
  */
 export type SmsJob = SmsJob.smsJob;
 
@@ -14117,7 +14117,7 @@ export namespace SmsJob {
 }
 
 /**
- * @link https://core.telegram.org/type/BusinessWeeklyOpen
+ * @link https://core.impulsem.net/type/BusinessWeeklyOpen
  */
 export type BusinessWeeklyOpen = BusinessWeeklyOpen.businessWeeklyOpen;
 
@@ -14130,7 +14130,7 @@ export namespace BusinessWeeklyOpen {
 }
 
 /**
- * @link https://core.telegram.org/type/BusinessWorkHours
+ * @link https://core.impulsem.net/type/BusinessWorkHours
  */
 export type BusinessWorkHours = BusinessWorkHours.businessWorkHours;
 
@@ -14147,7 +14147,7 @@ export namespace BusinessWorkHours {
 }
 
 /**
- * @link https://core.telegram.org/type/BusinessLocation
+ * @link https://core.impulsem.net/type/BusinessLocation
  */
 export type BusinessLocation = BusinessLocation.businessLocation;
 
@@ -14161,7 +14161,7 @@ export namespace BusinessLocation {
 }
 
 /**
- * @link https://core.telegram.org/type/InputBusinessRecipients
+ * @link https://core.impulsem.net/type/InputBusinessRecipients
  */
 export type InputBusinessRecipients = InputBusinessRecipients.inputBusinessRecipients;
 
@@ -14181,7 +14181,7 @@ export namespace InputBusinessRecipients {
 }
 
 /**
- * @link https://core.telegram.org/type/BusinessRecipients
+ * @link https://core.impulsem.net/type/BusinessRecipients
  */
 export type BusinessRecipients = BusinessRecipients.businessRecipients;
 
@@ -14201,7 +14201,7 @@ export namespace BusinessRecipients {
 }
 
 /**
- * @link https://core.telegram.org/type/BusinessAwayMessageSchedule
+ * @link https://core.impulsem.net/type/BusinessAwayMessageSchedule
  */
 export type BusinessAwayMessageSchedule = BusinessAwayMessageSchedule.businessAwayMessageScheduleAlways | BusinessAwayMessageSchedule.businessAwayMessageScheduleOutsideWorkHours | BusinessAwayMessageSchedule.businessAwayMessageScheduleCustom;
 
@@ -14222,7 +14222,7 @@ export namespace BusinessAwayMessageSchedule {
 }
 
 /**
- * @link https://core.telegram.org/type/InputBusinessGreetingMessage
+ * @link https://core.impulsem.net/type/InputBusinessGreetingMessage
  */
 export type InputBusinessGreetingMessage = InputBusinessGreetingMessage.inputBusinessGreetingMessage;
 
@@ -14236,7 +14236,7 @@ export namespace InputBusinessGreetingMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/BusinessGreetingMessage
+ * @link https://core.impulsem.net/type/BusinessGreetingMessage
  */
 export type BusinessGreetingMessage = BusinessGreetingMessage.businessGreetingMessage;
 
@@ -14250,7 +14250,7 @@ export namespace BusinessGreetingMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/InputBusinessAwayMessage
+ * @link https://core.impulsem.net/type/InputBusinessAwayMessage
  */
 export type InputBusinessAwayMessage = InputBusinessAwayMessage.inputBusinessAwayMessage;
 
@@ -14268,7 +14268,7 @@ export namespace InputBusinessAwayMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/BusinessAwayMessage
+ * @link https://core.impulsem.net/type/BusinessAwayMessage
  */
 export type BusinessAwayMessage = BusinessAwayMessage.businessAwayMessage;
 
@@ -14286,7 +14286,7 @@ export namespace BusinessAwayMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/Timezone
+ * @link https://core.impulsem.net/type/Timezone
  */
 export type Timezone = Timezone.timezone;
 
@@ -14300,7 +14300,7 @@ export namespace Timezone {
 }
 
 /**
- * @link https://core.telegram.org/type/help.TimezonesList
+ * @link https://core.impulsem.net/type/help.TimezonesList
  */
 export type HelpTimezonesList = HelpTimezonesList.helpTimezonesListNotModified | HelpTimezonesList.helpTimezonesList;
 
@@ -14317,7 +14317,7 @@ export namespace HelpTimezonesList {
 }
 
 /**
- * @link https://core.telegram.org/type/QuickReply
+ * @link https://core.impulsem.net/type/QuickReply
  */
 export type QuickReply = QuickReply.quickReply;
 
@@ -14332,7 +14332,7 @@ export namespace QuickReply {
 }
 
 /**
- * @link https://core.telegram.org/type/InputQuickReplyShortcut
+ * @link https://core.impulsem.net/type/InputQuickReplyShortcut
  */
 export type InputQuickReplyShortcut = InputQuickReplyShortcut.inputQuickReplyShortcut | InputQuickReplyShortcut.inputQuickReplyShortcutId;
 
@@ -14349,7 +14349,7 @@ export namespace InputQuickReplyShortcut {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.QuickReplies
+ * @link https://core.impulsem.net/type/messages.QuickReplies
  */
 export type MessagesQuickReplies = MessagesQuickReplies.messagesQuickReplies | MessagesQuickReplies.messagesQuickRepliesNotModified;
 
@@ -14368,7 +14368,7 @@ export namespace MessagesQuickReplies {
 }
 
 /**
- * @link https://core.telegram.org/type/ConnectedBot
+ * @link https://core.impulsem.net/type/ConnectedBot
  */
 export type ConnectedBot = ConnectedBot.connectedBot;
 
@@ -14386,7 +14386,7 @@ export namespace ConnectedBot {
 }
 
 /**
- * @link https://core.telegram.org/type/account.ConnectedBots
+ * @link https://core.impulsem.net/type/account.ConnectedBots
  */
 export type AccountConnectedBots = AccountConnectedBots.accountConnectedBots;
 
@@ -14399,7 +14399,7 @@ export namespace AccountConnectedBots {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.DialogFilters
+ * @link https://core.impulsem.net/type/messages.DialogFilters
  */
 export type MessagesDialogFilters = MessagesDialogFilters.messagesDialogFilters;
 
@@ -14415,7 +14415,7 @@ export namespace MessagesDialogFilters {
 }
 
 /**
- * @link https://core.telegram.org/type/Birthday
+ * @link https://core.impulsem.net/type/Birthday
  */
 export type Birthday = Birthday.birthday;
 
@@ -14430,7 +14430,7 @@ export namespace Birthday {
 }
 
 /**
- * @link https://core.telegram.org/type/BotBusinessConnection
+ * @link https://core.impulsem.net/type/BotBusinessConnection
  */
 export type BotBusinessConnection = BotBusinessConnection.botBusinessConnection;
 
@@ -14450,7 +14450,7 @@ export namespace BotBusinessConnection {
 }
 
 /**
- * @link https://core.telegram.org/type/InputBusinessIntro
+ * @link https://core.impulsem.net/type/InputBusinessIntro
  */
 export type InputBusinessIntro = InputBusinessIntro.inputBusinessIntro;
 
@@ -14465,7 +14465,7 @@ export namespace InputBusinessIntro {
 }
 
 /**
- * @link https://core.telegram.org/type/BusinessIntro
+ * @link https://core.impulsem.net/type/BusinessIntro
  */
 export type BusinessIntro = BusinessIntro.businessIntro;
 
@@ -14480,7 +14480,7 @@ export namespace BusinessIntro {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.MyStickers
+ * @link https://core.impulsem.net/type/messages.MyStickers
  */
 export type MessagesMyStickers = MessagesMyStickers.messagesMyStickers;
 
@@ -14493,7 +14493,7 @@ export namespace MessagesMyStickers {
 }
 
 /**
- * @link https://core.telegram.org/type/InputCollectible
+ * @link https://core.impulsem.net/type/InputCollectible
  */
 export type InputCollectible = InputCollectible.inputCollectibleUsername | InputCollectible.inputCollectiblePhone;
 
@@ -14510,7 +14510,7 @@ export namespace InputCollectible {
 }
 
 /**
- * @link https://core.telegram.org/type/fragment.CollectibleInfo
+ * @link https://core.impulsem.net/type/fragment.CollectibleInfo
  */
 export type FragmentCollectibleInfo = FragmentCollectibleInfo.fragmentCollectibleInfo;
 
@@ -14527,7 +14527,7 @@ export namespace FragmentCollectibleInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/InputBusinessBotRecipients
+ * @link https://core.impulsem.net/type/InputBusinessBotRecipients
  */
 export type InputBusinessBotRecipients = InputBusinessBotRecipients.inputBusinessBotRecipients;
 
@@ -14548,7 +14548,7 @@ export namespace InputBusinessBotRecipients {
 }
 
 /**
- * @link https://core.telegram.org/type/BusinessBotRecipients
+ * @link https://core.impulsem.net/type/BusinessBotRecipients
  */
 export type BusinessBotRecipients = BusinessBotRecipients.businessBotRecipients;
 
@@ -14569,7 +14569,7 @@ export namespace BusinessBotRecipients {
 }
 
 /**
- * @link https://core.telegram.org/type/ContactBirthday
+ * @link https://core.impulsem.net/type/ContactBirthday
  */
 export type ContactBirthday = ContactBirthday.contactBirthday;
 
@@ -14582,7 +14582,7 @@ export namespace ContactBirthday {
 }
 
 /**
- * @link https://core.telegram.org/type/contacts.ContactBirthdays
+ * @link https://core.impulsem.net/type/contacts.ContactBirthdays
  */
 export type ContactsContactBirthdays = ContactsContactBirthdays.contactsContactBirthdays;
 
@@ -14595,7 +14595,7 @@ export namespace ContactsContactBirthdays {
 }
 
 /**
- * @link https://core.telegram.org/type/MissingInvitee
+ * @link https://core.impulsem.net/type/MissingInvitee
  */
 export type MissingInvitee = MissingInvitee.missingInvitee;
 
@@ -14612,7 +14612,7 @@ export namespace MissingInvitee {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.InvitedUsers
+ * @link https://core.impulsem.net/type/messages.InvitedUsers
  */
 export type MessagesInvitedUsers = MessagesInvitedUsers.messagesInvitedUsers;
 
@@ -14625,7 +14625,7 @@ export namespace MessagesInvitedUsers {
 }
 
 /**
- * @link https://core.telegram.org/type/InputBusinessChatLink
+ * @link https://core.impulsem.net/type/InputBusinessChatLink
  */
 export type InputBusinessChatLink = InputBusinessChatLink.inputBusinessChatLink;
 
@@ -14640,7 +14640,7 @@ export namespace InputBusinessChatLink {
 }
 
 /**
- * @link https://core.telegram.org/type/BusinessChatLink
+ * @link https://core.impulsem.net/type/BusinessChatLink
  */
 export type BusinessChatLink = BusinessChatLink.businessChatLink;
 
@@ -14657,7 +14657,7 @@ export namespace BusinessChatLink {
 }
 
 /**
- * @link https://core.telegram.org/type/account.BusinessChatLinks
+ * @link https://core.impulsem.net/type/account.BusinessChatLinks
  */
 export type AccountBusinessChatLinks = AccountBusinessChatLinks.accountBusinessChatLinks;
 
@@ -14671,7 +14671,7 @@ export namespace AccountBusinessChatLinks {
 }
 
 /**
- * @link https://core.telegram.org/type/account.ResolvedBusinessChatLinks
+ * @link https://core.impulsem.net/type/account.ResolvedBusinessChatLinks
  */
 export type AccountResolvedBusinessChatLinks = AccountResolvedBusinessChatLinks.accountResolvedBusinessChatLinks;
 
@@ -14688,7 +14688,7 @@ export namespace AccountResolvedBusinessChatLinks {
 }
 
 /**
- * @link https://core.telegram.org/type/RequestedPeer
+ * @link https://core.impulsem.net/type/RequestedPeer
  */
 export type RequestedPeer = RequestedPeer.requestedPeerUser | RequestedPeer.requestedPeerChat | RequestedPeer.requestedPeerChannel;
 
@@ -14722,7 +14722,7 @@ export namespace RequestedPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/SponsoredMessageReportOption
+ * @link https://core.impulsem.net/type/SponsoredMessageReportOption
  */
 export type SponsoredMessageReportOption = SponsoredMessageReportOption.sponsoredMessageReportOption;
 
@@ -14735,7 +14735,7 @@ export namespace SponsoredMessageReportOption {
 }
 
 /**
- * @link https://core.telegram.org/type/channels.SponsoredMessageReportResult
+ * @link https://core.impulsem.net/type/channels.SponsoredMessageReportResult
  */
 export type ChannelsSponsoredMessageReportResult = ChannelsSponsoredMessageReportResult.channelsSponsoredMessageReportResultChooseOption | ChannelsSponsoredMessageReportResult.channelsSponsoredMessageReportResultAdsHidden | ChannelsSponsoredMessageReportResult.channelsSponsoredMessageReportResultReported;
 
@@ -14756,7 +14756,7 @@ export namespace ChannelsSponsoredMessageReportResult {
 }
 
 /**
- * @link https://core.telegram.org/type/ReactionNotificationsFrom
+ * @link https://core.impulsem.net/type/ReactionNotificationsFrom
  */
 export type ReactionNotificationsFrom = ReactionNotificationsFrom.reactionNotificationsFromContacts | ReactionNotificationsFrom.reactionNotificationsFromAll;
 
@@ -14771,7 +14771,7 @@ export namespace ReactionNotificationsFrom {
 }
 
 /**
- * @link https://core.telegram.org/type/ReactionsNotifySettings
+ * @link https://core.impulsem.net/type/ReactionsNotifySettings
  */
 export type ReactionsNotifySettings = ReactionsNotifySettings.reactionsNotifySettings;
 
@@ -14788,7 +14788,7 @@ export namespace ReactionsNotifySettings {
 }
 
 /**
- * @link https://core.telegram.org/type/AvailableEffect
+ * @link https://core.impulsem.net/type/AvailableEffect
  */
 export type AvailableEffect = AvailableEffect.availableEffect;
 
@@ -14808,7 +14808,7 @@ export namespace AvailableEffect {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.AvailableEffects
+ * @link https://core.impulsem.net/type/messages.AvailableEffects
  */
 export type MessagesAvailableEffects = MessagesAvailableEffects.messagesAvailableEffectsNotModified | MessagesAvailableEffects.messagesAvailableEffects;
 
@@ -14826,7 +14826,7 @@ export namespace MessagesAvailableEffects {
 }
 
 /**
- * @link https://core.telegram.org/type/FactCheck
+ * @link https://core.impulsem.net/type/FactCheck
  */
 export type FactCheck = FactCheck.factCheck;
 
@@ -14844,7 +14844,7 @@ export namespace FactCheck {
 }
 
 /**
- * @link https://core.telegram.org/type/StarsTransactionPeer
+ * @link https://core.impulsem.net/type/StarsTransactionPeer
  */
 export type StarsTransactionPeer = StarsTransactionPeer.starsTransactionPeerUnsupported | StarsTransactionPeer.starsTransactionPeerAppStore | StarsTransactionPeer.starsTransactionPeerPlayMarket | StarsTransactionPeer.starsTransactionPeerPremiumBot | StarsTransactionPeer.starsTransactionPeerFragment | StarsTransactionPeer.starsTransactionPeer | StarsTransactionPeer.starsTransactionPeerAds | StarsTransactionPeer.starsTransactionPeerAPI;
 
@@ -14884,7 +14884,7 @@ export namespace StarsTransactionPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/StarsTopupOption
+ * @link https://core.impulsem.net/type/StarsTopupOption
  */
 export type StarsTopupOption = StarsTopupOption.starsTopupOption;
 
@@ -14903,7 +14903,7 @@ export namespace StarsTopupOption {
 }
 
 /**
- * @link https://core.telegram.org/type/StarsTransaction
+ * @link https://core.impulsem.net/type/StarsTransaction
  */
 export type StarsTransaction = StarsTransaction.starsTransaction;
 
@@ -14954,7 +14954,7 @@ export namespace StarsTransaction {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarsStatus
+ * @link https://core.impulsem.net/type/payments.StarsStatus
  */
 export type PaymentsStarsStatus = PaymentsStarsStatus.paymentsStarsStatus;
 
@@ -14974,7 +14974,7 @@ export namespace PaymentsStarsStatus {
 }
 
 /**
- * @link https://core.telegram.org/type/FoundStory
+ * @link https://core.impulsem.net/type/FoundStory
  */
 export type FoundStory = FoundStory.foundStory;
 
@@ -14987,7 +14987,7 @@ export namespace FoundStory {
 }
 
 /**
- * @link https://core.telegram.org/type/stories.FoundStories
+ * @link https://core.impulsem.net/type/stories.FoundStories
  */
 export type StoriesFoundStories = StoriesFoundStories.storiesFoundStories;
 
@@ -15004,7 +15004,7 @@ export namespace StoriesFoundStories {
 }
 
 /**
- * @link https://core.telegram.org/type/GeoPointAddress
+ * @link https://core.impulsem.net/type/GeoPointAddress
  */
 export type GeoPointAddress = GeoPointAddress.geoPointAddress;
 
@@ -15020,7 +15020,7 @@ export namespace GeoPointAddress {
 }
 
 /**
- * @link https://core.telegram.org/type/StarsRevenueStatus
+ * @link https://core.impulsem.net/type/StarsRevenueStatus
  */
 export type StarsRevenueStatus = StarsRevenueStatus.starsRevenueStatus;
 
@@ -15039,7 +15039,7 @@ export namespace StarsRevenueStatus {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarsRevenueStats
+ * @link https://core.impulsem.net/type/payments.StarsRevenueStats
  */
 export type PaymentsStarsRevenueStats = PaymentsStarsRevenueStats.paymentsStarsRevenueStats;
 
@@ -15055,7 +15055,7 @@ export namespace PaymentsStarsRevenueStats {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarsRevenueWithdrawalUrl
+ * @link https://core.impulsem.net/type/payments.StarsRevenueWithdrawalUrl
  */
 export type PaymentsStarsRevenueWithdrawalUrl = PaymentsStarsRevenueWithdrawalUrl.paymentsStarsRevenueWithdrawalUrl;
 
@@ -15067,7 +15067,7 @@ export namespace PaymentsStarsRevenueWithdrawalUrl {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarsRevenueAdsAccountUrl
+ * @link https://core.impulsem.net/type/payments.StarsRevenueAdsAccountUrl
  */
 export type PaymentsStarsRevenueAdsAccountUrl = PaymentsStarsRevenueAdsAccountUrl.paymentsStarsRevenueAdsAccountUrl;
 
@@ -15079,7 +15079,7 @@ export namespace PaymentsStarsRevenueAdsAccountUrl {
 }
 
 /**
- * @link https://core.telegram.org/type/InputStarsTransaction
+ * @link https://core.impulsem.net/type/InputStarsTransaction
  */
 export type InputStarsTransaction = InputStarsTransaction.inputStarsTransaction;
 
@@ -15095,7 +15095,7 @@ export namespace InputStarsTransaction {
 }
 
 /**
- * @link https://core.telegram.org/type/StarsGiftOption
+ * @link https://core.impulsem.net/type/StarsGiftOption
  */
 export type StarsGiftOption = StarsGiftOption.starsGiftOption;
 
@@ -15114,7 +15114,7 @@ export namespace StarsGiftOption {
 }
 
 /**
- * @link https://core.telegram.org/type/bots.PopularAppBots
+ * @link https://core.impulsem.net/type/bots.PopularAppBots
  */
 export type BotsPopularAppBots = BotsPopularAppBots.botsPopularAppBots;
 
@@ -15128,7 +15128,7 @@ export namespace BotsPopularAppBots {
 }
 
 /**
- * @link https://core.telegram.org/type/BotPreviewMedia
+ * @link https://core.impulsem.net/type/BotPreviewMedia
  */
 export type BotPreviewMedia = BotPreviewMedia.botPreviewMedia;
 
@@ -15141,7 +15141,7 @@ export namespace BotPreviewMedia {
 }
 
 /**
- * @link https://core.telegram.org/type/bots.PreviewInfo
+ * @link https://core.impulsem.net/type/bots.PreviewInfo
  */
 export type BotsPreviewInfo = BotsPreviewInfo.botsPreviewInfo;
 
@@ -15154,7 +15154,7 @@ export namespace BotsPreviewInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/StarsSubscriptionPricing
+ * @link https://core.impulsem.net/type/StarsSubscriptionPricing
  */
 export type StarsSubscriptionPricing = StarsSubscriptionPricing.starsSubscriptionPricing;
 
@@ -15167,7 +15167,7 @@ export namespace StarsSubscriptionPricing {
 }
 
 /**
- * @link https://core.telegram.org/type/StarsSubscription
+ * @link https://core.impulsem.net/type/StarsSubscription
  */
 export type StarsSubscription = StarsSubscription.starsSubscription;
 
@@ -15193,7 +15193,7 @@ export namespace StarsSubscription {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageReactor
+ * @link https://core.impulsem.net/type/MessageReactor
  */
 export type MessageReactor = MessageReactor.messageReactor;
 
@@ -15212,7 +15212,7 @@ export namespace MessageReactor {
 }
 
 /**
- * @link https://core.telegram.org/type/StarsGiveawayOption
+ * @link https://core.impulsem.net/type/StarsGiveawayOption
  */
 export type StarsGiveawayOption = StarsGiveawayOption.starsGiveawayOption;
 
@@ -15234,7 +15234,7 @@ export namespace StarsGiveawayOption {
 }
 
 /**
- * @link https://core.telegram.org/type/StarsGiveawayWinnersOption
+ * @link https://core.impulsem.net/type/StarsGiveawayWinnersOption
  */
 export type StarsGiveawayWinnersOption = StarsGiveawayWinnersOption.starsGiveawayWinnersOption;
 
@@ -15251,7 +15251,7 @@ export namespace StarsGiveawayWinnersOption {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGift
+ * @link https://core.impulsem.net/type/StarGift
  */
 export type StarGift = StarGift.starGift | StarGift.starGiftUnique;
 
@@ -15327,7 +15327,7 @@ export namespace StarGift {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarGifts
+ * @link https://core.impulsem.net/type/payments.StarGifts
  */
 export type PaymentsStarGifts = PaymentsStarGifts.paymentsStarGiftsNotModified | PaymentsStarGifts.paymentsStarGifts;
 
@@ -15346,7 +15346,7 @@ export namespace PaymentsStarGifts {
 }
 
 /**
- * @link https://core.telegram.org/type/MessageReportOption
+ * @link https://core.impulsem.net/type/MessageReportOption
  */
 export type MessageReportOption = MessageReportOption.messageReportOption;
 
@@ -15359,7 +15359,7 @@ export namespace MessageReportOption {
 }
 
 /**
- * @link https://core.telegram.org/type/ReportResult
+ * @link https://core.impulsem.net/type/ReportResult
  */
 export type ReportResult = ReportResult.reportResultChooseOption | ReportResult.reportResultAddComment | ReportResult.reportResultReported;
 
@@ -15385,7 +15385,7 @@ export namespace ReportResult {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.BotPreparedInlineMessage
+ * @link https://core.impulsem.net/type/messages.BotPreparedInlineMessage
  */
 export type MessagesBotPreparedInlineMessage = MessagesBotPreparedInlineMessage.messagesBotPreparedInlineMessage;
 
@@ -15398,7 +15398,7 @@ export namespace MessagesBotPreparedInlineMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.PreparedInlineMessage
+ * @link https://core.impulsem.net/type/messages.PreparedInlineMessage
  */
 export type MessagesPreparedInlineMessage = MessagesPreparedInlineMessage.messagesPreparedInlineMessage;
 
@@ -15414,7 +15414,7 @@ export namespace MessagesPreparedInlineMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/BotAppSettings
+ * @link https://core.impulsem.net/type/BotAppSettings
  */
 export type BotAppSettings = BotAppSettings.botAppSettings;
 
@@ -15431,7 +15431,7 @@ export namespace BotAppSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/StarRefProgram
+ * @link https://core.impulsem.net/type/StarRefProgram
  */
 export type StarRefProgram = StarRefProgram.starRefProgram;
 
@@ -15448,7 +15448,7 @@ export namespace StarRefProgram {
 }
 
 /**
- * @link https://core.telegram.org/type/ConnectedBotStarRef
+ * @link https://core.impulsem.net/type/ConnectedBotStarRef
  */
 export type ConnectedBotStarRef = ConnectedBotStarRef.connectedBotStarRef;
 
@@ -15470,7 +15470,7 @@ export namespace ConnectedBotStarRef {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.ConnectedStarRefBots
+ * @link https://core.impulsem.net/type/payments.ConnectedStarRefBots
  */
 export type PaymentsConnectedStarRefBots = PaymentsConnectedStarRefBots.paymentsConnectedStarRefBots;
 
@@ -15484,7 +15484,7 @@ export namespace PaymentsConnectedStarRefBots {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.SuggestedStarRefBots
+ * @link https://core.impulsem.net/type/payments.SuggestedStarRefBots
  */
 export type PaymentsSuggestedStarRefBots = PaymentsSuggestedStarRefBots.paymentsSuggestedStarRefBots;
 
@@ -15500,7 +15500,7 @@ export namespace PaymentsSuggestedStarRefBots {
 }
 
 /**
- * @link https://core.telegram.org/type/StarsAmount
+ * @link https://core.impulsem.net/type/StarsAmount
  */
 export type StarsAmount = StarsAmount.starsAmount | StarsAmount.starsTonAmount;
 
@@ -15518,7 +15518,7 @@ export namespace StarsAmount {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.FoundStickers
+ * @link https://core.impulsem.net/type/messages.FoundStickers
  */
 export type MessagesFoundStickers = MessagesFoundStickers.messagesFoundStickersNotModified | MessagesFoundStickers.messagesFoundStickers;
 
@@ -15539,7 +15539,7 @@ export namespace MessagesFoundStickers {
 }
 
 /**
- * @link https://core.telegram.org/type/BotVerifierSettings
+ * @link https://core.impulsem.net/type/BotVerifierSettings
  */
 export type BotVerifierSettings = BotVerifierSettings.botVerifierSettings;
 
@@ -15557,7 +15557,7 @@ export namespace BotVerifierSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/BotVerification
+ * @link https://core.impulsem.net/type/BotVerification
  */
 export type BotVerification = BotVerification.botVerification;
 
@@ -15571,7 +15571,7 @@ export namespace BotVerification {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftAttribute
+ * @link https://core.impulsem.net/type/StarGiftAttribute
  */
 export type StarGiftAttribute = StarGiftAttribute.starGiftAttributeModel | StarGiftAttribute.starGiftAttributePattern | StarGiftAttribute.starGiftAttributeBackdrop | StarGiftAttribute.starGiftAttributeOriginalDetails;
 
@@ -15616,7 +15616,7 @@ export namespace StarGiftAttribute {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarGiftUpgradePreview
+ * @link https://core.impulsem.net/type/payments.StarGiftUpgradePreview
  */
 export type PaymentsStarGiftUpgradePreview = PaymentsStarGiftUpgradePreview.paymentsStarGiftUpgradePreview;
 
@@ -15630,7 +15630,7 @@ export namespace PaymentsStarGiftUpgradePreview {
 }
 
 /**
- * @link https://core.telegram.org/type/users.Users
+ * @link https://core.impulsem.net/type/users.Users
  */
 export type UsersUsers = UsersUsers.usersUsers | UsersUsers.usersUsersSlice;
 
@@ -15648,7 +15648,7 @@ export namespace UsersUsers {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.UniqueStarGift
+ * @link https://core.impulsem.net/type/payments.UniqueStarGift
  */
 export type PaymentsUniqueStarGift = PaymentsUniqueStarGift.paymentsUniqueStarGift;
 
@@ -15662,7 +15662,7 @@ export namespace PaymentsUniqueStarGift {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.WebPagePreview
+ * @link https://core.impulsem.net/type/messages.WebPagePreview
  */
 export type MessagesWebPagePreview = MessagesWebPagePreview.messagesWebPagePreview;
 
@@ -15676,7 +15676,7 @@ export namespace MessagesWebPagePreview {
 }
 
 /**
- * @link https://core.telegram.org/type/SavedStarGift
+ * @link https://core.impulsem.net/type/SavedStarGift
  */
 export type SavedStarGift = SavedStarGift.savedStarGift;
 
@@ -15713,7 +15713,7 @@ export namespace SavedStarGift {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.SavedStarGifts
+ * @link https://core.impulsem.net/type/payments.SavedStarGifts
  */
 export type PaymentsSavedStarGifts = PaymentsSavedStarGifts.paymentsSavedStarGifts;
 
@@ -15731,7 +15731,7 @@ export namespace PaymentsSavedStarGifts {
 }
 
 /**
- * @link https://core.telegram.org/type/InputSavedStarGift
+ * @link https://core.impulsem.net/type/InputSavedStarGift
  */
 export type InputSavedStarGift = InputSavedStarGift.inputSavedStarGiftUser | InputSavedStarGift.inputSavedStarGiftChat | InputSavedStarGift.inputSavedStarGiftSlug;
 
@@ -15754,7 +15754,7 @@ export namespace InputSavedStarGift {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarGiftWithdrawalUrl
+ * @link https://core.impulsem.net/type/payments.StarGiftWithdrawalUrl
  */
 export type PaymentsStarGiftWithdrawalUrl = PaymentsStarGiftWithdrawalUrl.paymentsStarGiftWithdrawalUrl;
 
@@ -15766,7 +15766,7 @@ export namespace PaymentsStarGiftWithdrawalUrl {
 }
 
 /**
- * @link https://core.telegram.org/type/PaidReactionPrivacy
+ * @link https://core.impulsem.net/type/PaidReactionPrivacy
  */
 export type PaidReactionPrivacy = PaidReactionPrivacy.paidReactionPrivacyDefault | PaidReactionPrivacy.paidReactionPrivacyAnonymous | PaidReactionPrivacy.paidReactionPrivacyPeer;
 
@@ -15786,7 +15786,7 @@ export namespace PaidReactionPrivacy {
 }
 
 /**
- * @link https://core.telegram.org/type/account.PaidMessagesRevenue
+ * @link https://core.impulsem.net/type/account.PaidMessagesRevenue
  */
 export type AccountPaidMessagesRevenue = AccountPaidMessagesRevenue.accountPaidMessagesRevenue;
 
@@ -15798,7 +15798,7 @@ export namespace AccountPaidMessagesRevenue {
 }
 
 /**
- * @link https://core.telegram.org/type/RequirementToContact
+ * @link https://core.impulsem.net/type/RequirementToContact
  */
 export type RequirementToContact = RequirementToContact.requirementToContactEmpty | RequirementToContact.requirementToContactPremium | RequirementToContact.requirementToContactPaidMessages;
 
@@ -15818,7 +15818,7 @@ export namespace RequirementToContact {
 }
 
 /**
- * @link https://core.telegram.org/type/BusinessBotRights
+ * @link https://core.impulsem.net/type/BusinessBotRights
  */
 export type BusinessBotRights = BusinessBotRights.businessBotRights;
 
@@ -15846,7 +15846,7 @@ export namespace BusinessBotRights {
 }
 
 /**
- * @link https://core.telegram.org/type/DisallowedGiftsSettings
+ * @link https://core.impulsem.net/type/DisallowedGiftsSettings
  */
 export type DisallowedGiftsSettings = DisallowedGiftsSettings.disallowedGiftsSettings;
 
@@ -15865,7 +15865,7 @@ export namespace DisallowedGiftsSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/SponsoredPeer
+ * @link https://core.impulsem.net/type/SponsoredPeer
  */
 export type SponsoredPeer = SponsoredPeer.sponsoredPeer;
 
@@ -15881,7 +15881,7 @@ export namespace SponsoredPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/contacts.SponsoredPeers
+ * @link https://core.impulsem.net/type/contacts.SponsoredPeers
  */
 export type ContactsSponsoredPeers = ContactsSponsoredPeers.contactsSponsoredPeersEmpty | ContactsSponsoredPeers.contactsSponsoredPeers;
 
@@ -15899,7 +15899,7 @@ export namespace ContactsSponsoredPeers {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftAttributeId
+ * @link https://core.impulsem.net/type/StarGiftAttributeId
  */
 export type StarGiftAttributeId = StarGiftAttributeId.starGiftAttributeIdModel | StarGiftAttributeId.starGiftAttributeIdPattern | StarGiftAttributeId.starGiftAttributeIdBackdrop;
 
@@ -15921,7 +15921,7 @@ export namespace StarGiftAttributeId {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftAttributeCounter
+ * @link https://core.impulsem.net/type/StarGiftAttributeCounter
  */
 export type StarGiftAttributeCounter = StarGiftAttributeCounter.starGiftAttributeCounter;
 
@@ -15934,7 +15934,7 @@ export namespace StarGiftAttributeCounter {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.ResaleStarGifts
+ * @link https://core.impulsem.net/type/payments.ResaleStarGifts
  */
 export type PaymentsResaleStarGifts = PaymentsResaleStarGifts.paymentsResaleStarGifts;
 
@@ -15954,7 +15954,7 @@ export namespace PaymentsResaleStarGifts {
 }
 
 /**
- * @link https://core.telegram.org/type/stories.CanSendStoryCount
+ * @link https://core.impulsem.net/type/stories.CanSendStoryCount
  */
 export type StoriesCanSendStoryCount = StoriesCanSendStoryCount.storiesCanSendStoryCount;
 
@@ -15966,7 +15966,7 @@ export namespace StoriesCanSendStoryCount {
 }
 
 /**
- * @link https://core.telegram.org/type/PendingSuggestion
+ * @link https://core.impulsem.net/type/PendingSuggestion
  */
 export type PendingSuggestion = PendingSuggestion.pendingSuggestion;
 
@@ -15981,7 +15981,7 @@ export namespace PendingSuggestion {
 }
 
 /**
- * @link https://core.telegram.org/type/TodoItem
+ * @link https://core.impulsem.net/type/TodoItem
  */
 export type TodoItem = TodoItem.todoItem;
 
@@ -15994,7 +15994,7 @@ export namespace TodoItem {
 }
 
 /**
- * @link https://core.telegram.org/type/TodoList
+ * @link https://core.impulsem.net/type/TodoList
  */
 export type TodoList = TodoList.todoList;
 
@@ -16012,7 +16012,7 @@ export namespace TodoList {
 }
 
 /**
- * @link https://core.telegram.org/type/TodoCompletion
+ * @link https://core.impulsem.net/type/TodoCompletion
  */
 export type TodoCompletion = TodoCompletion.todoCompletion;
 
@@ -16026,7 +16026,7 @@ export namespace TodoCompletion {
 }
 
 /**
- * @link https://core.telegram.org/type/SuggestedPost
+ * @link https://core.impulsem.net/type/SuggestedPost
  */
 export type SuggestedPost = SuggestedPost.suggestedPost;
 
@@ -16044,7 +16044,7 @@ export namespace SuggestedPost {
 }
 
 /**
- * @link https://core.telegram.org/type/StarsRating
+ * @link https://core.impulsem.net/type/StarsRating
  */
 export type StarsRating = StarsRating.starsRating;
 
@@ -16060,7 +16060,7 @@ export namespace StarsRating {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftCollection
+ * @link https://core.impulsem.net/type/StarGiftCollection
  */
 export type StarGiftCollection = StarGiftCollection.starGiftCollection;
 
@@ -16077,7 +16077,7 @@ export namespace StarGiftCollection {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarGiftCollections
+ * @link https://core.impulsem.net/type/payments.StarGiftCollections
  */
 export type PaymentsStarGiftCollections = PaymentsStarGiftCollections.paymentsStarGiftCollectionsNotModified | PaymentsStarGiftCollections.paymentsStarGiftCollections;
 
@@ -16093,7 +16093,7 @@ export namespace PaymentsStarGiftCollections {
 }
 
 /**
- * @link https://core.telegram.org/type/StoryAlbum
+ * @link https://core.impulsem.net/type/StoryAlbum
  */
 export type StoryAlbum = StoryAlbum.storyAlbum;
 
@@ -16109,7 +16109,7 @@ export namespace StoryAlbum {
 }
 
 /**
- * @link https://core.telegram.org/type/stories.Albums
+ * @link https://core.impulsem.net/type/stories.Albums
  */
 export type StoriesAlbums = StoriesAlbums.storiesAlbumsNotModified | StoriesAlbums.storiesAlbums;
 
@@ -16126,7 +16126,7 @@ export namespace StoriesAlbums {
 }
 
 /**
- * @link https://core.telegram.org/type/SearchPostsFlood
+ * @link https://core.impulsem.net/type/SearchPostsFlood
  */
 export type SearchPostsFlood = SearchPostsFlood.searchPostsFlood;
 
@@ -16145,7 +16145,7 @@ export namespace SearchPostsFlood {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.UniqueStarGiftValueInfo
+ * @link https://core.impulsem.net/type/payments.UniqueStarGiftValueInfo
  */
 export type PaymentsUniqueStarGiftValueInfo = PaymentsUniqueStarGiftValueInfo.paymentsUniqueStarGiftValueInfo;
 
@@ -16173,7 +16173,7 @@ export namespace PaymentsUniqueStarGiftValueInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/ProfileTab
+ * @link https://core.impulsem.net/type/ProfileTab
  */
 export type ProfileTab = ProfileTab.profileTabPosts | ProfileTab.profileTabGifts | ProfileTab.profileTabMedia | ProfileTab.profileTabFiles | ProfileTab.profileTabMusic | ProfileTab.profileTabVoice | ProfileTab.profileTabLinks | ProfileTab.profileTabGifs;
 
@@ -16212,7 +16212,7 @@ export namespace ProfileTab {
 }
 
 /**
- * @link https://core.telegram.org/type/users.SavedMusic
+ * @link https://core.impulsem.net/type/users.SavedMusic
  */
 export type UsersSavedMusic = UsersSavedMusic.usersSavedMusicNotModified | UsersSavedMusic.usersSavedMusic;
 
@@ -16230,7 +16230,7 @@ export namespace UsersSavedMusic {
 }
 
 /**
- * @link https://core.telegram.org/type/account.SavedMusicIds
+ * @link https://core.impulsem.net/type/account.SavedMusicIds
  */
 export type AccountSavedMusicIds = AccountSavedMusicIds.accountSavedMusicIdsNotModified | AccountSavedMusicIds.accountSavedMusicIds;
 
@@ -16246,7 +16246,7 @@ export namespace AccountSavedMusicIds {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.CheckCanSendGiftResult
+ * @link https://core.impulsem.net/type/payments.CheckCanSendGiftResult
  */
 export type PaymentsCheckCanSendGiftResult = PaymentsCheckCanSendGiftResult.paymentsCheckCanSendGiftResultOk | PaymentsCheckCanSendGiftResult.paymentsCheckCanSendGiftResultFail;
 
@@ -16262,7 +16262,7 @@ export namespace PaymentsCheckCanSendGiftResult {
 }
 
 /**
- * @link https://core.telegram.org/type/InputChatTheme
+ * @link https://core.impulsem.net/type/InputChatTheme
  */
 export type InputChatTheme = InputChatTheme.inputChatThemeEmpty | InputChatTheme.inputChatTheme | InputChatTheme.inputChatThemeUniqueGift;
 
@@ -16283,7 +16283,7 @@ export namespace InputChatTheme {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftUpgradePrice
+ * @link https://core.impulsem.net/type/StarGiftUpgradePrice
  */
 export type StarGiftUpgradePrice = StarGiftUpgradePrice.starGiftUpgradePrice;
 
@@ -16296,7 +16296,7 @@ export namespace StarGiftUpgradePrice {
 }
 
 /**
- * @link https://core.telegram.org/type/GroupCallMessage
+ * @link https://core.impulsem.net/type/GroupCallMessage
  */
 export type GroupCallMessage = GroupCallMessage.groupCallMessage;
 
@@ -16316,7 +16316,7 @@ export namespace GroupCallMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/GroupCallDonor
+ * @link https://core.impulsem.net/type/GroupCallDonor
  */
 export type GroupCallDonor = GroupCallDonor.groupCallDonor;
 
@@ -16334,7 +16334,7 @@ export namespace GroupCallDonor {
 }
 
 /**
- * @link https://core.telegram.org/type/phone.GroupCallStars
+ * @link https://core.impulsem.net/type/phone.GroupCallStars
  */
 export type PhoneGroupCallStars = PhoneGroupCallStars.phoneGroupCallStars;
 
@@ -16349,7 +16349,7 @@ export namespace PhoneGroupCallStars {
 }
 
 /**
- * @link https://core.telegram.org/type/RecentStory
+ * @link https://core.impulsem.net/type/RecentStory
  */
 export type RecentStory = RecentStory.recentStory;
 
@@ -16365,7 +16365,7 @@ export namespace RecentStory {
 }
 
 /**
- * @link https://core.telegram.org/type/AuctionBidLevel
+ * @link https://core.impulsem.net/type/AuctionBidLevel
  */
 export type AuctionBidLevel = AuctionBidLevel.auctionBidLevel;
 
@@ -16379,7 +16379,7 @@ export namespace AuctionBidLevel {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftAuctionState
+ * @link https://core.impulsem.net/type/StarGiftAuctionState
  */
 export type StarGiftAuctionState = StarGiftAuctionState.starGiftAuctionStateNotModified | StarGiftAuctionState.starGiftAuctionState | StarGiftAuctionState.starGiftAuctionStateFinished;
 
@@ -16417,7 +16417,7 @@ export namespace StarGiftAuctionState {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftAuctionUserState
+ * @link https://core.impulsem.net/type/StarGiftAuctionUserState
  */
 export type StarGiftAuctionUserState = StarGiftAuctionUserState.starGiftAuctionUserState;
 
@@ -16437,7 +16437,7 @@ export namespace StarGiftAuctionUserState {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarGiftAuctionState
+ * @link https://core.impulsem.net/type/payments.StarGiftAuctionState
  */
 export type PaymentsStarGiftAuctionState = PaymentsStarGiftAuctionState.paymentsStarGiftAuctionState;
 
@@ -16454,7 +16454,7 @@ export namespace PaymentsStarGiftAuctionState {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftAuctionAcquiredGift
+ * @link https://core.impulsem.net/type/StarGiftAuctionAcquiredGift
  */
 export type StarGiftAuctionAcquiredGift = StarGiftAuctionAcquiredGift.starGiftAuctionAcquiredGift;
 
@@ -16476,7 +16476,7 @@ export namespace StarGiftAuctionAcquiredGift {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarGiftAuctionAcquiredGifts
+ * @link https://core.impulsem.net/type/payments.StarGiftAuctionAcquiredGifts
  */
 export type PaymentsStarGiftAuctionAcquiredGifts = PaymentsStarGiftAuctionAcquiredGifts.paymentsStarGiftAuctionAcquiredGifts;
 
@@ -16490,7 +16490,7 @@ export namespace PaymentsStarGiftAuctionAcquiredGifts {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftActiveAuctionState
+ * @link https://core.impulsem.net/type/StarGiftActiveAuctionState
  */
 export type StarGiftActiveAuctionState = StarGiftActiveAuctionState.starGiftActiveAuctionState;
 
@@ -16504,7 +16504,7 @@ export namespace StarGiftActiveAuctionState {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarGiftActiveAuctions
+ * @link https://core.impulsem.net/type/payments.StarGiftActiveAuctions
  */
 export type PaymentsStarGiftActiveAuctions = PaymentsStarGiftActiveAuctions.paymentsStarGiftActiveAuctionsNotModified | PaymentsStarGiftActiveAuctions.paymentsStarGiftActiveAuctions;
 
@@ -16522,7 +16522,7 @@ export namespace PaymentsStarGiftActiveAuctions {
 }
 
 /**
- * @link https://core.telegram.org/type/InputStarGiftAuction
+ * @link https://core.impulsem.net/type/InputStarGiftAuction
  */
 export type InputStarGiftAuction = InputStarGiftAuction.inputStarGiftAuction | InputStarGiftAuction.inputStarGiftAuctionSlug;
 
@@ -16539,7 +16539,7 @@ export namespace InputStarGiftAuction {
 }
 
 /**
- * @link https://core.telegram.org/type/Passkey
+ * @link https://core.impulsem.net/type/Passkey
  */
 export type Passkey = Passkey.passkey;
 
@@ -16556,7 +16556,7 @@ export namespace Passkey {
 }
 
 /**
- * @link https://core.telegram.org/type/account.Passkeys
+ * @link https://core.impulsem.net/type/account.Passkeys
  */
 export type AccountPasskeys = AccountPasskeys.accountPasskeys;
 
@@ -16568,7 +16568,7 @@ export namespace AccountPasskeys {
 }
 
 /**
- * @link https://core.telegram.org/type/account.PasskeyRegistrationOptions
+ * @link https://core.impulsem.net/type/account.PasskeyRegistrationOptions
  */
 export type AccountPasskeyRegistrationOptions = AccountPasskeyRegistrationOptions.accountPasskeyRegistrationOptions;
 
@@ -16580,7 +16580,7 @@ export namespace AccountPasskeyRegistrationOptions {
 }
 
 /**
- * @link https://core.telegram.org/type/auth.PasskeyLoginOptions
+ * @link https://core.impulsem.net/type/auth.PasskeyLoginOptions
  */
 export type AuthPasskeyLoginOptions = AuthPasskeyLoginOptions.authPasskeyLoginOptions;
 
@@ -16592,7 +16592,7 @@ export namespace AuthPasskeyLoginOptions {
 }
 
 /**
- * @link https://core.telegram.org/type/InputPasskeyResponse
+ * @link https://core.impulsem.net/type/InputPasskeyResponse
  */
 export type InputPasskeyResponse = InputPasskeyResponse.inputPasskeyResponseRegister | InputPasskeyResponse.inputPasskeyResponseLogin;
 
@@ -16613,7 +16613,7 @@ export namespace InputPasskeyResponse {
 }
 
 /**
- * @link https://core.telegram.org/type/InputPasskeyCredential
+ * @link https://core.impulsem.net/type/InputPasskeyCredential
  */
 export type InputPasskeyCredential = InputPasskeyCredential.inputPasskeyCredentialPublicKey | InputPasskeyCredential.inputPasskeyCredentialFirebasePNV;
 
@@ -16632,7 +16632,7 @@ export namespace InputPasskeyCredential {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftBackground
+ * @link https://core.impulsem.net/type/StarGiftBackground
  */
 export type StarGiftBackground = StarGiftBackground.starGiftBackground;
 
@@ -16646,7 +16646,7 @@ export namespace StarGiftBackground {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftAuctionRound
+ * @link https://core.impulsem.net/type/StarGiftAuctionRound
  */
 export type StarGiftAuctionRound = StarGiftAuctionRound.starGiftAuctionRound | StarGiftAuctionRound.starGiftAuctionRoundExtendable;
 
@@ -16667,7 +16667,7 @@ export namespace StarGiftAuctionRound {
 }
 
 /**
- * @link https://core.telegram.org/type/payments.StarGiftUpgradeAttributes
+ * @link https://core.impulsem.net/type/payments.StarGiftUpgradeAttributes
  */
 export type PaymentsStarGiftUpgradeAttributes = PaymentsStarGiftUpgradeAttributes.paymentsStarGiftUpgradeAttributes;
 
@@ -16679,7 +16679,7 @@ export namespace PaymentsStarGiftUpgradeAttributes {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.EmojiGameOutcome
+ * @link https://core.impulsem.net/type/messages.EmojiGameOutcome
  */
 export type MessagesEmojiGameOutcome = MessagesEmojiGameOutcome.messagesEmojiGameOutcome;
 
@@ -16693,7 +16693,7 @@ export namespace MessagesEmojiGameOutcome {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.EmojiGameInfo
+ * @link https://core.impulsem.net/type/messages.EmojiGameInfo
  */
 export type MessagesEmojiGameInfo = MessagesEmojiGameInfo.messagesEmojiGameUnavailable | MessagesEmojiGameInfo.messagesEmojiGameDiceInfo;
 
@@ -16714,7 +16714,7 @@ export namespace MessagesEmojiGameInfo {
 }
 
 /**
- * @link https://core.telegram.org/type/StarGiftAttributeRarity
+ * @link https://core.impulsem.net/type/StarGiftAttributeRarity
  */
 export type StarGiftAttributeRarity = StarGiftAttributeRarity.starGiftAttributeRarity | StarGiftAttributeRarity.starGiftAttributeRarityUncommon | StarGiftAttributeRarity.starGiftAttributeRarityRare | StarGiftAttributeRarity.starGiftAttributeRarityEpic | StarGiftAttributeRarity.starGiftAttributeRarityLegendary;
 
@@ -16742,7 +16742,7 @@ export namespace StarGiftAttributeRarity {
 }
 
 /**
- * @link https://core.telegram.org/type/KeyboardButtonStyle
+ * @link https://core.impulsem.net/type/KeyboardButtonStyle
  */
 export type KeyboardButtonStyle = KeyboardButtonStyle.keyboardButtonStyle;
 
@@ -16760,7 +16760,7 @@ export namespace KeyboardButtonStyle {
 }
 
 /**
- * @link https://core.telegram.org/type/InputMessageReadMetric
+ * @link https://core.impulsem.net/type/InputMessageReadMetric
  */
 export type InputMessageReadMetric = InputMessageReadMetric.inputMessageReadMetric;
 
@@ -16777,7 +16777,7 @@ export namespace InputMessageReadMetric {
 }
 
 /**
- * @link https://core.telegram.org/type/bots.ExportedBotToken
+ * @link https://core.impulsem.net/type/bots.ExportedBotToken
  */
 export type BotsExportedBotToken = BotsExportedBotToken.botsExportedBotToken;
 
@@ -16789,7 +16789,7 @@ export namespace BotsExportedBotToken {
 }
 
 /**
- * @link https://core.telegram.org/type/bots.RequestedButton
+ * @link https://core.impulsem.net/type/bots.RequestedButton
  */
 export type BotsRequestedButton = BotsRequestedButton.botsRequestedButton;
 
@@ -16801,7 +16801,7 @@ export namespace BotsRequestedButton {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.ComposedMessageWithAI
+ * @link https://core.impulsem.net/type/messages.ComposedMessageWithAI
  */
 export type MessagesComposedMessageWithAI = MessagesComposedMessageWithAI.messagesComposedMessageWithAI;
 
@@ -16815,7 +16815,7 @@ export namespace MessagesComposedMessageWithAI {
 }
 
 /**
- * @link https://core.telegram.org/type/stats.PollStats
+ * @link https://core.impulsem.net/type/stats.PollStats
  */
 export type StatsPollStats = StatsPollStats.statsPollStats;
 
@@ -16827,7 +16827,7 @@ export namespace StatsPollStats {
 }
 
 /**
- * @link https://core.telegram.org/type/InputAiComposeTone
+ * @link https://core.impulsem.net/type/InputAiComposeTone
  */
 export type InputAiComposeTone = InputAiComposeTone.inputAiComposeToneDefault | InputAiComposeTone.inputAiComposeToneID | InputAiComposeTone.inputAiComposeToneSlug | InputAiComposeTone.inputAiComposeToneSingleUse;
 
@@ -16855,7 +16855,7 @@ export namespace InputAiComposeTone {
 }
 
 /**
- * @link https://core.telegram.org/type/AiComposeTone
+ * @link https://core.impulsem.net/type/AiComposeTone
  */
 export type AiComposeTone = AiComposeTone.aiComposeTone | AiComposeTone.aiComposeToneDefault;
 
@@ -16886,7 +16886,7 @@ export namespace AiComposeTone {
 }
 
 /**
- * @link https://core.telegram.org/type/aicompose.Tones
+ * @link https://core.impulsem.net/type/aicompose.Tones
  */
 export type AicomposeTones = AicomposeTones.aicomposeTonesNotModified | AicomposeTones.aicomposeTones;
 
@@ -16904,7 +16904,7 @@ export namespace AicomposeTones {
 }
 
 /**
- * @link https://core.telegram.org/type/AiComposeToneExample
+ * @link https://core.impulsem.net/type/AiComposeToneExample
  */
 export type AiComposeToneExample = AiComposeToneExample.aiComposeToneExample;
 
@@ -16917,7 +16917,7 @@ export namespace AiComposeToneExample {
 }
 
 /**
- * @link https://core.telegram.org/type/bots.AccessSettings
+ * @link https://core.impulsem.net/type/bots.AccessSettings
  */
 export type BotsAccessSettings = BotsAccessSettings.botsAccessSettings;
 
@@ -16933,7 +16933,7 @@ export namespace BotsAccessSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.ChatInviteJoinResult
+ * @link https://core.impulsem.net/type/messages.ChatInviteJoinResult
  */
 export type MessagesChatInviteJoinResult = MessagesChatInviteJoinResult.messagesChatInviteJoinResultOk | MessagesChatInviteJoinResult.messagesChatInviteJoinResultWebView;
 
@@ -16952,7 +16952,7 @@ export namespace MessagesChatInviteJoinResult {
 }
 
 /**
- * @link https://core.telegram.org/type/JoinChatBotResult
+ * @link https://core.impulsem.net/type/JoinChatBotResult
  */
 export type JoinChatBotResult = JoinChatBotResult.joinChatBotResultApproved | JoinChatBotResult.joinChatBotResultDeclined | JoinChatBotResult.joinChatBotResultQueued | JoinChatBotResult.joinChatBotResultWebView;
 
@@ -16976,7 +16976,7 @@ export namespace JoinChatBotResult {
 }
 
 /**
- * @link https://core.telegram.org/type/WebDomainException
+ * @link https://core.impulsem.net/type/WebDomainException
  */
 export type WebDomainException = WebDomainException.webDomainException;
 
@@ -16992,7 +16992,7 @@ export namespace WebDomainException {
 }
 
 /**
- * @link https://core.telegram.org/type/account.WebBrowserSettings
+ * @link https://core.impulsem.net/type/account.WebBrowserSettings
  */
 export type AccountWebBrowserSettings = AccountWebBrowserSettings.accountWebBrowserSettingsNotModified | AccountWebBrowserSettings.accountWebBrowserSettings;
 
@@ -17015,7 +17015,7 @@ export namespace AccountWebBrowserSettings {
 }
 
 /**
- * @link https://core.telegram.org/type/InputRichFile
+ * @link https://core.impulsem.net/type/InputRichFile
  */
 export type InputRichFile = InputRichFile.inputRichFilePhoto | InputRichFile.inputRichFileDocument;
 
@@ -17034,7 +17034,7 @@ export namespace InputRichFile {
 }
 
 /**
- * @link https://core.telegram.org/type/InputRichMessage
+ * @link https://core.impulsem.net/type/InputRichMessage
  */
 export type InputRichMessage = InputRichMessage.inputRichMessage | InputRichMessage.inputRichMessageHTML | InputRichMessage.inputRichMessageMarkdown;
 
@@ -17076,7 +17076,7 @@ export namespace InputRichMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/RichMessage
+ * @link https://core.impulsem.net/type/RichMessage
  */
 export type RichMessage = RichMessage.richMessage;
 
@@ -17095,7 +17095,7 @@ export namespace RichMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/CommunityPeer
+ * @link https://core.impulsem.net/type/CommunityPeer
  */
 export type CommunityPeer = CommunityPeer.communityPeer;
 
@@ -17112,7 +17112,7 @@ export namespace CommunityPeer {
 }
 
 /**
- * @link https://core.telegram.org/type/CommunityPeerRequest
+ * @link https://core.impulsem.net/type/CommunityPeerRequest
  */
 export type CommunityPeerRequest = CommunityPeerRequest.communityPeerRequest;
 
@@ -17130,7 +17130,7 @@ export namespace CommunityPeerRequest {
 }
 
 /**
- * @link https://core.telegram.org/type/communities.PeerLinkRequests
+ * @link https://core.impulsem.net/type/communities.PeerLinkRequests
  */
 export type CommunitiesPeerLinkRequests = CommunitiesPeerLinkRequests.communitiesPeerLinkRequests;
 
@@ -17147,7 +17147,7 @@ export namespace CommunitiesPeerLinkRequests {
 }
 
 /**
- * @link https://core.telegram.org/type/EphemeralMessage
+ * @link https://core.impulsem.net/type/EphemeralMessage
  */
 export type EphemeralMessage = EphemeralMessage.ephemeralMessage;
 
@@ -17173,7 +17173,7 @@ export namespace EphemeralMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/communities.ParticipantJoinedChats
+ * @link https://core.impulsem.net/type/communities.ParticipantJoinedChats
  */
 export type CommunitiesParticipantJoinedChats = CommunitiesParticipantJoinedChats.communitiesParticipantJoinedChats;
 
@@ -17188,7 +17188,7 @@ export namespace CommunitiesParticipantJoinedChats {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.TranslatedRichMessage
+ * @link https://core.impulsem.net/type/messages.TranslatedRichMessage
  */
 export type MessagesTranslatedRichMessage = MessagesTranslatedRichMessage.messagesTranslatedRichMessage;
 
@@ -17200,7 +17200,7 @@ export namespace MessagesTranslatedRichMessage {
 }
 
 /**
- * @link https://core.telegram.org/type/messages.ComposedRichMessageWithAI
+ * @link https://core.impulsem.net/type/messages.ComposedRichMessageWithAI
  */
 export type MessagesComposedRichMessageWithAI = MessagesComposedRichMessageWithAI.messagesComposedRichMessageWithAI;
 

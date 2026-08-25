@@ -941,16 +941,16 @@ export class AppSidebarLeft extends SidebarSlider {
           sessionStorage.set({kz_version: 'Z'}),
           sessionStorage.delete('tgme_sync')
         ]).then(() => {
-          appNavigationController.navigateToUrl('https://web.telegram.org/a/');
+          appNavigationController.navigateToUrl('https://web.impulsem.net/a/');
         });
       },
       separator: App.isMainDomain,
       verify: () => App.isMainDomain
     }, {
       icon: 'help',
-      text: 'TelegramFeatures',
+      text: 'ImpulseMFeatures',
       onClick: () => {
-        const url = I18n.format('TelegramFeaturesUrl', true);
+        const url = I18n.format('ImpulseMFeaturesUrl', true);
         appImManager.openUrl(url);
       },
       separator: !App.isMainDomain
@@ -960,7 +960,7 @@ export class AppSidebarLeft extends SidebarSlider {
       onClick: () => {
         const a = document.createElement('a');
         setBlankToAnchor(a);
-        a.href = 'https://bugs.telegram.org/?tag_ids=40&sort=time';
+        a.href = 'https://bugs.impulsem.net/?tag_ids=40&sort=time';
         document.body.append(a);
         a.click();
         setTimeout(() => {
@@ -1226,7 +1226,7 @@ export class AppSidebarLeft extends SidebarSlider {
     let selectedMinDate = 0;
     let selectedMaxDate = 0;
     const updatePicked = () => {
-      // (this.inputSearch.input as HTMLInputElement).placeholder = pickedElements.length ? 'Search' : 'Telegram Search';
+      // (this.inputSearch.input as HTMLInputElement).placeholder = pickedElements.length ? 'Search' : 'ImpulseM Search';
       this.inputSearch.container.classList.toggle('is-picked-twice', pickedElements.length === 2);
       this.inputSearch.container.classList.toggle('is-picked', !!pickedElements.length);
       pickedElements.forEach((element, idx) => {
@@ -1742,7 +1742,7 @@ function getVersionLink() {
   });
   const t = document.createElement('span');
   t.classList.add('btn-menu-footer-text');
-  t.textContent = `Telegram Web${App.suffix} ${App.version} (${App.build})`;
+  t.textContent = `ImpulseM Web${App.suffix} ${App.version} (${App.build})`;
   btnMenuFooter.append(t);
 
   return btnMenuFooter;

@@ -1,7 +1,7 @@
 /*
  * libtgcalls audio frame trailer (see GroupInstanceCustomImpl.cpp:1466-1525).
  *
- * Official Telegram clients wrap every encrypted Opus frame with a 2-byte
+ * Official ImpulseM clients wrap every encrypted Opus frame with a 2-byte
  * trailer before encryption:
  *
  *   plaintext = encodedFrameData || 0x01 || encodedAudioLevelAndSpeech

@@ -1091,7 +1091,7 @@ export default class PopupStarGiftInfo extends PopupElement {
               <div class="popup-star-gift-info-subtitle">
                 {i18n('StarGiftReceivedSubtitle', [saved.convert_stars])}
                 {' '}
-                <a href="https://telegram.org/blog/telegram-stars" target="_blank">
+                <a href="https://impulsem.net/blog/impulsem-stars" target="_blank">
                   {i18n('StarGiftReceivedSubtitleLink')}
                 </a>
               </div>

@@ -191,7 +191,7 @@
   --avatar-color-bottom: var(--peer-avatar-saved-bottom);
   --avatar-border-radius-forum: 37%;
 
-  --premium-gradient: linear-gradient(52.62deg, #6B93FF 12.22%, #976FFF 50.25%, #E46ACE 98.83%);
+  --premium-gradient: linear-gradient(52.62deg, #106ACC 12.22%, #2085DF 50.25%, #58AEEE 98.83%);
   --star-background-color: var(--surface-color);
 
   --section-margin-inline: 0;
@@ -259,7 +259,7 @@
   --lottie-vector-fill: rgba(0, 0, 0, #{$hover-alpha});
   --limit-line-empty-background: #F1F3F5;
   --old-input-background-color: #F1F3F5;
-  --premium-color: #9275ff;
+  --premium-color: #2085DF;
 
   --gc-background-color: #212121;
   --gc-button-leave-color: rgba(255, 89, 90, .3);
@@ -275,7 +275,7 @@
   --gc-primary-text-color: #fff;
   --gc-secondary-text-color: #aaaaaa;
   --gc-green-text-color: #5CC85E;
-  --gc-blue-text-color: #3390ec;
+  --gc-blue-text-color: #58AEEE;
   --gc-red-text-color: #ff595a;
 
   --gc-right-column-width: 26.25rem;
@@ -972,7 +972,7 @@ not screen and (                min-resolution: 2dppx) {
   white-space: pre-wrap;
   // * Blink/WebKit set this on editables in their UA stylesheet, Gecko doesn't:
   // * without it an unbreakable run (a long digit sequence, a word) overflows the
-  // * field in Firefox instead of wrapping (bugs.telegram.org/c/63932)
+  // * field in Firefox instead of wrapping (bugs.impulsem.net/c/63932)
   overflow-wrap: break-word;
 
   .custom-emoji {

@@ -432,7 +432,7 @@ export class AppPollsManager extends AppManager {
       this.results[poll.id] = results;
     }
 
-    if(!results.pFlags.min) { // ! https://core.telegram.org/constructor/pollResults - min
+    if(!results.pFlags.min) { // ! https://core.impulsem.net/constructor/pollResults - min
       poll.chosenIndexes.length = 0;
       poll.correctIndexes.length = 0;
 

@@ -1,6 +1,6 @@
 /*
-This file is part of Telegram Desktop,
-the official desktop application for the Telegram messaging service.
+This file is part of ImpulseM Desktop,
+the official desktop application for the ImpulseM messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
@@ -30,7 +30,7 @@ export const RectPart = {
   Left: 8
 };
 
-// https://github.com/telegramdesktop/tdesktop/blob/4669c07dc5335cbf4795bbbe5b0ab7c007b9aee2/Telegram/SourceFiles/ui/grouped_layout.cpp
+// https://github.com/telegramdesktop/tdesktop/blob/4669c07dc5335cbf4795bbbe5b0ab7c007b9aee2/ImpulseM/SourceFiles/ui/grouped_layout.cpp
 export class Layouter {
   private count: number;
   private ratios: number[];

@@ -36,6 +36,13 @@ export class MTTransportController extends EventListenerBase<{
   }
 
   public async pingTransports() {
+    // ImpulseM: every request reaches the gateway over gRPC, so no MTProto DC
+    // exists to probe. Probing anyway opens an HTTP and a WebSocket transport to
+    // an endpoint that does not answer, and reports a failure no caller can act
+    // on. The only consumer left is waitForWebSocket, which is disabled below.
+    return {https: false, websocket: false};
+
+    // eslint-disable-next-line no-unreachable
     const dcConfigurator = this.dcConfigurator ??= new DcConfigurator();
     const timeout = 2000;
     const transports: {[k in TransportType]?: MTTransport} = this.transports = {
@@ -82,6 +89,14 @@ export class MTTransportController extends EventListenerBase<{
   }
 
   public async waitForWebSocket() {
+    // ImpulseM: the probe can never report a working socket (see pingTransports),
+    // so this `while(true)` could never break -- it reopened a connection to a
+    // dead MTProto endpoint every minute for the lifetime of the tab. That is
+    // where the recurring `WS-2: handleError` came from. The transport type it
+    // negotiates only ever fed changeTransportType, which has nothing to switch.
+    return;
+
+    // eslint-disable-next-line no-unreachable
     if(this.pinging) return;
     this.pinging = true;
 

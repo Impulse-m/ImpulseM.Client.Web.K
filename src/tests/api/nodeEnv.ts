@@ -36,11 +36,11 @@ function installDomShims() {
 
   if(typeof target.location === 'undefined') {
     target.location = {
-      href: 'https://web.telegram.org/k/',
-      origin: 'https://web.telegram.org',
+      href: 'https://web.impulsem.net/k/',
+      origin: 'https://web.impulsem.net',
       protocol: 'https:',
-      host: 'web.telegram.org',
-      hostname: 'web.telegram.org',
+      host: 'web.impulsem.net',
+      hostname: 'web.impulsem.net',
       port: '',
       pathname: '/k/',
       search: '',

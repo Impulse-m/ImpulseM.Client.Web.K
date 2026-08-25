@@ -45,13 +45,23 @@ export class AppDownloadManager {
   // private downloadsToDisc: {[fileName: string]: Download} = {};
   private progress: {[fileName: string]: Progress} = {};
   // private progressCallbacks: {[fileName: string]: Array<ProgressCallback>} = {};
-  private managers: AppManagers;
+  private managersValue: AppManagers;
+
+  /**
+   * `construct` is only reached from the IM bootstrap (appDialogsManager), which
+   * never runs before sign-in -- yet the sign-up screen uploads an avatar through
+   * here, and every call died on `this.managers` being undefined. Fall back to the
+   * same proxy the auth flow itself uses instead of throwing.
+   */
+  private get managers(): AppManagers {
+    return this.managersValue ??= rootScope.managers;
+  }
 
   // To be assigned elsewhere in the app, importing confirmationPopup here will result in an importing error
   public showPollCancelConfirmation: (randomId: string) => void;
 
   public construct(managers: AppManagers) {
-    this.managers = managers;
+    this.managersValue = managers;
     rootScope.addEventListener('download_progress', (details) => {
       // const callbacks = this.progressCallbacks[details.fileName];
       // if(callbacks) {

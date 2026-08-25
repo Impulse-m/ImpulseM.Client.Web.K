@@ -197,7 +197,7 @@ const StickersAndEmoji: Component = () => {
     }
 
     {
-      const section = new SettingSection({name: 'Telegram.InstalledStickerPacksController', caption: 'StickersBotInfo'});
+      const section = new SettingSection({name: 'ImpulseM.InstalledStickerPacksController', caption: 'StickersBotInfo'});
 
       const stickerSets: {[id: string]: Row} = {};
 

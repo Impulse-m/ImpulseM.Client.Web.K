@@ -12,13 +12,13 @@ describe('guard bot strings', () => {
 
   test('names the chat, the bot and the terms link in the disclaimer', () => {
     const terms = document.createElement('a');
-    terms.href = 'https://telegram.org/tos/mini-apps';
+    terms.href = 'https://impulsem.net/tos/mini-apps';
 
     const result = render(lang.WebAppGuardDisclaimerText, ['Cats Chat', 'Guard Bot', terms]);
 
     expect(result).toBe(
       '<b>Cats Chat</b> uses <b>Guard Bot</b> to welcome new members. ' +
-      'You must agree to the <a href="https://telegram.org/tos/mini-apps">Terms of Use</a> of mini apps to continue.'
+      'You must agree to the <a href="https://impulsem.net/tos/mini-apps">Terms of Use</a> of mini apps to continue.'
     );
   });
 

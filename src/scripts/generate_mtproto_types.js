@@ -246,7 +246,7 @@ for(const type in types) {
 
 
   out += `/**
- * @link https://core.telegram.org/type/${type}
+ * @link https://core.impulsem.net/type/${type}
  */
 export type ${camelizedType} = ${unionConstructors.map(name => camelizedType + '.' + camelizeName(name, false)).join(' | ')};
 

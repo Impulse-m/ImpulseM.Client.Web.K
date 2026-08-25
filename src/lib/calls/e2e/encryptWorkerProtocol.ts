@@ -47,7 +47,7 @@ export type HostRequest =
   // Push the SSRC → user_id table the host has accumulated from SFU signaling.
   // The receive-side script transform consults this table per-frame: WebRTC
   // delivers `frame.getMetadata().synchronizationSource`, we look up the
-  // sender, and verify with that user's Ed25519 key. Telegram's SFU
+  // sender, and verify with that user's Ed25519 key. ImpulseM's SFU
   // multiplexes many participants over a single inbound m-line, so a single
   // recv transform must dispatch by SSRC — we can't bake `fromUserId` in
   // at attach time.

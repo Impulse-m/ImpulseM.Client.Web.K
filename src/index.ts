@@ -4,6 +4,7 @@
 // every DOM timer for worker-driven ones (hidden tabs throttle/freeze timers)
 // and spoofs visibility, the second swaps requestAnimationFrame for a timer so
 // a non-painting tab still boots
+import '@lib/impulseLogger'; // arms Loki telemetry for this context
 import '@helpers/dom/previewUnfreeze';
 import '@helpers/dom/previewRaf';
 import App from '@config/app';
@@ -85,10 +86,13 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
   apiManagerProxy.sendEnvironment();
 });
 
-// * Randomly choose a version if user came from a search engine
+// * Upstream randomly redirected search-engine visitors to the other web build
+// * (web.impulsem.net/a/). ImpulseM ships a single build, so the experiment is
+// * disabled — leaving it on would navigate our users away to ImpulseM.
 function randomlyChooseVersionFromSearch() {
   try {
     if(
+      false &&
       App.isMainDomain &&
       document.referrer &&
       /(^|\.)(google|bing|duckduckgo|ya|yandex)\./i.test(new URL(document.referrer).host)
@@ -96,7 +100,7 @@ function randomlyChooseVersionFromSearch() {
       const version = localStorage.getItem('kz_version');
       if(version === 'Z' || nextRandomUint(8) > 127) {
         localStorage.setItem('kz_version', 'Z');
-        appNavigationController.navigateToUrl('https://web.telegram.org/a/');
+        appNavigationController.navigateToUrl('https://web.impulsem.net/a/');
       } else {
         localStorage.setItem('kz_version', 'K');
       }
@@ -109,7 +113,7 @@ async function checkLastActiveAccountFromTMe() {
     if(
       App.isMainDomain &&
       document.referrer &&
-      /^(t|telegram)\.me/i.test(new URL(document.referrer).host)
+      /^(t|impulsem)\.me/i.test(new URL(document.referrer).host)
     ) {
       const [totalAccounts, {accountNumber}] = await Promise.all([
         AccountController.getUnencryptedTotalAccounts(),
@@ -597,7 +601,7 @@ function setDocumentLangPackProperties(langPack: LangPackDifference.langPackDiff
 
     try {
       await Promise.all([
-        import('./lib/telegramMeWebManager'),
+        import('./lib/impulsemMeWebManager'),
         import('./lib/webPushApiManager')
       ]).then(([meModule, pushModule]) => {
         meModule.default.setAuthorized(false);

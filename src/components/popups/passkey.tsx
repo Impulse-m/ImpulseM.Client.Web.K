@@ -14,7 +14,7 @@ export async function createPasskey() {
   //   console.log(publicKeyCredentialCreationOptions);
   //   publicKeyCredentialCreationOptions.rp = {
   //     id: 'localhost',
-  //     name: 'Telegram Messenger'
+  //     name: 'ImpulseM Messenger'
   //   };
   // }
 

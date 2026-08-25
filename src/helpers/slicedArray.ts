@@ -335,7 +335,7 @@ export default class SlicedArray<T extends ItemType> {
     }
   }
 
-  // * https://core.telegram.org/api/offsets
+  // * https://core.impulsem.net/api/offsets
   public sliceMe(offsetId: T, addOffset: number, limit: number) {
     let slice = this.slice;
     let offset = 0;

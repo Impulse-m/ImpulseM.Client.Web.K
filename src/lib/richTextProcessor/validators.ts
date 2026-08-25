@@ -1,4 +1,4 @@
-// https://github.com/tdlib/td/blob/c95598e5e1493881d31211c1329bdbe4630f6136/td/telegram/misc.cpp#L246
+// https://github.com/tdlib/td/blob/c95598e5e1493881d31211c1329bdbe4630f6136/td/impulsem/misc.cpp#L246
 export function isUsernameValid(username: string) {
   if(username.length < 3 || username.length > 32) {
     return false;

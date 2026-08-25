@@ -15,7 +15,7 @@ import {IconTsx} from '@components/iconTsx';
 import {i18n} from '@lib/langPack';
 import rootScope from '@lib/rootScope';
 import themeController from '@helpers/themeController';
-import {paintQrCode, buildTelegramUserQrUrl} from '@helpers/qrCode/paintQrCode';
+import {paintQrCode, buildImpulseMUserQrUrl} from '@helpers/qrCode/paintQrCode';
 import {getWallPaperColors, darkenToMaxLuminance} from '@helpers/color';
 import roundRect from '@helpers/canvas/roundRect';
 import getPeerActiveUsernames from '@appManagers/utils/peers/getPeerActiveUsernames';
@@ -32,7 +32,7 @@ import styles from './myQrCode.module.scss';
 import {FontFamily, FontWeightBold} from '@config/font';
 import Button from '@components/buttonTsx';
 
-// Geometry numbers are lifted from Telegram-iOS' ChatQrCodeScreen.swift so the
+// Geometry numbers are lifted from ImpulseM-iOS' ChatQrCodeScreen.swift so the
 // card layout matches the iOS sheet 1:1. Source lines are noted next to each
 // constant below.
 const QR_SIZE = 220;        // ChatQrCodeScreen.swift L1970: `imageSide = 220.0`
@@ -53,7 +53,7 @@ function pickThemeSettingsForBase(theme: Theme, base: BaseTheme['_']) {
 
 // ── QR / username ink darkening ──────────────────────────────────────────────
 // The QR modules and the @username are painted in the wallpaper gradient on an
-// always-white card. Telegram-iOS dims that gradient by a flat 30%/50% black
+// always-white card. ImpulseM-iOS dims that gradient by a flat 30%/50% black
 // (ChatQrCodeScreen.swift L1936), but several cloud *day* wallpapers ship a
 // pure-WHITE gradient stop — even at 50% that's only ~3.95:1 against white,
 // below what QR scanners reliably accept (and a near-white @username is
@@ -105,13 +105,13 @@ function createSharedState(self: User.user, peerId: PeerId = rootScope.myId, ove
 
   // `overrideUrl` is for peers whose link isn't a public username — e.g. a private
   // group's invite link, which PeerProfile.Link already resolved. Otherwise mirror
-  // Telegram-iOS' QR codeLink (ChatQrCodeScreen.swift L1740-1748): username →
+  // ImpulseM-iOS' QR codeLink (ChatQrCodeScreen.swift L1740-1748): username →
   // t.me/<username>; a user without one → t.me/+<phone>; a channel → t.me/c/<id>.
   const profileUrl = createMemo(() => {
     if(overrideUrl) return overrideUrl;
     const tokenUrl = contactTokenUrl();
     if(tokenUrl) return tokenUrl;
-    if(username()) return buildTelegramUserQrUrl(username());
+    if(username()) return buildImpulseMUserQrUrl(username());
     if(peerId.isUser()) return `https://t.me/+${(self as User.user).phone ?? ''}`;
     return `https://t.me/c/${peerId.toChatId()}`;
   });
@@ -201,7 +201,7 @@ function createSharedState(self: User.user, peerId: PeerId = rootScope.myId, ove
 // Gradient` + `fillText` for the username. Copy becomes `canvas.toBlob()`.
 // ────────────────────────────────────────────────────────────────────────────
 
-// Geometry calibrated against Telegram-iOS' ChatQrCodeScreen.swift. iOS uses
+// Geometry calibrated against ImpulseM-iOS' ChatQrCodeScreen.swift. iOS uses
 // pt; we use px at 1:1 since both clients run on roughly the same logical
 // canvas (iOS sheet 390pt × 844pt, tweb popup 376px wide).
 //   • card  — 300×330pt rounded rectangle, 42pt corner radius (L2001-2003, L1634)

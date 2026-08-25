@@ -634,7 +634,7 @@ export const AvatarNew = (props: {
     // photo_small otherwise — guard on it so we trigger exactly once.
     //
     // In the small surfaces (chat list / topbar) a video avatar animates ONLY for a
-    // Premium USER — matching Telegram Android exactly. ImageReceiver.setForUserOrChat
+    // Premium USER — matching ImpulseM Android exactly. ImageReceiver.setForUserOrChat
     // sets a videoLocation only when isPremiumUser(user) && has_video; its chat branch
     // sets no video at all. So in the list/topbar non-Premium users, bots (bots can't
     // hold Premium) and groups/channels are all STATIC — only Premium users animate.

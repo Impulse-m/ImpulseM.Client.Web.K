@@ -10,7 +10,7 @@
 # The per-preview authorization is minted once per --id and reused on restart;
 # pass --remint to force a new one. Minting is serialised by a lock because it
 # briefly drives the master session (tmp/seed.json) and reads the login code
-# from the Telegram service chat — two concurrent mints would collide.
+# from the ImpulseM service chat — two concurrent mints would collide.
 #
 # Usage (run from anywhere — the script cd's to the repo root itself):
 #   bash scripts/start-preview.sh [--id <id>] [--port <port>] [--remint] [--no-worker]

@@ -1,6 +1,6 @@
 /*
  * Software SCTP framing for tgcalls v3 (13.0.0) call signaling.
- * Ported from Telegram Web A (telegram-tt) — src/api/gramjs/methods/sctpSignaling.ts
+ * Ported from ImpulseM Web A (impulsem-tt) — src/api/gramjs/methods/sctpSignaling.ts
  */
 
 import {logger} from '@lib/logger';

@@ -10,7 +10,11 @@ type A = Record<DcAuthKey, string> &
     push_key_fingerprint?: string,
     userId: PeerId,
     dcId: TrueDcId,
-    date: number
+    date: number,
+    // Bearer token for the ImpulseM gateway. MTProto carried identity in the
+    // auth key; the gRPC transport needs it as an explicit header.
+    impulse_session_token?: string,
+    impulse_refresh_token?: string
   };
 
 export type AccountSessionData = Partial<A>;

@@ -33,10 +33,10 @@ if(isDEV) {
 
 const handlebarsPlugin = handlebars({
   context: {
-    title: 'Telegram Web',
-    description: 'Telegram is a cloud-based mobile and desktop messaging app with a focus on security and speed.',
-    url: 'https://web.telegram.org/k/',
-    origin: 'https://web.telegram.org/'
+    title: 'ImpulseM Web',
+    description: 'ImpulseM is a cloud-based mobile and desktop messaging app with a focus on security and speed.',
+    url: 'https://web.impulsem.net/k/',
+    origin: 'https://web.impulsem.net/'
   }
 });
 
@@ -45,11 +45,22 @@ const USE_SIGNED_CERTS = USE_SSL && true;
 const USE_SELF_SIGNED_CERTS = USE_SSL && false;
 
 // * mkdir certs; cd certs
-// * mkcert web.telegram.org
-// * chmod 644 web.telegram.org-key.pem
+// * mkcert web.impulsem.net
+// * chmod 644 web.impulsem.net-key.pem
 // * nano /etc/hosts
-// * 127.0.0.1 web.telegram.org
-const host = USE_SSL ? 'web.telegram.org' : 'localhost';
+// * 127.0.0.1 web.impulsem.net
+// The dev server sits behind an external nginx that fronts impulsem.net. That
+// proxy reaches this box over the network, not the loopback, so binding to
+// 'localhost' makes it unreachable (nginx answers 502). Bind every interface and
+// accept the proxied Host header, which Vite would otherwise reject outright.
+// Set PUBLIC_HOST=impulsem.net so the HMR socket targets the public TLS port
+// instead of 1234.
+const PUBLIC_HOST = process.env.PUBLIC_HOST;
+const host = USE_SSL ? 'web.impulsem.net' : 'localhost';
+// What the server actually binds to. `host` stays a plain string because the
+// self-signed cert plugin names the certificate after it; the bind target is a
+// separate concern.
+const bindHost = USE_SSL ? host : true;
 
 // HTTP/2 for `pnpm start`. Vite serves dev modules unbundled — one request per module —
 // and over http/1.1 the browser's ~6-connections-per-origin cap serialises the hundreds
@@ -66,8 +77,10 @@ const USE_DEV_HTTP2 = !USE_SSL && !process.env.TWEB_PREVIEW && !process.env.VITE
   existsSync(DEV_HTTP2_KEY) && existsSync(DEV_HTTP2_CERT);
 
 const serverOptions: ServerOptions = {
-  host,
-  port: USE_SSL ? 443 : 8080,
+  host: bindHost,
+  port: USE_SSL ? 443 : 1234,
+  allowedHosts: ['impulsem.net', '.impulsem.net', 'localhost'],
+  hmr: PUBLIC_HOST ? {host: PUBLIC_HOST, protocol: 'wss', clientPort: 443} : undefined,
   watch: {
     // NB: anchor on rootDir. A worktree checkout's own path contains
     // ".claude/worktrees/<name>/", so a bare '**/.claude/**' glob would also match

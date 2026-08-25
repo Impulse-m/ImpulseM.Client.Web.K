@@ -24,7 +24,7 @@ import Icon from '@components/icon';
 import apiManagerProxy from '@lib/apiManagerProxy';
 import {createEffect, createRoot, on} from 'solid-js';
 import {usePeerProfileAppearance} from '@hooks/useProfileColors';
-import {getHexColorFromTelegramColor} from '@helpers/color';
+import {getHexColorFromImpulseMColor} from '@helpers/color';
 import wrapEmojiPattern from '@components/wrappers/emojiPattern';
 import {useCollapsable} from '@hooks/useCollapsable';
 import deferredPromise, {CancellablePromise} from '@helpers/cancellablePromise';
@@ -764,7 +764,7 @@ export default class PeerProfileAvatars {
     const setBackgroundColors = (bgColors: number[]) => {
       let backgroundStr: string;
       if(bgColors) {
-        const colors = bgColors.map((color) => getHexColorFromTelegramColor(color));
+        const colors = bgColors.map((color) => getHexColorFromImpulseMColor(color));
         if(colors.length === 1) {
           backgroundStr = colors[0];
         } else {

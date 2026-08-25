@@ -1,4 +1,5 @@
 // just to include
+import '@lib/impulseLogger'; // arms Loki telemetry for this context
 import '@lib/polyfill';
 import '@helpers/peerIdPolyfill';
 

@@ -15,7 +15,7 @@ import {StarGiftBackdrop} from '@components/stargifts/stargiftBackdrop';
 import {MyDocument} from '@appManagers/appDocsManager';
 import {IconTsx} from '@components/iconTsx';
 import formatNumber from '@helpers/number/formatNumber';
-import {changeBrightness, getRgbColorFromTelegramColor, rgbaToHexa, rgbIntToHex} from '@helpers/color';
+import {changeBrightness, getRgbColorFromImpulseMColor, rgbaToHexa, rgbIntToHex} from '@helpers/color';
 import createContextMenu from '@helpers/dom/createContextMenu';
 import {showSharingPicker2Popup} from '@components/popups/pickUser';
 import appImManager from '@lib/appImManager';
@@ -194,7 +194,7 @@ function StarGiftGridItem(props: {
         isPremium() && styles.itemPremium
       )}
       style={{
-        '--overlay-color': rgbaToHexa(changeBrightness(getRgbColorFromTelegramColor(props.item.collectibleAttributes?.backdrop?.edge_color ?? 0), 0.9))
+        '--overlay-color': rgbaToHexa(changeBrightness(getRgbColorFromImpulseMColor(props.item.collectibleAttributes?.backdrop?.edge_color ?? 0), 0.9))
       }}
       onClick={props.onClick}
       ref={containerRef}

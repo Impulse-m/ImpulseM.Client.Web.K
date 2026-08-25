@@ -6,7 +6,7 @@ import apiManagerProxy from '@lib/apiManagerProxy';
 import detectLanguage from '@lib/tinyld/detect';
 import {useAppSettings} from '@stores/appSettings';
 
-// https://core.telegram.org/api/translation
+// https://core.impulsem.net/api/translation
 export const MIN_TOTAL_PROCESSED_MESSAGES = 8;
 export const MIN_FOREIGN_PERCENTAGE = 0.65;
 

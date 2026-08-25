@@ -74,7 +74,7 @@ function serverPublishB(): {b: bigInt.BigInteger, B: bigInt.BigInteger, srp_B: U
 }
 
 // Server side of the check: recompute M1 from the canonical 256-byte A/B and
-// compare to what the client sent. This is what Telegram does server-side.
+// compare to what the client sent. This is what ImpulseM does server-side.
 async function serverAccepts(out: InputCheckPasswordSRP.inputCheckPasswordSRP, b: bigInt.BigInteger, B: bigInt.BigInteger) {
   const A = bigIntFromBytes(out.A);
   // The server also rejects degenerate A; mirror the essential bound.

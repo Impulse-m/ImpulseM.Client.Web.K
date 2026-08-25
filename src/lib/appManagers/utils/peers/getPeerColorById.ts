@@ -1,4 +1,4 @@
-import {getHexColorFromTelegramColor, hexToRgb, hexaToHsla} from '@helpers/color';
+import {getHexColorFromImpulseMColor, hexToRgb, hexaToHsla} from '@helpers/color';
 import themeController from '@helpers/themeController';
 import {Chat, HelpPeerColorOption, HelpPeerColorSet, PeerColor, User} from '@layer';
 
@@ -60,7 +60,7 @@ function replaceColors(writeIn: typeof DialogColorsFg, peerColorOptions: HelpPee
       continue;
     }
 
-    const c = colors.map((color) => getHexColorFromTelegramColor(color));
+    const c = colors.map((color) => getHexColorFromImpulseMColor(color));
     writeIn[peerColorOption.color_id] = c;
   }
 

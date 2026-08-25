@@ -1,16 +1,16 @@
 import EventListenerBase from '@helpers/eventListenerBase';
-import {TelegramWebViewEvent, TelegramWebViewEventMap, TelegramWebViewSendEventMap} from '@types';
+import {ImpulseMWebViewEvent, ImpulseMWebViewEventMap, ImpulseMWebViewSendEventMap} from '@types';
 
-const weakMap: WeakMap<Window, TelegramWebView> = new WeakMap();
+const weakMap: WeakMap<Window, ImpulseMWebView> = new WeakMap();
 window.addEventListener('message', (e) => {
   weakMap.get(e.source as Window)?.onMessage(e.origin, e.data);
 });
 
-export default class TelegramWebView extends EventListenerBase<{
-  [type in keyof TelegramWebViewEventMap]: (data: TelegramWebViewEventMap[type]) => void
+export default class ImpulseMWebView extends EventListenerBase<{
+  [type in keyof ImpulseMWebViewEventMap]: (data: ImpulseMWebViewEventMap[type]) => void
 }> {
   public iframe: HTMLIFrameElement;
-  public lastDispatchedWebViewEvent: {type: keyof TelegramWebViewSendEventMap, count: number};
+  public lastDispatchedWebViewEvent: {type: keyof ImpulseMWebViewSendEventMap, count: number};
 
   private onLoad: () => void;
   private html: string;
@@ -52,7 +52,7 @@ export default class TelegramWebView extends EventListenerBase<{
       return;
     }
 
-    this.onTelegramWebViewEvent(JSON.parse(data));
+    this.onImpulseMWebViewEvent(JSON.parse(data));
   }
 
   public onMount() {
@@ -62,7 +62,7 @@ export default class TelegramWebView extends EventListenerBase<{
     weakMap.set(this.iframe.contentWindow, this);
     if(this.html) {
       // ! never write into contentWindow.document — a no-src iframe inherits this origin,
-      // ! which would run the embedded third-party scripts as web.telegram.org
+      // ! which would run the embedded third-party scripts as web.impulsem.net
       this.iframe.srcdoc = this.html;
     }
   }
@@ -73,18 +73,18 @@ export default class TelegramWebView extends EventListenerBase<{
     this.iframe.removeEventListener('load', this.onLoad);
   }
 
-  private onTelegramWebViewEvent = ({eventType, eventData}: TelegramWebViewEvent) => {
+  private onImpulseMWebViewEvent = ({eventType, eventData}: ImpulseMWebViewEvent) => {
     if((eventData as any) === '') {
       eventData = undefined;
     }
 
-    // console.log('onTelegramWebViewEvent', eventType, eventData);
+    // console.log('onImpulseMWebViewEvent', eventType, eventData);
     this.dispatchEvent(eventType, eventData as any);
   };
 
-  public dispatchWebViewEvent<T extends keyof TelegramWebViewSendEventMap>(
+  public dispatchWebViewEvent<T extends keyof ImpulseMWebViewSendEventMap>(
     eventType: T,
-    eventData: TelegramWebViewSendEventMap[T]
+    eventData: ImpulseMWebViewSendEventMap[T]
   ) {
     if(this.lastDispatchedWebViewEvent?.type !== eventType) {
       this.lastDispatchedWebViewEvent = {type: eventType, count: 0};

@@ -66,7 +66,7 @@ describe('parseBusinessConfig', () => {
     );
   });
 
-  it('normalizes and deduplicates Telegram IDs as strings', () => {
+  it('normalizes and deduplicates ImpulseM IDs as strings', () => {
     const result = parseBusinessConfig({
       userIds: ' 1001,1001,4500000000000000 ',
       chatIds: ' 2002,2003 '
@@ -90,13 +90,13 @@ describe('parseBusinessConfig', () => {
       userIds: '-1001',
       chatIds: '2002'
     })).toThrow(
-      'Invalid Telegram ID in TG_EPHEMERAL_BOT_BUSINESS_USER_IDS: -1001'
+      'Invalid ImpulseM ID in TG_EPHEMERAL_BOT_BUSINESS_USER_IDS: -1001'
     );
     expect(() => parseBusinessConfig({
       userIds: '1001',
       chatIds: 'chat'
     })).toThrow(
-      'Invalid Telegram ID in TG_EPHEMERAL_BOT_BUSINESS_CHAT_IDS: chat'
+      'Invalid ImpulseM ID in TG_EPHEMERAL_BOT_BUSINESS_CHAT_IDS: chat'
     );
   });
 });

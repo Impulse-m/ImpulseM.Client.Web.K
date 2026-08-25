@@ -69,7 +69,36 @@ export class AccountController extends StaticUtilityClass {
     return false;
   }
 
-  static async update(accountNumber: ActiveAccountNumber, data: Partial<AccountSessionData>, overrideAll = false) {
+  /**
+   * `applyUpdate` reads the whole record, merges, then writes it back. Two
+   * concurrent callers therefore both read the pre-update snapshot, and the later
+   * write silently drops whatever the earlier one added. Sign-in does exactly
+   * that: the session token and the user id are written from two different places
+   * in the same tick, and the user id landed last -- so a reload found an account
+   * that was signed in but had no token, and asked for the code again.
+   *
+   * Serialising per account makes each read see the previous write. `get` is only
+   * re-entered here with `updating`, which does not call back into `update`, so
+   * the chain cannot wait on itself.
+   */
+  private static updateQueues = new Map<ActiveAccountNumber, Promise<AccountSessionData>>();
+
+  static update(accountNumber: ActiveAccountNumber, data: Partial<AccountSessionData>, overrideAll = false) {
+    const previous = this.updateQueues.get(accountNumber);
+    const next = (previous ? previous.catch(() => {}) : Promise.resolve())
+    .then(() => this.applyUpdate(accountNumber, data, overrideAll));
+
+    this.updateQueues.set(accountNumber, next);
+    next.catch(() => {}).then(() => {
+      if(this.updateQueues.get(accountNumber) === next) {
+        this.updateQueues.delete(accountNumber);
+      }
+    });
+
+    return next;
+  }
+
+  private static async applyUpdate(accountNumber: ActiveAccountNumber, data: Partial<AccountSessionData>, overrideAll = false) {
     const prevData = await this.get(accountNumber, true);
 
     const updatedData = {

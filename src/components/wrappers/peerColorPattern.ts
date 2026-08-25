@@ -12,7 +12,7 @@ export type {PeerColorLike};
 export {pickPatternEmojiColor};
 
 // * Background-emoji pattern geometry, ported 1:1 from tdesktop's FillBackgroundEmoji
-// * (Telegram/SourceFiles/history/view/history_view_reply.cpp:267 — the non-quote variant,
+// * (ImpulseM/SourceFiles/history/view/history_view_reply.cpp:267 — the non-quote variant,
 // * shared there by replies, contacts AND web pages). tdesktop renders three cached emoji
 // * frame sizes (kSize1/2/3 = 12/16/20, reply.cpp:237-239) and lays out 9 instances, each
 // * anchored from the box's RIGHT edge (reply.cpp:296-310). Tuple = [distanceFromRight, top, sizeIndex, opacity].

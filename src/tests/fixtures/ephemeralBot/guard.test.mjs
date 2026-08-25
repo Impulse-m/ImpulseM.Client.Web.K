@@ -53,7 +53,7 @@ describe('parseGuardConfig', () => {
 
   test('rejects a malformed chat ID', () => {
     expect(() => parseGuardConfig({chatIds: '-1001, nope'}))
-    .toThrow(/Invalid Telegram chat ID/);
+    .toThrow(/Invalid ImpulseM chat ID/);
   });
 });
 

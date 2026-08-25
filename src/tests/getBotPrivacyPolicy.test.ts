@@ -15,7 +15,7 @@ const privacySettingsCommand = {_: 'botCommand', pFlags: {}, command: 'privacy_s
 
 describe('getBotPrivacyPolicy', () => {
   test('default URL constant matches tdesktop/Android', () => {
-    expect(BOT_DEFAULT_PRIVACY_POLICY_URL).toBe('https://telegram.org/privacy-tpa');
+    expect(BOT_DEFAULT_PRIVACY_POLICY_URL).toBe('https://impulsem.net/privacy-tpa');
   });
 
   describe('botHasPrivacyCommand', () => {

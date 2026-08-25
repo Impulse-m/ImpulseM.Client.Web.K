@@ -6,7 +6,7 @@ TypeScript reimplementation guide for `tde2e_core::Call`, `CallEncryption`, `Cal
 
 ### Call (Root Coordinator)
 Holds:
-- `user_id: bigint` — calling participant's Telegram ID
+- `user_id: bigint` — calling participant's ImpulseM ID
 - `private_key: PrivateKey` — long-lived ECDH private key (generated at call join)
 - `blockchain_: ClientBlockchain` — local copy of blockchain with group participants & shared keys
 - `call_encryption_: CallEncryption` — per-epoch packet encryption/decryption

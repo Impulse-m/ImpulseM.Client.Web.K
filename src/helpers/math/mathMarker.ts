@@ -7,7 +7,7 @@
 // Inline math (`$x$`) is carried through the markdown / RichText pipeline as a base64-encoded source
 // wrapped in STX (\x02) sentinels. base64 contains no markdown-special characters, so the LaTeX
 // source survives the emphasis / escape passes and parseMarkdown untouched; the IV later decodes &
-// renders it with Temml (see instantViewMath). Mirrors how WebA (telegram-tt) renders `textMath`.
+// renders it with Temml (see instantViewMath). Mirrors how WebA (impulsem-tt) renders `textMath`.
 
 const STX = '\x02';
 

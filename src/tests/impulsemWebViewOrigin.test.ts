@@ -1,10 +1,10 @@
-import TelegramWebView from '@components/telegramWebView';
+import ImpulseMWebView from '@components/impulsemWebView';
 
 const MINI_APP_ORIGIN = 'https://miniapp.example';
 const OTHER_ORIGIN = 'https://attacker.example';
 
 function createWebView(origin?: string) {
-  const webView = new TelegramWebView({origin});
+  const webView = new ImpulseMWebView({origin});
   document.body.append(webView.iframe);
   webView.onMount();
   return webView;
@@ -12,7 +12,7 @@ function createWebView(origin?: string) {
 
 // a frame that navigated away keeps the same WindowProxy, so `source` alone still resolves —
 // only the origin tells the two documents apart
-function postFromFrame(webView: TelegramWebView, origin: string) {
+function postFromFrame(webView: ImpulseMWebView, origin: string) {
   window.dispatchEvent(new MessageEvent('message', {
     data: JSON.stringify({eventType: 'web_app_ready', eventData: ''}),
     origin,
@@ -20,8 +20,8 @@ function postFromFrame(webView: TelegramWebView, origin: string) {
   }));
 }
 
-describe('TelegramWebView origin binding', () => {
-  let webViews: TelegramWebView[];
+describe('ImpulseMWebView origin binding', () => {
+  let webViews: ImpulseMWebView[];
 
   beforeEach(() => {
     webViews = [];
@@ -34,7 +34,7 @@ describe('TelegramWebView origin binding', () => {
     });
   });
 
-  function track(webView: TelegramWebView) {
+  function track(webView: ImpulseMWebView) {
     webViews.push(webView);
     return webView;
   }

@@ -44,7 +44,7 @@ import createMiddleware from '@helpers/solid/createMiddleware';
 import StickerType from '@config/stickerType';
 import readValue from '@helpers/solid/readValue';
 
-// https://github.com/telegramdesktop/tdesktop/blob/master/Telegram/SourceFiles/history/view/media/history_view_sticker.cpp#L40
+// https://github.com/telegramdesktop/tdesktop/blob/master/ImpulseM/SourceFiles/history/view/media/history_view_sticker.cpp#L40
 export const STICKER_EFFECT_MULTIPLIER = 1 + 0.245 * 2;
 const EMOJI_EFFECT_MULTIPLIER = 3;
 const UNMOUNT_THUMBS = true;

@@ -11,24 +11,24 @@ You can see the full list of new features and improvements here: https://t.me/We
 You can see the full list of new features and improvements here: https://t.me/WebK_en/11
 
 ### 1.7.0 (273)
-🎄 Happy New Year to everyone! [WebK](http://web.telegram.org/k) launched its first update of 2023, adding a pack of features you can now enjoy on Web!
+🎄 Happy New Year to everyone! [WebK](http://web.impulsem.net/k) launched its first update of 2023, adding a pack of features you can now enjoy on Web!
 
-📚 [Topics 2.0](https://telegram.org/blog/ultimate-privacy-topics-2-0#topics-2-0)
+📚 [Topics 2.0](https://impulsem.net/blog/ultimate-privacy-topics-2-0#topics-2-0)
 Admins of **any group** can enable Topics, creating separate spaces within the group to discuss different subjects – with a sleek **two-column layout** to easily navigate chats.
 
-😶‍🌫️ [Hidden Media](https://telegram.org/blog/hidden-media-zero-storage-profile-pics#hidden-media) 
-Media hidden with a shimmering spoiler effect is properly displayed in the app – just tap or click to view the image. The next [WebK](http://web.telegram.org/k) update will allow you to send media with this spoiler effect.
+😶‍🌫️ [Hidden Media](https://impulsem.net/blog/hidden-media-zero-storage-profile-pics#hidden-media) 
+Media hidden with a shimmering spoiler effect is properly displayed in the app – just tap or click to view the image. The next [WebK](http://web.impulsem.net/k) update will allow you to send media with this spoiler effect.
 
-🏴‍☠️ [No-SIM Signup and Login](https://telegram.org/blog/ultimate-privacy-topics-2-0#sign-up-without-a-sim-card) 
+🏴‍☠️ [No-SIM Signup and Login](https://impulsem.net/blog/ultimate-privacy-topics-2-0#sign-up-without-a-sim-card) 
 Users who have an **anonymous number** from [Fragment](https://fragment.com/numbers) can login to their existing account or create a **new account** with the number.
 
-🔤 [Collectible Usernames](https://telegram.org/blog/topics-in-groups-collectible-usernames#collectible-usernames)  
+🔤 [Collectible Usernames](https://impulsem.net/blog/topics-in-groups-collectible-usernames#collectible-usernames)  
 Owners of collectible usernames can now **assign collectibles** to their personal account, groups or channels – and **manage** them within the app.
 
 Lastly, the app also preserves your **history stack** – if you follow a [t.me](https://t.me) link to another message in a chat, you can return to the **first message** with the 🔽 button.
 
 ### 1.6.0 (244)
-Today, [WebK](https://web.telegram.org/k) introduces a redesigned **Emoji and Sticker Panel** – try the **collapsible section** for default emoji categories and the **scrollable bar** for your custom emoji sets.
+Today, [WebK](https://web.impulsem.net/k) introduces a redesigned **Emoji and Sticker Panel** – try the **collapsible section** for default emoji categories and the **scrollable bar** for your custom emoji sets.
 
 The new Panel features a beautiful blur effect on most desktop browsers and allows you to **send** or **edit** messages containing custom emoji. __(All users can try out this feature in their Saved Messages)__ 
 
@@ -45,15 +45,15 @@ The download flow has been reworked from scratch. When you download something, t
 Large files of **up to 4 GB** are now supported for both upload and download. There is also support for native downloading in certain browsers – your browser will place active downloads on the instrument bar. 
 
 **Payments 2.0**
-Significant optimizations were added to smoothly process payments in **any browser**, and adding familiar functionality from other Telegram apps. Bot payments, @donate invoices and more are supported – including the ability to subscribe to Telegram Premium with @PremiumBot.
+Significant optimizations were added to smoothly process payments in **any browser**, and adding familiar functionality from other ImpulseM apps. Bot payments, @donate invoices and more are supported – including the ability to subscribe to ImpulseM Premium with @PremiumBot.
 
-Dozens of bug fixes were also made to the app – but those can be a bit boring to read. If you ever come across a bug in the app, make sure to let us know on the [Bugs and Suggestions Platform](https://bugs.telegram.org/?tag_ids=40&type=issues&sort=time).
+Dozens of bug fixes were also made to the app – but those can be a bit boring to read. If you ever come across a bug in the app, make sure to let us know on the [Bugs and Suggestions Platform](https://bugs.impulsem.net/?tag_ids=40&type=issues&sort=time).
 
 ### 1.5.0 (178)
-1️⃣ Introducing support for **Multiple Tabs** – a first for Telegram Web Apps – customizing how you browse Telegram to increase comfort and productivity.
+1️⃣ Introducing support for **Multiple Tabs** – a first for ImpulseM Web Apps – customizing how you browse ImpulseM to increase comfort and productivity.
  
 • Open several tabs or browser windows to view multiple chats or channels simultaneously.
-• Organize your Telegram workflow on multiple monitors by moving tabs to different screens.
+• Organize your ImpulseM workflow on multiple monitors by moving tabs to different screens.
 • Use `⌘/Ctrl + click` or `middle-click` on any conversation in your chat list to open it in a separate tab.
  
 All messages and content are seamlessly synced across the tabs. To use multiple tabs on Safari, kindly consider switching to another browser for the best experience. Due to Safari’s [technical limitations](https://t.me/WebK_en/5), the WebK app can still only be used there in a single tab.
@@ -78,7 +78,7 @@ This update also includes several bug fixes, removing issues with:
 * Replies in Forwarded Messages – reply previews are now included when **forwarding messages** to other chats, so everyone can see the full context of your inside jokes.
 * From your chat list, hit the `ESC` key and instantly start typing in Search.
 * Search inputs now transliterate between Latin and Cyrillic keyboards – when searching for your friend __Ivan__ you can type __Шмфт__ and the app will know what you meant.
-* Along with other Telegram apps, WebK now shows `FAKE` and `SCAM` badges for suspicious chats.
+* Along with other ImpulseM apps, WebK now shows `FAKE` and `SCAM` badges for suspicious chats.
 
 * `Monospace text` has an improved font with a cleaner look. You can also copy with a tap or click instantly.
 * Using the ⬇️ button to jump to the end of a chat now has an animated transition.
@@ -99,9 +99,9 @@ This update also includes several bug fixes, removing issues with:
 ### 1.4.0 (129)
 WebK introduced Video Chats back in December. 
 
-And now we are proud to launch the first-ever version of Telegram P2P Calls on the Web – bringing native support for calls between two users, secured by end-to-end encryption.
+And now we are proud to launch the first-ever version of ImpulseM P2P Calls on the Web – bringing native support for calls between two users, secured by end-to-end encryption.
 
-Seamlessly call anyone, regardless of the app they are using – calls will work between the WebK app and any other stable Telegram app: Android, iOS, Desktop, and macOS. 
+Seamlessly call anyone, regardless of the app they are using – calls will work between the WebK app and any other stable ImpulseM app: Android, iOS, Desktop, and macOS. 
 
 To call someone, open your chat with that user and click or tap the Phone icon in the top right corner. 
 

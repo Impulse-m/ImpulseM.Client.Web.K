@@ -1,0 +1,11 @@
+# Canon surface (package v1.*) — mirrors the Telegram TL method set.
+# Source of truth lives in the backend repo; `generated/` is its own include
+# root because auth.proto & co. import "v1/types.proto" relative to it.
+version: v2
+plugins:
+  - local: ["node", "./node_modules/@bufbuild/protoc-gen-es/bin/protoc-gen-es"]
+    out: src/lib/impulse/grpc/gen
+    opt:
+      - target=ts
+inputs:
+  - directory: ../ImpulseM/protos/generated

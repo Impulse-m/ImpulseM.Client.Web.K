@@ -1,12 +1,12 @@
 import {createDualClients, loadSeed} from './dualHarness';
-import wrapTelegramRichText from '@lib/richTextProcessor/wrapTelegramRichText';
+import wrapImpulseMRichText from '@lib/richTextProcessor/wrapImpulseMRichText';
 import wrapUrl from '@lib/richTextProcessor/wrapUrl';
 import pause from '@helpers/schedulers/pause';
 import {randomLong} from '@helpers/random';
 import type {PageBlock, RichText} from '@layer';
 
 // Does the server let a client author a `textUrl` whose url is a javascript: scheme AND whose
-// webpage_id is non-zero? `webpage_id != 0` is the only thing that makes wrapTelegramRichText
+// webpage_id is non-zero? `webpage_id != 0` is the only thing that makes wrapImpulseMRichText
 // stamp `safe: true`, which in turn is the only thing that lets wrapUrl's `iv` branch put a
 // decoded URL straight into an anchor href. `safe` itself is client-local (not in the TL schema),
 // so this is the only wire-reachable way into that branch.
@@ -37,7 +37,7 @@ function makeProbeBlocks(url: string, webpageId: string | number): PageBlock[] {
 // What the renderer would do with whatever the server hands back.
 function renderVerdict(block: PageBlock) {
   const text = (block as PageBlock.pageBlockParagraph).text;
-  const {entities} = wrapTelegramRichText(text);
+  const {entities} = wrapImpulseMRichText(text);
   const entity: any = entities?.find((e) => e._ === 'messageEntityTextUrl');
   if(!entity) {
     return {safe: undefined as boolean, href: undefined as string, onclick: undefined as string};
@@ -58,11 +58,11 @@ describe('wrapUrl iv branch re-validates the decoded URL', () => {
   });
 
   test('a legitimate IV link is untouched', () => {
-    const [block] = makeProbeBlocks('https://telegram.org/blog', '1');
+    const [block] = makeProbeBlocks('https://impulsem.net/blog', '1');
     const verdict = renderVerdict(block);
 
     expect(verdict.safe).toBe(true);
-    expect(verdict.href).toBe('https://telegram.org/blog');
+    expect(verdict.href).toBe('https://impulsem.net/blog');
   });
 
   test('webpage_id 0 keeps the link out of the iv branch entirely', () => {

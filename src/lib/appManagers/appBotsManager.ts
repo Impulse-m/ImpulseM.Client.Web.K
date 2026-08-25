@@ -1,5 +1,5 @@
 import {AccountDatabase, getDatabaseState} from '@config/databases/state';
-import {TelegramWebViewSendEventMap} from '@types';
+import {ImpulseMWebViewSendEventMap} from '@types';
 import AppStorage from '@lib/storage';
 import {AppManager} from '@appManagers/manager';
 import {User} from '@layer';
@@ -98,7 +98,7 @@ export default class AppBotsManager extends AppManager {
     return this.writeBotStorage(botId, 'internal', key, value);
   }
 
-  public async writeBotDeviceStorage(botId: BotId, key: string, value: string | null): Promise<TelegramWebViewSendEventMap['device_storage_failed']['error'] | null> {
+  public async writeBotDeviceStorage(botId: BotId, key: string, value: string | null): Promise<ImpulseMWebViewSendEventMap['device_storage_failed']['error'] | null> {
     if(typeof key !== 'string') return 'KEY_INVALID';
     if(typeof value !== 'string' && value !== null) return 'VALUE_INVALID';
 

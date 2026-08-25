@@ -313,7 +313,7 @@ export class GroupCallsController extends EventListenerBase<{
   //
   // For `startConference` we first call `phone.createConferenceCall(flags=0)`
   // to mint the empty call (tdesktop: calls_group_common.cpp:483
-  // `MakeConferenceCall`; iOS: TelegramEngine/Calls/GroupCalls.swift:3348
+  // `MakeConferenceCall`; iOS: ImpulseMEngine/Calls/GroupCalls.swift:3348
   // `_internal_createConferenceCall`) and then delegate to `joinConference`.
   //
   // We deliberately do NOT use the single-call `createConferenceCall(

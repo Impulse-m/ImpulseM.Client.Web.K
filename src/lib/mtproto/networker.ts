@@ -46,7 +46,7 @@ export type MTMessageOptions = InvokeApiOptions & Partial<{
   longPoll: boolean,
 
   canCleanup: boolean,
-  notContentRelated: boolean, // https://core.telegram.org/mtproto/description#content-related-message
+  notContentRelated: boolean, // https://core.impulsem.net/mtproto/description#content-related-message
   noSchedule: boolean,
   // withResult: boolean,
   messageId: MTLong,
@@ -1740,7 +1740,7 @@ export default class MTPNetworker {
     return this.timeManager.applyServerTime(serverTime);
   }
 
-  // * https://core.telegram.org/mtproto/service_messages_about_messages#notice-of-ignored-error-message
+  // * https://core.impulsem.net/mtproto/service_messages_about_messages#notice-of-ignored-error-message
   public processMessage(message: any, messageId: MTLong, sessionId: Uint8Array | number[], packetTime?: number) {
     const log = this.log.bindPrefix('processMessage');
     if(message._ === 'messageEmpty') {
@@ -1903,7 +1903,7 @@ export default class MTPNetworker {
         break;
       }
 
-      case 'msgs_state_info': { // https://core.telegram.org/mtproto/service_messages_about_messages#informational-message-regarding-status-of-messages
+      case 'msgs_state_info': { // https://core.impulsem.net/mtproto/service_messages_about_messages#informational-message-regarding-status-of-messages
         const sentMessageId = message.req_msg_id;
         const sentMessage = this.sentMessages[sentMessageId]; // should be msg_resend_req or msgs_state_req
         log('got msgs_state_info', sentMessage, message);
@@ -1968,7 +1968,7 @@ export default class MTPNetworker {
         break;
       }
 
-      case 'pong': { // * https://core.telegram.org/mtproto/service_messages#ping-messages-pingpong - These messages don't require acknowledgments
+      case 'pong': { // * https://core.impulsem.net/mtproto/service_messages#ping-messages-pingpong - These messages don't require acknowledgments
         /* const sentMessageId = message.msg_id;
         const sentMessage = this.sentMessages[sentMessageId];
 

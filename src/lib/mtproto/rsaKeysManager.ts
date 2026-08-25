@@ -19,7 +19,7 @@ export type RSAPublicKeyHex = {
 
 export class RSAKeysManager {
   /**
-   *  Server public key, obtained from here: https://core.telegram.org/api/obtaining_api_id
+   *  Server public key, obtained from here: https://core.impulsem.net/api/obtaining_api_id
    *
    *
    *  -----BEGIN RSA PUBLIC KEY-----

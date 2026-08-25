@@ -372,7 +372,7 @@ export default class PopupStars extends PopupElement {
       overlayClosable: true,
       floatingHeader: true,
       body: true,
-      title: options.ton ? 'GramBalance' : 'TelegramStars',
+      title: options.ton ? 'GramBalance' : 'ImpulseMStars',
       scrollable: true
     });
 
@@ -535,7 +535,7 @@ export default class PopupStars extends PopupElement {
     } else if(this.ton) {
       title = i18n('GramBalance');
     } else {
-      title = i18n('TelegramStars');
+      title = i18n('ImpulseMStars');
     }
 
     let subtitle: JSX.Element;
@@ -569,7 +569,7 @@ export default class PopupStars extends PopupElement {
     } else if(this.itemPrice) {
       subtitle = i18n(this.paymentForm ? 'StarsNeededText' : 'Stars.Subscribe.Need', [peerTitle]);
     } else {
-      subtitle = i18n(this.purchaseBlocked ? 'StarsPurchaseUnavailable' : 'TelegramStarsInfo');
+      subtitle = i18n(this.purchaseBlocked ? 'StarsPurchaseUnavailable' : 'ImpulseMStarsInfo');
     }
 
     const firstSection = !this.purchaseBlocked && (
@@ -787,7 +787,7 @@ export default class PopupStars extends PopupElement {
           <Section>
             <Button
               class="btn-primary btn-transparent primary"
-              text="TelegramStarsGift"
+              text="ImpulseMStarsGift"
               onClick={async() => {
                 this.hide();
                 const peerId = await showContactPickerPopup();

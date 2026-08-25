@@ -255,7 +255,7 @@ export class TLWriter {
 
 // ===== Server / local wire-format conversion =====
 //
-// Telegram's e2e server bumps the leading 4-byte TL constructor magic by +1
+// ImpulseM's e2e server bumps the leading 4-byte TL constructor magic by +1
 // for any block/broadcast it relays to clients (a cheap "tampering check" /
 // version signal). Clients must subtract 1 before TL parsing, and add 1
 // before sending bytes back. See tdlib/tde2e/td/e2e/Blockchain.cpp:735-762.

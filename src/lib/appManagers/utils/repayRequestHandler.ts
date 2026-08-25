@@ -1,4 +1,10 @@
-import {ConfirmedPaymentResult} from '@components/chat/paidMessagesInterceptor';
+// Type-only: `ConfirmedPaymentResult` is an `export type`, used here solely as a
+// parameter annotation. As a value import it was a real runtime edge from the
+// manager layer into a chat component, and it closed the cycle
+// popups/peer -> avatarNew -> ... -> appMessagesManager -> here ->
+// paidMessagesInterceptor -> confirmationPopup -> popups/peer, which left every
+// PopupPeer subclass reading its base class from the temporal dead zone.
+import type {ConfirmedPaymentResult} from '@components/chat/paidMessagesInterceptor';
 import assumeType from '@helpers/assumeType';
 import safeAssign from '@helpers/object/safeAssign';
 

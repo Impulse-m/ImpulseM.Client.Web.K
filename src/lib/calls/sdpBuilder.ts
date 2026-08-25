@@ -9,7 +9,7 @@ import {IS_FIREFOX} from '@environment/userAgent';
 import LocalConferenceDescription, {ConferenceEntry} from '@lib/calls/localConferenceDescription';
 import StringFromLineBuilder from '@lib/calls/stringFromLineBuilder';
 import {CallSignalingData, GroupCallConnectionTransport, PayloadType, RtpHdrexts, UpdateGroupCallConnectionData} from '@lib/calls/types';
-import {fromTelegramSource} from '@lib/calls/utils';
+import {fromImpulseMSource} from '@lib/calls/utils';
 import {getSdpDirection, getSdpPort, SdpSection} from '@lib/calls/p2P/sdpCommon';
 import {logger} from '@lib/logger';
 
@@ -118,8 +118,8 @@ export class SDPBuilder extends StringFromLineBuilder {
     let {type, sourceGroups} = entry;
 
     // let source = ssrc.source ?? ssrc.sourceGroups[0].sources[0];
-    // source = fromTelegramSource(source);
-    const source = fromTelegramSource(entry.source);
+    // source = fromImpulseMSource(source);
+    const source = fromImpulseMSource(entry.source);
 
     streamName += source;
     type += source as any;
@@ -146,7 +146,7 @@ export class SDPBuilder extends StringFromLineBuilder {
     if(sourceGroups?.length) {
       sourceGroups.forEach((ssrcGroup) => {
         if(ssrcGroup.sources.length) {
-          const sources = ssrcGroup.sources.map(fromTelegramSource);
+          const sources = ssrcGroup.sources.map(fromImpulseMSource);
           this.add(`a=ssrc-group:${ssrcGroup.semantics} ${sources.join(' ')}`);
           sources.forEach(addSource);
         }

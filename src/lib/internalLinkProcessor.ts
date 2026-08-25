@@ -272,7 +272,7 @@ export class InternalLinkProcessor {
 
     type K1 = {thread?: string, comment?: string, t?: string, option?: string};
     type K2 = {thread?: string, comment?: string, start?: string, startgroup?: string, startchannel?: string, admin?: string, t?: string, text?: string, option?: string};
-    type K3 = {startattach?: string, attach?: string, choose?: TelegramChoosePeerType};
+    type K3 = {startattach?: string, attach?: string, choose?: ImpulseMChoosePeerType};
     type K4 = {startapp?: string, mode?: 'compact' | 'fullscreen'};
     type K5 = {story?: string};
     type K6 = {boost?: string};
@@ -390,7 +390,7 @@ export class InternalLinkProcessor {
       uriParams: {
         domain: string,
 
-        // telegrampassport
+        // impulsempassport
         scope?: string,
         nonce?: string,
         payload?: string,
@@ -414,7 +414,7 @@ export class InternalLinkProcessor {
         t?: string,
         attach?: string,
         startattach?: string,
-        choose?: TelegramChoosePeerType,
+        choose?: ImpulseMChoosePeerType,
         appname?: string,
         startapp?: string,
         compact?: string,
@@ -431,7 +431,7 @@ export class InternalLinkProcessor {
           link = this.makeLink(INTERNAL_LINK_TYPE.STORY, uriParams as Required<typeof uriParams>);
         } else if(uriParams.phone) {
           link = this.makeLink(INTERNAL_LINK_TYPE.USER_PHONE_NUMBER, uriParams as Required<typeof uriParams>);
-        } else if(uriParams.domain === 'telegrampassport') {
+        } else if(uriParams.domain === 'impulsempassport') {
 
         } else if((uriParams.appname || uriParams.startapp) !== undefined) {
           link = this.makeLink(INTERNAL_LINK_TYPE.WEB_APP, {

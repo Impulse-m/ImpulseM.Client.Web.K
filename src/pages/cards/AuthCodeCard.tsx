@@ -3,6 +3,7 @@ import {JSX, Show, createSignal, onCleanup, onMount} from 'solid-js';
 import CodeInputFieldCompat from '@components/codeInputField';
 import Icon from '@components/icon';
 import TrackingMonkey from '@components/monkeys/tracking';
+import {getMiddleware} from '@helpers/middleware';
 import {wrapEmailPattern} from '@components/popups/emailSetup';
 import {SimpleConfirmationPopup} from '@components/popups/simpleConfirmation';
 import MediaHeader from '@components/mediaHeader';
@@ -61,6 +62,10 @@ export default function AuthCodeCard(props: {spec: Spec}) {
 
   let monkey: TrackingMonkey | undefined;
   let player: LottiePlayer | undefined;
+  // Owns the lifetime of whatever animation the sticker slot currently holds.
+  // Without it animationIntersector destroys the players the moment their
+  // element is not in the DOM, and rebuildAnimation only ever runs once.
+  const animationMiddleware = getMiddleware();
   let resetEmailTimer: number | undefined;
 
   const codeInputErrorLabel = document.createElement('div');
@@ -155,6 +160,7 @@ export default function AuthCodeCard(props: {spec: Spec}) {
   function rebuildAnimation() {
     monkey?.remove(); monkey = undefined;
     player?.remove(); player = undefined;
+    animationMiddleware.clean();
     stickerHost.replaceChildren();
 
     if(sentCode.type._ === 'auth.sentCodeTypeFragmentSms') {
@@ -166,14 +172,15 @@ export default function AuthCodeCard(props: {spec: Spec}) {
         loop: true,
         autoplay: true,
         width: stickerSize,
-        height: stickerSize
+        height: stickerSize,
+        middleware: animationMiddleware.get()
       }, 'jolly_roger').then((animation) => {
         player = animation;
         return lottieLoader.waitForFirstFrame(animation);
       }).then(() => {});
     }
 
-    monkey = new TrackingMonkey(codeInputField, stickerSize);
+    monkey = new TrackingMonkey(codeInputField, stickerSize, animationMiddleware.get());
     stickerHost.append(monkey.container);
     return monkey.load();
   }
@@ -313,6 +320,7 @@ export default function AuthCodeCard(props: {spec: Spec}) {
     if(resetEmailTimer) clearTimeout(resetEmailTimer);
     monkey?.remove();
     player?.remove();
+    animationMiddleware.destroy();
     codeInputField.cleanup();
   });
 

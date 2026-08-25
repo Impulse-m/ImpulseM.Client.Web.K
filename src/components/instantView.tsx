@@ -2,7 +2,7 @@ import {For, createEffect, createContext, useContext, Show, createSignal, Setter
 import type {JSX} from 'solid-js';
 import {Dynamic} from 'solid-js/web';
 import {Document, MessageEntity, Page, PageBlock, PageCaption, PageListOrderedItem, Photo, RichText} from '@layer';
-import wrapTelegramRichText from '@lib/richTextProcessor/wrapTelegramRichText';
+import wrapImpulseMRichText from '@lib/richTextProcessor/wrapImpulseMRichText';
 import styles from '@components/instantView.module.scss';
 import wrapRichText from '@lib/richTextProcessor/wrapRichText';
 import classNames from '@helpers/string/classNames';
@@ -21,7 +21,7 @@ import documentFragmentToNodes from '@helpers/dom/documentFragmentToNodes';
 import {CustomEmojiRendererElement} from '@lib/customEmoji/renderer';
 import createMiddleware from '@helpers/solid/createMiddleware';
 import MySuspense from '@helpers/solid/mySuspense';
-import TelegramWebView from '@components/telegramWebView';
+import ImpulseMWebView from '@components/impulsemWebView';
 import getWebFileLocation from '@helpers/getWebFileLocation';
 import makeGoogleMapsUrl from '@helpers/makeGoogleMapsUrl';
 import {GeoPoint} from '@layer';
@@ -63,7 +63,7 @@ const FRAGMENT_HREF_RE = /^(?:[a-z]+:\/\/)?(#[^#?]+)$/i;
 // An embed block carries third-party provider markup (GitHub Gist, Twitter, YouTube, ...).
 // Without a sandbox the frame keeps every capability it is given by default, and an
 // `html` embed additionally inherits this origin, so its scripts would run as
-// web.telegram.org with access to the parent document and its storage.
+// web.impulsem.net with access to the parent document and its storage.
 const EMBED_SANDBOX_ATTRIBUTES = [
   'allow-scripts',
   'allow-popups',
@@ -76,9 +76,9 @@ const EMBED_SANDBOX_ATTRIBUTES = [
 // costs nothing here and preserves the provider's cookies and storage.
 const EMBED_URL_SANDBOX_ATTRIBUTES = EMBED_SANDBOX_ATTRIBUTES + ' allow-same-origin';
 
-// An `html` embed is a wrapper document whose canonical link points at Telegram's own embed host
+// An `html` embed is a wrapper document whose canonical link points at ImpulseM's own embed host
 // (embed.telegra.ph), which serves the very same markup. Pointing the frame at that URL is what
-// isolates it: the frame lands on a real, non-Telegram origin instead of inheriting this one.
+// isolates it: the frame lands on a real, non-ImpulseM origin instead of inheriting this one.
 // Rendering the markup inline would work too, but only in an opaque origin, and provider widgets
 // need storage there — Twitter's createTweet() resolves to null and draws nothing.
 function extractEmbedUrl(html: string) {
@@ -465,7 +465,7 @@ async function onMediaClick({
     message.fromId = NULL_PEER_ID;
 
     if(!isRichTextEmpty(caption.text)) {
-      const textWithEntities = wrapTelegramRichText(caption.text);
+      const textWithEntities = wrapImpulseMRichText(caption.text);
       message.totalEntities = textWithEntities.entities;
       message.message = textWithEntities.text;
     }
@@ -922,7 +922,7 @@ function Block(props: {
       const embedUrl = block.url || (block.html ? extractEmbedUrl(block.html) : undefined);
       const embedHtml = embedUrl ? undefined : block.html;
       const webView = embedHtml || embedUrl ?
-        new TelegramWebView({
+        new ImpulseMWebView({
           html: embedHtml,
           url: embedUrl,
           sandbox: getEmbedSandbox(embedHtml, embedUrl)
@@ -1234,7 +1234,7 @@ function richTextToString(text: RichText): string {
 
 function RichTextRenderer(props: {text: RichText}) {
   const {webPageId, page, randomId, customEmojiRenderer} = useContext(InstantViewContext);
-  const {text, entities} = wrapTelegramRichText(
+  const {text, entities} = wrapImpulseMRichText(
     props.text,
     {webPageId, url: page.url, randomId}
   );
@@ -1257,7 +1257,7 @@ function RichTextRenderer(props: {text: RichText}) {
   hydrateInlineMath(fragment);
   return documentFragmentToNodes(fragment);
   // return (<span dir="auto">{fragment}</span>);
-  // const textWithEntities = createMemo(() => wrapTelegramRichText(props.text));
+  // const textWithEntities = createMemo(() => wrapImpulseMRichText(props.text));
 
   // let ref: HTMLSpanElement;
   // const ret = (<span ref={ref} />);

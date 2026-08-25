@@ -15,7 +15,7 @@ import EMOJI_VERSIONS_SUPPORTED from '@environment/emojiVersionsSupport';
 import {CLICK_EVENT_NAME} from '@helpers/dom/clickEvent';
 import IS_CUSTOM_EMOJI_SUPPORTED from '@environment/customEmojiSupport';
 import BOM from '@helpers/string/bom';
-import wrapTelegramUrlToAnchor from '@lib/richTextProcessor/wrapTelegramUrlToAnchor';
+import wrapImpulseMUrlToAnchor from '@lib/richTextProcessor/wrapImpulseMUrlToAnchor';
 import {IS_FIREFOX} from '@environment/userAgent';
 import CustomEmojiElement, {CustomEmojiElements} from '@lib/customEmoji/element';
 import {CustomEmojiRendererElementOptions, CustomEmojiRendererElement} from '@lib/customEmoji/renderer';
@@ -163,8 +163,8 @@ export default function wrapRichText(text: string, options: WrapRichTextOptions 
   const entities = options.entities ??= parseEntities(nasty.text);
 
   const passEntities = options.passEntities ??= {};
-  const contextSite = options.contextSite ??= 'Telegram';
-  const contextExternal = contextSite !== 'Telegram';
+  const contextSite = options.contextSite ??= 'ImpulseM';
+  const contextExternal = contextSite !== 'ImpulseM';
 
   const textLength = nasty.text.length;
   const length = entities.length;
@@ -654,7 +654,7 @@ export default function wrapRichText(text: string, options: WrapRichTextOptions 
         if(!options.noLinks) {
           const username = fullEntityText.slice(1);
 
-          element = wrapTelegramUrlToAnchor('t.me/' + username);
+          element = wrapImpulseMUrlToAnchor('t.me/' + username);
           element.className = 'mention';
 
           // insertPart(entity, `<a class="mention" href="${contextUrl.replace('{1}', encodeURIComponent(username))}"${contextExternal ? ' target="_blank" rel="noopener noreferrer"' : ''}>`, '</a>');

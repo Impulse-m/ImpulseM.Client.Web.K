@@ -7,11 +7,11 @@ import type {AppChatBackground} from '@components/chat/bubbles/chatBackground';
 import IS_TOUCH_SUPPORTED from '@environment/touchSupport';
 import {IS_APPLE_MOBILE} from '@environment/userAgent';
 import rootScope from '@lib/rootScope';
-import {changeColorAccent, ColorRgb, getAccentColor, getAverageColor, getRgbColorFromTelegramColor, hexToRgb, hslaStringToHex, hslaStringToRgba, hslaToRgba, hsvToRgb, mixColors, rgbaToHexa, rgbaToHsla, rgbToHsv} from '@helpers/color';
+import {changeColorAccent, ColorRgb, getAccentColor, getAverageColor, getRgbColorFromImpulseMColor, hexToRgb, hslaStringToHex, hslaStringToRgba, hslaToRgba, hsvToRgb, mixColors, rgbaToHexa, rgbaToHsla, rgbToHsv} from '@helpers/color';
 import {SETTINGS_INIT} from '@config/state';
 import {MOUNT_CLASS_TO} from '@config/debug';
 import customProperties from '@helpers/dom/customProperties';
-import {TelegramWebViewTheme} from '@types';
+import {ImpulseMWebViewTheme} from '@types';
 import windowSize from '@helpers/windowSize';
 import liteMode from '@helpers/liteMode';
 import {useAppSettings} from '@stores/appSettings';
@@ -108,55 +108,53 @@ const colorMap: {
   }
 } = {
   day: {
-    'primary-color': '#3390ec',
+    'primary-color': '#2085DF',
     'message-out-primary-color': '#5CA853',
     'message-background-color': '#ffffff',
     'surface-color': '#ffffff',
     'danger-color': '#df3f40',
-    'primary-text-color': '#000000',
+    'primary-text-color': '#0D1117',
     'secondary-text-color': '#707579',
-    'saved-color': '#359AD4',
+    'saved-color': '#2085DF',
     'green-color': '#70b768',
     // SCSS-side defaults migrated from base.scss :root
     'background-color': '#f4f4f5',
     'body-background-color': '#ffffff',
     'border-color': '#dfe1e5',
     'secondary-color': '#c4c9cc',
-    'link-color': '#00488f',
+    'link-color': '#106ACC',
     'input-search-background-color': '#ffffff'
   },
   night: {
-    'primary-color': '#8774E1',
-    'message-out-primary-color': '#8774E1',
-    'message-background-color': '#212121',
-    'surface-color': '#212121',
+    'primary-color': '#58AEEE',
+    'message-out-primary-color': '#58AEEE',
+    'message-background-color': '#1D2128',
+    'surface-color': '#1D2128',
     'danger-color': '#ff595a',
     'primary-text-color': '#ffffff',
     'secondary-text-color': '#aaaaaa',
-    'saved-color': '#8774E1',
+    'saved-color': '#58AEEE',
     'green-color': '#5CC85E',
     // SCSS-side defaults migrated from base.scss .night
-    'background-color': '#181818',
-    'body-background-color': '#181818',
-    'border-color': '#0f0f0f',
+    'background-color': '#14181F',
+    'body-background-color': '#14181F',
+    'border-color': '#0B0F15',
     'secondary-color': '#707579',
-    'link-color': '#8774E1', // SCSS resolves to var(--primary-color)
-    'input-search-background-color': '#181818'
+    'link-color': '#58AEEE', // SCSS resolves to var(--primary-color)
+    'input-search-background-color': '#14181F'
   },
   tinted: {
-    // base colors ported from Telegram-Android darkblue.attheme (Dark Blue / Tinted)
-    // mapping: surface ← windowBackgroundWhite, message-bg ← chat_inBubble, primary-text ← windowBackgroundWhiteBlackText,
-    // secondary-text ← windowBackgroundWhiteGrayText, green ← windowBackgroundWhiteGreenText2.
-    // Accent #3685FA — Theme.java::loadDefaultThemes(): Dark Blue's "home" ThemeAccent ID 0
-    // (sortAccents puts isHome first, isHome for Dark Blue = id 0; that accent is at array index 8 of Dark Blue's accentColor[]).
-    'primary-color': '#3685FA',
-    'message-out-primary-color': '#3685FA',
+    // Blue-tinted dark theme. The surfaces keep their own cool cast, which is what
+    // distinguishes this theme from `night`; the accent is Impulse Blue Light,
+    // shared with `night` because #2085DF only reaches 4.6:1 on a dark ground.
+    'primary-color': '#58AEEE',
+    'message-out-primary-color': '#58AEEE',
     'message-background-color': '#232E3B',
     'surface-color': '#1D2733',
     'danger-color': '#FF595A',
     'primary-text-color': '#FFFFFF',
     'secondary-text-color': '#7D8B99',
-    'saved-color': '#3685FA',
+    'saved-color': '#58AEEE',
     'green-color': '#61D36B',
     // background / body-bg ← windowBackgroundGray, border ← divider (alpha-stripped),
     // input-search-bg ← chat_messagePanelBackground, link ← windowBackgroundWhiteLinkText
@@ -164,27 +162,26 @@ const colorMap: {
     'body-background-color': '#151E27',
     'border-color': '#0F151B',
     'secondary-color': '#7D8B99',
-    'link-color': '#5EABE1',
+    'link-color': '#58AEEE',
     'input-search-background-color': '#212D3B'
   },
   light: {
-    // base colors ported from Telegram-Android day.attheme (Android's "Day" / baseThemeDay)
-    // Distinct from tweb's existing `day` theme (which maps to baseThemeClassic with green outgoing bubbles)
-    // primary ← chat_outBubble (#2D7ED5 — signature Day blue, replaces day's green out-message).
-    'primary-color': '#2D7ED5',
-    'message-out-primary-color': '#2D7ED5',
+    // Light theme with a blue outgoing bubble, as opposed to `day`, which keeps
+    // the classic green one.
+    'primary-color': '#2085DF',
+    'message-out-primary-color': '#2085DF',
     'message-background-color': '#F0F0F0', // chat_inBubble — light gray (vs day's pure white)
     'surface-color': '#FFFFFF',
     'danger-color': '#DF3F40',
-    'primary-text-color': '#333333', // windowBackgroundWhiteBlackText
+    'primary-text-color': '#0D1117', // windowBackgroundWhiteBlackText
     'secondary-text-color': '#8C8E91', // windowBackgroundWhiteGrayText
-    'saved-color': '#2D7ED5',
+    'saved-color': '#2085DF',
     'green-color': '#04AC35', // windowBackgroundWhiteGreenText2
     'background-color': '#F4F4F5',
     'body-background-color': '#FFFFFF',
     'border-color': '#DFE1E5',
     'secondary-color': '#C4C9CC',
-    'link-color': '#238AE3', // windowBackgroundWhiteBlueText
+    'link-color': '#106ACC', // windowBackgroundWhiteBlueText
     'input-search-background-color': '#FFFFFF'
   }
 };
@@ -638,7 +635,7 @@ export class ThemeController {
     // - Any other source (cloud themes picked from the carousel, in particular) is blended with
     //   the default tinted gradient + accent hint so the chat reads as Dark Blue regardless of the
     //   cloud theme's wallpaper colors. Even cloud themes that ship a baseThemeTinted entry get
-    //   blended — Telegram's official tinted entries are still designed for native pattern
+    //   blended — ImpulseM's official tinted entries are still designed for native pattern
     //   rendering, which tweb's overlay-render branch doesn't dim aggressively enough.
     //   Strictly not iOS data behavior (iOS uses `forcedWallpaper` verbatim and relies on
     //   MotionBackgroundDrawable to darken), but matches the perceived iOS visual on tweb.
@@ -651,7 +648,7 @@ export class ThemeController {
       effectiveWallpaper = blendWallpaperForTinted(effectiveWallpaper, themeSettings.accent_color);
     }
 
-    // Preserve every base entry from the cloud theme (mirrors iOS' `[TelegramThemeSettings]`).
+    // Preserve every base entry from the cloud theme (mirrors iOS' `[ImpulseMThemeSettings]`).
     // Only the entry matching the current base gets the (optionally tinted-blended) wallpaper.
     // The matching entry is the same object that setBackgroundDocument will mutate to fill in
     // `highlightingColor` once the wallpaper's average color is computed.
@@ -744,11 +741,11 @@ export class ThemeController {
     const baseColors = colorMap[themeName] || colorMap[isNight ? 'night' : 'day'];
 
     let hsvTemp1 = rgbToHsv(...hexToRgb(baseColors['primary-color'])); // primary base
-    let hsvTemp2 = rgbToHsv(...getRgbColorFromTelegramColor(themeSettings.accent_color)); // new primary
+    let hsvTemp2 = rgbToHsv(...getRgbColorFromImpulseMColor(themeSettings.accent_color)); // new primary
 
     // For 'tinted' (Dark Blue / iOS nightAccent) the surface palette is *fully* derived from the
     // accent via iOS `UIColor.withMultiplied(hue:, saturation:, brightness:)` — see
-    // submodules/TelegramPresentationData/Sources/DefaultDarkTintedPresentationTheme.swift, lines
+    // submodules/ImpulseMPresentationData/Sources/DefaultDarkTintedPresentationTheme.swift, lines
     // 94–114 (customizeDefaultDarkTintedPresentationTheme). Each multiplier is reproduced verbatim.
     // Computed up front because the resulting surface is also used as the `defaultMixColor` for
     // every light-filled-* mix below (so e.g. --light-filled-secondary-text-color blends against
@@ -769,7 +766,7 @@ export class ThemeController {
       // accents don't collapse the whole palette to black. We don't pipe through tweb's
       // `changeColorAccent` here — that's a tweb-only adapter for the global --primary-color and
       // would leave surfaces drifting away from the iOS-derived values.
-      const rawAccentRgb = getRgbColorFromTelegramColor(themeSettings.accent_color);
+      const rawAccentRgb = getRgbColorFromImpulseMColor(themeSettings.accent_color);
       const accHsv = rgbToHsv(...rawAccentRgb);
       const clampedV = Math.max(accHsv[2], 0.18);
       tintedAccentRgb = hsvToRgb(accHsv[0], accHsv[1], clampedV);
@@ -843,14 +840,14 @@ export class ThemeController {
     const surfaceForMessage = tintedSurfaceRgb ?? hexToRgb(baseColors['surface-color']);
     const baseMessageOutBackgroundColor = mixColors(baseMessageColor, surfaceForMessage, messageLightenAlpha);
 
-    const firstColor = getRgbColorFromTelegramColor(themeSettings.message_colors[0]);
+    const firstColor = getRgbColorFromImpulseMColor(themeSettings.message_colors[0]);
 
     let myMessagesAccent = firstColor;
     if(themeSettings.message_colors.length > 1) {
       // const w = getAccentColor(hsvTemp1, baseMessageOutBackgroundColor, myMessagesAccent);
 
       themeSettings.message_colors.slice(1).forEach((nextColor) => {
-        myMessagesAccent = getAverageColor(myMessagesAccent, getRgbColorFromTelegramColor(nextColor));
+        myMessagesAccent = getAverageColor(myMessagesAccent, getRgbColorFromImpulseMColor(nextColor));
       });
 
       myMessagesAccent = getAccentColor(hsvTemp1, baseMessageOutBackgroundColor, myMessagesAccent);
@@ -869,7 +866,7 @@ export class ThemeController {
 
     // console.log(o, c, rgbaToHexa(o), rgbaToHexa(c));
 
-    const accentColor2 = themeSettings.outbox_accent_color !== undefined && rgbToHsv(...getRgbColorFromTelegramColor(themeSettings.outbox_accent_color));
+    const accentColor2 = themeSettings.outbox_accent_color !== undefined && rgbToHsv(...getRgbColorFromImpulseMColor(themeSettings.outbox_accent_color));
 
     let newMessageOutBackgroundColor = mixColors(myMessagesAccent, surfaceForMessage, messageLightenAlpha);
 
@@ -899,7 +896,7 @@ export class ThemeController {
   }
 
   public getThemeParamsForWebView() {
-    const themePropertiesMap: {[key in keyof TelegramWebViewTheme]: string} = {
+    const themePropertiesMap: {[key in keyof ImpulseMWebViewTheme]: string} = {
       bg_color: 'surface-color',
       button_color: 'primary-color',
       button_text_color: '#ffffff',
@@ -915,10 +912,10 @@ export class ThemeController {
       destructive_text_color: 'danger-color'
     };
 
-    const themeParams: TelegramWebViewTheme = {} as any;
+    const themeParams: ImpulseMWebViewTheme = {} as any;
     for(const key in themePropertiesMap) {
-      const value = themePropertiesMap[key as keyof TelegramWebViewTheme];
-      themeParams[key as keyof TelegramWebViewTheme] = value[0] === '#' ? value : customProperties.getProperty(value as AppColorName);
+      const value = themePropertiesMap[key as keyof ImpulseMWebViewTheme];
+      themeParams[key as keyof ImpulseMWebViewTheme] = value[0] === '#' ? value : customProperties.getProperty(value as AppColorName);
     }
 
     return themeParams;

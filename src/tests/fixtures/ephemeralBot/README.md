@@ -1,10 +1,10 @@
 # Ephemeral, Business and Guard Bot API fixture
 
 This long-polling bot exercises the Bot API side of Ephemeral Messages in a
-real group chat. It can also be connected to a Telegram Business account for
+real group chat. It can also be connected to an ImpulseM Business account for
 end-to-end Chat Automation testing, and act as the guard bot of a chat so that
 guard-bot joins can be tested end to end. It is intentionally separate from
-Vitest: the fixture talks to Telegram over the network and needs a dedicated
+Vitest: the fixture talks to ImpulseM over the network and needs a dedicated
 bot token.
 
 ## Prerequisites

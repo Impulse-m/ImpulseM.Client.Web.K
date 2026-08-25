@@ -173,7 +173,7 @@ export type SendMessageEmojiInteractionData = {
   v: 1
 };
 
-export type TelegramWebViewTheme = {
+export type ImpulseMWebViewTheme = {
   bg_color: string,
   secondary_bg_color: string,         // 143
   text_color: string,
@@ -190,9 +190,9 @@ export type TelegramWebViewTheme = {
 };
 
 /**
- * @link https://core.telegram.org/api/web-events#postmessage-api
+ * @link https://core.impulsem.net/api/web-events#postmessage-api
  */
-export type TelegramWebViewEventMap = {
+export type ImpulseMWebViewEventMap = {
   iframe_ready: {
     reload_supported?: boolean
   },
@@ -234,7 +234,7 @@ export type TelegramWebViewEventMap = {
     data: string
   },
   web_app_switch_inline_query: {
-    chat_types?: TelegramChoosePeerType[],
+    chat_types?: ImpulseMChoosePeerType[],
     query: string
   },
   web_app_trigger_haptic_feedback: {
@@ -367,20 +367,20 @@ export type TelegramWebViewEventMap = {
   }
 };
 
-export type TelegramWebViewSerializedEvent<T extends keyof TelegramWebViewEventMap> = {
+export type ImpulseMWebViewSerializedEvent<T extends keyof ImpulseMWebViewEventMap> = {
   eventType: T,
-  eventData: TelegramWebViewEventMap[T]
+  eventData: ImpulseMWebViewEventMap[T]
 };
 
-export type TelegramWebViewSerializedEvents = {
-  [type in keyof TelegramWebViewEventMap]: TelegramWebViewSerializedEvent<type>
+export type ImpulseMWebViewSerializedEvents = {
+  [type in keyof ImpulseMWebViewEventMap]: ImpulseMWebViewSerializedEvent<type>
 };
 
-export type TelegramWebViewEvent = TelegramWebViewSerializedEvents[keyof TelegramWebViewEventMap];
-export type TelegramWebViewEventCallback = (event: TelegramWebViewEvent) => void;
+export type ImpulseMWebViewEvent = ImpulseMWebViewSerializedEvents[keyof ImpulseMWebViewEventMap];
+export type ImpulseMWebViewEventCallback = (event: ImpulseMWebViewEvent) => void;
 
-export type TelegramWebViewSendEventMap = {
-  // https://core.telegram.org/api/bots/webapps
+export type ImpulseMWebViewSendEventMap = {
+  // https://core.impulsem.net/api/bots/webapps
   main_button_pressed: void,
   secondary_button_pressed: void,
   settings_button_pressed: void,
@@ -395,7 +395,7 @@ export type TelegramWebViewSendEventMap = {
     is_expanded: boolean
   },
   theme_changed: {
-    theme_params: TelegramWebViewTheme
+    theme_params: ImpulseMWebViewTheme
   },
   popup_closed: {
     button_id?: string
@@ -507,14 +507,14 @@ export type TelegramWebViewSendEventMap = {
 export type LocalTextWithEntities = Pick<TextWithEntities, 'text' | 'entities'>;
 export type LocalTextWithOptionalEntities = Pick<TextWithEntities, 'text'> & Partial<Pick<TextWithEntities, 'entities'>>;
 
-// export type TelegramWebViewSendSerializedEvent<T extends keyof TelegramWebViewSendEventMap> = {
+// export type ImpulseMWebViewSendSerializedEvent<T extends keyof ImpulseMWebViewSendEventMap> = {
 //   eventType: T,
-//   eventData: TelegramWebViewSendEventMap[T]
+//   eventData: ImpulseMWebViewSendEventMap[T]
 // };
 
-// export type TelegramWebViewSendSerializedEvents = {
-//   [type in keyof TelegramWebViewSendEventMap]: TelegramWebViewSendSerializedEvent<type>
+// export type ImpulseMWebViewSendSerializedEvents = {
+//   [type in keyof ImpulseMWebViewSendEventMap]: ImpulseMWebViewSendSerializedEvent<type>
 // };
 
-// export type TelegramWebViewSendEvent = TelegramWebViewSerializedEvents[keyof TelegramWebViewSendEventMap];
-// export type TelegramWebViewSendEventCallback = (event: TelegramWebViewSendEvent) => void;
+// export type ImpulseMWebViewSendEvent = ImpulseMWebViewSerializedEvents[keyof ImpulseMWebViewSendEventMap];
+// export type ImpulseMWebViewSendEventCallback = (event: ImpulseMWebViewSendEvent) => void;

@@ -21,7 +21,7 @@ import PopupStars, {getExamplesAnchor, getStarsTransactionTitleAndMedia, StarsAm
 import {JSX} from 'solid-js';
 import partition from '@helpers/array/partition';
 import getServerMessageId from '@appManagers/utils/messageId/getServerMessageId';
-import wrapTelegramUrlToAnchor from '@lib/richTextProcessor/wrapTelegramUrlToAnchor';
+import wrapImpulseMUrlToAnchor from '@lib/richTextProcessor/wrapImpulseMUrlToAnchor';
 import cancelEvent from '@helpers/dom/cancelEvent';
 import AppMediaViewer from '@components/mediaViewer';
 import {NULL_PEER_ID, TON_CURRENCY} from '@appManagers/constants';
@@ -346,7 +346,7 @@ export default class PopupStarsPay extends PopupElement<{
       toastNew({langPackKey: 'StarsTransactionIDCopied'});
     };
 
-    const messageAnchor = link && wrapTelegramUrlToAnchor(link);
+    const messageAnchor = link && wrapImpulseMUrlToAnchor(link);
     if(messageAnchor) {
       messageAnchor.textContent = link.replace('https://', '');
       messageAnchor.onclick = (e) => hidePopupsWithCallback(() => appImManager.openUrl(link), e);

@@ -3,7 +3,6 @@ import {i18n, LangPackKey} from '@lib/langPack';
 import CheckboxField, {CheckboxFieldOptions} from '@components/checkboxField';
 import setInnerHTML from '@helpers/dom/setInnerHTML';
 import wrapEmojiText from '@lib/richTextProcessor/wrapEmojiText';
-import {avatarNew} from '@components/avatarNew';
 import toggleDisability from '@helpers/dom/toggleDisability';
 import rootScope from '@lib/rootScope';
 import InputField from '@components/inputField';
@@ -47,16 +46,33 @@ export default class PopupPeer extends PopupElement {
     if(options.avatar) {
       this.header.prepend(options.avatar);
     } else if(options.peerId) {
+      // `avatarNew` was this module's only edge into the component graph, and it
+      // closed a cycle straight back onto PopupPeer: peer -> avatarNew -> ... ->
+      // confirmationPopup/starGiftInfo -> peer. Whichever subclass happened to be
+      // evaluated while this module was still importing (mute, limit, boost,
+      // sendNow, ...) then read its base class from the temporal dead zone and
+      // threw "can't access lexical declaration 'PopupPeer' before initialization".
+      //
+      // Loading it on demand keeps the base class outside that cycle. The header
+      // is already built, so the avatar just arrives on a later tick; the
+      // middleware guard drops it if the popup closed first.
       const isSavedDialog = !!(options.peerId === rootScope.myId && options.threadId);
-      const {node} = avatarNew({
-        middleware: this.middlewareHelper.get(),
-        size: 32,
-        isDialog: true,
-        peerId: isSavedDialog ? options.threadId : options.peerId,
-        threadId: isSavedDialog ? undefined : options.threadId,
-        meAsNotes: isSavedDialog
+      const middleware = this.middlewareHelper.get();
+      import('@components/avatarNew').then(({avatarNew}) => {
+        if(!middleware()) {
+          return;
+        }
+
+        const {node} = avatarNew({
+          middleware,
+          size: 32,
+          isDialog: true,
+          peerId: isSavedDialog ? options.threadId : options.peerId,
+          threadId: isSavedDialog ? undefined : options.threadId,
+          meAsNotes: isSavedDialog
+        });
+        this.header.prepend(node);
       });
-      this.header.prepend(node);
     }
 
     if(!options.noTitle) {

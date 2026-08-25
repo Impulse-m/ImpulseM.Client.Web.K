@@ -1,7 +1,7 @@
 import {isUsernameValid, isWebAppNameValid} from '../lib/richTextProcessor/validators';
 
 // Mirrors TDLib's is_valid_username (with tweb's 3-char minimum):
-// https://github.com/tdlib/td/blob/master/td/telegram/misc.cpp is_valid_username
+// https://github.com/tdlib/td/blob/master/td/impulsem/misc.cpp is_valid_username
 describe('isUsernameValid', () => {
   test('accepts a plain valid username', () => {
     expect(isUsernameValid('durov')).toBe(true);

@@ -36,7 +36,7 @@ import {SimilarPeer} from '@components/chat/similarChannels';
 import SearchIndex from '@lib/searchIndex';
 import {useUser} from '@stores/peers';
 import {Game, Message, Page, User} from '@layer';
-import TelegramWebView from '@components/telegramWebView';
+import ImpulseMWebView from '@components/impulsemWebView';
 import showForwardPopup from '@components/popups/forward';
 import {getOverlayRoot} from '@helpers/appWindow';
 import getPeerActiveUsernames from '@appManagers/utils/peers/getPeerActiveUsernames';
@@ -47,7 +47,7 @@ import {WebPage} from '@layer';
 import SolidJSHotReloadGuardProvider from '@lib/solidjs/hotReloadGuardProvider';
 import {copyTextToClipboard} from '@helpers/clipboard';
 import safeWindowOpen from '@helpers/dom/safeWindowOpen';
-import wrapTelegramRichText from '@lib/richTextProcessor/wrapTelegramRichText';
+import wrapImpulseMRichText from '@lib/richTextProcessor/wrapImpulseMRichText';
 import limitSymbols from '@helpers/string/limitSymbols';
 import {toastNew} from '@components/toast';
 import pause from '@helpers/schedulers/pause';
@@ -764,22 +764,22 @@ export async function openGameInAppBrowser(options: {
   const body = document.createElement('div');
   body.classList.add(styles.BrowserGameBody);
 
-  const telegramWebView = new TelegramWebView({
+  const impulsemWebView = new ImpulseMWebView({
     url,
     sandbox: GAME_SANDBOX_ATTRIBUTES,
     allow: GAME_ALLOW_ATTRIBUTES,
     onLoad: () => {
-      telegramWebView.iframe.style.opacity = '1';
+      impulsemWebView.iframe.style.opacity = '1';
     }
   });
 
-  const iframe = telegramWebView.iframe;
+  const iframe = impulsemWebView.iframe;
   iframe.classList.add(styles.BrowserGameIframe);
   iframe.style.opacity = '0';
   body.append(iframe);
 
-  telegramWebView.addEventListener('share_game', shareMessage);
-  telegramWebView.addEventListener('share_score', shareMessage);
+  impulsemWebView.addEventListener('share_game', shareMessage);
+  impulsemWebView.addEventListener('share_score', shareMessage);
 
   const botId = message.viaBotId || message.fromId;
   const middlewareHelper = getMiddleware();
@@ -806,11 +806,11 @@ export async function openGameInAppBrowser(options: {
     };
 
     onCleanup(() => {
-      telegramWebView.destroy();
+      impulsemWebView.destroy();
       middlewareHelper.destroy();
     });
 
-    queueMicrotask(() => telegramWebView.onMount());
+    queueMicrotask(() => impulsemWebView.onMount());
 
     const lastState = lastContext?.[0];
     if(lastState && lastState?.page.isCatalogue) {
@@ -1157,7 +1157,7 @@ export function openInstantViewInAppBrowser({
           return /* webPage().site_name ||  */'Instant View';
         }
 
-        const textWithEntities = wrapTelegramRichText(block.text);
+        const textWithEntities = wrapImpulseMRichText(block.text);
         return limitSymbols(textWithEntities.text, 20);
       },
       menuButtons: [{

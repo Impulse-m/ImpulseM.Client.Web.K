@@ -1,6 +1,6 @@
 /**
  * Fetching file parts are implemented based on these restrictions:
- * https://core.telegram.org/cdn#restrictions-on-uploadgetfile-and-uploadgetcdnfile-parameters
+ * https://core.impulsem.net/cdn#restrictions-on-uploadgetfile-and-uploadgetcdnfile-parameters
  */
 
 const STREAM_CHUNK_MULTIPLIER = 4096;

@@ -1,5 +1,5 @@
 import {MessageEntity, Page, PageBlock, PageCaption, RichMessage, RichText, TextWithEntities} from '@layer';
-import wrapTelegramRichText from '@lib/richTextProcessor/wrapTelegramRichText';
+import wrapImpulseMRichText from '@lib/richTextProcessor/wrapImpulseMRichText';
 import {MATH_MARKER_RE, decodeInlineMath} from '@helpers/math/mathMarker';
 
 const emptyRichText: RichText = {_: 'textEmpty'};
@@ -188,11 +188,11 @@ function appendRichTextLine(summary: Summary, richText: RichText, prefix = '') {
   appendTextWithEntitiesLine(summary, wrapSummaryRichText(richText), prefix);
 }
 
-// wrapTelegramRichText carries inline math (`textMath`) as an opaque `\x02<base64>\x02` marker for the
+// wrapImpulseMRichText carries inline math (`textMath`) as an opaque `\x02<base64>\x02` marker for the
 // IV's Temml renderer. Summaries are plain text, so decode markers back to the raw LaTeX source and
 // shift any following entities by the length delta so their offsets stay aligned.
 function wrapSummaryRichText(richText: RichText): TextWithEntities {
-  const textWithEntities = wrapTelegramRichText(richText);
+  const textWithEntities = wrapImpulseMRichText(richText);
   const {text} = textWithEntities;
   if(!text.includes('\x02')) {
     return textWithEntities;

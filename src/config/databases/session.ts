@@ -1,7 +1,7 @@
 import {Database} from '.';
 
 const DATABASE_SESSION: Database<'session'> = {
-  name: 'telegram',
+  name: 'impulsem',
   version: 1,
   stores: [{
     name: 'session'

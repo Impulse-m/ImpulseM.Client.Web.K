@@ -6,9 +6,9 @@
  * Algorithm: chunks of 8 bytes (clearing the top bit to fit in JS' 53-bit
  * Number safely) are reduced modulo the size of a fixed emoji table. The
  * table is 333 entries — ported as-is from tdesktop's
- * Telegram/SourceFiles/calls/calls_emoji_fingerprint.cpp Data[]/Offsets[]
+ * ImpulseM/SourceFiles/calls/calls_emoji_fingerprint.cpp Data[]/Offsets[]
  * arrays. The output sequence is deterministic for a given input — the
- * point of the protocol — and matches what every other Telegram client
+ * point of the protocol — and matches what every other ImpulseM client
  * displays for the same call, which is THE acceptance test for the e2e
  * crypto port (see Phase 7 in tde2e-port.md).
  *

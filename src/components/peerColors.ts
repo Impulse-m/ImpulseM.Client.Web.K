@@ -1,4 +1,4 @@
-import {getRgbColorFromTelegramColor, rgbIntToHex} from '@helpers/color';
+import {getRgbColorFromImpulseMColor, rgbIntToHex} from '@helpers/color';
 import themeController from '@helpers/themeController';
 import {PeerColor} from '@layer';
 import {getPeerColorsByPeer, makeColorsGradient, getPeerColorIndexByPeer} from '@appManagers/utils/peers/getPeerColorById';
@@ -43,7 +43,7 @@ export function setPeerColorToElement({
       if(color.dark_colors) colors = color.dark_colors
     }
 
-    peerColorRgbValue = getRgbColorFromTelegramColor(accentColor).join(', ')
+    peerColorRgbValue = getRgbColorFromImpulseMColor(accentColor).join(', ')
     peerBorderBackgroundValue = makeColorsGradient(colors.map(it => rgbIntToHex(it)))
   } else {
     const colorIndex = (color as PeerColor.peerColor)?.color ?? getPeerColorIndexByPeer(peer);

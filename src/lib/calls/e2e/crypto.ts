@@ -89,7 +89,7 @@ export function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
 // ===== Ed25519 (libsodium) =====
 
 // Ed25519 secret-key per libsodium = seed(32) || public(32) — 64 bytes.
-// Telegram's wire format passes only the 32-byte seed; expand on import.
+// ImpulseM's wire format passes only the 32-byte seed; expand on import.
 export function ed25519KeyPairFromSeed(seed: Uint8Array): {
   publicKey: Uint8Array;
   secretKey: Uint8Array;

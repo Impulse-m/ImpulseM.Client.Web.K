@@ -253,16 +253,16 @@ export function changeBrightness(color: ColorRgb, amount: number) {
   return color.map((v) => clamp(Math.round(v * amount), 0, 255)) as ColorRgb;
 }
 
-export function getHexColorFromTelegramColor(color: number) {
+export function getHexColorFromImpulseMColor(color: number) {
   const hex = (color < 0 ? 0xFFFFFF + color : color).toString(16);
   return '#' + (hex.length >= 6 ? hex : '0'.repeat(6 - hex.length) + hex);
 }
 
-export function getRgbColorFromTelegramColor(color: number) {
-  return hexToRgb(getHexColorFromTelegramColor(color));
+export function getRgbColorFromImpulseMColor(color: number) {
+  return hexToRgb(getHexColorFromImpulseMColor(color));
 }
 
-// Telegram sends 1–4 gradient stops as flagged optional ints (absent ⇒ the field
+// ImpulseM sends 1–4 gradient stops as flagged optional ints (absent ⇒ the field
 // is omitted ⇒ undefined; present ⇒ the value, which may be 0). The first stop,
 // background_color, is the base fill and is kept whenever present — even a pure
 // black 0 (so a solid-black wallpaper survives). A 0 in any LATER slot is a "no
@@ -281,7 +281,7 @@ export function getWallPaperColors(wallPaper: WallPaper): string[] {
     settings.fourth_background_color
   ]
   .filter((color, index): color is number => color != null && (index === 0 || color !== 0))
-  .map(getHexColorFromTelegramColor);
+  .map(getHexColorFromImpulseMColor);
 }
 
 export function getColorsFromWallPaper(wallPaper: WallPaper) {

@@ -101,9 +101,9 @@ export function getKeyboardButtonHandler({
             return peerId;
           }
 
-          let types: TelegramChoosePeerType[];
+          let types: ImpulseMChoosePeerType[];
           if(button.peer_types) {
-            const map: {[type in InlineQueryPeerType['_']]?: TelegramChoosePeerType} = {
+            const map: {[type in InlineQueryPeerType['_']]?: ImpulseMChoosePeerType} = {
               inlineQueryPeerTypePM: 'users',
               inlineQueryPeerTypeBotPM: 'bots',
               inlineQueryPeerTypeBroadcast: 'channels',

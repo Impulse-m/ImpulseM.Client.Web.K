@@ -1,5 +1,5 @@
-## Telegram Web K
-Based on Webogram, patched and improved. Available for everyone here: https://web.telegram.org/k/
+## ImpulseM Web K
+Based on Webogram, patched and improved. Available for everyone here: https://web.impulsem.net/k/
 
 
 ### Developing
@@ -57,7 +57,7 @@ Source maps are included in production build for your convenience.
 * **test=1**: to use test DCs
 * **debug=1**: to enable additional logging
 * **noSharedWorker=1**: to disable Shared Worker, can be useful for debugging
-* **http=1**: to force the use of HTTPS transport when connecting to Telegram servers
+* **http=1**: to force the use of HTTPS transport when connecting to ImpulseM servers
 
 Should be applied like that: http://localhost:8080/?test=1
 
@@ -69,7 +69,7 @@ You can see all the available svg icons by calling the `showIconLibrary()` globa
 
 ### Troubleshooting & Suggesting
 
-If you find an issue with this app or wish something to be added, let Telegram know using the [Suggestions Platform](https://bugs.telegram.org/c/4002).
+If you find an issue with this app or wish something to be added, let ImpulseM know using the [Suggestions Platform](https://bugs.impulsem.net/c/4002).
 
 ### Licensing
 

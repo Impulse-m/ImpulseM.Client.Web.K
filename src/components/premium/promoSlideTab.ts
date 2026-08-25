@@ -187,8 +187,8 @@ export default class PromoSlideTab {
       } else {
         title = i18n(
           fromPeerId ?
-            'TelegramPremiumUserGiftedPremiumDialogTitleWithPlural' :
-            'TelegramPremiumUserGiftedPremiumDialogTitleWithPluralSomeone',
+            'ImpulseMPremiumUserGiftedPremiumDialogTitleWithPlural' :
+            'ImpulseMPremiumUserGiftedPremiumDialogTitleWithPluralSomeone',
           [
             fromPeerId && await wrapPeerTitle({...wrapTitleOptions, peerId: fromPeerId}),
             giftText
@@ -198,12 +198,12 @@ export default class PromoSlideTab {
 
       if(isOutbound) {
         description = i18n(
-          'TelegramPremiumUserGiftedPremiumOutboundDialogSubtitle',
+          'ImpulseMPremiumUserGiftedPremiumOutboundDialogSubtitle',
           [await wrapPeerTitle({...wrapTitleOptions, peerId: toPeerId})]
         );
       } else {
         if(gift._ === 'messageActionGiftPremium') {
-          description = i18n('TelegramPremiumUserGiftedPremiumDialogSubtitle');
+          description = i18n('ImpulseMPremiumUserGiftedPremiumDialogSubtitle');
         } else {
           const url = 'https://t.me/giftcode/' + gift.slug;
 
@@ -240,7 +240,7 @@ export default class PromoSlideTab {
       ]);
       if(doc.stickerSetInput) {
         const stickerset = await rootScope.managers.appStickersManager.getStickerSet(doc.stickerSetInput);
-        title = i18n('TelegramPremiumPeerTitleEmojiStatus', [
+        title = i18n('ImpulseMPremiumPeerTitleEmojiStatus', [
           peerTitle,
           anchorCallback(() => {
             showStickersPopup(doc.stickerSetInput, true)
@@ -248,18 +248,18 @@ export default class PromoSlideTab {
           stickerset.set.title
         ])
       } else {
-        title = i18n('TelegramPremiumPeerTitleEmojiStatusNoPack', [peerTitle])
+        title = i18n('ImpulseMPremiumPeerTitleEmojiStatusNoPack', [peerTitle])
       }
-      description = i18n('TelegramPremiumPeerSubtitleEmojiStatus');
+      description = i18n('ImpulseMPremiumPeerSubtitleEmojiStatus');
     } else if(this.options.peerId) {
       headingTextTitle.classList.add('smaller-text');
-      title = i18n('TelegramPremiumPeerTitle', [
+      title = i18n('ImpulseMPremiumPeerTitle', [
         await wrapPeerTitle({peerId: this.options.peerId})
       ])
-      description = i18n('TelegramPremiumPeerSubtitle');
+      description = i18n('ImpulseMPremiumPeerSubtitle');
     } else {
-      title = this.options.isPremiumActive ? i18n('TelegramPremiumSubscribedTitle') : i18n('Premium.Boarding.Title');
-      description = this.options.isPremiumActive ? i18n('TelegramPremiumSubscribedSubtitle') : i18n('Premium.Boarding.Info');
+      title = this.options.isPremiumActive ? i18n('ImpulseMPremiumSubscribedTitle') : i18n('Premium.Boarding.Title');
+      description = this.options.isPremiumActive ? i18n('ImpulseMPremiumSubscribedSubtitle') : i18n('Premium.Boarding.Info');
     }
 
     headingTextTitle.append(title);

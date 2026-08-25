@@ -1,7 +1,7 @@
 /*
  * SDP helpers for the tgcalls v2 P2P signaling protocol.
  *
- * The tgcalls-v2 engine (p2pCall.ts) was ported from telegram-tt, which works
+ * The tgcalls-v2 engine (p2pCall.ts) was ported from impulsem-tt, which works
  * with flat helper functions. This module keeps that function API but is built
  * entirely on tweb's own SDP parser (@lib/calls/sdp) — section splitting and
  * `a=` attribute grouping are tweb's `parseSdp` / `SDPAttributes`; only the

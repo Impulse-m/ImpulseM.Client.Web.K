@@ -8,7 +8,7 @@ type Options = {
   randomId: string
 };
 
-export default function wrapTelegramRichText(
+export default function wrapImpulseMRichText(
   richText: RichText,
   options?: Options
 ): TextWithEntities {

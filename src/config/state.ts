@@ -284,7 +284,7 @@ export const DEFAULT_THEME: Theme = {
     _: 'themeSettings',
     pFlags: {},
     base_theme: {_: 'baseThemeClassic'},
-    accent_color: 0x3390ec,
+    accent_color: 0x2085DF,
     message_colors: [0x5CA853],
     wallpaper: {
       _: 'wallPaper',
@@ -300,18 +300,18 @@ export const DEFAULT_THEME: Theme = {
         _: 'wallPaperSettings',
         pFlags: {},
         intensity: 50,
-        background_color: 0xdbddbb,
-        second_background_color: 0x6ba587,
-        third_background_color: 0xd5d88d,
-        fourth_background_color: 0x88b884
+        background_color: 0x9edbdb,
+        second_background_color: 0x54adc1,
+        third_background_color: 0x91dcc7,
+        fourth_background_color: 0x97b1e8
       }
     }
   }, {
     _: 'themeSettings',
     pFlags: {},
     base_theme: {_: 'baseThemeNight'},
-    accent_color: 0x8774E1,
-    message_colors: [0x8774E1],
+    accent_color: 0x58AEEE,
+    message_colors: [0x58AEEE],
     wallpaper: {
       _: 'wallPaper',
       pFlags: {
@@ -327,24 +327,24 @@ export const DEFAULT_THEME: Theme = {
         _: 'wallPaperSettings',
         pFlags: {},
         intensity: -50,
-        background_color: 0xfec496,
-        second_background_color: 0xdd6cb9,
-        third_background_color: 0x962fbf,
-        fourth_background_color: 0x4f5bd5
+        background_color: 0xd9b47b,
+        second_background_color: 0x326ad9,
+        third_background_color: 0x3bcddc,
+        fourth_background_color: 0x796eda
       }
     }
   }, {
     _: 'themeSettings',
     pFlags: {},
     base_theme: {_: 'baseThemeTinted'},
-    // accent + wallpaper aligned with iOS Dark Blue ("nightAccent"). See submodules/Telegram-iOS/
-    // submodules/TelegramPresentationData/Sources/DefaultDarkTintedPresentationTheme.swift —
+    // accent + wallpaper aligned with iOS Dark Blue ("nightAccent"). See submodules/ImpulseM-iOS/
+    // submodules/ImpulseMPresentationData/Sources/DefaultDarkTintedPresentationTheme.swift —
     // the home wallpaper is the `.blue` baseColor variant from `colorWallpaper` (line 13-14):
     //   case .blue: return (.variant7, 40, [0x1e3557, 0x182036, 0x1c4352, 0x16263a])
     // accent + bubble gradient come from the blue base-color preset so factory state matches what
     // the accent picker offers as its first swatch (the "default" swatch is hidden on tinted).
-    accent_color: TINTED_DEFAULT_PRESET.accent_color,
-    message_colors: TINTED_DEFAULT_PRESET.message_colors,
+    accent_color: 0x58AEEE,
+    message_colors: [0x58AEEE],
     wallpaper: {
       _: 'wallPaper',
       pFlags: {
@@ -373,8 +373,8 @@ export const DEFAULT_THEME: Theme = {
     _: 'themeSettings',
     pFlags: {},
     base_theme: {_: 'baseThemeDay'},
-    accent_color: 0x2D7ED5,
-    message_colors: [0x2D7ED5],
+    accent_color: 0x2085DF,
+    message_colors: [0x2085DF],
     wallpaper: {
       _: 'wallPaper',
       pFlags: {
@@ -389,10 +389,10 @@ export const DEFAULT_THEME: Theme = {
         _: 'wallPaperSettings',
         pFlags: {},
         intensity: 50,
-        background_color: 0xb1e0fa,
-        second_background_color: 0x82b0d8,
-        third_background_color: 0xa0d8e8,
-        fourth_background_color: 0xe5f0f8
+        background_color: 0xefdcb5,
+        second_background_color: 0x89afd6,
+        third_background_color: 0xfac9a3,
+        fourth_background_color: 0xc7b8e5
       }
     }
   }],
@@ -404,7 +404,7 @@ export const DEFAULT_THEME: Theme = {
 
 // Per-base highlighting colors used when nothing has been computed from a wallpaper yet.
 // Stored on every settings entry so that switching the active base theme keeps highlights coherent
-// (mirrors how iOS persists a per-base TelegramThemeSettings array).
+// (mirrors how iOS persists a per-base ImpulseMThemeSettings array).
 const DEFAULT_HIGHLIGHTING_COLORS: {[base in BaseTheme['_']]?: string} = {
   baseThemeClassic: 'hsla(86.4, 43.846153%, 45.117647%, .4)',
   baseThemeNight: 'hsla(299.142857, 44.166666%, 37.470588%, .4)',

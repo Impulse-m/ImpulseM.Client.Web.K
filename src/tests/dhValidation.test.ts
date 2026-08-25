@@ -8,7 +8,7 @@ import {verifyDhPrimeAndGenerator, verifyDhPublicValue} from '@lib/crypto/dhVali
 import bytesFromHex from '@helpers/bytes/bytesFromHex';
 import {bigIntToBytes} from '@helpers/bigInt/bigIntConversion';
 
-// Independent copy of the well-known Telegram 2048-bit safe prime — if the
+// Independent copy of the well-known ImpulseM 2048-bit safe prime — if the
 // pinned constant in dhValidation.ts ever drifts, these tests catch it.
 const PRIME_HEX =
   'c71caeb9c6b1c9048e6c522f70f13f73980d40238e3e21c14934d037563d930f' +

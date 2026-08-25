@@ -3,6 +3,7 @@ import lottieLoader from '@lib/lottie/lottieLoader';
 import LottiePlayer from '@lib/lottie/lottiePlayer';
 import CodeInputFieldCompat from '@components/codeInputField';
 import {fastRaf} from '@helpers/schedulers';
+import type {Middleware} from '@helpers/middleware';
 
 export default class TrackingMonkey {
   public container: HTMLElement;
@@ -15,7 +16,18 @@ export default class TrackingMonkey {
 
   protected loadPromise: Promise<any>;
 
-  constructor(protected inputField: InputField | CodeInputFieldCompat, protected size: number) {
+  /**
+   * `middleware` marks both players as controlled, so animationIntersector pauses
+   * them instead of destroying them when the element is momentarily out of the
+   * DOM. Without it the pair is torn down mid-load and, since nothing rebuilds
+   * the monkey, it never appears at all. The owner is responsible for cleaning
+   * the middleware -- that is what removes the players.
+   */
+  constructor(
+    protected inputField: InputField | CodeInputFieldCompat,
+    protected size: number,
+    protected middleware?: Middleware
+  ) {
     this.container = document.createElement('div');
     this.container.classList.add('media-sticker-wrapper');
 
@@ -105,7 +117,8 @@ export default class TrackingMonkey {
         loop: true,
         autoplay: true,
         width: this.size,
-        height: this.size
+        height: this.size,
+        middleware: this.middleware
       }, 'TwoFactorSetupMonkeyIdle').then((animation) => {
         this.idleAnimation = animation;
 
@@ -122,7 +135,8 @@ export default class TrackingMonkey {
         loop: false,
         autoplay: false,
         width: this.size,
-        height: this.size
+        height: this.size,
+        middleware: this.middleware
       }, 'TwoFactorSetupMonkeyTracking').then((_animation) => {
         this.animation = _animation;
 

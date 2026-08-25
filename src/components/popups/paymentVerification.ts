@@ -1,9 +1,9 @@
 import PopupElement from '.';
 import appImManager from '@lib/appImManager';
-import TelegramWebView from '@components/telegramWebView';
+import ImpulseMWebView from '@components/impulsemWebView';
 
-export function createVerificationIframe(options: ConstructorParameters<typeof TelegramWebView>[0]) {
-  const result = new TelegramWebView({
+export function createVerificationIframe(options: ConstructorParameters<typeof ImpulseMWebView>[0]) {
+  const result = new ImpulseMWebView({
     ...options,
     sandbox: 'allow-forms allow-scripts allow-same-origin allow-modals'
   });
@@ -16,7 +16,7 @@ export function createVerificationIframe(options: ConstructorParameters<typeof T
 export default class PopupPaymentVerification extends PopupElement<{
   finish: () => void
 }> {
-  private telegramWebView: TelegramWebView;
+  private impulsemWebView: ImpulseMWebView;
 
   constructor(private url: string, private openPathAfter?: boolean) {
     super('popup-payment popup-payment-verification', {
@@ -30,11 +30,11 @@ export default class PopupPaymentVerification extends PopupElement<{
   }
 
   private d() {
-    const telegramWebView = this.telegramWebView = createVerificationIframe({
+    const impulsemWebView = this.impulsemWebView = createVerificationIframe({
       url: this.url
     });
 
-    telegramWebView.addEventListener('web_app_open_tg_link', (e) => {
+    impulsemWebView.addEventListener('web_app_open_tg_link', (e) => {
       this.dispatchEvent('finish');
       this.hide();
       if(this.openPathAfter) {
@@ -42,13 +42,13 @@ export default class PopupPaymentVerification extends PopupElement<{
       }
     });
 
-    this.body.append(telegramWebView.iframe);
+    this.body.append(impulsemWebView.iframe);
     this.show();
-    telegramWebView.onMount();
+    impulsemWebView.onMount();
   }
 
   protected destroy() {
-    this.telegramWebView.destroy();
+    this.impulsemWebView.destroy();
     return super.destroy();
   }
 }

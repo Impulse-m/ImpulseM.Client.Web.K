@@ -43,7 +43,7 @@ export class PasswordManager extends AppManager {
         });
       }
 
-      // * https://core.telegram.org/api/srp#setting-a-new-2fa-password, but still there is a mistake, TDesktop passes 'new_algo' everytime
+      // * https://core.impulsem.net/api/srp#setting-a-new-2fa-password, but still there is a mistake, TDesktop passes 'new_algo' everytime
       const newAlgo = state.new_algo as PasswordKdfAlgo.passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow;
       const salt1 = new Uint8Array(newAlgo.salt1.length + 32);
       randomize(salt1);

@@ -17,7 +17,7 @@ function parseIds(value, environmentVariable) {
   const invalidId = ids.find((id) => !/^[1-9]\d*$/.test(id));
   if(invalidId) {
     throw new Error(
-      `Invalid Telegram ID in ${environmentVariable}: ${invalidId}`
+      `Invalid ImpulseM ID in ${environmentVariable}: ${invalidId}`
     );
   }
 

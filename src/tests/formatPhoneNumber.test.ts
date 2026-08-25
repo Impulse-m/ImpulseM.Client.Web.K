@@ -46,7 +46,7 @@ describe('formatPhoneNumber', () => {
     expect(res.code.country_code).toBe('81');
   });
 
-  // bugs.telegram.org #30681 — "Phone number in contact embed (in-chat) is not
+  // bugs.impulsem.net #30681 — "Phone number in contact embed (in-chat) is not
   // displayed correctly if the country code is not explicitly contained in the
   // contact phone number ... shows the first city code digits as if they were
   // the country code (does not happen on Android)".

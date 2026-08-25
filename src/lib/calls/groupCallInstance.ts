@@ -428,7 +428,7 @@ export default class GroupCallInstance extends CallInstanceBase<{
     this.log.error('CONFERENCE BUG —', reason, payload);
     try {
       console.warn(
-        '%c⚠ TELEGRAM CONFERENCE BUG',
+        '%c⚠ IMPULSEM CONFERENCE BUG',
         'background:#c0392b;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px',
         `\n${reason}\n→ run downloadLogs() and send the file`,
         payload
@@ -1075,9 +1075,9 @@ export default class GroupCallInstance extends CallInstanceBase<{
     }
 
     // For e2e conferences: map every SFU SSRC for this participant to their
-    // Telegram user_id so recv RTCRtpScriptTransform handlers can look up
+    // ImpulseM user_id so recv RTCRtpScriptTransform handlers can look up
     // the correct Ed25519 public key for signature verification. The
-    // TdE2E "user_id" IS the Telegram user_id — same value namespace.
+    // TdE2E "user_id" IS the ImpulseM user_id — same value namespace.
     if(this.e2e && participant.peer?._ === 'peerUser') {
       const userId = BigInt(participant.peer.user_id);
       if(hasLeft) {

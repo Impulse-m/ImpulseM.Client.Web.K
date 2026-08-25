@@ -379,7 +379,7 @@ export default class GroupCallConnectionInstance extends CallConnectionInstanceB
 
     this.log('maybeUpdateRemoteVideoConstraints');
 
-    // * https://github.com/TelegramMessenger/tgcalls/blob/6f2746e04c9b040f8c8dfc64d916a1853d09c4ce/tgcalls/group/GroupInstanceCustomImpl.cpp#L2549
+    // * https://github.com/ImpulseMMessenger/tgcalls/blob/6f2746e04c9b040f8c8dfc64d916a1853d09c4ce/tgcalls/group/GroupInstanceCustomImpl.cpp#L2549
     type VideoConstraints = {minHeight?: number, maxHeight: number};
     const obj: {
       colibriClass: 'ReceiverVideoConstraints',

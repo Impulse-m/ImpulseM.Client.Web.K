@@ -1,7 +1,7 @@
 /**
  * Standard IEEE 802.3 CRC32 (poly 0xEDB88320, init 0xFFFFFFFF, reflected input/output,
  * final XOR 0xFFFFFFFF). Bit-identical to tdesktop's `base::crc32` (see
- * `Telegram/SourceFiles/base/crc32hash.cpp`).
+ * `ImpulseM/SourceFiles/base/crc32hash.cpp`).
  */
 
 const CRC32_TABLE = (() => {

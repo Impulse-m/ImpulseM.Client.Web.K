@@ -73,7 +73,7 @@ export function filterExpiredBotConnectionReviews(
 
 export function normalizeBusinessBotUsername(query: string) {
   return query.trim()
-  .replace(/^(?:https?:\/\/)?(?:www\.)?(?:t|telegram)\.me\//i, '')
+  .replace(/^(?:https?:\/\/)?(?:www\.)?(?:t|impulsem)\.me\//i, '')
   .replace(/^@/, '')
   .split(/[/?#]/)[0]
   .match(/^[a-z\d_]+$/i)?.[0];

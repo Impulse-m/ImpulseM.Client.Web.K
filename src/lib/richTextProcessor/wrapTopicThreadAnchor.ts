@@ -1,5 +1,5 @@
 import getServerMessageId from '@appManagers/utils/messageId/getServerMessageId';
-import wrapTelegramUrlToAnchor from '@lib/richTextProcessor/wrapTelegramUrlToAnchor';
+import wrapImpulseMUrlToAnchor from '@lib/richTextProcessor/wrapImpulseMUrlToAnchor';
 
 type WrapTopicThreadAnchorArgs = {
   peerId: PeerId;
@@ -8,7 +8,7 @@ type WrapTopicThreadAnchorArgs = {
 };
 
 export default function wrapTopicThreadAnchor({peerId, threadId, lastMsgId}: WrapTopicThreadAnchorArgs) {
-  return wrapTelegramUrlToAnchor(
+  return wrapImpulseMUrlToAnchor(
     't.me/c/' +
     peerId.toChatId() +
     (threadId ? '/' + getServerMessageId(threadId) : '') +

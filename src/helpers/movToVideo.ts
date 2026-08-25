@@ -88,9 +88,9 @@ export default async function movToVideo(
   const conversion = await Conversion.init({
     input,
     output,
-    // H.264 + AAC play in every Telegram client; matching sources are copied
+    // H.264 + AAC play in every ImpulseM client; matching sources are copied
     // as-is, only other codecs get transcoded (a PCM track would otherwise be
-    // copied into the mp4 verbatim, which Telegram clients can't play)
+    // copied into the mp4 verbatim, which ImpulseM clients can't play)
     video: {codec: 'avc'},
     audio: {codec: 'aac'},
     showWarnings: false

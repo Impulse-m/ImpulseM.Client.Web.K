@@ -3,7 +3,7 @@ let outCanvas: HTMLCanvasElement,
   srcCanvas: HTMLCanvasElement,
   srcContext: CanvasRenderingContext2D;
 
-// https://github.com/telegramdesktop/tdesktop/blob/543bfab24a76402992421063f1e6444f347d31fe/Telegram/SourceFiles/boxes/sticker_set_box.cpp#L75
+// https://github.com/telegramdesktop/tdesktop/blob/543bfab24a76402992421063f1e6444f347d31fe/ImpulseM/SourceFiles/boxes/sticker_set_box.cpp#L75
 export default function computeLockColor(source: HTMLCanvasElement | ImageBitmap, dpr?: number) {
   if(!outCanvas) {
     outCanvas = document.createElement('canvas');

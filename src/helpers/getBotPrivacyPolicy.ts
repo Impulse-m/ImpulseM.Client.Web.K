@@ -9,7 +9,7 @@ import safeWindowOpen from '@helpers/dom/safeWindowOpen';
 
 // Hardcoded default URL, matching tdesktop (lng_profile_bot_privacy_url) and
 // Android (BotDefaultPrivacyPolicy). Not an appConfig key.
-export const BOT_DEFAULT_PRIVACY_POLICY_URL = 'https://telegram.org/privacy-tpa';
+export const BOT_DEFAULT_PRIVACY_POLICY_URL = 'https://impulsem.net/privacy-tpa';
 
 export function botHasPrivacyCommand(botInfo: BotInfo.botInfo) {
   return botInfo.commands?.some((c) => c.command === 'privacy') ?? false;

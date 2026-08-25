@@ -5,15 +5,15 @@
  * https://github.com/evgeny-nadymov/telegram-react/blob/master/LICENSE
  */
 
-// NOTE: telegram returns sign source, while webrtc uses unsign source internally
+// NOTE: impulsem returns sign source, while webrtc uses unsign source internally
 // unsign => sign
-export function toTelegramSource(source: number) {
+export function toImpulseMSource(source: number) {
   return source << 0;
 }
 
-// NOTE: telegram returns sign source, while webrtc uses unsign source internally
+// NOTE: impulsem returns sign source, while webrtc uses unsign source internally
 // sign => unsign
-export function fromTelegramSource(source: number) {
+export function fromImpulseMSource(source: number) {
   return source >>> 0;
 }
 

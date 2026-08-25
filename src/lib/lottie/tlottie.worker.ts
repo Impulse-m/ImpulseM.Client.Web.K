@@ -540,6 +540,14 @@ lottieMessagePort.addMultipleEventsListeners({
       return item.init(json, tlottie, fitzModifier);
     } catch(err) {
       destroyItem(reqId);
+      // A player torn down while its JSON was still loading is a cancellation,
+      // not a failure: nobody is waiting for the frames any more. Settle quietly
+      // instead of rejecting, or the message port reports the discarded task as
+      // a worker error on every fast card switch.
+      if((err as {type?: string})?.type === 'ITEM_DESTROYED') {
+        return undefined;
+      }
+
       console.error('Unable to load lottie animation:', err);
       throw err;
     }
@@ -549,10 +557,11 @@ lottieMessagePort.addMultipleEventsListeners({
     destroyItem(reqId);
   },
 
-  renderFrame: ({reqId, frameNo, clamped}) => {
-    const item = items[reqId];
+  renderFrame: ({reqId, frameNo, clamped}) => withItem(reqId, (item) => {
+    // Guarded like every sibling handler: a frame requested for an item that has
+    // already been destroyed is a teardown race, not a reason to throw.
     return (item.offscreen ? item.renderOffscreen(frameNo) : item.render(frameNo, clamped)) as any;
-  },
+  }),
 
   presentFrame: async({reqId, frameNo}) => withItem(reqId, async(item) => {
     item.presentFrame();

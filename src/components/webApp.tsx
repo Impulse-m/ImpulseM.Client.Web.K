@@ -14,7 +14,7 @@ import getAttachMenuBotIcon from '@appManagers/utils/attachMenuBots/getAttachMen
 import I18n, {LangPackKey} from '@lib/langPack';
 import wrapEmojiText, {EmojiTextTsx} from '@lib/richTextProcessor/wrapEmojiText';
 import rootScope from '@lib/rootScope';
-import {TelegramWebViewEventMap, AnyFunction, TelegramWebViewSendEventMap} from '@types';
+import {ImpulseMWebViewEventMap, AnyFunction, ImpulseMWebViewSendEventMap} from '@types';
 import ButtonTsx from '@components/buttonTsx';
 import {ButtonMenuItemOptionsVerifiable} from '@components/buttonMenu';
 import confirmationPopup from '@components/confirmationPopup';
@@ -22,7 +22,7 @@ import PopupElement from '@components/popups';
 import PopupPeer, {PopupPeerOptions} from '@components/popups/peer';
 import {showPickUser3Popup} from '@components/popups/pickUser';
 import selectRequestPeers from '@components/popups/requestPeer';
-import TelegramWebView from '@components/telegramWebView';
+import ImpulseMWebView from '@components/impulsemWebView';
 import wrapAttachBotIcon from '@components/wrappers/attachBotIcon';
 import getPeerTitle from '@components/wrappers/getPeerTitle';
 import wrapPeerTitle from '@components/wrappers/peerTitle';
@@ -76,15 +76,15 @@ export type WebAppLaunchOptions = {
 };
 
 export default class WebApp {
-  private telegramWebView: TelegramWebView;
+  private impulsemWebView: ImpulseMWebView;
   private webViewResultUrl: WebViewResult.webViewResultUrl;
   private webViewOptions: RequestWebViewOptions;
   private attachMenuBot: AttachMenuBot;
   private botInfo: BotInfo.botInfo;
   private isCloseConfirmationNeeded: boolean;
-  private lastHeaderColor: TelegramWebViewEventMap['web_app_set_header_color'];
+  private lastHeaderColor: ImpulseMWebViewEventMap['web_app_set_header_color'];
   private showSettingsButton: boolean;
-  private readyResult: TelegramWebViewEventMap['iframe_ready'];
+  private readyResult: ImpulseMWebViewEventMap['iframe_ready'];
   private reloadTimeout: number;
   private iconElement: HTMLElement | SVGElement;
   private listenerSetter: ListenerSetter;
@@ -98,8 +98,8 @@ export default class WebApp {
   public body: HTMLElement;
 
   public footer: HTMLElement;
-  private setMainButtonState: (state: TelegramWebViewEventMap['web_app_setup_main_button']) => void;
-  private setSecondaryButtonState: (state: TelegramWebViewEventMap['web_app_setup_secondary_button']) => void;
+  private setMainButtonState: (state: ImpulseMWebViewEventMap['web_app_setup_main_button']) => void;
+  private setSecondaryButtonState: (state: ImpulseMWebViewEventMap['web_app_setup_secondary_button']) => void;
   private footerCleanup: () => void;
 
   private fullscreenButtons: HTMLElement;
@@ -207,9 +207,9 @@ export default class WebApp {
   private loadExternal(url: string) {
     this.webViewResultUrl.url = url;
     this.readyResult = undefined;
-    this.telegramWebView?.setOrigin(this.getSameOrigin());
+    this.impulsemWebView?.setOrigin(this.getSameOrigin());
 
-    const iframe = this.telegramWebView?.iframe;
+    const iframe = this.impulsemWebView?.iframe;
     if(!iframe) {
       return;
     }
@@ -220,7 +220,7 @@ export default class WebApp {
   }
 
   private hideWebViewContent() {
-    const iframe = this.telegramWebView?.iframe;
+    const iframe = this.impulsemWebView?.iframe;
     if(!iframe) {
       return;
     }
@@ -234,7 +234,7 @@ export default class WebApp {
       this.iconElement.style.opacity = '0';
     }
 
-    const iframe = this.telegramWebView?.iframe;
+    const iframe = this.impulsemWebView?.iframe;
     if(!iframe) {
       return;
     }
@@ -248,7 +248,7 @@ export default class WebApp {
   }
 
   protected _constructFooter() {
-    const [mainButtonState, setMainButtonState] = createSignal<TelegramWebViewEventMap['web_app_setup_main_button']>({
+    const [mainButtonState, setMainButtonState] = createSignal<ImpulseMWebViewEventMap['web_app_setup_main_button']>({
       is_visible: false,
       is_active: false,
       is_progress_visible: false,
@@ -259,7 +259,7 @@ export default class WebApp {
       icon_custom_emoji_id: undefined
     });
     let mainButtonRef: HTMLElement;
-    const [secondaryButtonState, setSecondaryButtonState] = createSignal<TelegramWebViewEventMap['web_app_setup_secondary_button']>({
+    const [secondaryButtonState, setSecondaryButtonState] = createSignal<ImpulseMWebViewEventMap['web_app_setup_secondary_button']>({
       is_visible: false,
       is_active: false,
       is_progress_visible: false,
@@ -300,7 +300,7 @@ export default class WebApp {
     ));
 
     const ButtonContent = (props: {
-      state: Accessor<TelegramWebViewEventMap['web_app_setup_main_button'] | TelegramWebViewEventMap['web_app_setup_secondary_button']>
+      state: Accessor<ImpulseMWebViewEventMap['web_app_setup_main_button'] | ImpulseMWebViewEventMap['web_app_setup_secondary_button']>
     }) => {
       return (
         <Transition name="fade" mode="outin">
@@ -340,7 +340,7 @@ export default class WebApp {
             secondaryButtonState().has_shine_effect && 'shimmer'
           )}
           disabled={!secondaryButtonState().is_active}
-          onClick={() => this.telegramWebView.dispatchWebViewEvent('secondary_button_pressed', undefined)}
+          onClick={() => this.impulsemWebView.dispatchWebViewEvent('secondary_button_pressed', undefined)}
         >
           <ButtonContent state={secondaryButtonState} />
         </ButtonTsx>
@@ -354,7 +354,7 @@ export default class WebApp {
             mainButtonState().has_shine_effect && 'shimmer'
           )}
           disabled={!mainButtonState().is_active}
-          onClick={() => this.telegramWebView.dispatchWebViewEvent('main_button_pressed', undefined)}
+          onClick={() => this.impulsemWebView.dispatchWebViewEvent('main_button_pressed', undefined)}
         >
           <ButtonContent state={mainButtonState} />
         </ButtonTsx>
@@ -363,7 +363,7 @@ export default class WebApp {
   }
 
   public onBackClick = (): false | void => {
-    this.telegramWebView.dispatchWebViewEvent('back_button_pressed', undefined);
+    this.impulsemWebView.dispatchWebViewEvent('back_button_pressed', undefined);
     return false;
   };
 
@@ -389,7 +389,7 @@ export default class WebApp {
       icon: 'settings',
       text: 'BotSettings',
       onClick: () => {
-        this.telegramWebView.dispatchWebViewEvent('settings_button_pressed', undefined);
+        this.impulsemWebView.dispatchWebViewEvent('settings_button_pressed', undefined);
       },
       // verify: () => (this.attachMenuBot && this.attachMenuBot.pFlags.has_settings) || this.webViewOptions.hasSettings
       verify: () => this.showSettingsButton
@@ -406,11 +406,11 @@ export default class WebApp {
       text: 'BotWebViewReloadPage',
       onClick: () => {
         const fallbackReload = () => {
-          const oldWebView = this.telegramWebView;
-          const telegramWebView = this.createWebView();
-          oldWebView.iframe.replaceWith(telegramWebView.iframe);
+          const oldWebView = this.impulsemWebView;
+          const impulsemWebView = this.createWebView();
+          oldWebView.iframe.replaceWith(impulsemWebView.iframe);
           oldWebView.destroy();
-          telegramWebView.onMount();
+          impulsemWebView.onMount();
         };
 
         if(!this.readyResult?.reload_supported) {
@@ -423,7 +423,7 @@ export default class WebApp {
           fallbackReload();
         }, 300);
 
-        this.telegramWebView.dispatchWebViewEvent('reload_iframe', undefined);
+        this.impulsemWebView.dispatchWebViewEvent('reload_iframe', undefined);
       },
       verify: () => true
     }, {
@@ -487,7 +487,7 @@ export default class WebApp {
   }
 
   protected sendTheme = () => {
-    this.telegramWebView.dispatchWebViewEvent('theme_changed', {
+    this.impulsemWebView.dispatchWebViewEvent('theme_changed', {
       theme_params: this.getThemeParams()
     });
   };
@@ -528,7 +528,7 @@ export default class WebApp {
   protected switchInlineQuery = async({
     query,
     chat_types
-  }: TelegramWebViewEventMap['web_app_switch_inline_query']) => {
+  }: ImpulseMWebViewEventMap['web_app_switch_inline_query']) => {
     const user = await this.managers.appUsersManager.getUser(this.webViewOptions.botId);
     if(user.bot_inline_placeholder === undefined) {
       return;
@@ -557,13 +557,13 @@ export default class WebApp {
 
   protected setupBackButton = ({
     is_visible
-  }: TelegramWebViewEventMap['web_app_setup_back_button']) => {
+  }: ImpulseMWebViewEventMap['web_app_setup_back_button']) => {
     this.onBackStatus(is_visible);
   };
 
   protected setupSettingsButton = ({
     is_visible
-  }: TelegramWebViewEventMap['web_app_setup_settings_button']) => {
+  }: ImpulseMWebViewEventMap['web_app_setup_settings_button']) => {
     this.showSettingsButton = is_visible;
   };
 
@@ -571,7 +571,7 @@ export default class WebApp {
     title,
     message,
     buttons
-  }: TelegramWebViewEventMap['web_app_open_popup']) => {
+  }: ImpulseMWebViewEventMap['web_app_open_popup']) => {
     const buttonLangPackKeysMap: {[type in typeof buttons[0]['type']]?: LangPackKey} = {
       cancel: 'Cancel',
       close: 'Close',
@@ -604,7 +604,7 @@ export default class WebApp {
 
     const promise = new Promise<void>((resolve) => {
       popup.addEventListener('close', () => {
-        this.telegramWebView.dispatchWebViewEvent('popup_closed', {
+        this.impulsemWebView.dispatchWebViewEvent('popup_closed', {
           ...(pressedButtonId !== undefined ? {button_id: pressedButtonId} : {})
         });
         resolve();
@@ -622,7 +622,7 @@ export default class WebApp {
     }
 
     this.destroyed = true;
-    this.telegramWebView?.destroy();
+    this.impulsemWebView?.destroy();
     this.listenerSetter.removeAll();
     clearTimeout(this.reloadTimeout);
     clearTimeout(this._deviceMotionTimeoutId);
@@ -634,10 +634,10 @@ export default class WebApp {
   }
 
 
-  protected debouncePopupMethod<T extends AnyFunction, K extends keyof TelegramWebViewSendEventMap>(
+  protected debouncePopupMethod<T extends AnyFunction, K extends keyof ImpulseMWebViewSendEventMap>(
     callback: T,
     resultType: K,
-    debouncedResult: TelegramWebViewSendEventMap[K]
+    debouncedResult: ImpulseMWebViewSendEventMap[K]
   ) {
     let isOpen = false, debouncing = false;
     return (async(...args: any[]) => {
@@ -645,19 +645,19 @@ export default class WebApp {
         return;
       }
 
-      const {lastDispatchedWebViewEvent} = this.telegramWebView;
+      const {lastDispatchedWebViewEvent} = this.impulsemWebView;
       if(!debouncing && lastDispatchedWebViewEvent?.type === resultType && lastDispatchedWebViewEvent.count >= 3) {
         debouncing = true;
         setTimeout(() => {
-          if(this.telegramWebView.lastDispatchedWebViewEvent === lastDispatchedWebViewEvent) {
-            this.telegramWebView.lastDispatchedWebViewEvent.count = 0;
+          if(this.impulsemWebView.lastDispatchedWebViewEvent === lastDispatchedWebViewEvent) {
+            this.impulsemWebView.lastDispatchedWebViewEvent.count = 0;
           }
           debouncing = false;
         }, 3000);
       }
 
       if(debouncing) {
-        this.telegramWebView.dispatchWebViewEvent(resultType, debouncedResult);
+        this.impulsemWebView.dispatchWebViewEvent(resultType, debouncedResult);
         return;
       }
 
@@ -670,8 +670,8 @@ export default class WebApp {
     }) as T;
   }
 
-  protected handleReadClipboard = async({req_id}: TelegramWebViewEventMap['web_app_read_text_from_clipboard']) => {
-    const result: TelegramWebViewSendEventMap['clipboard_text_received'] = {
+  protected handleReadClipboard = async({req_id}: ImpulseMWebViewEventMap['web_app_read_text_from_clipboard']) => {
+    const result: ImpulseMWebViewSendEventMap['clipboard_text_received'] = {
       req_id
     };
 
@@ -688,10 +688,10 @@ export default class WebApp {
       console.error('clipboard read error', error);
     }
 
-    this.telegramWebView.dispatchWebViewEvent('clipboard_text_received', result);
+    this.impulsemWebView.dispatchWebViewEvent('clipboard_text_received', result);
   };
 
-  protected handleHapticFeedback = (data: TelegramWebViewEventMap['web_app_trigger_haptic_feedback']) => {
+  protected handleHapticFeedback = (data: ImpulseMWebViewEventMap['web_app_trigger_haptic_feedback']) => {
     if(!navigator.vibrate) {
       return;
     }
@@ -740,10 +740,10 @@ export default class WebApp {
   };
 
   protected handleSetEmojiStatus = this.debouncePopupMethod(async(data) => {
-    const {telegramWebView, managers, webViewOptions} = this;
+    const {impulsemWebView, managers, webViewOptions} = this;
     const doc = await managers.appEmojiManager.getCustomEmojiDocument(data.custom_emoji_id);
     if(!doc) {
-      telegramWebView.dispatchWebViewEvent('emoji_status_failed', {error: 'SUGGESTED_EMOJI_INVALID'});
+      impulsemWebView.dispatchWebViewEvent('emoji_status_failed', {error: 'SUGGESTED_EMOJI_INVALID'});
       return;
     }
 
@@ -758,7 +758,7 @@ export default class WebApp {
       if(result) {
         if(!(await managers.rootScope.getPremium())) {
           PopupPremium.show({feature: 'emoji_status'});
-          telegramWebView.dispatchWebViewEvent('emoji_status_failed', {error: 'SERVER_ERROR'});
+          impulsemWebView.dispatchWebViewEvent('emoji_status_failed', {error: 'SERVER_ERROR'});
           return;
         }
 
@@ -769,14 +769,14 @@ export default class WebApp {
             until: duration ? tsNow(true) + duration : undefined
           });
           toastNew({langPackKey: 'SetAsEmojiStatusInfo'});
-          telegramWebView.dispatchWebViewEvent('emoji_status_set', undefined);
+          impulsemWebView.dispatchWebViewEvent('emoji_status_set', undefined);
         } catch(err) {
           console.log(err);
           toastNew({langPackKey: 'Error.AnError'});
-          telegramWebView.dispatchWebViewEvent('emoji_status_failed', {error: 'SERVER_ERROR'});
+          impulsemWebView.dispatchWebViewEvent('emoji_status_failed', {error: 'SERVER_ERROR'});
         }
       } else {
-        telegramWebView.dispatchWebViewEvent('emoji_status_failed', {error: 'USER_DECLINED'});
+        impulsemWebView.dispatchWebViewEvent('emoji_status_failed', {error: 'USER_DECLINED'});
       }
     });
 
@@ -784,10 +784,10 @@ export default class WebApp {
   }, 'emoji_status_failed', {error: 'USER_DECLINED'});
 
   protected handleEmojiStatusAccess = this.debouncePopupMethod(async() => {
-    const {telegramWebView, managers, webViewOptions} = this;
+    const {impulsemWebView, managers, webViewOptions} = this;
     const peer = await managers.appProfileManager.getCachedFullUser(this.webViewOptions.botId);
     if(peer.pFlags.bot_can_manage_emoji_status) {
-      telegramWebView.dispatchWebViewEvent('emoji_status_access_requested', {status: 'allowed'});
+      impulsemWebView.dispatchWebViewEvent('emoji_status_access_requested', {status: 'allowed'});
       return;
     }
 
@@ -801,7 +801,7 @@ export default class WebApp {
       if(result) {
         if(!(await managers.rootScope.getPremium())) {
           PopupPremium.show({feature: 'emoji_status'});
-          telegramWebView.dispatchWebViewEvent('emoji_status_access_requested', {status: 'cancelled'});
+          impulsemWebView.dispatchWebViewEvent('emoji_status_access_requested', {status: 'cancelled'});
           return;
         }
 
@@ -810,13 +810,13 @@ export default class WebApp {
         } catch(err) {
           console.error(err);
           toastNew({langPackKey: 'Error.AnError'});
-          telegramWebView.dispatchWebViewEvent('emoji_status_access_requested', {status: 'cancelled'});
+          impulsemWebView.dispatchWebViewEvent('emoji_status_access_requested', {status: 'cancelled'});
           return
         }
 
-        telegramWebView.dispatchWebViewEvent('emoji_status_access_requested', {status: 'allowed'});
+        impulsemWebView.dispatchWebViewEvent('emoji_status_access_requested', {status: 'allowed'});
       } else {
-        telegramWebView.dispatchWebViewEvent('emoji_status_access_requested', {status: 'cancelled'});
+        impulsemWebView.dispatchWebViewEvent('emoji_status_access_requested', {status: 'cancelled'});
       }
     });
 
@@ -824,16 +824,16 @@ export default class WebApp {
   }, 'emoji_status_access_requested', {status: 'cancelled'});
 
   protected handleCheckLocation = async() => {
-    const {telegramWebView} = this;
+    const {impulsemWebView} = this;
     const browserPermission = await navigator.permissions.query({name: 'geolocation'});
     if(browserPermission.state === 'denied') {
-      telegramWebView.dispatchWebViewEvent('location_checked', {available: false});
+      impulsemWebView.dispatchWebViewEvent('location_checked', {available: false});
       return;
     }
 
     const botPermission = await this.managers.appBotsManager.readBotInternalStorage(this.webViewOptions.botId, 'locationPermission');
 
-    telegramWebView.dispatchWebViewEvent('location_checked', {
+    impulsemWebView.dispatchWebViewEvent('location_checked', {
       available: true,
       access_requested: botPermission != null,
       access_granted: botPermission === 'true'
@@ -846,7 +846,7 @@ export default class WebApp {
 
     const sendLocation = () => {
       navigator.geolocation.getCurrentPosition((pos) => {
-        this.telegramWebView.dispatchWebViewEvent('location_requested', {
+        this.impulsemWebView.dispatchWebViewEvent('location_requested', {
           available: true,
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
@@ -860,7 +860,7 @@ export default class WebApp {
         });
       }, (err) => {
         console.error(err);
-        this.telegramWebView.dispatchWebViewEvent('location_requested', {available: false});
+        this.impulsemWebView.dispatchWebViewEvent('location_requested', {available: false});
       });
     }
 
@@ -876,7 +876,7 @@ export default class WebApp {
         if(result) {
           sendLocation();
         } else {
-          this.telegramWebView.dispatchWebViewEvent('location_requested', {available: false});
+          this.impulsemWebView.dispatchWebViewEvent('location_requested', {available: false});
         }
       });
       popup.show();
@@ -886,7 +886,7 @@ export default class WebApp {
     if(botPermission === 'true') {
       sendLocation();
     } else {
-      this.telegramWebView.dispatchWebViewEvent('location_requested', {available: false});
+      this.impulsemWebView.dispatchWebViewEvent('location_requested', {available: false});
     }
   }
 
@@ -902,18 +902,18 @@ export default class WebApp {
 
       if(this._gyroscopeFreqMs !== -1) {
         if(event.rotationRate.alpha !== null && event.rotationRate.beta !== null && event.rotationRate.gamma !== null) {
-          this.telegramWebView.dispatchWebViewEvent('gyroscope_started', undefined);
+          this.impulsemWebView.dispatchWebViewEvent('gyroscope_started', undefined);
         } else {
-          this.telegramWebView.dispatchWebViewEvent('gyroscope_failed', {error: 'UNSUPPORTED'});
+          this.impulsemWebView.dispatchWebViewEvent('gyroscope_failed', {error: 'UNSUPPORTED'});
           return;
         }
       }
 
       if(this._accelerometerFreqMs !== -1) {
         if(event.acceleration.x !== null && event.acceleration.y !== null && event.acceleration.z !== null) {
-          this.telegramWebView.dispatchWebViewEvent('accelerometer_started', undefined);
+          this.impulsemWebView.dispatchWebViewEvent('accelerometer_started', undefined);
         } else {
-          this.telegramWebView.dispatchWebViewEvent('accelerometer_failed', {error: 'UNSUPPORTED'});
+          this.impulsemWebView.dispatchWebViewEvent('accelerometer_failed', {error: 'UNSUPPORTED'});
           return;
         }
       }
@@ -924,7 +924,7 @@ export default class WebApp {
 
     if(shouldEmitGyroscope) {
       this._gyroscopeLastEvent = performance.now();
-      this.telegramWebView.dispatchWebViewEvent('gyroscope_changed', {
+      this.impulsemWebView.dispatchWebViewEvent('gyroscope_changed', {
         x: event.rotationRate.alpha,
         y: event.rotationRate.beta,
         z: event.rotationRate.gamma
@@ -933,7 +933,7 @@ export default class WebApp {
 
     if(shouldEmitAccelerometer) {
       this._accelerometerLastEvent = performance.now();
-      this.telegramWebView.dispatchWebViewEvent('accelerometer_changed', {
+      this.impulsemWebView.dispatchWebViewEvent('accelerometer_changed', {
         x: event.acceleration.x,
         y: event.acceleration.y,
         z: event.acceleration.z
@@ -951,9 +951,9 @@ export default class WebApp {
       this._deviceOrientationTimeoutId = null;
 
       if(event.alpha !== null && event.beta !== null && event.gamma !== null) {
-        this.telegramWebView.dispatchWebViewEvent('device_orientation_started', undefined);
+        this.impulsemWebView.dispatchWebViewEvent('device_orientation_started', undefined);
       } else {
-        this.telegramWebView.dispatchWebViewEvent('device_orientation_failed', {error: 'UNSUPPORTED'});
+        this.impulsemWebView.dispatchWebViewEvent('device_orientation_failed', {error: 'UNSUPPORTED'});
         return;
       }
     }
@@ -962,7 +962,7 @@ export default class WebApp {
     if(!shouldEmit) return;
 
     this._deviceOrientationLastEvent = performance.now();
-    this.telegramWebView.dispatchWebViewEvent('device_orientation_changed', {
+    this.impulsemWebView.dispatchWebViewEvent('device_orientation_changed', {
       absolute: event.absolute,
       alpha: event.alpha,
       beta: event.beta,
@@ -979,21 +979,21 @@ export default class WebApp {
 
       this._deviceMotionTimeoutId = window.setTimeout(() => {
         if(this._gyroscopeFreqMs !== -1) {
-          this.telegramWebView.dispatchWebViewEvent('gyroscope_failed', {error: 'UNSUPPORTED'});
+          this.impulsemWebView.dispatchWebViewEvent('gyroscope_failed', {error: 'UNSUPPORTED'});
         }
         if(this._accelerometerFreqMs !== -1) {
-          this.telegramWebView.dispatchWebViewEvent('accelerometer_failed', {error: 'UNSUPPORTED'});
+          this.impulsemWebView.dispatchWebViewEvent('accelerometer_failed', {error: 'UNSUPPORTED'});
         }
       }, DEVICEMOTION_TIMEOUT);
     }
   }
 
   protected _fileDownloadPending = false;
-  protected handleFileDownload = async(event: TelegramWebViewEventMap['web_app_request_file_download']) => {
+  protected handleFileDownload = async(event: ImpulseMWebViewEventMap['web_app_request_file_download']) => {
     if(this._fileDownloadPending) return;
     this._fileDownloadPending = true;
 
-    const {telegramWebView, managers, webViewOptions} = this;
+    const {impulsemWebView, managers, webViewOptions} = this;
 
     try {
       const allow = await managers.apiManager.invokeApiSingle('bots.checkDownloadFileParams', {
@@ -1003,11 +1003,11 @@ export default class WebApp {
       });
 
       if(!allow) {
-        telegramWebView.dispatchWebViewEvent('file_download_requested', {status: 'cancelled'});
+        impulsemWebView.dispatchWebViewEvent('file_download_requested', {status: 'cancelled'});
         return;
       }
     } catch(e) {
-      telegramWebView.dispatchWebViewEvent('file_download_requested', {status: 'cancelled'});
+      impulsemWebView.dispatchWebViewEvent('file_download_requested', {status: 'cancelled'});
       return;
     }
 
@@ -1023,7 +1023,7 @@ export default class WebApp {
           langKey: 'BotDownloadAccept',
           callback: () => {
             this._fileDownloadPending = false;
-            telegramWebView.dispatchWebViewEvent('file_download_requested', {status: 'downloading'});
+            impulsemWebView.dispatchWebViewEvent('file_download_requested', {status: 'downloading'});
             // try downloading with fetch
             appDownloadManager.downloadToDisc({
               media: {
@@ -1056,7 +1056,7 @@ export default class WebApp {
     popup.addEventListener('close', () => {
       if(this._fileDownloadPending) {
         this._fileDownloadPending = false;
-        telegramWebView.dispatchWebViewEvent('file_download_requested', {status: 'cancelled'});
+        impulsemWebView.dispatchWebViewEvent('file_download_requested', {status: 'cancelled'});
       }
     });
 
@@ -1064,7 +1064,7 @@ export default class WebApp {
   }
 
   protected createWebView() {
-    const telegramWebView = this.telegramWebView = new TelegramWebView({
+    const impulsemWebView = this.impulsemWebView = new ImpulseMWebView({
       url: this.getWebViewUrl(this.webViewResultUrl.url), // fixme
       origin: this.getSameOrigin(),
       sandbox: SANDBOX_ATTRIBUTES,
@@ -1073,9 +1073,9 @@ export default class WebApp {
     });
 
     this.hideWebViewContent();
-    telegramWebView.iframe.allowFullscreen = true;
+    impulsemWebView.iframe.allowFullscreen = true;
 
-    telegramWebView.addMultipleEventsListeners({
+    impulsemWebView.addMultipleEventsListeners({
       iframe_ready: (result) => {
         this.readyResult = result;
       },
@@ -1119,7 +1119,7 @@ export default class WebApp {
 
         internalLinkProcessor.processInvoiceLink(link).then((popupPayment) => {
           popupPayment.addEventListener('finish', (result) => {
-            telegramWebView.dispatchWebViewEvent('invoice_closed', {
+            impulsemWebView.dispatchWebViewEvent('invoice_closed', {
               slug,
               status: result
             });
@@ -1136,12 +1136,12 @@ export default class WebApp {
       web_app_setup_settings_button: this.setupSettingsButton,
       web_app_setup_closing_behavior: ({need_confirmation}) => this.isCloseConfirmationNeeded = !!need_confirmation,
       web_app_open_popup: this.debouncePopupMethod(this.openPopup, 'popup_closed', {}),
-      web_app_open_scan_qr_popup: () => telegramWebView.dispatchWebViewEvent('scan_qr_popup_closed', {}),
+      web_app_open_scan_qr_popup: () => impulsemWebView.dispatchWebViewEvent('scan_qr_popup_closed', {}),
       web_app_read_text_from_clipboard: this.handleReadClipboard,
       web_app_request_write_access: this.debouncePopupMethod(async() => {
         const botId = this.webViewOptions.botId;
         const canSendMessage = await this.managers.appBotsManager.canSendMessage(botId);
-        const status: TelegramWebViewSendEventMap['write_access_requested'] = {status: 'allowed'};
+        const status: ImpulseMWebViewSendEventMap['write_access_requested'] = {status: 'allowed'};
         if(!canSendMessage) {
           try {
             await confirmationPopup({
@@ -1159,10 +1159,10 @@ export default class WebApp {
           }
         }
 
-        telegramWebView.dispatchWebViewEvent('write_access_requested', status);
+        impulsemWebView.dispatchWebViewEvent('write_access_requested', status);
       }, 'write_access_requested', {status: 'cancelled'}),
       web_app_request_phone: this.debouncePopupMethod(async() => {
-        const status: TelegramWebViewSendEventMap['phone_requested'] = {status: 'sent'};
+        const status: ImpulseMWebViewSendEventMap['phone_requested'] = {status: 'sent'};
         try {
           const botId = this.webViewOptions.botId;
           await this.managers.appMessagesManager.unblockBot(botId);
@@ -1171,9 +1171,9 @@ export default class WebApp {
           status.status = 'cancelled';
         }
 
-        telegramWebView.dispatchWebViewEvent('phone_requested', status);
+        impulsemWebView.dispatchWebViewEvent('phone_requested', status);
       }, 'phone_requested', {status: 'cancelled'}),
-      web_app_request_chat: this.debouncePopupMethod(async({req_id}: TelegramWebViewEventMap['web_app_request_chat']) => {
+      web_app_request_chat: this.debouncePopupMethod(async({req_id}: ImpulseMWebViewEventMap['web_app_request_chat']) => {
         const botId = this.webViewOptions.botId;
         let sent = false;
         try {
@@ -1194,7 +1194,7 @@ export default class WebApp {
           sent = true;
         } catch{}
 
-        telegramWebView.dispatchWebViewEvent(sent ? 'requested_chat_sent' : 'requested_chat_failed', {req_id});
+        impulsemWebView.dispatchWebViewEvent(sent ? 'requested_chat_sent' : 'requested_chat_failed', {req_id});
       }, 'requested_chat_failed', {req_id: ''}),
       web_app_invoke_custom_method: async({req_id, method, params}) => {
         let result: DataJSON.dataJSON, error: ApiError;
@@ -1208,13 +1208,13 @@ export default class WebApp {
           error = _error as ApiError;
         }
 
-        telegramWebView.dispatchWebViewEvent('custom_method_invoked', {
+        impulsemWebView.dispatchWebViewEvent('custom_method_invoked', {
           req_id,
           result: result && JSON.parse(result.data),
           error: error?.type
         });
       },
-      web_app_biometry_get_info: () => telegramWebView.dispatchWebViewEvent('biometry_info_received', {
+      web_app_biometry_get_info: () => impulsemWebView.dispatchWebViewEvent('biometry_info_received', {
         available: false,
         access_requested: false,
         access_granted: false,
@@ -1236,7 +1236,7 @@ export default class WebApp {
       web_app_stop_accelerometer: () => {
         this._accelerometerFreqMs = -1;
         this.setupDeviceMotion();
-        this.telegramWebView.dispatchWebViewEvent('accelerometer_stopped', undefined);
+        this.impulsemWebView.dispatchWebViewEvent('accelerometer_stopped', undefined);
       },
       web_app_start_gyroscope: (data) => {
         this._gyroscopeFreqMs = clamp(data.refresh_rate, 20, 1000);
@@ -1245,7 +1245,7 @@ export default class WebApp {
       web_app_stop_gyroscope: () => {
         this._gyroscopeFreqMs = -1;
         this.setupDeviceMotion();
-        this.telegramWebView.dispatchWebViewEvent('gyroscope_stopped', undefined);
+        this.impulsemWebView.dispatchWebViewEvent('gyroscope_stopped', undefined);
       },
       web_app_start_device_orientation: (data) => {
         this._deviceOrientationFreqMs = clamp(data.refresh_rate, 20, 1000);
@@ -1254,21 +1254,21 @@ export default class WebApp {
         window.addEventListener(eventName, this.handleDeviceOrientation, true);
 
         this._deviceOrientationTimeoutId = window.setTimeout(() => {
-          this.telegramWebView.dispatchWebViewEvent('device_orientation_failed', {error: 'UNSUPPORTED'});
+          this.impulsemWebView.dispatchWebViewEvent('device_orientation_failed', {error: 'UNSUPPORTED'});
         }, DEVICEMOTION_TIMEOUT);
       },
       web_app_stop_device_orientation: () => {
         this._deviceOrientationFreqMs = -1;
         const eventName = this._deviceOrientationAbsolute ? 'deviceorientationabsolute' : 'deviceorientation';
         window.removeEventListener(eventName, this.handleDeviceOrientation);
-        this.telegramWebView.dispatchWebViewEvent('device_orientation_stopped', undefined);
+        this.impulsemWebView.dispatchWebViewEvent('device_orientation_stopped', undefined);
         clearTimeout(this._deviceOrientationTimeoutId);
       },
       web_app_add_to_home_screen: (data) => {
-        telegramWebView.dispatchWebViewEvent('home_screen_failed', {error: 'UNSUPPORTED'});
+        impulsemWebView.dispatchWebViewEvent('home_screen_failed', {error: 'UNSUPPORTED'});
       },
       web_app_check_home_screen: (data) => {
-        telegramWebView.dispatchWebViewEvent('home_screen_checked', {status: 'unsupported'});
+        impulsemWebView.dispatchWebViewEvent('home_screen_checked', {status: 'unsupported'});
       },
       web_app_set_emoji_status: this.handleSetEmojiStatus,
       web_app_request_emoji_status_access: this.handleEmojiStatusAccess,
@@ -1284,28 +1284,28 @@ export default class WebApp {
       web_app_device_storage_save_key: async({req_id, key, value}) => {
         const error = await this.managers.appBotsManager.writeBotDeviceStorage(this.webViewOptions.botId, key, value);
         if(error) {
-          this.telegramWebView.dispatchWebViewEvent('device_storage_failed', {req_id, error});
+          this.impulsemWebView.dispatchWebViewEvent('device_storage_failed', {req_id, error});
         } else {
-          this.telegramWebView.dispatchWebViewEvent('device_storage_key_saved', {req_id});
+          this.impulsemWebView.dispatchWebViewEvent('device_storage_key_saved', {req_id});
         }
       },
       web_app_device_storage_get_key: async({req_id, key}) => {
         const value = await this.managers.appBotsManager.readBotDeviceStorage(this.webViewOptions.botId, key);
-        this.telegramWebView.dispatchWebViewEvent('device_storage_key_received', {req_id, value: value ?? null});
+        this.impulsemWebView.dispatchWebViewEvent('device_storage_key_received', {req_id, value: value ?? null});
       },
       web_app_device_storage_clear: async({req_id}) => {
         await this.managers.appBotsManager.clearBotDeviceStorage(this.webViewOptions.botId);
-        this.telegramWebView.dispatchWebViewEvent('device_storage_cleared', {req_id});
+        this.impulsemWebView.dispatchWebViewEvent('device_storage_cleared', {req_id});
       },
       web_app_request_fullscreen: () => {
         if(document.fullscreenElement === this.body) {
-          this.telegramWebView.dispatchWebViewEvent('fullscreen_failed', {error: 'ALREADY_FULLSCREEN'});
+          this.impulsemWebView.dispatchWebViewEvent('fullscreen_failed', {error: 'ALREADY_FULLSCREEN'});
           return;
         }
 
         this.body.requestFullscreen().catch((err) => {
           console.error(err);
-          this.telegramWebView.dispatchWebViewEvent('fullscreen_failed', {error: 'UNSUPPORTED'});
+          this.impulsemWebView.dispatchWebViewEvent('fullscreen_failed', {error: 'UNSUPPORTED'});
         });
       },
       web_app_exit_fullscreen: () => {
@@ -1313,12 +1313,12 @@ export default class WebApp {
           document.exitFullscreen();
         }
 
-        telegramWebView.dispatchWebViewEvent('fullscreen_changed', {is_fullscreen: false});
+        impulsemWebView.dispatchWebViewEvent('fullscreen_changed', {is_fullscreen: false});
       },
-      web_app_secure_storage_save_key: ({req_id}) => telegramWebView.dispatchWebViewEvent('secure_storage_failed', {req_id, error: 'UNSUPPORTED'}),
-      web_app_secure_storage_get_key: ({req_id}) => telegramWebView.dispatchWebViewEvent('secure_storage_failed', {req_id, error: 'UNSUPPORTED'}),
-      web_app_secure_storage_restore_key: ({req_id}) => telegramWebView.dispatchWebViewEvent('secure_storage_failed', {req_id, error: 'UNSUPPORTED'}),
-      web_app_secure_storage_clear: ({req_id}) => telegramWebView.dispatchWebViewEvent('secure_storage_failed', {req_id, error: 'UNSUPPORTED'}),
+      web_app_secure_storage_save_key: ({req_id}) => impulsemWebView.dispatchWebViewEvent('secure_storage_failed', {req_id, error: 'UNSUPPORTED'}),
+      web_app_secure_storage_get_key: ({req_id}) => impulsemWebView.dispatchWebViewEvent('secure_storage_failed', {req_id, error: 'UNSUPPORTED'}),
+      web_app_secure_storage_restore_key: ({req_id}) => impulsemWebView.dispatchWebViewEvent('secure_storage_failed', {req_id, error: 'UNSUPPORTED'}),
+      web_app_secure_storage_clear: ({req_id}) => impulsemWebView.dispatchWebViewEvent('secure_storage_failed', {req_id, error: 'UNSUPPORTED'}),
       web_app_share_to_story: () => {
         toastNew({langPackKey: 'BotStorySharingNotSupported'});
       },
@@ -1327,7 +1327,7 @@ export default class WebApp {
         try {
           message = await this.managers.appBotsManager.getPreparedMessage(this.webViewOptions.botId, id);
         } catch(err) {
-          this.telegramWebView.dispatchWebViewEvent('prepared_message_failed', {error: (err as any).code});
+          this.impulsemWebView.dispatchWebViewEvent('prepared_message_failed', {error: (err as any).code});
           return;
         }
 
@@ -1338,9 +1338,9 @@ export default class WebApp {
 
         popup.addEventListener('finish', async(error) => {
           if(error) {
-            this.telegramWebView.dispatchWebViewEvent('prepared_message_failed', {error});
+            this.impulsemWebView.dispatchWebViewEvent('prepared_message_failed', {error});
           } else {
-            this.telegramWebView.dispatchWebViewEvent('prepared_message_sent', undefined);
+            this.impulsemWebView.dispatchWebViewEvent('prepared_message_sent', undefined);
             this.forceHide();
           }
         });
@@ -1353,7 +1353,7 @@ export default class WebApp {
 
         // * only the configured age-verification bot may attest age — otherwise any
         // * third-party Mini App could self-enable sensitive content
-        const verifyAgeBotUsername = (config.verify_age_bot_username ?? 'TelegramAge').toLowerCase();
+        const verifyAgeBotUsername = (config.verify_age_bot_username ?? 'ImpulseMAge').toLowerCase();
         const usernames = await this.managers.appPeersManager.getPeerActiveUsernames(this.getPeerId());
         if(!usernames.some((username) => username.toLowerCase() === verifyAgeBotUsername)) {
           return;
@@ -1369,8 +1369,8 @@ export default class WebApp {
       }
     });
 
-    telegramWebView.iframe.classList.add('payment-verification');
-    return telegramWebView;
+    impulsemWebView.iframe.classList.add('payment-verification');
+    return impulsemWebView;
   }
 
   public getPeerId() {
@@ -1395,7 +1395,7 @@ export default class WebApp {
   }
 
   public notifyVisible(visible: boolean) {
-    this.telegramWebView?.dispatchWebViewEvent('visibility_changed', {is_visible: visible});
+    this.impulsemWebView?.dispatchWebViewEvent('visibility_changed', {is_visible: visible});
   }
 
   public async init(mountCallback: () => MaybePromise<void>) {
@@ -1461,16 +1461,16 @@ export default class WebApp {
       this.iconElement = undefined;
     }
 
-    const telegramWebView = this.createWebView();
+    const impulsemWebView = this.createWebView();
 
     this.setBodyColor(bodyColorFromSettings ? rgbIntToHex(bodyColorFromSettings) : this.getThemeParams().bg_color);
     this.setHeaderColor(headerColorFromSettings ? {color: rgbIntToHex(headerColorFromSettings)} : {color_key: 'bg_color'});
-    this.body.prepend(...[this.iconElement, telegramWebView.iframe].filter(Boolean));
+    this.body.prepend(...[this.iconElement, impulsemWebView.iframe].filter(Boolean));
 
     this.listenerSetter.add(this.body)('fullscreenchange', () => {
       const isFullscreen = document.fullscreenElement === this.body;
-      this.telegramWebView?.dispatchWebViewEvent('fullscreen_changed', {is_fullscreen: isFullscreen});
-      this.telegramWebView?.dispatchWebViewEvent('content_safe_area_changed', {
+      this.impulsemWebView?.dispatchWebViewEvent('fullscreen_changed', {is_fullscreen: isFullscreen});
+      this.impulsemWebView?.dispatchWebViewEvent('content_safe_area_changed', {
         top: isFullscreen ? 56 : 0,
         left: 0,
         right: 0,
@@ -1486,7 +1486,7 @@ export default class WebApp {
         }
 
         console.error(err);
-        this.telegramWebView?.dispatchWebViewEvent('fullscreen_failed', {error: 'UNSUPPORTED'});
+        this.impulsemWebView?.dispatchWebViewEvent('fullscreen_failed', {error: 'UNSUPPORTED'});
       });
     }
 
@@ -1495,7 +1495,7 @@ export default class WebApp {
         return;
       }
 
-      telegramWebView.onMount();
+      impulsemWebView.onMount();
 
       if(!this.joinChat && !this.webViewOptions.isSimpleWebView && (this.webViewResultUrl as WebViewResult.webViewResultUrl).query_id) {
         setTimeout(() => this.prolongWebView(), 50e3);

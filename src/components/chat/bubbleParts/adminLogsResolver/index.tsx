@@ -11,7 +11,7 @@ import removeChatBannedRightsFromParticipant from '@appManagers/utils/chats/remo
 import getPeerId from '@appManagers/utils/peers/getPeerId';
 import I18n, {i18n, LangPackKey} from '@lib/langPack';
 import wrapRichText from '@lib/richTextProcessor/wrapRichText';
-import wrapTelegramUrlToAnchor from '@lib/richTextProcessor/wrapTelegramUrlToAnchor';
+import wrapImpulseMUrlToAnchor from '@lib/richTextProcessor/wrapImpulseMUrlToAnchor';
 import {useHotReloadGuard} from '@lib/solidjs/hotReloadGuard';
 import {resolveAdminRightFlagI18n} from '@components/sidebarRight/tabs/adminRecentActions/adminRightsI18nResolver';
 import {participantRightsMap} from '@components/sidebarRight/tabs/adminRecentActions/participantRightsMap';
@@ -302,7 +302,7 @@ const adminLogsMap: {[Key in ChannelAdminLogEventAction['_']]: MapCallback<Key>}
         const anchor = (() => {
           if(!action.new_value) return;
           const link = `t.me/${action.new_value}`;
-          const anchor = wrapTelegramUrlToAnchor(link);
+          const anchor = wrapImpulseMUrlToAnchor(link);
           anchor.textContent = link;
           return anchor;
         })();

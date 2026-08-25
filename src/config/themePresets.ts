@@ -1,6 +1,6 @@
 /*
- * Accent-color presets ported from Telegram iOS' ThemeColorPresets.swift.
- * See submodules/SettingsUI/Sources/Themes/ThemeColorPresets.swift in TelegramMessenger/Telegram-iOS
+ * Accent-color presets ported from ImpulseM iOS' ThemeColorPresets.swift.
+ * See submodules/SettingsUI/Sources/Themes/ThemeColorPresets.swift in ImpulseMMessenger/ImpulseM-iOS
  * for the upstream definitions; the index numbers are kept identical so a preset can be
  * recognised across platforms.
  *
@@ -58,7 +58,7 @@ const nightAccentPresets: AccentPreset[] = [
 
 // iOS PresentationThemeBaseColor enum — plain accent presets without bubble gradient or wallpaper.
 // Index = enum rawValue + 10, matching iOS PresentationThemeAccentColor.index serialization.
-// See submodules/TelegramUIPreferences/Sources/PresentationThemeSettings.swift L390-436.
+// See submodules/ImpulseMUIPreferences/Sources/PresentationThemeSettings.swift L390-436.
 type BaseColorName = 'blue' | 'cyan' | 'green' | 'pink' | 'orange' | 'purple' | 'red' | 'yellow' | 'gray';
 
 const BASE_COLOR_RGB: {[name in BaseColorName]: number} = {

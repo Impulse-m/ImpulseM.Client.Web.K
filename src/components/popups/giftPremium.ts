@@ -32,10 +32,10 @@ export default class PopupGiftPremium extends PopupElement {
     avatar.node.classList.add(className + '-avatar');
 
     const title = document.createElement('span');
-    _i18n(title, 'GiftTelegramPremiumTitle');
+    _i18n(title, 'GiftImpulseMPremiumTitle');
     title.classList.add(className + '-title');
 
-    const subtitle = i18n('GiftTelegramPremiumDescription', [await wrapPeerTitle({peerId})]);
+    const subtitle = i18n('GiftImpulseMPremiumDescription', [await wrapPeerTitle({peerId})]);
     subtitle.classList.add(className + '-subtitle');
 
     const shortestOption = this.giftOptions.slice().sort((a, b) => a.months - b.months)[0];

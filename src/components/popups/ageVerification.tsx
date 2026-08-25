@@ -42,7 +42,7 @@ export class AgeVerificationPopup extends PopupElement {
 
     const handleVerify = async() => {
       const bot = await this.managers.appUsersManager.resolveUserByUsername(
-        appConfig.verify_age_bot_username ?? 'TelegramAge'
+        appConfig.verify_age_bot_username ?? 'ImpulseMAge'
       );
       this._switchedToWebApp = true;
       this.destroy();

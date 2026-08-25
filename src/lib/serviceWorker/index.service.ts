@@ -1,3 +1,4 @@
+import '@lib/impulseLogger'; // arms Loki telemetry for this context
 import {logger, LogTypes} from '@lib/logger';
 import {CACHE_ASSETS_NAME, requestCache} from '@lib/serviceWorker/cache';
 import onStreamFetch, {toggleStreamInUse} from '@lib/serviceWorker/stream';

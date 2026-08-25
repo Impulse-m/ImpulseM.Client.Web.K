@@ -1,5 +1,5 @@
 /*
- * TdE2E port — End-to-end encryption for Telegram conference calls.
+ * TdE2E port — End-to-end encryption for ImpulseM conference calls.
  *
  * Public API surface for the rest of tweb (Phase 5 integration consumes this).
  * Internals (TL types, bit-string, blockchain validation primitives, etc.) are

@@ -78,7 +78,7 @@ Then proceed to Phase 1 (Context Gathering) in both cases. Follow-up tasks do NO
 Spawn an agent (Task tool, subagent_type=`general-purpose`) with this prompt structure:
 
 ```
-You are a context-gathering agent for a large TypeScript codebase (Telegram WebK).
+You are a context-gathering agent for a large TypeScript codebase (ImpulseM WebK).
 
 TASK: <paste the user's task description here>
 
@@ -94,7 +94,7 @@ Steps:
    - What the code does and how it relates to the task
    - Key data structures, function signatures, patterns used
 5. Look for similar existing features that could serve as a reference implementation.
-6. Check layer.d.ts if the task involves Telegram API.
+6. Check layer.d.ts if the task involves ImpulseM API.
 7. Check .scss files if the task involves UI.
 8. Check lang.ts if the task involves user-visible text.
 
@@ -135,7 +135,7 @@ After this agent completes, read both `about.md` and `a/context.md` to verify th
 Spawn an agent (Task tool, subagent_type=`general-purpose`) with this prompt structure:
 
 ```
-You are a context-gathering agent for a follow-up task on an existing project in a large TypeScript codebase (Telegram WebK).
+You are a context-gathering agent for a follow-up task on an existing project in a large TypeScript codebase (ImpulseM WebK).
 
 NEW TASK: <paste the follow-up task description here>
 
@@ -379,7 +379,7 @@ FINISH:
 Spawn an agent (Task tool, subagent_type=`general-purpose`):
 
 ```
-You are a code review agent for Telegram WebK (TypeScript / SolidJS).
+You are a code review agent for ImpulseM WebK (TypeScript / SolidJS).
 
 Read these files:
 - .ai/<project-name>/<letter>/context.md - Codebase context

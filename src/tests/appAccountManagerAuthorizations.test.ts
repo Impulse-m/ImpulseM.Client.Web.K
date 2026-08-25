@@ -38,7 +38,7 @@ function makeAuthorization(
     platform: 'macOS',
     system_version: '15.0',
     api_id: 1,
-    app_name: 'Telegram Web',
+    app_name: 'ImpulseM Web',
     app_version: '1.0',
     date_created: date,
     date_active: date,
@@ -102,13 +102,13 @@ describe('unconfirmed authorizations', () => {
   it('upserts an unconfirmed update and removes it when the flag is cleared', () => {
     const initial = applyUnconfirmedAuthorizationUpdate([], makeUpdate(1, true));
     const replaced = applyUnconfirmedAuthorizationUpdate(initial, makeUpdate('1', true, {
-      device: 'Telegram Desktop'
+      device: 'ImpulseM Desktop'
     }));
 
     expect(replaced).toEqual([{
       hash: '1',
       date: NOW,
-      device: 'Telegram Desktop',
+      device: 'ImpulseM Desktop',
       location: 'Dubai, UAE'
     }]);
     expect(applyUnconfirmedAuthorizationUpdate(replaced, makeUpdate(1, false))).toEqual([]);

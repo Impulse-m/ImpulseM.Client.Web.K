@@ -34,7 +34,7 @@ export default function getMediaViewerDocumentSize(document: MyDocument): MediaS
     return;
   }
 
-  // JPEG metadata can describe the encoded pixel matrix while Telegram's
+  // JPEG metadata can describe the encoded pixel matrix while ImpulseM's
   // thumbnail already has the EXIF rotation applied. Only trust that signal
   // when swapping the document dimensions reproduces the thumbnail ratio.
   const rotatedDocumentRatio = document.h / document.w;

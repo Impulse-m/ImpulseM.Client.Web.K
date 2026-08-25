@@ -664,7 +664,7 @@ export default class ChatBubbles {
   private attachPlaceholderOnRender: () => void;
 
   // viewer's own country calling code (e.g. '7'), used to format a shared contact's
-  // phone that is stored without its country code (bugs.telegram.org #30681)
+  // phone that is stored without its country code (bugs.impulsem.net #30681)
   private myCountryCode: string;
 
   private bubblesToEject: Set<HTMLElement> = new Set();
@@ -2424,7 +2424,7 @@ export default class ChatBubbles {
 
   // * hint explaining guest bots: shown above the "<Bot> for <Visitor>" name of the first guest-chat
   // * message that scrolls into view (iOS shows it in any chat type, at most twice — see
-  // * TelegramUI/…/ChatControllerDisplayGuestChatMessageTooltip)
+  // * ImpulseMUI/…/ChatControllerDisplayGuestChatMessageTooltip)
   private guestChatHintObserverCallback = (entry: IntersectionObserverEntry) => {
     if(!entry.isIntersecting) {
       return;

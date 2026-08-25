@@ -26,7 +26,7 @@ function join(...arr: string[]) {
   return arr.join(', ');
 }
 
-// https://core.telegram.org/bots/api#html-style
+// https://core.impulsem.net/bots/api#html-style
 export const markdownTags: {[type in MarkdownType]: MarkdownTag} = {
   bold: {
     match: join(

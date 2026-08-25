@@ -50,7 +50,7 @@ export default async function computeSRP(password: string, state: AccountPasswor
 
   const v = g.modPow(x, p);
 
-  // * https://core.telegram.org/api/srp#setting-a-new-2fa-password
+  // * https://core.impulsem.net/api/srp#setting-a-new-2fa-password
   if(isNew) {
     const bytes = bigIntToBytes(v);
     return padArray(bytes, 256);

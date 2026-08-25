@@ -786,7 +786,7 @@ export default function ChatAutomationTab() {
   };
 
   const learnMoreAnchor = document.createElement('a');
-  learnMoreAnchor.href = 'https://telegram.org';
+  learnMoreAnchor.href = 'https://impulsem.net';
   learnMoreAnchor.target = '_blank';
   learnMoreAnchor.rel = 'noopener noreferrer';
 

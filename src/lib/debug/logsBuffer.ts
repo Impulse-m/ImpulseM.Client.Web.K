@@ -25,6 +25,15 @@ const ANSI = /\x1b\[[0-9;]*m/g;
 
 export type LogSource = 'main' | 'mtproto' | 'sw';
 
+export type LogSink = (level: LogTypes, prefix: string, args: any[]) => void;
+
+let sink: LogSink | undefined;
+
+/** Registered by lib/impulseLogger to forward every diagnostic to Loki. */
+export function setLogSink(fn: LogSink): void {
+  sink = fn;
+}
+
 export type LogEntry = {
   t: number; // Date.now() — absolute, so entries from different contexts merge
   src: LogSource;
@@ -186,6 +195,18 @@ function pushEntry(e: LogEntry) {
  * timeline. Never throws.
  */
 export function capture(level: LogTypes, prefix: string, args: any[]): void {
+  // The Loki sink runs BEFORE the `enabled` gate: the ring buffer is a debug
+  // aid (DEBUG-only), while telemetry ships in every build. Registered by
+  // lib/impulseLogger, so this module stays a leaf — the dependency points
+  // the other way.
+  if(sink) {
+    try {
+      sink(level, prefix, args);
+    } catch(err) {
+      // Telemetry must never break the app it is observing.
+    }
+  }
+
   if(!enabled) return;
   try {
     const entry: LogEntry = {

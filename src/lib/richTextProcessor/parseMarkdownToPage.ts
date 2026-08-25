@@ -26,7 +26,7 @@ const DETAILS_OPEN_RE = /^\s*<details\b[^>]*>/i;
 const DETAILS_CLOSE_RE = /<\/details\s*>/i;
 const SUMMARY_RE = /<summary\b[^>]*>([\s\S]*?)<\/summary\s*>/i;
 // A trailing attribution line inside a blockquote — `— Author`, `– Author`, or `-- Author`. When it
-// stands as its own paragraph it becomes the quote's `caption` (the attribution slot Telegram IV
+// stands as its own paragraph it becomes the quote's `caption` (the attribution slot ImpulseM IV
 // renders under the quote), matching the common markdown convention for cited quotes.
 const BLOCKQUOTE_ATTRIBUTION_RE = /^(?:—|–|--)\s+(.+)$/;
 
