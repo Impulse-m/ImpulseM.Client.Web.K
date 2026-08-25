@@ -77,7 +77,12 @@ export const UNSUPPORTED_LANG_PACK_KEY: LangPackKey = IS_MOBILE ? 'Message.Unsup
 const TEST_LOCAL = IS_BETA && true;
 
 namespace I18n {
-  const langLog = logger('LANGPACK');
+  // Built on first use, never while this module evaluates. langPack sits inside an import
+  // cycle with the logger's own dependencies, and constructing it at evaluation time threw
+  // during module init -- which surfaces as every dynamic import of anything that reaches
+  // langPack failing to load, not as an error naming this file.
+  let langLogInstance: ReturnType<typeof logger>;
+  const langLog = (...args: any[]) => (langLogInstance ||= logger('LANGPACK'))(...args);
 
   export const strings: Map<LangPackKey, LangPackString> = new Map();
   export const countriesList: HelpCountry[] = [];

@@ -8,7 +8,11 @@ import {logger} from '@lib/logger';
 // which language was asked for or how many strings came back. The server logs the same three
 // numbers now; these lines are the client half of the same pair, so the two can be compared
 // directly instead of inferred.
-const langLog = logger('LANGPACK');
+let langLogInstance: ReturnType<typeof logger>;
+// Built on first use: constructing a logger while this module evaluates runs inside an
+// import cycle and fails module init, which the browser reports only as a dynamic import
+// of some unrelated module failing to load.
+const langLog = (...args: any[]) => (langLogInstance ||= logger('LANGPACK'))(...args);
 
 export class AppLangPackManager extends AppManager {
   protected after() {
@@ -35,7 +39,7 @@ export class AppLangPackManager extends AppManager {
       });
       return difference;
     }, (error) => {
-      langLog.error('getLangPack failed', {langCode, langPack}, error);
+      (langLogInstance ||= logger('LANGPACK')).error('getLangPack failed', {langCode, langPack}, error);
       throw error;
     });
   }
@@ -57,7 +61,7 @@ export class AppLangPackManager extends AppManager {
       langLog('getStrings <-', {langCode, returned: answer?.length});
       return answer;
     }, (error) => {
-      langLog.error('getStrings failed', {langCode, langPack: App.langPack}, error);
+      (langLogInstance ||= logger('LANGPACK')).error('getStrings failed', {langCode, langPack: App.langPack}, error);
       throw error;
     });
   }
@@ -76,7 +80,7 @@ export class AppLangPackManager extends AppManager {
       });
       return difference;
     }, (error) => {
-      langLog.error('getDifference failed', {langCode, langPack: App.langPack, fromVersion}, error);
+      (langLogInstance ||= logger('LANGPACK')).error('getDifference failed', {langCode, langPack: App.langPack, fromVersion}, error);
       throw error;
     });
   }
