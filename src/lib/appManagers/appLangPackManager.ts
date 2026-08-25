@@ -1,6 +1,14 @@
 import {AppManager} from '@appManagers/manager';
 import {HelpCountriesList} from '@layer';
 import App from '@config/app';
+import {logger} from '@lib/logger';
+
+// Every langpack request and its answer, because "languages do not work" could not be told apart
+// from the outside: the server recorded four successful calls and no refusal, and nothing said
+// which language was asked for or how many strings came back. The server logs the same three
+// numbers now; these lines are the client half of the same pair, so the two can be compared
+// directly instead of inferred.
+const langLog = logger('LANGPACK');
 
 export class AppLangPackManager extends AppManager {
   protected after() {
@@ -15,10 +23,21 @@ export class AppLangPackManager extends AppManager {
   }
 
   public getLangPack(langCode: string, langPack: string, ignoreCache?: boolean) {
+    langLog('getLangPack ->', {langCode, langPack, ignoreCache: !!ignoreCache});
     return this.apiManager.invokeApiCacheable('langpack.getLangPack', {
       lang_code: langCode,
       lang_pack: langPack
-    }, {override: ignoreCache});
+    }, {override: ignoreCache}).then((difference) => {
+      langLog('getLangPack <-', {
+        langCode: difference?.lang_code,
+        version: difference?.version,
+        strings: difference?.strings?.length
+      });
+      return difference;
+    }, (error) => {
+      langLog.error('getLangPack failed', {langCode, langPack}, error);
+      throw error;
+    });
   }
 
   public getCountriesList(langCode: string, ignoreCache?: boolean) {
@@ -29,18 +48,36 @@ export class AppLangPackManager extends AppManager {
   }
 
   public getStrings(langCode: string, strings: string[]) {
+    langLog('getStrings ->', {langCode, langPack: App.langPack, keys: strings.length});
     return this.apiManager.invokeApi('langpack.getStrings', {
       lang_pack: App.langPack,
       lang_code: langCode,
       keys: strings
+    }).then((answer) => {
+      langLog('getStrings <-', {langCode, returned: answer?.length});
+      return answer;
+    }, (error) => {
+      langLog.error('getStrings failed', {langCode, langPack: App.langPack}, error);
+      throw error;
     });
   }
 
   public getDifference(langCode: string, fromVersion: number) {
+    langLog('getDifference ->', {langCode, langPack: App.langPack, fromVersion});
     return this.apiManager.invokeApi('langpack.getDifference', {
       lang_code: langCode,
       from_version: fromVersion,
       lang_pack: App.langPack
+    }).then((difference) => {
+      langLog('getDifference <-', {
+        langCode: difference?.lang_code,
+        version: difference?.version,
+        strings: difference?.strings?.length
+      });
+      return difference;
+    }, (error) => {
+      langLog.error('getDifference failed', {langCode, langPack: App.langPack, fromVersion}, error);
+      throw error;
     });
   }
 }

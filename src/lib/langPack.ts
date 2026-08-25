@@ -10,6 +10,7 @@ import deepEqual from '@helpers/object/deepEqual';
 import safeAssign from '@helpers/object/safeAssign';
 import capitalizeFirstLetter from '@helpers/string/capitalizeFirstLetter';
 import matchUrlProtocol from '@lib/richTextProcessor/matchUrlProtocol';
+import {logger} from '@lib/logger';
 import wrapUrl from '@lib/richTextProcessor/wrapUrl';
 import {setDirection} from '@helpers/dom/setInnerHTML';
 import setBlankToAnchor from '@lib/richTextProcessor/setBlankToAnchor';
@@ -76,6 +77,8 @@ export const UNSUPPORTED_LANG_PACK_KEY: LangPackKey = IS_MOBILE ? 'Message.Unsup
 const TEST_LOCAL = IS_BETA && true;
 
 namespace I18n {
+  const langLog = logger('LANGPACK');
+
   export const strings: Map<LangPackKey, LangPackString> = new Map();
   export const countriesList: HelpCountry[] = [];
   let pluralRules: Intl.PluralRules;
@@ -119,6 +122,12 @@ namespace I18n {
         langPack = await saveLangPack(langPack, false);
       }
 
+      langLog('startup applies cached pack', {
+        langCode: langPack.lang_code,
+        strings: langPack.strings?.length,
+        version: langPack.version,
+        localVersion: langPack.localVersion
+      });
       setLangCode(langPack.lang_code);
       applyLangPack(langPack);
       return langPack;
@@ -231,6 +240,10 @@ namespace I18n {
   }
 
   export function getLangPackAndApply(langCode: string, web?: boolean, ignoreCache?: boolean) {
+    // The switch itself, logged at both ends. Nothing here recorded which language was requested or
+    // how many strings survived the merge, so a switch that silently kept the compiled-in English
+    // looked identical to one that worked. The server logs the same counts per call.
+    langLog('switch ->', {langCode, web: !!web, ignoreCache: !!ignoreCache});
     setLangCode(langCode);
     return loadLangPack(langCode, web, ignoreCache).then(([langPack1, langPack2, localLangPack1, localLangPack2, countries, _]) => {
       let strings: LangPackString[] = [];
@@ -246,6 +259,13 @@ namespace I18n {
       langPack1.strings = strings;
       langPack1.countries = countries;
       langPack1.localVersion = App.langPackLocalVersion;
+      langLog('switch <-', {
+        requested: langCode,
+        applied: langPack1.lang_code,
+        fromServer: [langPack1, langPack2].filter(Boolean).reduce((n, p) => n + (p.strings?.length || 0), 0),
+        afterMerge: strings.length,
+        version: langPack1.version
+      });
       return saveLangPack(langPack1, true);
     });
   }
