@@ -167,93 +167,29 @@ declare global {
     // Raised instead of opening an MTProto connection: the gateway speaks gRPC only.
     'NETWORKER_DISABLED';
 
-  type ServerErrorType =
-    | 'FILE_REFERENCE_EXPIRED'
-    | 'SESSION_REVOKED'
-    | 'AUTH_KEY_DUPLICATED'
-    // Canon error the gateway returns once the access token expires; the list
-    // here is hand-maintained and simply never enumerated it.
-    | 'AUTH_KEY_UNREGISTERED'
-    | 'SESSION_PASSWORD_NEEDED'
-    | 'CONNECTION_NOT_INITED'
+  // The canon catalog is generated into canonErrors.d.ts from the vendored
+  // snapshot -- see `pnpm run generate-error-types`. Only identifiers the
+  // catalog does not publish are listed here: tweb's own sentinels, ImpulseM
+  // extensions, and errors newer than the snapshot.
+  type ServerErrorType = CanonServerErrorType
     | 'ERROR_EMPTY'
     | 'MTPROTO_CLUSTER_INVALID'
     | 'BOT_PRECHECKOUT_TIMEOUT'
-    | 'TMP_PASSWORD_INVALID'
-    | 'PASSWORD_HASH_INVALID'
-    | 'CHANNEL_PRIVATE'
-    | 'VOICE_MESSAGES_FORBIDDEN'
-    | 'PHOTO_INVALID_DIMENSIONS'
-    | 'PHOTO_SAVE_FILE_INVALID'
-    | 'USER_ALREADY_PARTICIPANT'
-    | 'USERNAME_INVALID'
-    | 'USERNAME_PURCHASE_AVAILABLE'
-    | 'USERNAMES_ACTIVE_TOO_MUCH'
-    | 'BOT_INVALID'
-    | 'USERNAME_NOT_OCCUPIED'
-    | 'PINNED_TOO_MUCH'
-    | 'LOCATION_INVALID'
-    | 'FILE_ID_INVALID'
-    | 'CHANNEL_FORUM_MISSING'
-    | 'TRANSCRIPTION_FAILED'
-    | 'USER_NOT_PARTICIPANT'
-    | 'PEER_ID_INVALID'
-    | 'MSG_VOICE_MISSING'
-    | 'CHAT_ADMIN_REQUIRED'
-    | 'QUERY_ID_INVALID'
-    | 'CHAT_ADMIN_INVITE_REQUIRED'
-    | 'BOT_APP_INVALID'
-    | 'FILTER_NOT_SUPPORTED'
-    | 'INVITES_TOO_MUCH'
     | 'AICOMPOSE_FLOOD_PREMIUM'
     | 'AICOMPOSE_TONE_SLUG_INVALID'
     | 'AICOMPOSE_TONE_INVALID'
     | 'TONE_NOT_FOUND'
     | 'FILTERS_TOO_MUCH'
-    | 'PEERS_LIST_EMPTY'
-    | 'INVITE_SLUG_EXPIRED'
     | 'DIALOG_FILTERS_TOO_MUCH'
-    | 'CHATLISTS_TOO_MUCH'
-    | 'FRESH_RESET_AUTHORISATION_FORBIDDEN'
     | 'NO_USER'
-    | 'USER_PRIVACY_RESTRICTED'
-    | 'REACTION_INVALID'
-    | 'INVITE_HASH_EXPIRED'
-    | 'PHONE_NOT_OCCUPIED'
-    | 'PARTICIPANT_ID_INVALID'
-    | 'PREMIUM_ACCOUNT_REQUIRED'
-    | 'BOOST_NOT_MODIFIED'
     | 'PREMIUM_GIFTED_NOT_ALLOWED'
-    | `FLOOD_WAIT_${number}`
-    | 'MESSAGE_NOT_MODIFIED'
-    | 'MESSAGE_EMPTY'
     | 'MESSAGE_ID_REQUIRED'
-    | 'SLUG_INVALID'
-    | `PREMIUM_SUB_ACTIVE_UNTIL_${number}`
-    | `PHONE_MIGRATE_${number}`
-    | `NETWORK_MIGRATE_${number}`
-    | `USER_MIGRATE_${number}`
-    | `STATS_MIGRATE_${number}`
-    | `FILE_MIGRATE_${number}`
-    | `CALL_MIGRATE_${number}`
-    | 'MSG_WAIT_FAILED'
-    | 'MSG_WAIT_TIMEOUT'
     | 'SAVED_DIALOGS_UNSUPPORTED'
-    | 'YOUR_PRIVACY_RESTRICTED'
-    | 'INVITE_REQUEST_SENT'
-    | 'GROUPCALL_INVALID'
     | 'TIME_TOO_BIG'
     | 'TIME_TOO_SMALL'
     | 'TIME_INVALID'
-    | 'GROUPCALL_FORBIDDEN'
     | 'VIDEO_CHANNEL_INVALID'
-    | 'GROUPCALL_JOIN_MISSING'
-    | `SLOWMODE_WAIT_${number}`
-    | 'BALANCE_TOO_LOW'
-    | 'FORM_EXPIRED'
-    | `FLOOD_PREMIUM_WAIT_${number}`
     | 'STORY_ID_TOO_MANY'
-    | `FILE_REFERENCE_${number}_EXPIRED`
     | 'ADDRESS_STREET_LINE1_INVALID'
     | 'ADDRESS_STREET_LINE2_INVALID'
     | 'ADDRESS_COUNTRY_INVALID'
@@ -263,34 +199,15 @@ declare global {
     | 'REQ_INFO_NAME_INVALID'
     | 'REQ_INFO_EMAIL_INVALID'
     | 'REQ_INFO_PHONE_INVALID'
-    | 'FILE_REFERENCE_INVALID'
-    | 'USER_NOT_MUTUAL_CONTACT'
-    | 'FROZEN_METHOD_INVALID'
-    | 'EMAIL_INVALID'
-    | 'EMAIL_NOT_ALLOWED'
-    | 'EMAIL_VERIFY_EXPIRED'
-    | 'CODE_INVALID'
-    | 'PASSWORD_RECOVERY_NA'
     | '2FA_RECENT_CONFIRM'
-    | `2FA_CONFIRM_WAIT_${number}`
     | 'PASSKEY_CREDENTIAL_NOT_FOUND'
     | 'SUMMARY_FLOOD_PREMIUM'
-    | 'AUTH_TOKEN_EXPIRED'
-    | 'CHANNELS_TOO_MUCH'
-    | 'USERS_TOO_MUCH'
     | 'GROUP_FULL'
     | 'ACCESS_DENIED'
-    | 'CHANNEL_PUBLIC_GROUP_NA'
-    | 'USER_BANNED_IN_CHANNEL'
-    | 'CHANNEL_INVALID'
     | 'CHANNEL_ALREADY_LINKED'
     | 'COMMUNITY_REQUEST_CREATED'
     | 'COMMUNITY_PEERS_TOO_MUCH'
-    | 'BOOSTS_REQUIRED'
-    | 'USERNAME_OCCUPIED'
-    | 'MESSAGE_EDIT_FORBIDDEN'
-    | 'MESSAGE_ID_INVALID'
-  ;
+    ;
 
   type ErrorType = LocalErrorType | ServerErrorType;
 

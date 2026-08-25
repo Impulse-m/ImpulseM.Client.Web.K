@@ -1,0 +1,3512 @@
+{
+  "2FA_CONFIRM_WAIT_%d": {
+    "description": "Since this account is active and protected by a 2FA password, we will delete it in 1 week for security purposes. You can cancel this process at any time, you'll be able to reset your account in %d seconds.",
+    "httpCode": 420,
+    "paramKind": "flood"
+  },
+  "ABOUT_TOO_LONG": {
+    "description": "About string too long.",
+    "httpCode": 400
+  },
+  "ACCESS_TOKEN_EXPIRED": {
+    "description": "Access token expired.",
+    "httpCode": 400
+  },
+  "ACCESS_TOKEN_INVALID": {
+    "description": "Access token invalid.",
+    "httpCode": 400
+  },
+  "ADDRESS_INVALID": {
+    "description": "The specified geopoint address is invalid.",
+    "httpCode": 400
+  },
+  "ADMINS_TOO_MUCH": {
+    "description": "There are too many admins.",
+    "httpCode": 400
+  },
+  "ADMIN_ID_INVALID": {
+    "description": "The specified admin ID is invalid.",
+    "httpCode": 400
+  },
+  "ADMIN_RANK_EMOJI_NOT_ALLOWED": {
+    "description": "An admin rank cannot contain emojis.",
+    "httpCode": 400
+  },
+  "ADMIN_RANK_INVALID": {
+    "description": "The specified admin rank is invalid.",
+    "httpCode": 400
+  },
+  "ADMIN_RIGHTS_EMPTY": {
+    "description": "The chatAdminRights constructor passed in keyboardButtonRequestPeer.peer_type.user_admin_rights has no rights set (i.e. flags is 0).",
+    "httpCode": 400
+  },
+  "AD_EXPIRED": {
+    "description": "The ad has expired (too old or not found).",
+    "httpCode": 400
+  },
+  "ALBUM_PHOTOS_TOO_MANY": {
+    "description": "You have uploaded too many profile photos, delete some before retrying.",
+    "httpCode": 400
+  },
+  "ALLOW_PAYMENT_REQUIRED": {
+    "description": "This peer only accepts [paid messages &raquo;](https://core.telegram.org/api/paid-messages): this error is only emitted for older layers without paid messages support, so the client must be updated in order to use paid messages.  .",
+    "httpCode": 406
+  },
+  "ALLOW_PAYMENT_REQUIRED_%d": {
+    "description": "This peer charges %d [Telegram Stars](https://core.telegram.org/api/stars) per message, but the `allow_paid_stars` was not set or its value is smaller than %d.",
+    "httpCode": 403,
+    "paramKind": "generic"
+  },
+  "ANONYMOUS_REACTIONS_DISABLED": {
+    "description": "Sorry, anonymous administrators cannot leave reactions or participate in polls.",
+    "httpCode": 403
+  },
+  "API_GIFT_RESTRICTED_UPDATE_APP": {
+    "description": "Please update the app to access the gift API.",
+    "httpCode": 406
+  },
+  "API_ID_INVALID": {
+    "description": "API ID invalid.",
+    "httpCode": 400
+  },
+  "API_ID_PUBLISHED_FLOOD": {
+    "description": "This API id was published somewhere, you can't use it now.",
+    "httpCode": 400
+  },
+  "APPLICATION_ALREADY_BANNED": {
+    "description": "The application has already been banned.",
+    "httpCode": 400
+  },
+  "APPLICATION_NOT_FOUND": {
+    "description": "The provided application does not exist.",
+    "httpCode": 404
+  },
+  "ARTICLE_TITLE_EMPTY": {
+    "description": "The title of the article is empty.",
+    "httpCode": 400
+  },
+  "ATTACH_MENU_BOT_NOT_FOUND": {
+    "description": "The attach-menu bot was not found.",
+    "httpCode": 404
+  },
+  "AUDIO_CONTENT_URL_EMPTY": {
+    "description": "The remote URL specified in the content field is empty.",
+    "httpCode": 400
+  },
+  "AUDIO_TITLE_EMPTY": {
+    "description": "An empty audio title was provided.",
+    "httpCode": 400
+  },
+  "AUTH_BYTES_INVALID": {
+    "description": "The provided authorization is invalid.",
+    "httpCode": 400
+  },
+  "AUTH_KEY_DUPLICATED": {
+    "description": "Concurrent usage of the current session from multiple connections was detected, the current session was invalidated by the server for security reasons!",
+    "httpCode": 406
+  },
+  "AUTH_KEY_INVALID": {
+    "description": "The specified auth key is invalid.",
+    "httpCode": 401
+  },
+  "AUTH_KEY_PERM_EMPTY": {
+    "description": "The method is unavailable for temporary authorization keys, not bound to a permanent authorization key.",
+    "httpCode": 401
+  },
+  "AUTH_KEY_UNREGISTERED": {
+    "description": "The specified authorization key is not registered in the system (for example, a PFS temporary key has expired).",
+    "httpCode": 401
+  },
+  "AUTH_KEY_UNSYNCHRONIZED": {
+    "description": "Internal error, please repeat the method call.",
+    "httpCode": 500
+  },
+  "AUTH_RESTART": {
+    "description": "Restart the authorization process.",
+    "httpCode": 500
+  },
+  "AUTH_RESTART_%d": {
+    "description": "Internal error (debug info %d), please repeat the method call.",
+    "httpCode": 500,
+    "paramKind": "generic"
+  },
+  "AUTH_TOKEN_ALREADY_ACCEPTED": {
+    "description": "The specified auth token was already accepted.",
+    "httpCode": 400
+  },
+  "AUTH_TOKEN_EXCEPTION": {
+    "description": "An error occurred while importing the auth token.",
+    "httpCode": 400
+  },
+  "AUTH_TOKEN_EXPIRED": {
+    "description": "The authorization token has expired.",
+    "httpCode": 400
+  },
+  "AUTH_TOKEN_INVALID": {
+    "description": "The specified auth token is invalid.",
+    "httpCode": 400
+  },
+  "AUTH_TOKEN_INVALIDX": {
+    "description": "The specified auth token is invalid.",
+    "httpCode": 400
+  },
+  "AUTOARCHIVE_NOT_AVAILABLE": {
+    "description": "The autoarchive setting is not available at this time: please check the value of the [autoarchive_setting_available field in client config &raquo;](https://core.telegram.org/api/config#client-configuration) before calling this method.",
+    "httpCode": 400
+  },
+  "BALANCE_TOO_LOW": {
+    "description": "The transaction cannot be completed because the current [Telegram Stars balance](https://core.telegram.org/api/stars) is too low.",
+    "httpCode": 400
+  },
+  "BANK_CARD_NUMBER_INVALID": {
+    "description": "The specified card number is invalid.",
+    "httpCode": 400
+  },
+  "BANNED_RIGHTS_INVALID": {
+    "description": "You provided some invalid flags in the banned rights.",
+    "httpCode": 400
+  },
+  "BIRTHDAY_INVALID": {
+    "description": "An invalid age was specified, must be between 0 and 150 years.",
+    "httpCode": 400
+  },
+  "BOOSTS_EMPTY": {
+    "description": "No boost slots were specified.",
+    "httpCode": 400
+  },
+  "BOOSTS_REQUIRED": {
+    "description": "The specified channel must first be [boosted by its users](https://core.telegram.org/api/boost) in order to perform this action.",
+    "httpCode": 400
+  },
+  "BOOST_NOT_MODIFIED": {
+    "description": "You're already [boosting](https://core.telegram.org/api/boost) the specified channel.",
+    "httpCode": 400
+  },
+  "BOOST_PEER_INVALID": {
+    "description": "The specified `boost_peer` is invalid.",
+    "httpCode": 400
+  },
+  "BOTS_TOO_MUCH": {
+    "description": "There are too many bots in this chat/channel.",
+    "httpCode": 400
+  },
+  "BOT_ACCESS_FORBIDDEN": {
+    "description": "The specified method *can* be used over a [business connection](https://core.telegram.org/api/bots/connected-business-bots) for some operations, but the specified query attempted an operation that is not allowed over a business connection.",
+    "httpCode": 403
+  },
+  "BOT_ALREADY_DISABLED": {
+    "description": "The connected business bot was already disabled for the specified peer.",
+    "httpCode": 400
+  },
+  "BOT_APP_BOT_INVALID": {
+    "description": "The bot_id passed in the inputBotAppShortName constructor is invalid.",
+    "httpCode": 400
+  },
+  "BOT_APP_INVALID": {
+    "description": "The specified bot app is invalid.",
+    "httpCode": 400
+  },
+  "BOT_APP_NOT_FOUND": {
+    "description": "The bot app was not found.",
+    "httpCode": 404
+  },
+  "BOT_APP_SHORTNAME_INVALID": {
+    "description": "The specified bot app short name is invalid.",
+    "httpCode": 400
+  },
+  "BOT_BUSINESS_CONNECTION_INVALID": {
+    "description": "The provided bot business connection id is invalid.",
+    "httpCode": 400
+  },
+  "BOT_BUSINESS_MISSING": {
+    "description": "The specified bot is not a business bot (the [user](https://core.telegram.org/constructor/user).`bot_business` flag is not set).",
+    "httpCode": 400
+  },
+  "BOT_CHANNELS_NA": {
+    "description": "Bots can't edit admin privileges.",
+    "httpCode": 400
+  },
+  "BOT_COMMAND_DESCRIPTION_INVALID": {
+    "description": "The specified command description is invalid.",
+    "httpCode": 400
+  },
+  "BOT_COMMAND_INVALID": {
+    "description": "The specified command is invalid.",
+    "httpCode": 400
+  },
+  "BOT_CONNECTION_NOT_FOUND": {
+    "description": "The bot business connection was not found.",
+    "httpCode": 404
+  },
+  "BOT_DOMAIN_INVALID": {
+    "description": "Bot domain invalid.",
+    "httpCode": 400
+  },
+  "BOT_FALLBACK_UNSUPPORTED": {
+    "description": "The fallback flag can't be set for bots.",
+    "httpCode": 400
+  },
+  "BOT_GAMES_DISABLED": {
+    "description": "Games can't be sent to channels.",
+    "httpCode": 400
+  },
+  "BOT_GROUPS_BLOCKED": {
+    "description": "This bot can't be added to groups.",
+    "httpCode": 400
+  },
+  "BOT_ID_INVALID": {
+    "description": "Required bot-id header was not provided or is invalid.",
+    "httpCode": 401
+  },
+  "BOT_INLINE_DISABLED": {
+    "description": "This bot can't be used in inline mode.",
+    "httpCode": 400
+  },
+  "BOT_INVALID": {
+    "description": "This is not a valid bot.",
+    "httpCode": 400
+  },
+  "BOT_INVOICE_INVALID": {
+    "description": "The specified invoice is invalid.",
+    "httpCode": 400
+  },
+  "BOT_METHOD_INVALID": {
+    "description": "The specified method cannot be used by bots.",
+    "httpCode": 400
+  },
+  "BOT_NOT_CONNECTED_YET": {
+    "description": "No [business bot](https://core.telegram.org/api/business#connected-bots) is connected to the currently logged in user.",
+    "httpCode": 400
+  },
+  "BOT_NOT_FOUND": {
+    "description": "The specified bot was not found.",
+    "httpCode": 404
+  },
+  "BOT_ONESIDE_NOT_AVAIL": {
+    "description": "Bots can't pin messages in PM just for themselves.",
+    "httpCode": 400
+  },
+  "BOT_PAYMENTS_DISABLED": {
+    "description": "Please enable bot payments in botfather before calling this method.",
+    "httpCode": 400
+  },
+  "BOT_RESPONSE_TIMEOUT": {
+    "description": "A timeout occurred while fetching data from the bot.",
+    "httpCode": 400
+  },
+  "BOT_SCORE_NOT_MODIFIED": {
+    "description": "The score wasn't modified.",
+    "httpCode": 400
+  },
+  "BOT_TOKEN_INVALID": {
+    "description": "The provided bot token is invalid.",
+    "httpCode": 401
+  },
+  "BOT_VERIFIER_FORBIDDEN": {
+    "description": "This bot cannot assign [verification icons](https://core.telegram.org/api/bots/verification).",
+    "httpCode": 403
+  },
+  "BOT_WEBVIEW_DISABLED": {
+    "description": "A webview cannot be opened in the specified conditions: emitted for example if `from_bot_menu` or `url` are set and `peer` is not the chat with the bot.",
+    "httpCode": 400
+  },
+  "BROADCAST_FORBIDDEN": {
+    "description": "Channel poll voters and reactions cannot be fetched to prevent deanonymization.",
+    "httpCode": 403
+  },
+  "BROADCAST_ID_INVALID": {
+    "description": "Broadcast ID invalid.",
+    "httpCode": 400
+  },
+  "BROADCAST_PUBLIC_VOTERS_FORBIDDEN": {
+    "description": "You can't forward polls with public voters.",
+    "httpCode": 400
+  },
+  "BROADCAST_REQUIRED": {
+    "description": "This method can only be called on a channel, please use stats.getMegagroupStats for supergroups.",
+    "httpCode": 400
+  },
+  "BUSINESS_ADDRESS_ACTIVE": {
+    "description": "The user is currently advertising a [Business Location](https://core.telegram.org/api/business#location), the location may only be changed (or removed) using [account.updateBusinessLocation &raquo;](https://core.telegram.org/method/account.updateBusinessLocation).  .",
+    "httpCode": 406
+  },
+  "BUSINESS_CHAT_LINK_NOT_FOUND": {
+    "description": "The business chat link was not found.",
+    "httpCode": 404
+  },
+  "BUSINESS_CONNECTION_INVALID": {
+    "description": "The `connection_id` passed to the wrapping [invokeWithBusinessConnection](https://core.telegram.org/api/business) call is invalid.",
+    "httpCode": 400
+  },
+  "BIRTHDAY_ALREADY": {
+    "description": "The target user already has a birthday set.",
+    "httpCode": 400
+  },
+  "BUSINESS_CONNECTION_NOT_ALLOWED": {
+    "description": "This method was invoked over a business connection using [invokeWithBusinessConnection](https://core.telegram.org/api/business#connected-bots), but either (1) we're a user, and users cannot invoke methods over a business connection; (2) we're a bot, but business mode was disabled in @botfather or (3); we're a bot, but this method cannot be invoked over a business connection.",
+    "httpCode": 400
+  },
+  "BUSINESS_PEER_INVALID": {
+    "description": "Messages can't be set to the specified peer through the current [business connection](https://core.telegram.org/api/business#connected-bots).",
+    "httpCode": 400
+  },
+  "BUSINESS_PEER_USAGE_MISSING": {
+    "description": "You cannot send a message to a user through a [business connection](https://core.telegram.org/api/business#connected-bots) if the user hasn't recently contacted us.",
+    "httpCode": 400
+  },
+  "BUSINESS_RECIPIENTS_EMPTY": {
+    "description": "You didn't set any flag in inputBusinessBotRecipients, thus the bot cannot work with *any* peer.",
+    "httpCode": 400
+  },
+  "BUSINESS_WORK_HOURS_EMPTY": {
+    "description": "No work hours were specified.",
+    "httpCode": 400
+  },
+  "BUSINESS_WORK_HOURS_PERIOD_INVALID": {
+    "description": "The specified work hours are invalid, see [here &raquo;](https://core.telegram.org/api/business#opening-hours) for the exact requirements.",
+    "httpCode": 400
+  },
+  "BUTTON_COPY_TEXT_INVALID": {
+    "description": "The specified [keyboardButtonCopy](https://core.telegram.org/constructor/keyboardButtonCopy).`copy_text` is invalid.",
+    "httpCode": 400
+  },
+  "BUTTON_DATA_INVALID": {
+    "description": "The data of one or more of the buttons you provided is invalid.",
+    "httpCode": 400
+  },
+  "BUTTON_ID_INVALID": {
+    "description": "The specified button ID is invalid.",
+    "httpCode": 400
+  },
+  "BUTTON_INVALID": {
+    "description": "The specified button is invalid.",
+    "httpCode": 400
+  },
+  "BUTTON_POS_INVALID": {
+    "description": "The position of one of the keyboard buttons is invalid (i.e. a Game or Pay button not in the first position, and so on...).",
+    "httpCode": 400
+  },
+  "BUTTON_TEXT_INVALID": {
+    "description": "The specified button text is invalid.",
+    "httpCode": 400
+  },
+  "BUTTON_TYPE_INVALID": {
+    "description": "The type of one or more of the buttons you provided is invalid.",
+    "httpCode": 400
+  },
+  "BUTTON_URL_INVALID": {
+    "description": "Button URL invalid.",
+    "httpCode": 400
+  },
+  "BUTTON_USER_INVALID": {
+    "description": "The `user_id` passed to inputKeyboardButtonUserProfile is invalid!",
+    "httpCode": 400
+  },
+  "BUTTON_USER_PRIVACY_RESTRICTED": {
+    "description": "The privacy setting of the user specified in a [inputKeyboardButtonUserProfile](https://core.telegram.org/constructor/inputKeyboardButtonUserProfile) button do not allow creating such a button.",
+    "httpCode": 400
+  },
+  "CACHE_INVALIDATE_PARTIAL": {
+    "description": "Cache invalidation only partially completed; retry the operation after cache infrastructure recovers.",
+    "httpCode": 503
+  },
+  "CALL_ALREADY_ACCEPTED": {
+    "description": "The call was already accepted.",
+    "httpCode": 400
+  },
+  "CALL_ALREADY_DECLINED": {
+    "description": "The call was already declined.",
+    "httpCode": 400
+  },
+  "CALL_NOT_ACTIVE": {
+    "httpCode": 400,
+    "description": "The specified call is not active."
+  },
+  "CALL_OCCUPY_FAILED": {
+    "description": "The call failed because the user is already making another call.",
+    "httpCode": 400
+  },
+  "CALL_PEER_INVALID": {
+    "description": "The provided call peer object is invalid.",
+    "httpCode": 400
+  },
+  "CALL_PROTOCOL_COMPAT_LAYER_INVALID": {
+    "description": "The other side of the call does not support any of the VoIP protocols supported by the local client, as specified by the `protocol.layer` and `protocol.library_versions` fields.",
+    "httpCode": 406
+  },
+  "CALL_PROTOCOL_FLAGS_INVALID": {
+    "description": "Call protocol flags invalid.",
+    "httpCode": 400
+  },
+  "CALL_PROTOCOL_LAYER_INVALID": {
+    "description": "The specified protocol layer version range is invalid.",
+    "httpCode": 400
+  },
+  "CDN_METHOD_INVALID": {
+    "description": "You can't call this method in a CDN DC.",
+    "httpCode": 400
+  },
+  "CDN_NOT_AVAILABLE": {
+    "description": "CDN endpoint not available; fall back to direct fetch.",
+    "httpCode": 501
+  },
+  "CDN_UPLOAD_TIMEOUT": {
+    "description": "A server-side timeout occurred while reuploading the file to the CDN DC.",
+    "httpCode": 500
+  },
+  "CHANNELS_ADMIN_LOCATED_TOO_MUCH": {
+    "description": "The user has reached the limit of public geogroups.",
+    "httpCode": 400
+  },
+  "CHANNELS_ADMIN_PUBLIC_TOO_MUCH": {
+    "description": "You're admin of too many public channels, make some channels private to change the username of this channel.",
+    "httpCode": 400
+  },
+  "CHANNELS_TOO_MUCH": {
+    "description": "You have joined too many channels/supergroups.",
+    "httpCode": 400
+  },
+  "CHANNEL_FORUM_MISSING": {
+    "description": "This supergroup is not a forum.",
+    "httpCode": 400
+  },
+  "CHANNEL_ID_INVALID": {
+    "description": "The specified supergroup ID is invalid.",
+    "httpCode": 400
+  },
+  "CHANNEL_INVALID": {
+    "description": "The provided channel is invalid.",
+    "httpCode": 400
+  },
+  "CHANNEL_MONOFORUM_UNSUPPORTED": {
+    "description": "[Monoforums](https://core.telegram.org/api/channel#monoforums) do not support this feature.",
+    "httpCode": 400
+  },
+  "CHANNEL_PARICIPANT_MISSING": {
+    "description": "The current user is not in the channel.",
+    "httpCode": 400
+  },
+  "CHANNEL_PRIVATE": {
+    "description": "You haven't joined this channel/supergroup.",
+    "httpCode": 400
+  },
+  "CHANNEL_PUBLIC_GROUP_NA": {
+    "description": "channel/supergroup not available.",
+    "httpCode": 403
+  },
+  "CHANNEL_TOO_BIG": {
+    "description": "This channel has too many participants (>1000) to be deleted.",
+    "httpCode": 400
+  },
+  "CHANNEL_TOO_LARGE": {
+    "description": "Channel is too large to be deleted; this error is issued when trying to delete channels with more than 1000 members (subject to change).",
+    "httpCode": 400
+  },
+  "CHARGE_ALREADY_REFUNDED": {
+    "description": "The transaction was already refunded.",
+    "httpCode": 400
+  },
+  "CHARGE_ID_EMPTY": {
+    "description": "The specified charge_id is empty.",
+    "httpCode": 400
+  },
+  "CHARGE_ID_INVALID": {
+    "description": "The specified charge_id is invalid.",
+    "httpCode": 400
+  },
+  "CHATLINKS_TOO_MUCH": {
+    "description": "Too many [business chat links](https://core.telegram.org/api/business#business-chat-links) were created, please delete some older links.",
+    "httpCode": 400
+  },
+  "CHATLINK_SLUG_EMPTY": {
+    "description": "The specified slug is empty.",
+    "httpCode": 400
+  },
+  "CHATLINK_SLUG_EXPIRED": {
+    "description": "The specified [business chat link](https://core.telegram.org/api/business#business-chat-links) has expired.",
+    "httpCode": 400
+  },
+  "CHATLISTS_TOO_MUCH": {
+    "description": "You have created too many folder links, hitting the `chatlist_invites_limit_default`/`chatlist_invites_limit_premium` [limits &raquo;](https://core.telegram.org/api/config#chatlist-invites-limit-default).",
+    "httpCode": 400
+  },
+  "CHATLIST_EXCLUDE_INVALID": {
+    "description": "The specified `exclude_peers` are invalid.",
+    "httpCode": 400
+  },
+  "CHAT_ABOUT_NOT_MODIFIED": {
+    "description": "About text has not changed.",
+    "httpCode": 400
+  },
+  "CHAT_ABOUT_TOO_LONG": {
+    "description": "Chat about too long.",
+    "httpCode": 400
+  },
+  "CHAT_ACTION_FORBIDDEN": {
+    "description": "You cannot execute this action.",
+    "httpCode": 403
+  },
+  "CHAT_ADMIN_INVITE_REQUIRED": {
+    "description": "You do not have the rights to do this.",
+    "httpCode": 403
+  },
+  "CHAT_ADMIN_REQUIRED": {
+    "description": "You must be an admin in this chat to do this.",
+    "httpCode": 400
+  },
+  "CHAT_BOOST_REQUIRED": {
+    "description": "The chat does not have the required number of boosts.",
+    "httpCode": 400
+  },
+  "CHAT_CANNOT_BAN_OWNER": {
+    "description": "The chat owner cannot be banned.",
+    "httpCode": 403
+  },
+  "CHAT_CANNOT_EDIT_OWNER": {
+    "description": "The chat owner cannot be edited.",
+    "httpCode": 403
+  },
+  "CHAT_DISCUSSION_UNALLOWED": {
+    "description": "You can't enable forum topics in a discussion group linked to a channel.",
+    "httpCode": 400
+  },
+  "CHAT_FORBIDDEN": {
+    "description": "This chat is not available to the current user.",
+    "httpCode": 403
+  },
+  "CHAT_FORWARDS_RESTRICTED": {
+    "description": "You can't forward messages from a protected chat.",
+    "httpCode": 400
+  },
+  "CHAT_GROUP_NOT_FOUND": {
+    "description": "The basic group chat was not found.",
+    "httpCode": 404
+  },
+  "CHAT_GUEST_SEND_FORBIDDEN": {
+    "description": "You join the discussion group before commenting, see [here &raquo;](https://core.telegram.org/api/discussion#requiring-users-to-join-the-group) for more info.",
+    "httpCode": 403
+  },
+  "CHAT_ID_EMPTY": {
+    "description": "The provided chat ID is empty.",
+    "httpCode": 400
+  },
+  "CHAT_ID_GENERATE_FAILED": {
+    "description": "Failure while generating the chat ID.",
+    "httpCode": 500
+  },
+  "CHAT_ID_INVALID": {
+    "description": "The provided chat id is invalid.",
+    "httpCode": 400
+  },
+  "CHAT_INVALID": {
+    "description": "Invalid chat.",
+    "httpCode": 400
+  },
+  "CHAT_INVITE_PERMANENT": {
+    "description": "You can't set an expiration date on permanent invite links.",
+    "httpCode": 400
+  },
+  "CHAT_LINK_EXISTS": {
+    "description": "The chat is public, you can't hide the history to new users.",
+    "httpCode": 400
+  },
+  "CHAT_MEMBER_ADD_FAILED": {
+    "description": "Could not add participants.",
+    "httpCode": 400
+  },
+  "CHAT_NOT_ADMIN": {
+    "description": "You are not an admin in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_NOT_FORUM": {
+    "description": "The chat is not a forum.",
+    "httpCode": 400
+  },
+  "CHAT_NOT_FOUND": {
+    "description": "The specified chat was not found.",
+    "httpCode": 404
+  },
+  "CHAT_NOT_GROUP": {
+    "description": "The chat is not a group.",
+    "httpCode": 400
+  },
+  "CHAT_NOT_MEMBER": {
+    "description": "You are not a member of this chat.",
+    "httpCode": 403
+  },
+  "CHAT_NOT_MODIFIED": {
+    "description": "No changes were made to chat information because the new information you passed is identical to the current information.",
+    "httpCode": 400
+  },
+  "CHAT_NOT_PUBLIC": {
+    "description": "The chat is not public.",
+    "httpCode": 400
+  },
+  "CHAT_PUBLIC_REQUIRED": {
+    "description": "You can only enable join requests in public groups.",
+    "httpCode": 400
+  },
+  "CHAT_RANK_TOO_LONG": {
+    "description": "The provided admin rank string is too long.",
+    "httpCode": 400
+  },
+  "CHAT_RESTRICTED": {
+    "description": "You can't send messages in this chat, you were restricted.",
+    "httpCode": 400
+  },
+  "CHAT_REVOKE_DATE_UNSUPPORTED": {
+    "description": "`min_date` and `max_date` are not available for using with non-user peers.",
+    "httpCode": 400
+  },
+  "CHAT_SEND_AUDIOS_FORBIDDEN": {
+    "description": "You can't send audio messages in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_DOCS_FORBIDDEN": {
+    "description": "You can't send documents in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_GAME_FORBIDDEN": {
+    "description": "You can't send a game to this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_GIFS_FORBIDDEN": {
+    "description": "You can't send gifs in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_INLINE_FORBIDDEN": {
+    "description": "You can't send inline messages in this group.",
+    "httpCode": 400
+  },
+  "CHAT_SEND_MEDIA_FORBIDDEN": {
+    "description": "You can't send media in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_PHOTOS_FORBIDDEN": {
+    "description": "You can't send photos in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_PLAIN_FORBIDDEN": {
+    "description": "You can't send non-media (text) messages in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_POLL_FORBIDDEN": {
+    "description": "You can't send polls in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_REACTION_FORBIDDEN": {
+    "description": "You can't send reactions in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_ROUNDVIDEOS_FORBIDDEN": {
+    "description": "You can't send round videos to this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_STICKERS_FORBIDDEN": {
+    "description": "You can't send stickers in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_VIDEOS_FORBIDDEN": {
+    "description": "You can't send videos in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_VOICES_FORBIDDEN": {
+    "description": "You can't send voice recordings in this chat.",
+    "httpCode": 403
+  },
+  "CHAT_SEND_WEBPAGE_FORBIDDEN": {
+    "description": "You can't send webpage previews to this chat.",
+    "httpCode": 403
+  },
+  "CHAT_TITLE_EMPTY": {
+    "description": "No chat title provided.",
+    "httpCode": 400
+  },
+  "CHAT_TOO_BIG": {
+    "description": "This method is not available for groups with more than `chat_read_mark_size_threshold` members, [see client configuration &raquo;](https://core.telegram.org/api/config#client-configuration).",
+    "httpCode": 400
+  },
+  "CHAT_TYPE_INVALID": {
+    "description": "The specified user type is invalid.",
+    "httpCode": 403
+  },
+  "CHAT_WRITE_FORBIDDEN": {
+    "description": "You can't write in this chat.",
+    "httpCode": 403
+  },
+  "CODE_EMPTY": {
+    "description": "The provided code is empty.",
+    "httpCode": 400
+  },
+  "CODE_HASH_INVALID": {
+    "description": "Code hash invalid.",
+    "httpCode": 400
+  },
+  "CODE_INVALID": {
+    "description": "Code invalid.",
+    "httpCode": 400
+  },
+  "COLLECTIBLE_INVALID": {
+    "description": "The specified collectible is invalid.",
+    "httpCode": 400
+  },
+  "COLLECTIBLE_NOT_FOUND": {
+    "description": "The specified collectible could not be found.",
+    "httpCode": 400
+  },
+  "COLOR_INVALID": {
+    "description": "The specified color palette ID was invalid.",
+    "httpCode": 400
+  },
+  "CONNECTED_BOT_NOT_FOUND": {
+    "description": "The connected bot was not found.",
+    "httpCode": 404
+  },
+  "CONNECTION_API_ID_INVALID": {
+    "description": "The provided API id is invalid.",
+    "httpCode": 400
+  },
+  "CONNECTION_APP_VERSION_EMPTY": {
+    "description": "App version is empty.",
+    "httpCode": 400
+  },
+  "CONNECTION_DEVICE_MODEL_EMPTY": {
+    "description": "The specified device model is empty.",
+    "httpCode": 400
+  },
+  "CONNECTION_ID_INVALID": {
+    "description": "The specified connection ID is invalid.",
+    "httpCode": 400
+  },
+  "CONNECTION_LANG_PACK_INVALID": {
+    "description": "The specified language pack is empty.",
+    "httpCode": 400
+  },
+  "CONNECTION_LAYER_INVALID": {
+    "description": "Layer invalid.",
+    "httpCode": 400
+  },
+  "CONNECTION_NOT_INITED": {
+    "description": "Please initialize the connection using initConnection before making queries.",
+    "httpCode": 400
+  },
+  "CONNECTION_SYSTEM_EMPTY": {
+    "description": "The specified system version is empty.",
+    "httpCode": 400
+  },
+  "CONNECTION_SYSTEM_LANG_CODE_EMPTY": {
+    "description": "The specified system language code is empty.",
+    "httpCode": 400
+  },
+  "CONTACT_ADD_MISSING": {
+    "description": "Contact to add is missing.",
+    "httpCode": 400
+  },
+  "CONTACT_EXISTS": {
+    "description": "The contact already exists.",
+    "httpCode": 409
+  },
+  "CONTACT_ID_INVALID": {
+    "description": "The provided contact ID is invalid.",
+    "httpCode": 400
+  },
+  "CONTACT_MISSING": {
+    "description": "The specified user is not a contact.",
+    "httpCode": 400
+  },
+  "CONTACT_NAME_EMPTY": {
+    "description": "Contact name empty.",
+    "httpCode": 400
+  },
+  "CONTACT_NOT_FOUND": {
+    "description": "The contact was not found.",
+    "httpCode": 404
+  },
+  "CONTACT_REQUEST_NOT_FOUND": {
+    "description": "The contact request was not found.",
+    "httpCode": 404
+  },
+  "CONTACT_REQ_MISSING": {
+    "description": "Missing contact request.",
+    "httpCode": 400
+  },
+  "CREATE_CALL_FAILED": {
+    "description": "An error occurred while creating the call.",
+    "httpCode": 400
+  },
+  "CREDENTIAL_INVALID": {
+    "description": "The specified credential is invalid.",
+    "httpCode": 400
+  },
+  "CURRENCY_TOTAL_AMOUNT_INVALID": {
+    "description": "The total amount of all prices is invalid.",
+    "httpCode": 400
+  },
+  "CUSTOM_REACTIONS_TOO_MANY": {
+    "description": "Too many custom reactions were specified.",
+    "httpCode": 400
+  },
+  "DATA_HASH_SIZE_INVALID": {
+    "description": "The size of the specified secureValueErrorData.data_hash is invalid.",
+    "httpCode": 400
+  },
+  "DATA_INVALID": {
+    "description": "Encrypted data invalid.",
+    "httpCode": 400
+  },
+  "DATA_JSON_INVALID": {
+    "description": "The provided JSON data is invalid.",
+    "httpCode": 400
+  },
+  "DATA_TOO_LONG": {
+    "description": "Data too long.",
+    "httpCode": 400
+  },
+  "DATE_EMPTY": {
+    "description": "Date empty.",
+    "httpCode": 400
+  },
+  "DC_ID_INVALID": {
+    "description": "The provided DC ID is invalid.",
+    "httpCode": 400
+  },
+  "DH_G_A_INVALID": {
+    "description": "g_a invalid.",
+    "httpCode": 400
+  },
+  "DISCUSSION_NOT_FOUND": {
+    "description": "The discussion thread was not found.",
+    "httpCode": 404
+  },
+  "DOCUMENT_INVALID": {
+    "description": "The specified document is invalid.",
+    "httpCode": 400
+  },
+  "EDIT_BOT_INVITE_FORBIDDEN": {
+    "description": "Normal users can't edit invites that were created by bots.",
+    "httpCode": 403
+  },
+  "EDIT_EMPTY": {
+    "description": "The edit operation produces no change.",
+    "httpCode": 400
+  },
+  "EFFECT_ID_INVALID": {
+    "description": "The specified effect ID is invalid.",
+    "httpCode": 400
+  },
+  "EFFECTS_UNSUPPORTED": {
+    "description": "Emoji and message effects are not supported on this server.",
+    "httpCode": 501
+  },
+  "EMAIL_HASH_EXPIRED": {
+    "description": "Email hash expired.",
+    "httpCode": 400
+  },
+  "EMAIL_INVALID": {
+    "description": "The specified email is invalid.",
+    "httpCode": 400
+  },
+  "EMAIL_NOT_ALLOWED": {
+    "description": "The specified email cannot be used to complete the operation.",
+    "httpCode": 400
+  },
+  "EMAIL_NOT_SETUP": {
+    "description": "In order to change the login email with emailVerifyPurposeLoginChange, an existing login email must already be set using emailVerifyPurposeLoginSetup.",
+    "httpCode": 400
+  },
+  "EMAIL_UNCONFIRMED": {
+    "description": "Email unconfirmed.",
+    "httpCode": 400
+  },
+  "EMAIL_UNCONFIRMED_%d": {
+    "description": "The provided email isn't confirmed, %d is the length of the verification code that was just sent to the email: use [account.verifyEmail](https://core.telegram.org/method/account.verifyEmail) to enter the received verification code and enable the recovery email.",
+    "httpCode": 400,
+    "paramKind": "generic"
+  },
+  "EMAIL_VERIFICATION_REQUIRED": {
+    "description": "Only email verification code is supported for this operation.",
+    "httpCode": 400
+  },
+  "EMAIL_VERIFY_EXPIRED": {
+    "description": "The verification email has expired.",
+    "httpCode": 400
+  },
+  "EMOJI_INVALID": {
+    "description": "The specified theme emoji is valid.",
+    "httpCode": 400
+  },
+  "EMOJI_MARKUP_INVALID": {
+    "description": "The specified `video_emoji_markup` was invalid.",
+    "httpCode": 400
+  },
+  "EMOJI_NOT_MODIFIED": {
+    "description": "The theme wasn't changed.",
+    "httpCode": 400
+  },
+  "EMOTICON_EMPTY": {
+    "description": "The emoji is empty.",
+    "httpCode": 400
+  },
+  "EMOTICON_INVALID": {
+    "description": "The specified emoji is invalid.",
+    "httpCode": 400
+  },
+  "EMOTICON_STICKERPACK_MISSING": {
+    "description": "inputStickerSetDice.emoji cannot be empty.",
+    "httpCode": 400
+  },
+  "ENCRYPTED_MESSAGE_INVALID": {
+    "description": "Encrypted message invalid.",
+    "httpCode": 400
+  },
+  "ENCRYPTION_ALREADY_ACCEPTED": {
+    "description": "Secret chat already accepted.",
+    "httpCode": 400
+  },
+  "ENCRYPTION_ALREADY_DECLINED": {
+    "description": "The secret chat was already declined.",
+    "httpCode": 400
+  },
+  "ENCRYPTION_DECLINED": {
+    "description": "The secret chat was declined.",
+    "httpCode": 400
+  },
+  "ENCRYPTION_ID_INVALID": {
+    "description": "The provided secret chat ID is invalid.",
+    "httpCode": 400
+  },
+  "ENTITIES_TOO_LONG": {
+    "description": "You provided too many styled message entities.",
+    "httpCode": 400
+  },
+  "ENTITY_BOUNDS_INVALID": {
+    "description": "A specified [entity offset or length](https://core.telegram.org/api/entities#entity-length) is invalid, see [here &raquo;](https://core.telegram.org/api/entities#entity-length) for info on how to properly compute the entity offset/length.",
+    "httpCode": 400
+  },
+  "ENTITY_MENTION_USER_INVALID": {
+    "description": "You mentioned an invalid user.",
+    "httpCode": 400
+  },
+  "ENTITY_URL_INVALID": {
+    "description": "URL scheme must be https or http.",
+    "httpCode": 400
+  },
+  "ERROR_TEXT_EMPTY": {
+    "description": "The provided error message is empty.",
+    "httpCode": 400
+  },
+  "EFFECT_INVALID": {
+    "description": "The specified message effect is invalid or unavailable.",
+    "httpCode": 400
+  },
+  "EXPIRES_AT_INVALID": {
+    "description": "The specified `expires_at` timestamp is invalid.",
+    "httpCode": 400
+  },
+  "EXPIRE_DATE_INVALID": {
+    "description": "The specified expiration date is invalid.",
+    "httpCode": 400
+  },
+  "EXPORT_CARD_INVALID": {
+    "description": "Provided card is invalid.",
+    "httpCode": 400
+  },
+  "EXTENDED_MEDIA_AMOUNT_INVALID": {
+    "description": "The specified `stars_amount` of the passed [inputMediaPaidMedia](https://core.telegram.org/constructor/inputMediaPaidMedia) is invalid.",
+    "httpCode": 400
+  },
+  "EXTENDED_MEDIA_INVALID": {
+    "description": "The specified paid media is invalid.",
+    "httpCode": 400
+  },
+  "EXTERNAL_URL_INVALID": {
+    "description": "External URL invalid.",
+    "httpCode": 400
+  },
+  "FACT_CHECK_NOT_FOUND": {
+    "description": "The fact-check note was not found.",
+    "httpCode": 404
+  },
+  "FILEREF_UPGRADE_NEEDED": {
+    "description": "The client has to be updated in order to support [file references](https://core.telegram.org/api/file-references).",
+    "httpCode": 406
+  },
+  "FILE_CONTENT_TYPE_INVALID": {
+    "description": "File content-type is invalid.",
+    "httpCode": 400
+  },
+  "FILE_EMTPY": {
+    "description": "An empty file was provided.",
+    "httpCode": 400
+  },
+  "FILE_ID_INVALID": {
+    "description": "The provided file id is invalid.",
+    "httpCode": 400
+  },
+  "FILE_MIGRATE_%d": {
+    "description": "The file currently being accessed is stored in DC %d, please re-send the query to that DC.",
+    "httpCode": 400,
+    "paramKind": "migrate"
+  },
+  "FILE_NOT_FOUND": {
+    "description": "The requested file does not exist.",
+    "httpCode": 404
+  },
+  "FILE_PARTS_INVALID": {
+    "description": "The number of file parts is invalid.",
+    "httpCode": 400
+  },
+  "FILE_PART_%d_MISSING": {
+    "description": "Part %d of the file is missing from storage. Try repeating the method call to resave the part.",
+    "httpCode": 400,
+    "paramKind": "generic"
+  },
+  "FILE_PART_EMPTY": {
+    "description": "The provided file part is empty.",
+    "httpCode": 400
+  },
+  "FILE_PART_INVALID": {
+    "description": "The file part number is invalid.",
+    "httpCode": 400
+  },
+  "FILE_PART_LENGTH_INVALID": {
+    "description": "The length of a file part is invalid.",
+    "httpCode": 400
+  },
+  "FILE_PART_SIZE_CHANGED": {
+    "description": "Provided file part size has changed.",
+    "httpCode": 400
+  },
+  "FILE_PART_SIZE_INVALID": {
+    "description": "The provided file part size is invalid.",
+    "httpCode": 400
+  },
+  "FILE_PART_TOO_BIG": {
+    "description": "The uploaded file part is too big.",
+    "httpCode": 400
+  },
+  "FILE_PART_TOO_SMALL": {
+    "description": "The size of the uploaded file part is too small, please see the documentation for the allowed sizes.",
+    "httpCode": 400
+  },
+  "FILE_REFERENCE_%d_EXPIRED": {
+    "description": "The file reference of the media file at index %d in the passed media array expired, it [must be refreshed as specified in the documentation](https://core.telegram.org/api/file-references). .",
+    "httpCode": 400,
+    "paramKind": "generic"
+  },
+  "FILE_REFERENCE_%d_INVALID": {
+    "description": "The [file reference](https://core.telegram.org/api/file-references) of the media file at index %d in the passed media array is invalid.",
+    "httpCode": 400,
+    "paramKind": "generic"
+  },
+  "FILE_REFERENCE_EMPTY": {
+    "description": "An empty [file reference](https://core.telegram.org/api/file-references) was specified.",
+    "httpCode": 400
+  },
+  "FILE_REFERENCE_EXPIRED": {
+    "description": "File reference expired, it must be refetched as described in [the documentation](https://core.telegram.org/api/file-references).",
+    "httpCode": 400,
+    "paramKind": "indexed"
+  },
+  "FILE_REFERENCE_INVALID": {
+    "description": "The specified [file reference](https://core.telegram.org/api/file-references) is invalid.",
+    "httpCode": 400,
+    "paramKind": "indexed"
+  },
+  "FILE_TITLE_EMPTY": {
+    "description": "An empty file title was specified.",
+    "httpCode": 400
+  },
+  "FILE_TOKEN_INVALID": {
+    "description": "The master DC did not accept the `file_token` (e.g., the token has expired). Continue downloading the file from the master DC using upload.getFile.",
+    "httpCode": 400
+  },
+  "FILTER_ID_INVALID": {
+    "description": "The specified filter ID is invalid.",
+    "httpCode": 400
+  },
+  "FILTER_INCLUDE_EMPTY": {
+    "description": "The include_peers vector of the filter is empty.",
+    "httpCode": 400
+  },
+  "FILTER_NOT_FOUND": {
+    "description": "The dialog filter was not found.",
+    "httpCode": 404
+  },
+  "FILTER_NOT_SUPPORTED": {
+    "description": "The specified filter cannot be used in this context.",
+    "httpCode": 400
+  },
+  "FILTER_TITLE_EMPTY": {
+    "description": "The title field of the filter is empty.",
+    "httpCode": 400
+  },
+  "FIRSTNAME_INVALID": {
+    "description": "The first name is invalid.",
+    "httpCode": 400
+  },
+  "FLOOD_PREMIUM_WAIT_%d": {
+    "description": "Please wait %d seconds before repeating the action, or purchase a [Telegram Premium subscription](https://core.telegram.org/api/premium) to remove this rate limit.",
+    "httpCode": 420,
+    "paramKind": "flood"
+  },
+  "FLOOD_WAIT_%d": {
+    "description": "Please wait %d seconds before repeating the action.",
+    "httpCode": 420,
+    "paramKind": "flood"
+  },
+  "FOLDER_ID_EMPTY": {
+    "description": "An empty folder ID was specified.",
+    "httpCode": 400
+  },
+  "FOLDER_ID_INVALID": {
+    "description": "Invalid folder ID.",
+    "httpCode": 400
+  },
+  "FORM_EXPIRED": {
+    "description": "The form was generated more than 10 minutes ago and has expired, please re-generate it using [payments.getPaymentForm](https://core.telegram.org/method/payments.getPaymentForm) and pass the new `form_id`.",
+    "httpCode": 400
+  },
+  "FORM_ID_EMPTY": {
+    "description": "The specified form ID is empty.",
+    "httpCode": 400
+  },
+  "FORM_SUBMIT_DUPLICATE": {
+    "description": "The same payment form was already submitted.  .",
+    "httpCode": 400
+  },
+  "FORM_UNSUPPORTED": {
+    "description": "Please update your client.",
+    "httpCode": 400
+  },
+  "FORUM_ENABLED": {
+    "description": "You can't execute the specified action because the group is a [forum](https://core.telegram.org/api/forum), disable forum functionality to continue.",
+    "httpCode": 400
+  },
+  "FORUM_NOT_AVAILABLE": {
+    "description": "Forum functionality is not available for this chat.",
+    "httpCode": 400
+  },
+  "FORUM_NOT_ENABLED": {
+    "description": "Forum mode is not enabled for this chat.",
+    "httpCode": 400
+  },
+  "FRESH_CHANGE_ADMINS_FORBIDDEN": {
+    "description": "You were just elected admin, you can't add or modify other admins yet.",
+    "httpCode": 400
+  },
+  "FRESH_CHANGE_PHONE_FORBIDDEN": {
+    "description": "You can't change phone number right after logging in, please wait at least 24 hours.",
+    "httpCode": 406
+  },
+  "FRESH_RESET_AUTHORISATION_FORBIDDEN": {
+    "description": "You can't logout other sessions if less than 24 hours have passed since you logged on the current session.",
+    "httpCode": 406
+  },
+  "FROM_MESSAGE_BOT_DISABLED": {
+    "description": "Bots can't use fromMessage min constructors.",
+    "httpCode": 400
+  },
+  "FROM_PEER_INVALID": {
+    "description": "The specified from_id is invalid.",
+    "httpCode": 400
+  },
+  "FROZEN_METHOD_INVALID": {
+    "description": "The current account is [frozen](https://core.telegram.org/api/auth#frozen-accounts), and thus cannot execute the specified action.",
+    "httpCode": 420
+  },
+  "FROZEN_PARTICIPANT_MISSING": {
+    "description": "The current account is [frozen](https://core.telegram.org/api/auth#frozen-accounts), and cannot access the specified peer.",
+    "httpCode": 400
+  },
+  "GAME_BOT_INVALID": {
+    "description": "Bots can't send another bot's game.",
+    "httpCode": 400
+  },
+  "GENERAL_MODIFY_ICON_FORBIDDEN": {
+    "description": "You can't modify the icon of the \"General\" topic.",
+    "httpCode": 400
+  },
+  "GEO_POINT_INVALID": {
+    "description": "Invalid geoposition provided.",
+    "httpCode": 400,
+    "paramKind": "indexed"
+  },
+  "GIFT_CODE_NOT_FOUND": {
+    "description": "The gift code was not found.",
+    "httpCode": 404
+  },
+  "GIFT_MONTHS_INVALID": {
+    "description": "The value passed in invoice.inputInvoicePremiumGiftStars.months is invalid.",
+    "httpCode": 400
+  },
+  "GIFT_SLUG_EXPIRED": {
+    "description": "The specified gift slug has expired.",
+    "httpCode": 400
+  },
+  "GIFT_SLUG_INVALID": {
+    "description": "The specified slug is invalid.",
+    "httpCode": 400
+  },
+  "GIFT_STARS_INVALID": {
+    "description": "The specified amount of stars is invalid.",
+    "httpCode": 400
+  },
+  "GIF_CONTENT_TYPE_INVALID": {
+    "description": "GIF content-type invalid.",
+    "httpCode": 400
+  },
+  "GIF_ID_INVALID": {
+    "description": "The provided GIF ID is invalid.",
+    "httpCode": 400
+  },
+  "GRAPH_EXPIRED_RELOAD": {
+    "description": "This graph has expired, please obtain a new graph token.",
+    "httpCode": 400
+  },
+  "GRAPH_INVALID_RELOAD": {
+    "description": "Invalid graph token provided, please reload the stats and provide the updated token.",
+    "httpCode": 400
+  },
+  "GRAPH_OUTDATED_RELOAD": {
+    "description": "The graph is outdated, please get a new async token using stats.getBroadcastStats.",
+    "httpCode": 400
+  },
+  "GROUPCALL_ALREADY_DISCARDED": {
+    "description": "The group call was already discarded.",
+    "httpCode": 400
+  },
+  "GROUPCALL_ALREADY_STARTED": {
+    "description": "The groupcall has already started, you can join directly using [phone.joinGroupCall](https://core.telegram.org/method/phone.joinGroupCall).",
+    "httpCode": 403
+  },
+  "GROUPCALL_CHANGE_FORBIDDEN": {
+    "description": "You cannot change this group call setting.",
+    "httpCode": 403
+  },
+  "GROUPCALL_FORBIDDEN": {
+    "description": "The group call has already ended.",
+    "httpCode": 400
+  },
+  "GROUPCALL_INVALID": {
+    "description": "The specified group call is invalid.",
+    "httpCode": 400
+  },
+  "GROUPCALL_JOIN_MISSING": {
+    "description": "You haven't joined this group call.",
+    "httpCode": 400
+  },
+  "GROUPCALL_NOT_MODIFIED": {
+    "description": "Group call settings weren't modified.",
+    "httpCode": 400
+  },
+  "GROUPCALL_SSRC_DUPLICATE_MUCH": {
+    "description": "The app needs to retry joining the group call with a new SSRC value.",
+    "httpCode": 400
+  },
+  "GROUPED_MEDIA_INVALID": {
+    "description": "Invalid grouped media.",
+    "httpCode": 400
+  },
+  "HASHTAG_INVALID": {
+    "description": "The specified hashtag is invalid.",
+    "httpCode": 400
+  },
+  "HASH_INVALID": {
+    "description": "The provided hash is invalid.",
+    "httpCode": 400
+  },
+  "HASH_SIZE_INVALID": {
+    "description": "The size of the specified secureValueError.hash is invalid.",
+    "httpCode": 400
+  },
+  "HIDE_REQUESTER_MISSING": {
+    "description": "The join request was missing or was already handled.",
+    "httpCode": 400
+  },
+  "HISTORY_IMPORT_UNSUPPORTED": {
+    "description": "History import is not supported on this server.",
+    "httpCode": 501
+  },
+  "ID_EXPIRED": {
+    "description": "The passed prepared inline message ID has expired.",
+    "httpCode": 400
+  },
+  "ID_INVALID": {
+    "description": "The passed ID is invalid.",
+    "httpCode": 400
+  },
+  "IMAGE_PROCESS_FAILED": {
+    "description": "Failure while processing image.",
+    "httpCode": 400
+  },
+  "IMPORT_FILE_INVALID": {
+    "description": "The specified chat export file is invalid.",
+    "httpCode": 400
+  },
+  "IMPORT_FORMAT_DATE_INVALID": {
+    "description": "The date specified in the import file is invalid.",
+    "httpCode": 400
+  },
+  "IMPORT_FORMAT_UNRECOGNIZED": {
+    "description": "The specified chat export file was exported from an unsupported chat app.",
+    "httpCode": 400
+  },
+  "IMPORT_ID_INVALID": {
+    "description": "The specified import ID is invalid.",
+    "httpCode": 400
+  },
+  "IMPORT_TOKEN_INVALID": {
+    "description": "The specified token is invalid.",
+    "httpCode": 400
+  },
+  "INLINE_BOT_REQUIRED": {
+    "description": "Only the inline bot can edit message.",
+    "httpCode": 403
+  },
+  "INLINE_RESULT_EXPIRED": {
+    "description": "The inline query expired.",
+    "httpCode": 400
+  },
+  "INPUT_CHANNEL_INVALID": {
+    "description": "The provided InputChannel is invalid.",
+    "httpCode": 400
+  },
+  "INPUT_CHATLIST_INVALID": {
+    "description": "The specified folder is invalid.",
+    "httpCode": 400
+  },
+  "INPUT_CONSTRUCTOR_INVALID": {
+    "description": "The specified TL constructor is invalid.",
+    "httpCode": 400
+  },
+  "INPUT_FETCH_ERROR": {
+    "description": "An error occurred while parsing the provided TL constructor.",
+    "httpCode": 400
+  },
+  "INPUT_FETCH_FAIL": {
+    "description": "An error occurred while parsing the provided TL constructor.",
+    "httpCode": 400
+  },
+  "INPUT_FILE_INVALID": {
+    "description": "The specified [InputFile](https://core.telegram.org/type/InputFile) is invalid.",
+    "httpCode": 400,
+    "paramKind": "indexed"
+  },
+  "INPUT_FILTER_INVALID": {
+    "description": "The specified filter is invalid.",
+    "httpCode": 400
+  },
+  "INPUT_LAYER_INVALID": {
+    "description": "The specified layer is invalid.",
+    "httpCode": 400
+  },
+  "INPUT_METHOD_INVALID": {
+    "description": "The specified method is invalid.",
+    "httpCode": 400
+  },
+  "INPUT_PEERS_EMPTY": {
+    "description": "The specified peer array is empty.",
+    "httpCode": 400
+  },
+  "INPUT_PEER_FOR_PAID_REACTION_INVALID": {
+    "description": "The provided InputPeer is not valid for paid reaction privacy.",
+    "httpCode": 400
+  },
+  "INPUT_PURPOSE_INVALID": {
+    "description": "The specified payment purpose is invalid.",
+    "httpCode": 400
+  },
+  "INPUT_REQUEST_TOO_LONG": {
+    "description": "The request payload is too long.",
+    "httpCode": 400
+  },
+  "INPUT_TEXT_EMPTY": {
+    "description": "The specified text is empty.",
+    "httpCode": 400
+  },
+  "INPUT_TEXT_TOO_LONG": {
+    "description": "The specified text is too long.",
+    "httpCode": 400
+  },
+  "INPUT_USER_DEACTIVATED": {
+    "description": "The specified user was deleted.",
+    "httpCode": 400
+  },
+  "INPUT_VECTOR_EMPTY": {
+    "description": "The input vector must contain at least one element.",
+    "httpCode": 400
+  },
+  "INPUT_VECTOR_TOO_LONG": {
+    "description": "The input vector exceeds the maximum allowed size.",
+    "httpCode": 400
+  },
+  "INTERNAL_SERVER_ERROR": {
+    "description": "Internal server error, please retry.",
+    "httpCode": 500
+  },
+  "INVITES_TOO_MUCH": {
+    "description": "The maximum number of per-folder invites specified by the `chatlist_invites_limit_default`/`chatlist_invites_limit_premium` [client configuration parameters &raquo;](https://core.telegram.org/api/config#chatlist-invites-limit-default) was reached.",
+    "httpCode": 400
+  },
+  "INVITE_EXPIRED": {
+    "description": "The invite link has expired.",
+    "httpCode": 400
+  },
+  "INVITE_FORBIDDEN_WITH_JOINAS": {
+    "description": "If the user has anonymously joined a group call as a channel, they can't invite other users to the group call because that would cause deanonymization, because the invite would be sent using the original user ID, not the anonymized channel ID.",
+    "httpCode": 400
+  },
+  "INVITE_HASH_EMPTY": {
+    "description": "The invite hash is empty.",
+    "httpCode": 400
+  },
+  "INVITE_HASH_EXPIRED": {
+    "description": "The invite link has expired.",
+    "httpCode": 400
+  },
+  "INVITE_HASH_INVALID": {
+    "description": "The invite hash is invalid.",
+    "httpCode": 400
+  },
+  "INVITE_LIMIT_REACHED": {
+    "description": "The invite link usage limit has been reached.",
+    "httpCode": 400
+  },
+  "INVITE_NOT_FOUND": {
+    "description": "The invite link was not found.",
+    "httpCode": 404
+  },
+  "INVITE_REQUEST_SENT": {
+    "description": "You have successfully requested to join this chat or channel.",
+    "httpCode": 400
+  },
+  "INVITE_REVOKED": {
+    "description": "The invite link has been revoked.",
+    "httpCode": 400
+  },
+  "INVITE_REVOKED_MISSING": {
+    "description": "The specified invite link was already revoked or is invalid.",
+    "httpCode": 400
+  },
+  "INVITE_SLUG_EMPTY": {
+    "description": "The specified invite slug is empty.",
+    "httpCode": 400
+  },
+  "INVITE_SLUG_EXPIRED": {
+    "description": "The specified chat folder link has expired.",
+    "httpCode": 400
+  },
+  "INVITE_SLUG_INVALID": {
+    "description": "The specified invitation slug is invalid.",
+    "httpCode": 400
+  },
+  "INVOICE_INVALID": {
+    "description": "The specified invoice is invalid.",
+    "httpCode": 400
+  },
+  "INVOICE_PAYLOAD_INVALID": {
+    "description": "The specified invoice payload is invalid.",
+    "httpCode": 400
+  },
+  "JOIN_AS_PEER_INVALID": {
+    "description": "The specified peer cannot be used to join a group call.",
+    "httpCode": 400
+  },
+  "JOIN_REQUEST_NOT_FOUND": {
+    "description": "The join request was not found.",
+    "httpCode": 404
+  },
+  "LANGUAGE_INVALID": {
+    "description": "The specified lang_code is invalid.",
+    "httpCode": 400
+  },
+  "LANG_CODE_INVALID": {
+    "description": "The specified language code is invalid.",
+    "httpCode": 400
+  },
+  "LANG_CODE_NOT_SUPPORTED": {
+    "description": "The specified language code is not supported.",
+    "httpCode": 400
+  },
+  "LANG_PACK_INVALID": {
+    "description": "The provided language pack is invalid.",
+    "httpCode": 400
+  },
+  "LASTNAME_INVALID": {
+    "description": "The last name is invalid.",
+    "httpCode": 400
+  },
+  "LIMIT_INVALID": {
+    "description": "The provided limit is invalid.",
+    "httpCode": 400
+  },
+  "LINK_NOT_MODIFIED": {
+    "description": "Discussion link not modified.",
+    "httpCode": 400
+  },
+  "LOCATION_INVALID": {
+    "description": "The provided location is invalid.",
+    "httpCode": 400
+  },
+  "MAX_DATE_INVALID": {
+    "description": "The specified maximum date is invalid.",
+    "httpCode": 400
+  },
+  "MAX_ID_INVALID": {
+    "description": "The provided max ID is invalid.",
+    "httpCode": 400
+  },
+  "MAX_QTS_INVALID": {
+    "description": "The specified max_qts is invalid.",
+    "httpCode": 400
+  },
+  "MD5_CHECKSUM_INVALID": {
+    "description": "The MD5 checksums do not match.",
+    "httpCode": 400
+  },
+  "MEDIA_ALREADY_PAID": {
+    "description": "You already paid for the specified media.",
+    "httpCode": 400
+  },
+  "MEDIA_CAPTION_TOO_LONG": {
+    "description": "The caption is too long.",
+    "httpCode": 400
+  },
+  "MEDIA_EMPTY": {
+    "description": "The provided media object is invalid.",
+    "httpCode": 400
+  },
+  "MEDIA_FILE_INVALID": {
+    "description": "The specified media file is invalid.",
+    "httpCode": 400
+  },
+  "MEDIA_GROUPED_INVALID": {
+    "description": "You tried to send media of different types in an album.",
+    "httpCode": 400
+  },
+  "MEDIA_INVOICE_INVALID": {
+    "description": "The specified invoice media is invalid or unavailable.",
+    "httpCode": 400,
+    "paramKind": "indexed"
+  },
+  "MEDIA_INVALID": {
+    "description": "Media invalid.",
+    "httpCode": 400,
+    "paramKind": "indexed"
+  },
+  "MEDIA_METADATA_REQUIRED": {
+    "description": "First upload chunk must include metadata.",
+    "httpCode": 500
+  },
+  "MEDIA_NEW_INVALID": {
+    "description": "The new media is invalid.",
+    "httpCode": 400
+  },
+  "MEDIA_PREV_INVALID": {
+    "description": "Previous media invalid.",
+    "httpCode": 400
+  },
+  "MEDIA_RESOLVER_CONTENDED": {
+    "description": "Media resolver cache fill is contended; retry the request.",
+    "httpCode": 503
+  },
+  "MEDIA_PROCESSING_FAILED": {
+    "description": "Media processing failed.",
+    "httpCode": 500
+  },
+  "MEDIA_STREAM_EMPTY": {
+    "description": "Upload stream contains no data.",
+    "httpCode": 500
+  },
+  "MEDIA_TTL_INVALID": {
+    "description": "The specified media TTL is invalid.",
+    "httpCode": 400
+  },
+  "MEDIA_TYPE_INVALID": {
+    "description": "The specified media type cannot be used in stories.",
+    "httpCode": 400
+  },
+  "MEDIA_VIDEO_STORY_MISSING": {
+    "description": "A non-story video cannot be repubblished as a story (emitted when trying to resend a non-story video as a story using inputDocument).",
+    "httpCode": 400
+  },
+  "MEGAGROUP_GEO_REQUIRED": {
+    "description": "This method can only be invoked on a geogroup.",
+    "httpCode": 400
+  },
+  "MEGAGROUP_ID_INVALID": {
+    "description": "Invalid supergroup ID.",
+    "httpCode": 400
+  },
+  "MEGAGROUP_PREHISTORY_HIDDEN": {
+    "description": "Group with hidden history for new members can't be set as discussion groups.",
+    "httpCode": 400
+  },
+  "MEGAGROUP_REQUIRED": {
+    "description": "You can only use this method on a supergroup.",
+    "httpCode": 400
+  },
+  "MEMBERSHIP_NOT_FOUND": {
+    "description": "The chat membership was not found.",
+    "httpCode": 404
+  },
+  "MEMBER_NOT_FOUND": {
+    "description": "The chat member was not found.",
+    "httpCode": 404
+  },
+  "MESSAGES_NOT_FOUND": {
+    "description": "No messages were found.",
+    "httpCode": 404
+  },
+  "MESSAGE_AUTHOR_REQUIRED": {
+    "description": "Message author required.",
+    "httpCode": 403
+  },
+  "MESSAGE_CHAT_MISMATCH": {
+    "description": "The message does not belong to the specified chat.",
+    "httpCode": 400
+  },
+  "MESSAGE_DELETED": {
+    "description": "The message has been deleted.",
+    "httpCode": 400
+  },
+  "MESSAGE_DELETE_FORBIDDEN": {
+    "description": "You can't delete one of the messages you tried to delete, most likely because it is a service message.",
+    "httpCode": 403
+  },
+  "MESSAGE_EDIT_FORBIDDEN": {
+    "description": "You are not allowed to edit this message.",
+    "httpCode": 403
+  },
+  "MESSAGE_EDIT_IN_PROGRESS": {
+    "description": "Concurrent edit in flight, retry shortly.",
+    "httpCode": 400
+  },
+  "MESSAGE_EDIT_TIME_EXPIRED": {
+    "description": "You can't edit this message anymore, too much time has passed since its creation.",
+    "httpCode": 400
+  },
+  "MESSAGE_EMPTY": {
+    "description": "The provided message is empty.",
+    "httpCode": 400
+  },
+  "MESSAGE_FORBIDDEN": {
+    "description": "You are not allowed to perform this action on this message.",
+    "httpCode": 403
+  },
+  "MESSAGE_IDS_EMPTY": {
+    "description": "No message ids were provided.",
+    "httpCode": 400
+  },
+  "MESSAGE_IDS_TOO_MANY": {
+    "description": "Too many message ids supplied; cap is 100 per call",
+    "httpCode": 400
+  },
+  "MESSAGE_ID_INVALID": {
+    "description": "The provided message id is invalid.",
+    "httpCode": 400
+  },
+  "MESSAGE_NOT_FOUND": {
+    "description": "The specified message was not found.",
+    "httpCode": 404
+  },
+  "MESSAGE_NOT_MODIFIED": {
+    "description": "The provided message data is identical to the previous message data, the message wasn't modified.",
+    "httpCode": 400
+  },
+  "MESSAGE_NOT_READ_YET": {
+    "description": "The specified message wasn't read yet.",
+    "httpCode": 400
+  },
+  "MESSAGE_POLL_CLOSED": {
+    "description": "Poll closed.",
+    "httpCode": 400
+  },
+  "MESSAGE_REACTORS_TOO_MANY": {
+    "description": "Too many reactors on this message - write-time cap exceeded",
+    "httpCode": 400
+  },
+  "MESSAGE_TOO_LONG": {
+    "description": "The provided message is too long.",
+    "httpCode": 400
+  },
+  "MESSAGE_TOO_OLD": {
+    "description": "The message is too old, the requested information is not available.",
+    "httpCode": 400
+  },
+  "METHOD_INVALID": {
+    "description": "The specified method is invalid.",
+    "httpCode": 400
+  },
+  "MIN_DATE_INVALID": {
+    "description": "The specified minimum date is invalid.",
+    "httpCode": 400
+  },
+  "MONTH_INVALID": {
+    "description": "The number of months specified in inputInvoicePremiumGiftStars.months is invalid.",
+    "httpCode": 400
+  },
+  "MSG_ID_INVALID": {
+    "description": "Invalid message ID provided.",
+    "httpCode": 400
+  },
+  "MSG_TOO_OLD": {
+    "description": "[`chat_read_mark_expire_period` seconds](https://core.telegram.org/api/config#chat-read-mark-expire-period) have passed since the message was sent, read receipts were deleted.",
+    "httpCode": 400
+  },
+  "MSG_VOICE_MISSING": {
+    "description": "The specified message is not a voice message.",
+    "httpCode": 400
+  },
+  "MSG_VOICE_TOO_LONG": {
+    "description": "The specified voice message is too long to be transcribed.",
+    "httpCode": 400
+  },
+  "MSG_WAIT_FAILED": {
+    "description": "A waiting call returned an error.",
+    "httpCode": 400
+  },
+  "MSG_WAIT_TIMEOUT": {
+    "description": "Spent too much time waiting for a previous query in the invokeAfterMsg request queue, aborting!",
+    "httpCode": -503
+  },
+  "MULTI_MEDIA_EMPTY": {
+    "description": "The supplied multi-media list is empty.",
+    "httpCode": 400
+  },
+  "MULTI_MEDIA_TOO_LONG": {
+    "description": "Too many media files for album.",
+    "httpCode": 400
+  },
+  "NETWORK_MIGRATE_%d": {
+    "description": "Your IP address is associated to DC %d, please re-send the query to that DC.",
+    "httpCode": 303,
+    "paramKind": "migrate"
+  },
+  "NEED_ACTION_MISSING": {
+    "description": "The caller didn't specify a valid action (either save or suggest).",
+    "httpCode": 400
+  },
+  "NEW_SALT_INVALID": {
+    "description": "The new salt is invalid.",
+    "httpCode": 400
+  },
+  "NEW_SETTINGS_EMPTY": {
+    "description": "No password is set on the current account, and no new password was specified in `new_settings`.",
+    "httpCode": 400
+  },
+  "NEW_SETTINGS_INVALID": {
+    "description": "The new password settings are invalid.",
+    "httpCode": 400
+  },
+  "NEXT_OFFSET_INVALID": {
+    "description": "The specified offset is longer than 64 bytes.",
+    "httpCode": 400
+  },
+  "NOGENERAL_HIDE_FORBIDDEN": {
+    "description": "Only the \"General\" topic with `id=1` can be hidden.",
+    "httpCode": 400
+  },
+  "NOT_ELIGIBLE": {
+    "description": "The current user is not eligible to join the Peer-to-Peer Login Program.",
+    "httpCode": 403
+  },
+  "NOT_IMPLEMENTED": {
+    "description": "This feature is not yet implemented on this server.",
+    "httpCode": 501
+  },
+  "NOT_JOINED": {
+    "description": "The current user hasn't joined the Peer-to-Peer Login Program.",
+    "httpCode": 400
+  },
+  "NO_PAYMENT_NEEDED": {
+    "description": "The upgrade/transfer of the specified gift was already paid for or is free.",
+    "httpCode": 400
+  },
+  "OFFSET_INVALID": {
+    "description": "The provided offset is invalid.",
+    "httpCode": 400
+  },
+  "OFFSET_PEER_ID_INVALID": {
+    "description": "The provided offset peer is invalid.",
+    "httpCode": 400
+  },
+  "OPTIONS_TOO_MUCH": {
+    "description": "Too many options provided.",
+    "httpCode": 400
+  },
+  "OPTION_INVALID": {
+    "description": "Invalid option selected.",
+    "httpCode": 400
+  },
+  "ORDER_INVALID": {
+    "description": "The specified username order is invalid.",
+    "httpCode": 400
+  },
+  "PACK_SHORT_NAME_INVALID": {
+    "description": "Short pack name invalid.",
+    "httpCode": 400
+  },
+  "PACK_SHORT_NAME_OCCUPIED": {
+    "description": "A stickerpack with this name already exists.",
+    "httpCode": 400
+  },
+  "PACK_TITLE_INVALID": {
+    "description": "The stickerpack title is invalid.",
+    "httpCode": 400
+  },
+  "PACK_TYPE_INVALID": {
+    "description": "The masks and emojis flags are mutually exclusive.",
+    "httpCode": 400
+  },
+  "PAID_REACTIONS_NOT_AVAILABLE": {
+    "description": "Paid reactions and paid-floodskip are not available on this server.",
+    "httpCode": 400
+  },
+  "PARENT_PEER_INVALID": {
+    "description": "The specified `parent_peer` is invalid.",
+    "httpCode": 400
+  },
+  "PARTICIPANTS_TOO_FEW": {
+    "description": "Not enough participants.",
+    "httpCode": 400
+  },
+  "PARTICIPANT_ID_INVALID": {
+    "description": "The specified participant ID is invalid.",
+    "httpCode": 400
+  },
+  "PARTICIPANT_JOIN_MISSING": {
+    "description": "Trying to enable a presentation, when the user hasn't joined the Video Chat with [phone.joinGroupCall](https://core.telegram.org/method/phone.joinGroupCall).",
+    "httpCode": 400
+  },
+  "PARTICIPANT_VERSION_OUTDATED": {
+    "description": "The other participant does not use an up to date telegram client with support for calls.",
+    "httpCode": 400
+  },
+  "PASSKEY_ALREADY_EXISTS": {
+    "description": "A passkey with this identifier already exists.",
+    "httpCode": 409
+  },
+  "PASSKEY_NOT_FOUND": {
+    "description": "The specified passkey was not found.",
+    "httpCode": 404
+  },
+  "PASSKEY_ORIGIN_MISMATCH": {
+    "description": "Third-party clients currently don't support passkeys even when changing the origin.",
+    "httpCode": 400
+  },
+  "PASSWORD_EMPTY": {
+    "description": "The provided password is empty.",
+    "httpCode": 400
+  },
+  "PASSWORD_HASH_INVALID": {
+    "description": "The provided password hash is invalid.",
+    "httpCode": 400
+  },
+  "PASSWORD_MISSING": {
+    "description": "You must [enable 2FA](https://core.telegram.org/api/srp) before executing this operation.",
+    "httpCode": 400
+  },
+  "PASSWORD_NOT_SET": {
+    "description": "A 2FA password has not been set on this account.",
+    "httpCode": 400
+  },
+  "PASSWORD_RECOVERY_EXPIRED": {
+    "description": "The recovery code has expired.",
+    "httpCode": 400
+  },
+  "PASSWORD_RECOVERY_NA": {
+    "description": "No email was set, can't recover password via email.",
+    "httpCode": 400
+  },
+  "PASSWORD_REQUIRED": {
+    "description": "A [2FA password](https://core.telegram.org/api/srp) must be configured to use Telegram Passport.",
+    "httpCode": 400
+  },
+  "PASSWORD_TOO_FRESH_%d": {
+    "description": "The password was modified less than 24 hours ago, try again in %d seconds.",
+    "httpCode": 400,
+    "paramKind": "generic"
+  },
+  "PAYMENT_CREDENTIALS_INVALID": {
+    "description": "The specified payment credentials are invalid.",
+    "httpCode": 400
+  },
+  "PAYMENT_FORM_NOT_FOUND": {
+    "description": "The payment form was not found.",
+    "httpCode": 404
+  },
+  "PAYMENT_NOT_FOUND": {
+    "description": "The payment record was not found.",
+    "httpCode": 404
+  },
+  "PAYMENT_PROVIDER_INVALID": {
+    "description": "The specified payment provider is invalid.",
+    "httpCode": 400
+  },
+  "PAYMENT_REQUIRED": {
+    "description": "Payment is required for this action, see [here &raquo;](https://core.telegram.org/api/gifts) for more info.",
+    "httpCode": 400
+  },
+  "PAYMENT_UNSUPPORTED": {
+    "description": "A detailed description of the error will be received separately as described [here &raquo;](https://core.telegram.org/api/errors#406-not-acceptable).",
+    "httpCode": 406
+  },
+  "PEERS_LIST_EMPTY": {
+    "description": "The specified list of peers is empty.",
+    "httpCode": 400
+  },
+  "PEER_FLOOD": {
+    "description": "The current account is spamreported, you cannot execute this action, check @spambot for more info.",
+    "httpCode": 400
+  },
+  "PEER_HISTORY_EMPTY": {
+    "description": "You can't pin an empty chat with a user.",
+    "httpCode": 400
+  },
+  "PEER_ID_INVALID": {
+    "description": "The provided peer id is invalid.",
+    "httpCode": 400
+  },
+  "PEER_ID_NOT_SUPPORTED": {
+    "description": "The provided peer ID is not supported.",
+    "httpCode": 400
+  },
+  "PEER_TYPES_INVALID": {
+    "description": "The passed [keyboardButtonSwitchInline](https://core.telegram.org/constructor/keyboardButtonSwitchInline).`peer_types` field is invalid.",
+    "httpCode": 400
+  },
+  "PERMISSION_DENIED": {
+    "description": "The caller does not have permission to perform this action.",
+    "httpCode": 403
+  },
+  "PERSISTENT_TIMESTAMP_EMPTY": {
+    "description": "Persistent timestamp empty.",
+    "httpCode": 400
+  },
+  "PERSISTENT_TIMESTAMP_INVALID": {
+    "description": "Persistent timestamp invalid.",
+    "httpCode": 400
+  },
+  "PERSISTENT_TIMESTAMP_OUTDATED": {
+    "description": "Channel internal replication issues, try again later (treat this like an RPC_CALL_FAIL).",
+    "httpCode": 500
+  },
+  "PER_CHAT_WALLPAPER_UNSUPPORTED": {
+    "description": "Per-chat wallpapers are not supported on this server.",
+    "httpCode": 501
+  },
+  "PHONE_CODE_EMPTY": {
+    "description": "phone_code is missing.",
+    "httpCode": 400
+  },
+  "PHONE_CODE_EXPIRED": {
+    "description": "The phone code you provided has expired.",
+    "httpCode": 400
+  },
+  "PHONE_CODE_HASH_EMPTY": {
+    "description": "phone_code_hash is missing.",
+    "httpCode": 400
+  },
+  "PHONE_CODE_INVALID": {
+    "description": "The provided phone code is invalid.",
+    "httpCode": 400
+  },
+  "PHONE_HASH_EXPIRED": {
+    "description": "An invalid or expired `phone_code_hash` was provided.",
+    "httpCode": 400
+  },
+  "PHONE_MIGRATE_%d": {
+    "description": "Your phone number is associated to DC %d, please re-send the query to that DC.",
+    "httpCode": 303,
+    "paramKind": "migrate"
+  },
+  "PHONE_NOT_OCCUPIED": {
+    "description": "No user is associated to the specified phone number.",
+    "httpCode": 400
+  },
+  "PHONE_NUMBER_APP_SIGNUP_FORBIDDEN": {
+    "description": "You can't sign up using this app.",
+    "httpCode": 400
+  },
+  "PHONE_NUMBER_BANNED": {
+    "description": "The provided phone number is banned from telegram.",
+    "httpCode": 400
+  },
+  "PHONE_NUMBER_FLOOD": {
+    "description": "You asked for the code too many times.",
+    "httpCode": 400
+  },
+  "PHONE_NUMBER_INVALID": {
+    "comment": "Future methods that need HTTP 400 for invalid phone input must use a distinct catalog code.",
+    "description": "The phone number is invalid.",
+    "httpCode": 406
+  },
+  "PHONE_NUMBER_OCCUPIED": {
+    "description": "The phone number is already in use.",
+    "httpCode": 400
+  },
+  "PHONE_NUMBER_UNOCCUPIED": {
+    "description": "The phone number is not yet being used.",
+    "httpCode": 400
+  },
+  "PHONE_PASSWORD_FLOOD": {
+    "description": "You have tried logging in too many times.",
+    "httpCode": 406
+  },
+  "PHONE_PASSWORD_PROTECTED": {
+    "description": "This phone is password protected.",
+    "httpCode": 400
+  },
+  "PHOTO_CONTENT_TYPE_INVALID": {
+    "description": "Photo mime-type invalid.",
+    "httpCode": 400
+  },
+  "PHOTO_CONTENT_URL_EMPTY": {
+    "description": "Photo URL invalid.",
+    "httpCode": 400
+  },
+  "PHOTO_CROP_FILE_MISSING": {
+    "description": "Photo crop file missing.",
+    "httpCode": 400
+  },
+  "PHOTO_CROP_SIZE_SMALL": {
+    "description": "Photo is too small.",
+    "httpCode": 400
+  },
+  "PHOTO_EXT_INVALID": {
+    "description": "The extension of the photo is invalid.",
+    "httpCode": 400
+  },
+  "PHOTO_FILE_INVALID_CATEGORY": {
+    "description": "File category is not PHOTO or AVATAR.",
+    "httpCode": 400
+  },
+  "PHOTO_FILE_MISSING": {
+    "description": "Profile photo file missing.",
+    "httpCode": 400
+  },
+  "PHOTO_ID_INVALID": {
+    "description": "Photo ID invalid.",
+    "httpCode": 400
+  },
+  "PHOTO_INVALID": {
+    "description": "Photo invalid.",
+    "httpCode": 400
+  },
+  "PHOTO_INVALID_DIMENSIONS": {
+    "description": "The photo dimensions are invalid.",
+    "httpCode": 400
+  },
+  "PHOTO_NOT_FOUND": {
+    "description": "Profile photo not found or not owned by caller.",
+    "httpCode": 404
+  },
+  "PHOTO_SAVE_FILE_INVALID": {
+    "description": "Internal issues, try again later.",
+    "httpCode": 400
+  },
+  "PHOTO_THUMB_URL_EMPTY": {
+    "description": "Photo thumbnail URL is empty.",
+    "httpCode": 400
+  },
+  "PINNED_DIALOGS_TOO_MUCH": {
+    "description": "Too many pinned dialogs.",
+    "httpCode": 400
+  },
+  "PINNED_TOO_MUCH": {
+    "description": "There are too many pinned topics, unpin some first.",
+    "httpCode": 400
+  },
+  "PIN_FORBIDDEN": {
+    "description": "You are not allowed to pin in this chat.",
+    "httpCode": 403
+  },
+  "PIN_RESTRICTED": {
+    "description": "You can't pin messages.",
+    "httpCode": 400
+  },
+  "POLL_ANSWERS_INVALID": {
+    "description": "Invalid poll answers were provided.",
+    "httpCode": 400
+  },
+  "POLL_ANSWER_INVALID": {
+    "description": "One of the poll answers is not acceptable.",
+    "httpCode": 400
+  },
+  "POLL_CLOSED": {
+    "description": "The poll has already been closed.",
+    "httpCode": 400
+  },
+  "POLL_MULTIPLE_CHOICE_DISABLED": {
+    "description": "Multiple-choice voting is disabled for this poll.",
+    "httpCode": 400
+  },
+  "POLL_NOT_FOUND": {
+    "description": "The specified poll was not found.",
+    "httpCode": 404
+  },
+  "POLL_OPTION_DUPLICATE": {
+    "description": "Duplicate poll options provided.",
+    "httpCode": 400
+  },
+  "POLL_OPTION_INVALID": {
+    "description": "Invalid poll option provided.",
+    "httpCode": 400,
+    "paramKind": "indexed"
+  },
+  "POLL_QUESTION_INVALID": {
+    "description": "One of the poll questions is not acceptable.",
+    "httpCode": 400
+  },
+  "POLL_VOTE_REQUIRED": {
+    "description": "Cast a vote in the poll before calling this method.",
+    "httpCode": 403
+  },
+  "PRECHECKOUT_FAILED": {
+    "description": "Precheckout failed, a detailed and localized description for the error will be emitted via an [updateServiceNotification as specified here &raquo;](https://core.telegram.org/api/errors#406-not-acceptable).",
+    "httpCode": 406
+  },
+  "PREMIUM_ACCOUNT_REQUIRED": {
+    "description": "A premium account is required to execute this action.",
+    "httpCode": 400
+  },
+  "PREMIUM_CURRENTLY_UNAVAILABLE": {
+    "description": "You cannot currently purchase a Premium subscription.",
+    "httpCode": 406
+  },
+  "PREMIUM_SUB_ACTIVE_UNTIL_%d": {
+    "description": "You already have a premium subscription active until unixtime %d .",
+    "httpCode": 420,
+    "paramKind": "generic"
+  },
+  "PREPARED_MESSAGE_EXPIRED": {
+    "description": "The prepared message has expired.",
+    "httpCode": 400
+  },
+  "PREPARED_MESSAGE_NOT_FOUND": {
+    "description": "The prepared message was not found.",
+    "httpCode": 404
+  },
+  "PREVIOUS_CHAT_IMPORT_ACTIVE_WAIT_%dMIN": {
+    "description": "Import for this chat is already in progress, wait %d minutes before starting a new one.",
+    "httpCode": 406,
+    "paramKind": "generic"
+  },
+  "PRICING_CHAT_INVALID": {
+    "description": "The pricing for the [subscription](https://core.telegram.org/api/subscriptions) is invalid, the maximum price is specified in the [`stars_subscription_amount_max` config key &raquo;](https://core.telegram.org/api/config#stars-subscription-amount-max).",
+    "httpCode": 400
+  },
+  "PRIVACY_KEY_INVALID": {
+    "description": "The privacy key is invalid.",
+    "httpCode": 400
+  },
+  "PRIVACY_PREMIUM_REQUIRED": {
+    "description": "You need a [Telegram Premium subscription](https://core.telegram.org/api/premium) to send a message to this user.",
+    "httpCode": 406
+  },
+  "PRIVACY_TOO_LONG": {
+    "description": "Too many privacy rules were specified, the current limit is 1000.",
+    "httpCode": 400
+  },
+  "PRIVACY_VALUE_INVALID": {
+    "description": "The specified privacy rule combination is invalid.",
+    "httpCode": 400
+  },
+  "PROFILE_CONCURRENT_MODIFICATION": {
+    "description": "Profile was modified by another writer; retry the request.",
+    "httpCode": 409
+  },
+  "PTS_OVERFLOW": {
+    "description": "PTS allocator hit max-int bound.",
+    "httpCode": 400
+  },
+  "PTS_RESERVATION_LIMIT_REACHED": {
+    "description": "Too many concurrent uncommitted PTS reservations; retry after outstanding writes complete.",
+    "httpCode": 429
+  },
+  "PTS_COMMITTED_PREFIX_VIOLATION": {
+    "description": "A durable update write attempted to use a PTS value at or below the committed prefix.",
+    "httpCode": 409
+  },
+  "PUBLIC_CHANNEL_MISSING": {
+    "description": "You can only export group call invite links for public chats or channels.",
+    "httpCode": 403
+  },
+  "PUBLIC_KEY_INVALID": {
+    "description": "The specified end-to-end encryption public key is invalid.",
+    "httpCode": 400
+  },
+  "PUBLIC_KEY_REQUIRED": {
+    "description": "A public key is required.",
+    "httpCode": 400
+  },
+  "PURPOSE_INVALID": {
+    "description": "The specified payment purpose is invalid.",
+    "httpCode": 400
+  },
+  "QUERY_ID_EMPTY": {
+    "description": "The query ID is empty.",
+    "httpCode": 400
+  },
+  "QUERY_ID_INVALID": {
+    "description": "The query ID is invalid.",
+    "httpCode": 400
+  },
+  "QUERY_TOO_SHORT": {
+    "description": "The query string is too short.",
+    "httpCode": 400
+  },
+  "QUICK_REPLIES_BOT_NOT_ALLOWED": {
+    "description": "[Quick replies](https://core.telegram.org/api/business#quick-reply-shortcuts) cannot be used by bots.",
+    "httpCode": 400
+  },
+  "QUICK_REPLIES_TOO_MUCH": {
+    "description": "A maximum of [appConfig.`quick_replies_limit`](https://core.telegram.org/api/config#quick-replies-limit) shortcuts may be created, the limit was reached.",
+    "httpCode": 400
+  },
+  "QUICK_REPLY_SHORTCUT_INVALID": {
+    "description": "The specified quick reply shortcut is invalid.",
+    "httpCode": 400
+  },
+  "QUIZ_ANSWER_MISSING": {
+    "description": "You can forward a quiz while hiding the original author only after choosing an option in the quiz.",
+    "httpCode": 400
+  },
+  "QUIZ_CORRECT_ANSWERS_EMPTY": {
+    "description": "No correct quiz answer was specified.",
+    "httpCode": 400
+  },
+  "QUIZ_CORRECT_ANSWERS_TOO_MUCH": {
+    "description": "You specified too many correct answers in a quiz, quizzes can only have one right answer!",
+    "httpCode": 400
+  },
+  "QUIZ_CORRECT_ANSWER_INVALID": {
+    "description": "An invalid value was provided to the correct_answers field.",
+    "httpCode": 400
+  },
+  "QUIZ_MULTIPLE_INVALID": {
+    "description": "Quizzes can't have the multiple_choice flag set!",
+    "httpCode": 400
+  },
+  "QUOTE_TEXT_INVALID": {
+    "description": "The specified `reply_to`.`quote_text` field is invalid.",
+    "httpCode": 400
+  },
+  "RAISE_HAND_FORBIDDEN": {
+    "description": "You cannot raise your hand.",
+    "httpCode": 400
+  },
+  "RANDOM_ID_DUPLICATE": {
+    "description": "You provided a random ID that was already used.",
+    "httpCode": 500
+  },
+  "RANDOM_ID_EMPTY": {
+    "description": "Random ID empty.",
+    "httpCode": 400
+  },
+  "RANDOM_ID_EXPIRED": {
+    "description": "The specified `random_id` was expired (most likely it didn't follow the required `uint64_t random_id = (time() << 32) | ((uint64_t)random_uint32_t())` format, or the specified time is too far in the past).",
+    "httpCode": 400
+  },
+  "RANDOM_ID_INVALID": {
+    "description": "A provided random ID is invalid.",
+    "httpCode": 400
+  },
+  "RANDOM_LENGTH_INVALID": {
+    "description": "Random length invalid.",
+    "httpCode": 400
+  },
+  "RANGES_INVALID": {
+    "description": "Invalid range provided.",
+    "httpCode": 400
+  },
+  "REACTIONS_COUNT_INVALID": {
+    "description": "The specified number of reactions is invalid.",
+    "httpCode": 400
+  },
+  "REACTIONS_TOO_MANY": {
+    "description": "The message already has exactly `reactions_uniq_max` reaction emojis, you can't react with a new emoji, see [the docs for more info &raquo;](https://core.telegram.org/api/config#client-configuration).",
+    "httpCode": 400
+  },
+  "REACTION_EMPTY": {
+    "description": "Empty reaction provided.",
+    "httpCode": 400
+  },
+  "REACTION_INVALID": {
+    "description": "The specified reaction is invalid.",
+    "httpCode": 400
+  },
+  "RECEIPT_EMPTY": {
+    "description": "The specified receipt is empty.",
+    "httpCode": 400
+  },
+  "RECEIPT_NOT_FOUND": {
+    "description": "The payment receipt was not found.",
+    "httpCode": 404
+  },
+  "REMOTE_FILE_TOO_LARGE": {
+    "description": "Remote file size exceeds the allowed limit.",
+    "httpCode": 400
+  },
+  "REPLY_MARKUP_BUY_EMPTY": {
+    "description": "Reply markup for buy button empty.",
+    "httpCode": 400
+  },
+  "REPLY_MARKUP_GAME_EMPTY": {
+    "description": "A game message is being edited, but the newly provided keyboard doesn't have a keyboardButtonGame button.",
+    "httpCode": 400
+  },
+  "REPLY_MARKUP_INVALID": {
+    "description": "The provided reply markup is invalid.",
+    "httpCode": 400
+  },
+  "REPLY_MARKUP_TOO_LONG": {
+    "description": "The specified reply_markup is too long.",
+    "httpCode": 400
+  },
+  "REPLY_MESSAGES_TOO_MUCH": {
+    "description": "Each shortcut can contain a maximum of [appConfig.`quick_reply_messages_limit`](https://core.telegram.org/api/config#quick-reply-messages-limit) messages, the limit was reached.",
+    "httpCode": 400
+  },
+  "REPLY_MESSAGE_ID_INVALID": {
+    "description": "The specified reply-to message ID is invalid.",
+    "httpCode": 400
+  },
+  "REPLY_TO_INVALID": {
+    "description": "The specified `reply_to` field is invalid.",
+    "httpCode": 400
+  },
+  "REPLY_TO_MONOFORUM_PEER_INVALID": {
+    "description": "The specified inputReplyToMonoForum.monoforum_peer_id is invalid.",
+    "httpCode": 400
+  },
+  "REPLY_TO_USER_INVALID": {
+    "description": "The replied-to user is invalid.",
+    "httpCode": 400
+  },
+  "REPORT_NO_MESSAGES": {
+    "description": "No messages were provided to report.",
+    "httpCode": 400
+  },
+  "REPORT_SELF": {
+    "description": "You cannot report yourself or your own content.",
+    "httpCode": 400
+  },
+  "REQUEST_TOKEN_INVALID": {
+    "description": "The master DC did not accept the `request_token` from the CDN DC. Continue downloading the file from the master DC using upload.getFile.",
+    "httpCode": 400
+  },
+  "RESET_REQUEST_MISSING": {
+    "description": "No password reset is in progress.",
+    "httpCode": 400
+  },
+  "RESULTS_TOO_MUCH": {
+    "description": "Too many results were provided.",
+    "httpCode": 400
+  },
+  "RESULT_ID_DUPLICATE": {
+    "description": "You provided a duplicate result ID.",
+    "httpCode": 400
+  },
+  "RESULT_ID_EMPTY": {
+    "description": "Result ID empty.",
+    "httpCode": 400
+  },
+  "RESULT_ID_INVALID": {
+    "description": "One of the specified result IDs is invalid.",
+    "httpCode": 400
+  },
+  "RESULT_TYPE_INVALID": {
+    "description": "Result type invalid.",
+    "httpCode": 400
+  },
+  "REVOTE_NOT_ALLOWED": {
+    "description": "You cannot change your vote.",
+    "httpCode": 400
+  },
+  "RIGHTS_NOT_MODIFIED": {
+    "description": "The new admin rights are equal to the old rights, no change was made.",
+    "httpCode": 400
+  },
+  "RIGHT_FORBIDDEN": {
+    "description": "Your admin rights do not allow you to do this.",
+    "httpCode": 403
+  },
+  "RINGTONE_INVALID": {
+    "description": "The specified ringtone is invalid.",
+    "httpCode": 400
+  },
+  "RINGTONE_MIME_INVALID": {
+    "description": "The MIME type for the ringtone is invalid.",
+    "httpCode": 400
+  },
+  "RSA_DECRYPT_FAILED": {
+    "description": "Internal RSA decryption failed.",
+    "httpCode": 400
+  },
+  "SAVED_ID_EMPTY": {
+    "description": "The passed inputSavedStarGiftChat.saved_id is empty.",
+    "httpCode": 400
+  },
+  "SCHEDULE_BOT_NOT_ALLOWED": {
+    "description": "Bots cannot schedule messages.",
+    "httpCode": 400
+  },
+  "SCHEDULE_DATE_INVALID": {
+    "description": "Invalid schedule date provided.",
+    "httpCode": 400
+  },
+  "SCHEDULE_DATE_TOO_LATE": {
+    "description": "You can't schedule a message this far in the future.",
+    "httpCode": 400
+  },
+  "SCHEDULE_STATUS_PRIVATE": {
+    "description": "Can't schedule until user is online, if the user's last seen timestamp is hidden by their privacy settings.",
+    "httpCode": 400
+  },
+  "SCHEDULE_TOO_MUCH": {
+    "description": "There are too many scheduled messages.",
+    "httpCode": 400
+  },
+  "SCORE_INVALID": {
+    "description": "The specified game score is invalid.",
+    "httpCode": 400
+  },
+  "SCORE_NOT_MODIFIED": {
+    "description": "The provided score does not differ from the current value.",
+    "httpCode": 400
+  },
+  "SEARCH_DOMAIN_DRIFT": {
+    "description": "Search index drift exceeded tolerance; backfill verify failed.",
+    "httpCode": 503
+  },
+  "SEARCH_FAILED": {
+    "description": "The search backend failed to process the query.",
+    "httpCode": 500
+  },
+  "SEARCH_QUERY_EMPTY": {
+    "description": "The search query is empty.",
+    "httpCode": 400
+  },
+  "SEARCH_WITH_LINK_NOT_SUPPORTED": {
+    "description": "You cannot provide a search query and an invite link at the same time.",
+    "httpCode": 400
+  },
+  "SCREENSHOT_NOTIFICATIONS_UNSUPPORTED": {
+    "description": "Screenshot notifications are not supported because this server has no dedicated canonical service-message command.",
+    "httpCode": 501
+  },
+  "SECONDS_INVALID": {
+    "description": "Invalid duration provided.",
+    "httpCode": 400
+  },
+  "SECRET_CHATS_UNSUPPORTED": {
+    "description": "Secret chats are not supported on this server.",
+    "httpCode": 501
+  },
+  "SECURE_SECRET_REQUIRED": {
+    "description": "A secure secret is required.",
+    "httpCode": 400
+  },
+  "SECURE_VALUE_HASH_INVALID": {
+    "description": "The provided secure value hash is invalid.",
+    "httpCode": 400
+  },
+  "SELF_DELETE_RESTRICTED": {
+    "description": "Business bots can't delete messages just for the user, `revoke` **must** be set.",
+    "httpCode": 400
+  },
+  "SEND_AS_PEER_INVALID": {
+    "description": "You can't send messages as the specified peer.",
+    "httpCode": 400
+  },
+  "SEND_CODE_UNAVAILABLE": {
+    "description": "Returned when all available options for this type of number were already used (e.g. flash-call, then SMS, then this error might be returned to trigger a second resend).",
+    "httpCode": 406
+  },
+  "SEND_MEDIA_INVALID": {
+    "description": "The specified media is invalid.",
+    "httpCode": 500
+  },
+  "SEND_MESSAGE_GAME_INVALID": {
+    "description": "An inputBotInlineMessageGame can only be contained in an inputBotInlineResultGame, not in an inputBotInlineResult/inputBotInlineResultPhoto/etc.",
+    "httpCode": 400
+  },
+  "SEND_MESSAGE_MEDIA_INVALID": {
+    "description": "Invalid media provided.",
+    "httpCode": 400
+  },
+  "SEND_MESSAGE_TYPE_INVALID": {
+    "description": "The message type is invalid.",
+    "httpCode": 400
+  },
+  "SENSITIVE_CHANGE_FORBIDDEN": {
+    "description": "You can't change your sensitive content settings.",
+    "httpCode": 403
+  },
+  "SESSION_EXPIRED": {
+    "description": "The session has expired.",
+    "httpCode": 401
+  },
+  "SESSION_NOT_FOUND": {
+    "description": "The session was not found.",
+    "httpCode": 404
+  },
+  "SESSION_PASSWORD_NEEDED": {
+    "description": "2FA is enabled, use a password to login.",
+    "httpCode": 401
+  },
+  "SESSION_REVOKED": {
+    "description": "The session was revoked by the user.",
+    "httpCode": 401
+  },
+  "SESSION_TOO_FRESH_%d": {
+    "description": "This session was created less than 24 hours ago, try again in %d seconds.",
+    "httpCode": 400,
+    "paramKind": "generic"
+  },
+  "SETTINGS_INVALID": {
+    "description": "Invalid settings were provided.",
+    "httpCode": 400
+  },
+  "SHA256_HASH_INVALID": {
+    "description": "The provided SHA256 hash is invalid.",
+    "httpCode": 400
+  },
+  "SHORTCUT_INVALID": {
+    "description": "The specified shortcut is invalid.",
+    "httpCode": 400
+  },
+  "SHORTCUT_NOT_FOUND": {
+    "description": "The quick-reply shortcut was not found.",
+    "httpCode": 404
+  },
+  "SHORTCUT_OCCUPIED": {
+    "description": "A quick-reply shortcut with this name already exists.",
+    "httpCode": 409
+  },
+  "SHORT_NAME_INVALID": {
+    "description": "The specified short name is invalid.",
+    "httpCode": 400
+  },
+  "SHORT_NAME_OCCUPIED": {
+    "description": "The specified short name is already in use.",
+    "httpCode": 400
+  },
+  "SIGN_IN_FAILED": {
+    "description": "Failure while signing in.",
+    "httpCode": 500
+  },
+  "SLOTS_EMPTY": {
+    "description": "The specified slot list is empty.",
+    "httpCode": 400
+  },
+  "SLOWMODE_MULTI_MSGS_DISABLED": {
+    "description": "Slowmode is enabled, you cannot forward multiple messages to this group.",
+    "httpCode": 400
+  },
+  "SLOWMODE_WAIT_%d": {
+    "description": "Slowmode is enabled in this chat: wait %d seconds before sending another message to this chat.",
+    "httpCode": 420,
+    "paramKind": "flood"
+  },
+  "SLUG_INVALID": {
+    "description": "The specified invoice slug is invalid.",
+    "httpCode": 400
+  },
+  "SMSJOB_ID_INVALID": {
+    "description": "The specified job ID is invalid.",
+    "httpCode": 400
+  },
+  "SMS_CODE_CREATE_FAILED": {
+    "description": "An error occurred while creating the SMS code.",
+    "httpCode": 400
+  },
+  "SRP_A_INVALID": {
+    "description": "The specified inputCheckPasswordSRP.A value is invalid.",
+    "httpCode": 400
+  },
+  "SRP_ID_INVALID": {
+    "description": "Invalid SRP ID provided.",
+    "httpCode": 400
+  },
+  "SRP_PASSWORD_CHANGED": {
+    "description": "Password has changed.",
+    "httpCode": 400
+  },
+  "STARGIFT_ALREADY_CONVERTED": {
+    "description": "The specified star gift was already converted to Stars.",
+    "httpCode": 400
+  },
+  "STARGIFT_ALREADY_REFUNDED": {
+    "description": "The specified star gift was already refunded.",
+    "httpCode": 400
+  },
+  "STARGIFT_ALREADY_UPGRADED": {
+    "description": "The specified gift was already upgraded to a collectible gift.",
+    "httpCode": 400
+  },
+  "STARGIFT_EXPORT_IN_PROGRESS": {
+    "description": "A gift export is in progress, a detailed and localized description for the error will be emitted via an [updateServiceNotification as specified here &raquo;](https://core.telegram.org/api/errors#406-not-acceptable).",
+    "httpCode": 406
+  },
+  "STARGIFT_INVALID": {
+    "description": "The passed gift is invalid.",
+    "httpCode": 400
+  },
+  "STARGIFT_NOT_FOUND": {
+    "description": "The specified gift was not found.",
+    "httpCode": 400
+  },
+  "STARGIFT_OWNER_INVALID": {
+    "description": "You cannot transfer or sell a gift owned by another user.",
+    "httpCode": 400
+  },
+  "STARGIFT_PEER_INVALID": {
+    "description": "The specified inputSavedStarGiftChat.peer is invalid.",
+    "httpCode": 400
+  },
+  "STARGIFT_RESELL_CURRENCY_NOT_ALLOWED": {
+    "description": "You can't buy the gift using the specified currency (i.e. trying to pay in Stars for TON gifts).",
+    "httpCode": 400
+  },
+  "STARGIFT_SLUG_INVALID": {
+    "description": "The specified gift slug is invalid.",
+    "httpCode": 400
+  },
+  "STARGIFT_TRANSFER_TOO_EARLY_%d": {
+    "description": "You cannot transfer this gift yet, wait %d seconds.",
+    "httpCode": 400,
+    "paramKind": "generic"
+  },
+  "STARGIFT_UPGRADE_UNAVAILABLE": {
+    "description": "A received gift can only be upgraded to a collectible gift if the [messageActionStarGift](https://core.telegram.org/constructor/messageActionStarGift)/[savedStarGift](https://core.telegram.org/constructor/savedStarGift).`can_upgrade` flag is set.",
+    "httpCode": 400
+  },
+  "STARGIFT_USAGE_LIMITED": {
+    "description": "The gift is sold out.",
+    "httpCode": 400
+  },
+  "STARGIFT_USER_USAGE_LIMITED": {
+    "description": "You've reached the starGift.limited_per_user limit, you can't buy any more gifts of this type.",
+    "httpCode": 400
+  },
+  "STARREF_AWAITING_END": {
+    "description": "The previous referral program was terminated less than 24 hours ago: further changes can be made after the date specified in userFull.starref_program.end_date.",
+    "httpCode": 400
+  },
+  "STARREF_EXPIRED": {
+    "description": "The specified referral link is invalid.",
+    "httpCode": 400
+  },
+  "STARREF_HASH_REVOKED": {
+    "description": "The specified affiliate link was already revoked.",
+    "httpCode": 400
+  },
+  "STARREF_PERMILLE_INVALID": {
+    "description": "The specified commission_permille is invalid: the minimum and maximum values for this parameter are contained in the [starref_min_commission_permille](https://core.telegram.org/api/config#starref-min-commission-permille) and [starref_max_commission_permille](https://core.telegram.org/api/config#starref-max-commission-permille) client configuration parameters.",
+    "httpCode": 400
+  },
+  "STARREF_PERMILLE_TOO_LOW": {
+    "description": "The specified commission_permille is too low: the minimum and maximum values for this parameter are contained in the [starref_min_commission_permille](https://core.telegram.org/api/config#starref-min-commission-permille) and [starref_max_commission_permille](https://core.telegram.org/api/config#starref-max-commission-permille) client configuration parameters.",
+    "httpCode": 400
+  },
+  "STARS_AMOUNT_INVALID": {
+    "description": "The specified amount in stars is invalid.",
+    "httpCode": 400
+  },
+  "STARS_FORM_AMOUNT_MISMATCH": {
+    "description": "The form amount has changed, please fetch the new form using [payments.getPaymentForm](https://core.telegram.org/method/payments.getPaymentForm) and restart the process.",
+    "httpCode": 406
+  },
+  "STARS_INVOICE_INVALID": {
+    "description": "The specified Telegram Star invoice is invalid.",
+    "httpCode": 400
+  },
+  "STARS_PAYMENT_REQUIRED": {
+    "description": "To import this chat invite link, you must first [pay for the associated Telegram Star subscription &raquo;](https://core.telegram.org/api/subscriptions#channel-subscriptions).",
+    "httpCode": 400
+  },
+  "START_PARAM_EMPTY": {
+    "description": "The start parameter is empty.",
+    "httpCode": 400
+  },
+  "START_PARAM_INVALID": {
+    "description": "Start parameter invalid.",
+    "httpCode": 400
+  },
+  "START_PARAM_TOO_LONG": {
+    "description": "Start parameter is too long.",
+    "httpCode": 400
+  },
+  "STATS_MIGRATE_%d": {
+    "description": "Channel statistics for the specified channel are stored on DC %d, please re-send the query to that DC.",
+    "httpCode": 303,
+    "paramKind": "migrate"
+  },
+  "STEALTHMODE_COOLDOWN": {
+    "description": "Stealth mode is on cooldown.",
+    "httpCode": 400
+  },
+  "STICKERPACK_STICKERS_TOO_MUCH": {
+    "description": "There are too many stickers in this stickerpack, you can't add any more.",
+    "httpCode": 400
+  },
+  "STICKERSET_INVALID": {
+    "description": "The provided sticker set is invalid.",
+    "httpCode": 400
+  },
+  "STICKERSET_NOT_FOUND": {
+    "description": "The sticker set was not found.",
+    "httpCode": 404
+  },
+  "STICKERSET_NOT_MODIFIED": {
+    "description": "The passed stickerset information is equal to the current information.",
+    "httpCode": 400
+  },
+  "STICKERSET_NOT_OWNER": {
+    "description": "You are not the owner of this sticker set.",
+    "httpCode": 403
+  },
+  "STICKERSET_OWNER_ANONYMOUS": {
+    "description": "Provided stickerset can't be installed as group stickerset to prevent admin deanonymization.",
+    "httpCode": 406
+  },
+  "STICKERS_EMPTY": {
+    "description": "No sticker provided.",
+    "httpCode": 400
+  },
+  "STICKERS_UNSUPPORTED": {
+    "description": "Sticker operations are not supported on this server.",
+    "httpCode": 501
+  },
+  "STICKERS_TOO_MUCH": {
+    "description": "There are too many stickers in this stickerpack, you can't add any more.",
+    "httpCode": 400
+  },
+  "STICKER_DOCUMENT_INVALID": {
+    "description": "The specified sticker document is invalid.",
+    "httpCode": 400
+  },
+  "STICKER_EMOJI_INVALID": {
+    "description": "Sticker emoji invalid.",
+    "httpCode": 400
+  },
+  "STICKER_FILE_INVALID": {
+    "description": "Sticker file invalid.",
+    "httpCode": 400
+  },
+  "STICKER_GIF_DIMENSIONS": {
+    "description": "The specified video sticker has invalid dimensions.",
+    "httpCode": 400
+  },
+  "STICKER_ID_INVALID": {
+    "description": "The provided sticker ID is invalid.",
+    "httpCode": 400
+  },
+  "STICKER_INVALID": {
+    "description": "The provided sticker is invalid.",
+    "httpCode": 400
+  },
+  "STICKER_MIME_INVALID": {
+    "description": "The specified sticker MIME type is invalid.",
+    "httpCode": 400
+  },
+  "STICKER_NOT_FOUND": {
+    "description": "The specified sticker was not found.",
+    "httpCode": 404
+  },
+  "STICKER_NOT_OWNER": {
+    "description": "You are not the owner of this sticker.",
+    "httpCode": 403
+  },
+  "STICKER_PNG_DIMENSIONS": {
+    "description": "Sticker png dimensions invalid.",
+    "httpCode": 400
+  },
+  "STICKER_PNG_NOPNG": {
+    "description": "One of the specified stickers is not a valid PNG file.",
+    "httpCode": 400
+  },
+  "STICKER_TGS_NODOC": {
+    "description": "You must send the animated sticker as a document.",
+    "httpCode": 400
+  },
+  "STICKER_TGS_NOTGS": {
+    "description": "Invalid TGS sticker provided.",
+    "httpCode": 400
+  },
+  "STICKER_THUMB_PNG_NOPNG": {
+    "description": "Incorrect stickerset thumb file provided, PNG / WEBP expected.",
+    "httpCode": 400
+  },
+  "STICKER_THUMB_TGS_NOTGS": {
+    "description": "Incorrect stickerset TGS thumb file provided.",
+    "httpCode": 400
+  },
+  "STICKER_VIDEO_BIG": {
+    "description": "The specified video sticker is too big.",
+    "httpCode": 400
+  },
+  "STICKER_VIDEO_NODOC": {
+    "description": "You must send the video sticker as a document.",
+    "httpCode": 400
+  },
+  "STICKER_VIDEO_NOWEBM": {
+    "description": "The specified video sticker is not in webm format.",
+    "httpCode": 400
+  },
+  "STORIES_NEVER_CREATED": {
+    "description": "This peer hasn't ever posted any stories.",
+    "httpCode": 400
+  },
+  "STORIES_TOO_MUCH": {
+    "description": "You have hit the maximum active stories limit as specified by the [`story_expiring_limit_*` client configuration parameters](https://core.telegram.org/api/config#story-expiring-limit-default): you should buy a [Premium](https://core.telegram.org/api/premium) subscription, delete an active story, or wait for the oldest story to expire.",
+    "httpCode": 400
+  },
+  "STORY_ALBUM_NOT_FOUND": {
+    "description": "The story album was not found.",
+    "httpCode": 404
+  },
+  "STORY_ID_EMPTY": {
+    "description": "You specified no story IDs.",
+    "httpCode": 400
+  },
+  "STORY_ID_INVALID": {
+    "description": "The specified story ID is invalid.",
+    "httpCode": 400,
+    "paramKind": "indexed"
+  },
+  "STORY_NOT_FOUND": {
+    "description": "The specified story was not found.",
+    "httpCode": 404
+  },
+  "STORY_NOT_MODIFIED": {
+    "description": "The new story information you passed is equal to the previous story information, thus it wasn't modified.",
+    "httpCode": 400
+  },
+  "STORY_PERIOD_INVALID": {
+    "description": "The specified story period is invalid for this account.",
+    "httpCode": 400
+  },
+  "STORY_SEND_FLOOD_MONTHLY_%d": {
+    "description": "You've hit the monthly story limit as specified by the [`stories_sent_monthly_limit_*` client configuration parameters](https://core.telegram.org/api/config#stories-sent-monthly-limit-default): wait %d seconds before posting a new story.",
+    "httpCode": 400,
+    "paramKind": "generic"
+  },
+  "STORY_SEND_FLOOD_WEEKLY_%d": {
+    "description": "You've hit the weekly story limit as specified by the [`stories_sent_weekly_limit_*` client configuration parameters](https://core.telegram.org/api/config#stories-sent-weekly-limit-default): wait for %d seconds before posting a new story.",
+    "httpCode": 400,
+    "paramKind": "generic"
+  },
+  "STORY_VIEW_NOT_FOUND": {
+    "description": "The story view record was not found.",
+    "httpCode": 404
+  },
+  "SUBSCRIPTION_EXPORT_MISSING": {
+    "description": "You cannot send a [bot subscription invoice](https://core.telegram.org/api/subscriptions#bot-subscriptions) directly, you may only create invoice links using [payments.exportInvoice](https://core.telegram.org/method/payments.exportInvoice).",
+    "httpCode": 400
+  },
+  "SUBSCRIPTION_ID_INVALID": {
+    "description": "The specified subscription_id is invalid.",
+    "httpCode": 400
+  },
+  "SUBSCRIPTION_PERIOD_INVALID": {
+    "description": "The specified subscription_pricing.period is invalid.",
+    "httpCode": 400
+  },
+  "SUGGESTED_POSTS_UNSUPPORTED": {
+    "description": "Suggested posts are not supported on this server.",
+    "httpCode": 501
+  },
+  "SUGGESTED_POST_NOT_AVAILABLE": {
+    "description": "Suggested posts are not available on this server.",
+    "httpCode": 400
+  },
+  "SUGGESTED_POST_AMOUNT_INVALID": {
+    "description": "The specified price for the suggested post is invalid.",
+    "httpCode": 400
+  },
+  "SUGGESTED_POST_PEER_INVALID": {
+    "description": "You cannot send suggested posts to non-[monoforum](https://core.telegram.org/api/monoforum) peers.",
+    "httpCode": 400
+  },
+  "SWITCH_PM_TEXT_EMPTY": {
+    "description": "The switch_pm.text field was empty.",
+    "httpCode": 400
+  },
+  "SWITCH_WEBVIEW_URL_INVALID": {
+    "description": "The URL specified in switch_webview.url is invalid!",
+    "httpCode": 400
+  },
+  "TAKEOUT_ALREADY_IN_PROGRESS": {
+    "description": "A data takeout is already in progress.",
+    "httpCode": 409
+  },
+  "TAKEOUT_INIT_DELAY_%d": {
+    "description": "Sorry, for security reasons, you will be able to begin downloading your data in %d seconds. We have notified all your devices about the export request to make sure it's authorized and to give you time to react if it's not.",
+    "httpCode": 420,
+    "paramKind": "flood"
+  },
+  "TAKEOUT_INVALID": {
+    "description": "The specified takeout ID is invalid.",
+    "httpCode": 400
+  },
+  "TAKEOUT_NOT_FOUND": {
+    "description": "The takeout session was not found.",
+    "httpCode": 404
+  },
+  "TAKEOUT_REQUIRED": {
+    "description": "A [takeout](https://core.telegram.org/api/takeout) session needs to be initialized first, [see here &raquo; for more info](https://core.telegram.org/api/takeout).",
+    "httpCode": 403
+  },
+  "TASK_ALREADY_EXISTS": {
+    "description": "An email reset was already requested.",
+    "httpCode": 400
+  },
+  "TEMP_AUTH_KEY_ALREADY_BOUND": {
+    "description": "The passed temporary key is already bound to another **perm_auth_key_id**.",
+    "httpCode": 400
+  },
+  "TEMP_AUTH_KEY_EMPTY": {
+    "description": "No temporary auth key provided.",
+    "httpCode": 400
+  },
+  "TERMS_URL_INVALID": {
+    "description": "The specified [invoice](https://core.telegram.org/constructor/invoice).`terms_url` is invalid.",
+    "httpCode": 400
+  },
+  "THEME_FILE_INVALID": {
+    "description": "Invalid theme file provided.",
+    "httpCode": 400
+  },
+  "THEME_FORMAT_INVALID": {
+    "description": "Invalid theme format provided.",
+    "httpCode": 400
+  },
+  "THEME_INVALID": {
+    "description": "Invalid theme provided.",
+    "httpCode": 400
+  },
+  "THEME_MIME_INVALID": {
+    "description": "The theme's MIME type is invalid.",
+    "httpCode": 400
+  },
+  "THEME_NOT_FOUND": {
+    "description": "The specified theme was not found.",
+    "httpCode": 404
+  },
+  "THEME_PARAMS_INVALID": {
+    "description": "The specified `theme_params` field is invalid.",
+    "httpCode": 400
+  },
+  "THEME_SLUG_INVALID": {
+    "description": "The specified theme slug is invalid.",
+    "httpCode": 400
+  },
+  "THEME_SLUG_OCCUPIED": {
+    "description": "The theme slug is already taken.",
+    "httpCode": 409
+  },
+  "THEME_TITLE_INVALID": {
+    "description": "The specified theme title is invalid.",
+    "httpCode": 400
+  },
+  "TIMEZONE_INVALID": {
+    "description": "The specified timezone does not exist.",
+    "httpCode": 400
+  },
+  "TITLE_INVALID": {
+    "description": "The specified stickerpack title is invalid.",
+    "httpCode": 400
+  },
+  "TMP_PASSWORD_DISABLED": {
+    "description": "The temporary password is disabled.",
+    "httpCode": 400
+  },
+  "TMP_PASSWORD_INVALID": {
+    "description": "The passed tmp_password is invalid.",
+    "httpCode": 400
+  },
+  "TODO_ITEMS_EMPTY": {
+    "description": "A checklist was specified, but no [checklist items](https://core.telegram.org/api/todo) were passed.",
+    "httpCode": 400
+  },
+  "TODO_ITEM_DUPLICATE": {
+    "description": "Duplicate [checklist items](https://core.telegram.org/api/todo) detected.",
+    "httpCode": 400
+  },
+  "TODO_LISTS_UNSUPPORTED": {
+    "description": "Todo lists are not supported on this server.",
+    "httpCode": 501
+  },
+  "TODO_NOT_MODIFIED": {
+    "description": "No todo items were specified, so no changes were made to the todo list.",
+    "httpCode": 400
+  },
+  "TOKEN_EMPTY": {
+    "description": "The specified token is empty.",
+    "httpCode": 400
+  },
+  "TOKEN_INVALID": {
+    "description": "The provided token is invalid.",
+    "httpCode": 400
+  },
+  "TOKEN_TYPE_INVALID": {
+    "description": "The specified token type is invalid.",
+    "httpCode": 400
+  },
+  "TOPICS_EMPTY": {
+    "description": "You specified no topic IDs.",
+    "httpCode": 400
+  },
+  "TOPIC_CLOSED": {
+    "description": "This topic was closed, you can't send messages to it anymore.",
+    "httpCode": 400
+  },
+  "TOPIC_CLOSE_SEPARATELY": {
+    "description": "The `close` flag cannot be provided together with any of the other flags.",
+    "httpCode": 400
+  },
+  "TOPIC_DELETED": {
+    "description": "The specified topic was deleted.",
+    "httpCode": 400
+  },
+  "TOPIC_HIDE_SEPARATELY": {
+    "description": "The `hide` flag cannot be provided together with any of the other flags.",
+    "httpCode": 400
+  },
+  "TOPIC_ID_INVALID": {
+    "description": "The specified topic ID is invalid.",
+    "httpCode": 400
+  },
+  "TOPIC_NOT_FOUND": {
+    "description": "The forum topic was not found.",
+    "httpCode": 404
+  },
+  "TOPIC_NOT_MODIFIED": {
+    "description": "The updated topic info is equal to the current topic info, nothing was changed.",
+    "httpCode": 400
+  },
+  "TOPIC_TITLE_EMPTY": {
+    "description": "The specified topic title is empty.",
+    "httpCode": 400
+  },
+  "TOP_PEER_CATEGORY_INVALID": {
+    "description": "The provided top peer category is invalid or not supported.",
+    "httpCode": 400
+  },
+  "TO_ID_INVALID": {
+    "description": "The specified `to_id` of the passed inputInvoiceStarGiftResale or inputInvoiceStarGiftTransfer is invalid.",
+    "httpCode": 400
+  },
+  "TO_LANG_INVALID": {
+    "description": "The specified destination language is invalid.",
+    "httpCode": 400
+  },
+  "TRANSACTION_ID_INVALID": {
+    "description": "The specified transaction ID is invalid.",
+    "httpCode": 400
+  },
+  "TRANSACTION_NOT_FOUND": {
+    "description": "The Stars transaction was not found.",
+    "httpCode": 404
+  },
+  "TRANSCRIPTION_FAILED": {
+    "description": "Audio transcription failed.",
+    "httpCode": 400
+  },
+  "TRANSCRIPTION_ID_INVALID": {
+    "description": "The specified transcription ID is invalid.",
+    "httpCode": 400
+  },
+  "TRANSLATE_REQ_FAILED": {
+    "description": "Translation failed, please try again later.",
+    "httpCode": 500
+  },
+  "TRANSLATE_REQ_QUOTA_EXCEEDED": {
+    "description": "Translation is currently unavailable due to a temporary server-side lack of resources.",
+    "httpCode": 400
+  },
+  "TRANSLATIONS_DISABLED": {
+    "description": "Translations are unavailable, a detailed and localized description for the error will be emitted via an [updateServiceNotification as specified here &raquo;](https://core.telegram.org/api/errors#406-not-acceptable).",
+    "httpCode": 406
+  },
+  "TRANSLATION_TIMEOUT": {
+    "description": "A timeout occurred while translating the specified text.",
+    "httpCode": 500
+  },
+  "TTL_DAYS_INVALID": {
+    "description": "The provided TTL is invalid.",
+    "httpCode": 400
+  },
+  "TTL_MEDIA_INVALID": {
+    "description": "Invalid media Time To Live was provided.",
+    "httpCode": 400
+  },
+  "TTL_PERIOD_INVALID": {
+    "description": "The specified TTL period is invalid.",
+    "httpCode": 400
+  },
+  "TYPES_EMPTY": {
+    "description": "No top peer type was provided.",
+    "httpCode": 400
+  },
+  "Timeout": {
+    "description": "Timeout while fetching data.",
+    "httpCode": -503
+  },
+  "UNKNOWN_CHANNEL_DIFFERENCE_TYPE": {
+    "description": "Unknown channel updates difference type encountered.",
+    "httpCode": 500
+  },
+  "UNKNOWN_DIFFERENCE_TYPE": {
+    "description": "Unknown updates difference type encountered.",
+    "httpCode": 500
+  },
+  "UNKNOWN_RESET_PASSWORD_RESULT": {
+    "description": "Unknown reset password result kind encountered.",
+    "httpCode": 500
+  },
+  "UNKNOWN_TOP_PEER_CATEGORY": {
+    "description": "Unknown top peer category encountered.",
+    "httpCode": 500
+  },
+  "UNSUPPORTED": {
+    "description": "`require_payment` cannot be *set* by users, only by monoforums: users must instead use the [inputPrivacyKeyNoPaidMessages](https://core.telegram.org/constructor/inputPrivacyKeyNoPaidMessages) privacy setting to remove a previously added exemption.",
+    "httpCode": 400
+  },
+  "UNTIL_DATE_INVALID": {
+    "description": "Invalid until date provided.",
+    "httpCode": 400
+  },
+  "UPDATE_APP_TO_LOGIN": {
+    "description": "Please update your client to login.",
+    "httpCode": 406
+  },
+  "UPLOAD_QUOTA_EXCEEDED": {
+    "description": "Upload quota exceeded for the current period.",
+    "httpCode": 429
+  },
+  "URL_INVALID": {
+    "description": "Invalid URL provided.",
+    "httpCode": 400
+  },
+  "USAGE_LIMIT_INVALID": {
+    "description": "The specified usage limit is invalid.",
+    "httpCode": 400
+  },
+  "USERNAMES_ACTIVE_TOO_MUCH": {
+    "description": "The maximum number of active usernames was reached.",
+    "httpCode": 400
+  },
+  "USERNAMES_NOT_FOUND": {
+    "description": "One or more provided usernames were not found.",
+    "httpCode": 404
+  },
+  "USERNAME_INVALID": {
+    "description": "The provided username is not valid.",
+    "httpCode": 400
+  },
+  "USERNAME_NOT_EDITABLE": {
+    "description": "This username cannot be edited.",
+    "httpCode": 400
+  },
+  "USERNAME_NOT_FOUND": {
+    "description": "The specified username was not found.",
+    "httpCode": 404
+  },
+  "USERNAME_NOT_MODIFIED": {
+    "description": "The username was not modified.",
+    "httpCode": 400
+  },
+  "USERNAME_NOT_OCCUPIED": {
+    "description": "The provided username is not occupied.",
+    "httpCode": 400
+  },
+  "USERNAME_OCCUPIED": {
+    "description": "The provided username is already occupied.",
+    "httpCode": 400
+  },
+  "USERNAME_PURCHASE_AVAILABLE": {
+    "description": "The specified username can be purchased on https://fragment.com.",
+    "httpCode": 400
+  },
+  "USERPIC_PRIVACY_REQUIRED": {
+    "description": "You need to disable privacy settings for your profile picture in order to make your geolocation public.",
+    "httpCode": 406
+  },
+  "USERPIC_UPLOAD_REQUIRED": {
+    "description": "You must have a profile picture to publish your geolocation.",
+    "httpCode": 400
+  },
+  "USERS_TOO_FEW": {
+    "description": "Not enough users (to create a chat, for example).",
+    "httpCode": 400
+  },
+  "USERS_TOO_MUCH": {
+    "description": "The maximum number of users has been exceeded (to create a chat, for example).",
+    "httpCode": 400
+  },
+  "USER_ADMIN_INVALID": {
+    "description": "You're not an admin.",
+    "httpCode": 400
+  },
+  "USER_ALREADY_INVITED": {
+    "description": "You have already invited this user.",
+    "httpCode": 400
+  },
+  "USER_ALREADY_PARTICIPANT": {
+    "description": "The user is already in the group.",
+    "httpCode": 400
+  },
+  "USER_BANNED_IN_CHANNEL": {
+    "description": "You're banned from sending messages in supergroups/channels.",
+    "httpCode": 400
+  },
+  "USER_BLOCKED": {
+    "description": "User blocked.",
+    "httpCode": 400
+  },
+  "USER_BOT": {
+    "description": "Bots can only be admins in channels.",
+    "httpCode": 400
+  },
+  "USER_BOT_INVALID": {
+    "description": "User accounts must provide the `bot` method parameter when calling this method. If there is no such method parameter, this method can only be invoked by bot accounts.",
+    "httpCode": 400
+  },
+  "USER_BOT_REQUIRED": {
+    "description": "This method can only be called by a bot.",
+    "httpCode": 400
+  },
+  "USER_CHANNELS_TOO_MUCH": {
+    "description": "One of the users you tried to add is already in too many channels/supergroups.",
+    "httpCode": 400
+  },
+  "USER_CREATOR": {
+    "description": "For channels.editAdmin: you've tried to edit the admin rights of the owner, but you're not the owner; for channels.leaveChannel: you can't leave this channel, because you're its creator.",
+    "httpCode": 400
+  },
+  "USER_DEACTIVATED": {
+    "description": "The current account was deleted by the user.",
+    "httpCode": 401
+  },
+  "USER_DEACTIVATED_BAN": {
+    "description": "The current account was deleted and banned by Telegram's antispam system.",
+    "httpCode": 401
+  },
+  "USER_DELETED": {
+    "description": "You can't send this secret message because the other participant deleted their account.",
+    "httpCode": 403
+  },
+  "USER_GIFT_UNAVAILABLE": {
+    "description": "Gifts are not available in the current region ([stars_gifts_enabled](https://core.telegram.org/api/config#stars-gifts-enabled) is equal to false).",
+    "httpCode": 400
+  },
+  "USER_ID_INVALID": {
+    "description": "The provided user ID is invalid.",
+    "httpCode": 400
+  },
+  "USER_INVALID": {
+    "description": "Invalid user provided.",
+    "httpCode": 403
+  },
+  "USER_IS_BLOCKED": {
+    "description": "You were blocked by this user.",
+    "httpCode": 400
+  },
+  "USER_IS_BOT": {
+    "description": "Bots can't send messages to other bots.",
+    "httpCode": 400
+  },
+  "USER_KICKED": {
+    "description": "This user was kicked from this supergroup/channel.",
+    "httpCode": 400
+  },
+  "USER_MIGRATE_%d": {
+    "description": "Your account is associated to DC %d, please re-send the query to that DC.",
+    "httpCode": 303,
+    "paramKind": "migrate"
+  },
+  "USER_NOT_FOUND": {
+    "description": "User not found.",
+    "httpCode": 404
+  },
+  "USER_NOT_MUTUAL_CONTACT": {
+    "description": "The provided user is not a mutual contact.",
+    "httpCode": 400
+  },
+  "USER_NOT_PARTICIPANT": {
+    "description": "You're not a member of this supergroup/channel.",
+    "httpCode": 400
+  },
+  "USER_PERMISSION_DENIED": {
+    "description": "The user hasn't granted or has revoked the bot's access to change their emoji status using [bots.toggleUserEmojiStatusPermission](https://core.telegram.org/method/bots.toggleUserEmojiStatusPermission).",
+    "httpCode": 403
+  },
+  "USER_PRIVACY_RESTRICTED": {
+    "description": "The user's privacy settings do not allow you to do this.",
+    "httpCode": 403
+  },
+  "USER_PUBLIC_MISSING": {
+    "description": "Cannot generate a link to stories posted by a peer without a username.",
+    "httpCode": 400
+  },
+  "USER_RESTRICTED": {
+    "description": "You're spamreported, you can't create channels or chats.",
+    "httpCode": 406
+  },
+  "USER_VOLUME_INVALID": {
+    "description": "The specified user volume is invalid.",
+    "httpCode": 400
+  },
+  "VENUE_ID_INVALID": {
+    "description": "The specified venue ID is invalid.",
+    "httpCode": 400
+  },
+  "VERIFICATION_NOT_FOUND": {
+    "description": "The verification request was not found.",
+    "httpCode": 404
+  },
+  "VIDEO_CONTENT_TYPE_INVALID": {
+    "description": "The video's content type is invalid.",
+    "httpCode": 400
+  },
+  "VIDEO_FILE_INVALID": {
+    "description": "The specified video file is invalid.",
+    "httpCode": 400
+  },
+  "VIDEO_PAUSE_FORBIDDEN": {
+    "description": "You cannot pause the video stream.",
+    "httpCode": 400
+  },
+  "VIDEO_STOP_FORBIDDEN": {
+    "description": "You cannot stop the video stream.",
+    "httpCode": 400
+  },
+  "VIDEO_TITLE_EMPTY": {
+    "description": "The specified video title is empty.",
+    "httpCode": 400
+  },
+  "VOICE_MESSAGES_FORBIDDEN": {
+    "description": "This user's privacy settings forbid you from sending voice messages.",
+    "httpCode": 400
+  },
+  "WALLPAPER_FILE_INVALID": {
+    "description": "The specified wallpaper file is invalid.",
+    "httpCode": 400
+  },
+  "WALLPAPER_INVALID": {
+    "description": "The specified wallpaper is invalid.",
+    "httpCode": 400
+  },
+  "WALLPAPER_MIME_INVALID": {
+    "description": "The specified wallpaper MIME type is invalid.",
+    "httpCode": 400
+  },
+  "WALLPAPER_NOT_FOUND": {
+    "description": "The specified wallpaper could not be found.",
+    "httpCode": 400
+  },
+  "WC_CONVERT_URL_INVALID": {
+    "description": "WC convert URL invalid.",
+    "httpCode": 400
+  },
+  "WEBAUTHN_ASSERTION_INVALID": {
+    "description": "WebAuthn assertion signature failed or migration variant unsupported",
+    "httpCode": 400
+  },
+  "WEBAUTHN_ATTESTATION_INVALID": {
+    "description": "WebAuthn attestation signature or rpIdHash failed verification",
+    "httpCode": 400
+  },
+  "WEBAUTHN_CHALLENGE_NOT_FOUND": {
+    "description": "WebAuthn challenge not found or expired",
+    "httpCode": 400
+  },
+  "WEBAUTHN_CREDENTIAL_NOT_FOUND": {
+    "description": "WebAuthn credential not found or revoked",
+    "httpCode": 404
+  },
+  "WEBAUTHN_SIGNCOUNT_REPLAY": {
+    "description": "WebAuthn signature counter replay detected; credential revoked",
+    "httpCode": 403
+  },
+  "WEBAUTH_TOKEN_EXPIRED": {
+    "description": "The specified auth token has expired.",
+    "httpCode": 400
+  },
+  "WEBDOCUMENT_INVALID": {
+    "description": "Invalid webdocument URL provided.",
+    "httpCode": 400
+  },
+  "WEBDOCUMENT_MIME_INVALID": {
+    "description": "Invalid webdocument mime type provided.",
+    "httpCode": 400
+  },
+  "WEBDOCUMENT_SIZE_TOO_BIG": {
+    "description": "Webdocument is too big!",
+    "httpCode": 400
+  },
+  "WEBDOCUMENT_URL_EMPTY": {
+    "description": "The passed web document URL is empty.",
+    "httpCode": 400
+  },
+  "WEBDOCUMENT_URL_INVALID": {
+    "description": "The specified webdocument URL is invalid.",
+    "httpCode": 400
+  },
+  "WEBHOOK_NOT_FOUND": {
+    "description": "The webhook was not found.",
+    "httpCode": 404
+  },
+  "WEBPAGE_CURL_FAILED": {
+    "description": "Failure while fetching the webpage with cURL.",
+    "httpCode": 400
+  },
+  "WEBPAGE_MEDIA_EMPTY": {
+    "description": "Webpage media empty.",
+    "httpCode": 400
+  },
+  "WEBPAGE_MEDIA_INVALID": {
+    "description": "External photo or document media is not supported on this server.",
+    "httpCode": 400,
+    "paramKind": "indexed"
+  },
+  "WEBPAGE_NOT_FOUND": {
+    "description": "A preview for the specified webpage `url` could not be generated.",
+    "httpCode": 400
+  },
+  "WEBPAGE_URL_INVALID": {
+    "description": "The specified webpage `url` is invalid.",
+    "httpCode": 400,
+    "paramKind": "indexed"
+  },
+  "WEBPUSH_AUTH_INVALID": {
+    "description": "The specified web push authentication secret is invalid.",
+    "httpCode": 400
+  },
+  "WEBPUSH_KEY_INVALID": {
+    "description": "The specified web push elliptic curve Diffie-Hellman public key is invalid.",
+    "httpCode": 400
+  },
+  "WEBPUSH_TOKEN_INVALID": {
+    "description": "The specified web push token is invalid.",
+    "httpCode": 400
+  },
+  "WEB_AUTHORIZATION_NOT_FOUND": {
+    "description": "The web authorization session was not found.",
+    "httpCode": 404
+  },
+  "YOUR_PRIVACY_RESTRICTED": {
+    "description": "You cannot fetch the read date of this message because you have disallowed other users to do so for *your* messages; to fix, allow other users to see *your* exact last online date OR purchase a [Telegram Premium](https://core.telegram.org/api/premium) subscription.",
+    "httpCode": 403
+  },
+  "YOU_BLOCKED_USER": {
+    "description": "You blocked this user.",
+    "httpCode": 400
+  }
+}
