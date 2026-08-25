@@ -1123,6 +1123,24 @@ export class ApiFileManager extends AppManager {
               new Uint8Array(buffer).slice().length
             );
 
+            // Unconditional, and it names both identity and payload on purpose. The server refused
+            // these parts with FILE_PART_EMPTY while recording file_id 0 AND zero bytes at the same
+            // time -- two fields defaulting together is what a failed conversion looks like, not
+            // what a lost body looks like, and telling those apart takes seeing what left here.
+            self.log(
+              'UPLOAD part ->',
+              {
+                method,
+                fileId: String(fileId),
+                fileIdType: typeof fileId,
+                part,
+                totalParts,
+                bytes: buffer.byteLength,
+                bytesType: buffer?.constructor?.name,
+                gzip: !isAlreadyCompressed(file.type)
+              }
+            );
+
             return self.apiManager.invokeApi(method, {
               file_id: fileId,
               file_part: part,
@@ -1144,7 +1162,16 @@ export class ApiFileManager extends AppManager {
                 deferred.resolve(resultInputFile);
                 resolved = true;
               }
-            }, errorHandler);
+            }, (error: ApiError) => {
+              self.log.error('UPLOAD part failed', {
+                method,
+                fileId: String(fileId),
+                part,
+                bytes: buffer.byteLength,
+                type: error?.type
+              });
+              return errorHandler(error);
+            });
           },
           activeDelta
         }).catch(errorHandler);
