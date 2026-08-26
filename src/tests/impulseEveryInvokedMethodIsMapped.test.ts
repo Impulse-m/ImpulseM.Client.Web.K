@@ -52,11 +52,11 @@ describe('every invoked API method has a gRPC mapping', () => {
   it('leaves no invoked method to fall through to a transport nothing answers', () => {
     const files = [...sourceFiles('src/lib'), ...sourceFiles('src/components')];
 
-    expect(files.length).toBeGreaterThan(
-      200,
+    expect(
+      files.length,
       'this guard means something only while it still reads the source tree; finding almost no ' +
       'files means the walk stopped matching and its green says nothing'
-    );
+    ).toBeGreaterThan(200);
 
     // Only literal call sites. A name built at runtime cannot be checked here, and pretending
     // otherwise would make the count look better than the coverage is.
@@ -70,11 +70,11 @@ describe('every invoked API method has a gRPC mapping', () => {
       }
     }
 
-    expect(invoked.size).toBeGreaterThan(
-      100,
+    expect(
+      invoked.size,
       'finding almost no literal invokeApi call sites means the pattern stopped matching how this ' +
       'codebase calls the API, and every assertion below is then vacuous'
-    );
+    ).toBeGreaterThan(100);
 
     const mapped = new Set(getMappedMethodNames());
     const unmapped = [...invoked.entries()]
