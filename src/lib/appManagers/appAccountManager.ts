@@ -277,9 +277,9 @@ export default class AppAccountManager extends AppManager {
         from_dc_id: fromDcId,
         from_auth_key_id: bigIntFromBytes(fromAuthKey.id.reverse()).toString()
       } : {})
-    }, {ignoreErrors: true}).then((authorization) => {
+    }, {ignoreErrors: true}).then(async(authorization) => {
       if(authorization._ === 'auth.authorization') {
-        this.apiManager.setUser(authorization.user);
+        await this.apiManager.setUser(authorization.user);
       }
 
       return authorization;

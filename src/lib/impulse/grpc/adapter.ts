@@ -26,7 +26,7 @@ import {Code, ConnectError, createClient} from '@connectrpc/connect';
 
 import Schema from '@lib/mtproto/schema';
 import {getLogger} from '@lib/impulseLogger';
-import {captureImpulseSessionToken, refreshImpulseSession} from '../session';
+import {captureImpulseSessionToken, refreshImpulseSession, whenImpulseSessionReady} from '../session';
 import {getServiceAndMethod} from './serviceMap';
 import {grpcTransport} from './transport';
 
@@ -221,6 +221,21 @@ function convertFieldValue(raw: any, field: DescField): any {
     return raw;
   }
 
+  // protobuf-es only coerces plain arrays for a `bytes` field -- its toU8Arr is
+  // `Array.isArray(v) ? new Uint8Array(v) : v` -- so an ArrayBuffer travelled
+  // through untouched and the writer, which reads `.length`, found none on it and
+  // emitted zero bytes. Every upload part left the client empty and came back
+  // FILE_PART_EMPTY. apiFileManager hands us the ArrayBuffer straight from
+  // readBlobAsArrayBuffer; wrap it here, at the boundary, so no caller has to
+  // remember.
+  if(raw instanceof ArrayBuffer) {
+    return new Uint8Array(raw);
+  }
+
+  if(ArrayBuffer.isView(raw)) {
+    return new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+  }
+
   if(Array.isArray(raw)) {
     if(field.fieldKind === 'list' && (field as any).listKind === 'message' && field.message) {
       return raw.map((item) => buildProtoInit(item, field.message));
@@ -369,6 +384,17 @@ export function protoToTL(value: any, schema?: DescMessage): any {
     omitAbsentConditionalVectors(predicate, out);
   }
 
+  // A TL method returning a bare `Vector<X>` has no proto equivalent, so the
+  // generator wraps it in a synthetic message holding a single `items` field --
+  // LangPackLanguageList, UserList, PeerList, 44 of them. Callers expect the
+  // array itself; `langpack.getLanguages` reaching `.map` is what exposed this.
+  // Genuine TL types whose name merely ends in List are untouched: emojiList
+  // carries `hash` and `document_id`, so it has more than one field and a
+  // predicate of its own.
+  if(!predicate && Array.isArray(out.items) && Object.keys(out).length === 1) {
+    return out.items;
+  }
+
   return out;
 }
 
@@ -453,12 +479,18 @@ export async function grpcInvoke(
     throw {type: 'GRPC_METHOD_MISSING', message: `${descMethod.localName} absent on client`, code: 501} as ApiError;
   }
 
+  // Nothing may leave before the stored session has been put back on the headers:
+  // the boot sequence fires its first wave in the same tick as the restore, and
+  // that wave used to travel unauthenticated. Already settled after boot, so this
+  // costs a microtask.
+  await whenImpulseSessionReady();
+
   const request = create(descMethod.input, buildProtoInit(params, descMethod.input));
 
   try {
     const response = await methodFn.call(client, request, {signal: abortSignal});
     const result = protoToTL(response, descMethod.output);
-    captureImpulseSessionToken(result);
+    await captureImpulseSessionToken(result);
     return result;
   } catch(err) {
     const apiError = toApiError(err);

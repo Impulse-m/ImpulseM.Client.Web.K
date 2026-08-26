@@ -6,7 +6,7 @@
  */
 
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
-import {applyImpulseUserId, clearImpulseSession, restoreImpulseSession} from '@lib/impulse/session';
+import {applyImpulseUserId, clearImpulseSession, restoreImpulseSession, setImpulseAccount} from '@lib/impulse/session';
 import {setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
@@ -17,6 +17,7 @@ import MTPNetworker, {MTMessage} from '@lib/mtproto/networker';
 import {ConnectionType, constructImpulseMWebSocketUrl, DcConfigurator, TransportType} from '@lib/mtproto/dcConfigurator';
 import deferredPromise, {CancellablePromise} from '@helpers/cancellablePromise';
 import App from '@config/app';
+import {ConnectionStatus} from '@lib/mtproto/connectionStatus';
 import {MOUNT_CLASS_TO} from '@config/debug';
 import {IDB} from '@lib/files/idb';
 import CryptoWorker from '@lib/crypto/cryptoMessagePort';
@@ -99,21 +100,54 @@ export class ApiManager extends ApiManagerMethods {
     }, REFRESH_CONFIG_INTERVAL);
   }
 
+  /**
+   * Only MTPNetworker ever emitted `connection_status_change` (networkerFactory),
+   * and getNetworker is disabled here -- so the map behind rootScope.connectionStatus
+   * stayed empty for the life of the tab, ConnectionStatusComponent never saw a
+   * Connected status, and the chat-list search sat on "ConnectionStatus.Waiting"
+   * for ever. Client A solved the same problem the same way: its connect() skips
+   * MTProto and emits UpdateConnectionState.connected before returning
+   * (ImpulseMClient.ts:301).
+   *
+   * This also ungates `hadConnect`, which the component uses to decide whether a
+   * reconnect should run forceGetDifference -- so it is not only the caption.
+   */
+  private reportImpulseConnected() {
+    this.rootScope.dispatchEvent('connection_status_change', {
+      _: 'networkerStatus',
+      status: ConnectionStatus.Connected,
+      dcId: this.baseDcId || App.baseDcId,
+      name: 'impulse-gateway',
+      isFileNetworker: false,
+      isFileDownload: false,
+      isFileUpload: false
+    });
+  }
+
   protected after() {
     const result = super.after();
 
-    // Arm the gateway auth headers from stored session data before anything
-    // issues an RPC, then bring up the push channel for an already-signed-in
-    // session.
-    setRealtimeSink((update, date) => {
-      this.apiUpdatesManager.processUpdateMessage({_: 'updateShort', update, date});
-    });
-
+    // Arm the gateway auth headers from stored session data, then bring up the
+    // push channel -- but only for the account that is actually signed in.
+    //
+    // createManagers builds a manager for all four slots and calls after() on
+    // every one. `setRealtimeSink` is context-wide, so registering it here
+    // unconditionally meant the last slot to run owned it -- usually an empty one.
+    // Every Centrifugo update was then handed to an idle account's updates
+    // manager and quietly dropped: a sent message never received its
+    // confirmation and sat on the clock icon forever.
     restoreImpulseSession(this.getAccountNumber()).then(() => {
       AccountController.get(this.getAccountNumber()).then((data) => {
-        if(data?.userId !== undefined) {
-          startImpulseRealtime(String(data.userId));
+        if(data?.userId === undefined) {
+          return;
         }
+
+        setRealtimeSink((update, date) => {
+          this.apiUpdatesManager.processUpdateMessage({_: 'updateShort', update, date});
+        });
+
+        startImpulseRealtime(String(data.userId));
+        this.reportImpulseConnected();
       });
     });
 
@@ -253,6 +287,7 @@ export class ApiManager extends ApiManagerMethods {
 
     this.rootScope.dispatchEvent('user_auth', userAuth);
 
+    await setImpulseAccount(this.getAccountNumber());
     applyImpulseUserId((userAuth as UserAuth).id as unknown as string);
     startImpulseRealtime(String((userAuth as UserAuth).id));
 
@@ -261,7 +296,7 @@ export class ApiManager extends ApiManagerMethods {
       userAuth.dcID = baseDcId;
     }
 
-    AccountController.update(this.getAccountNumber(), {
+    await AccountController.update(this.getAccountNumber(), {
       date: (userAuth as UserAuth).date,
       userId: (userAuth as UserAuth).id,
       dcId: (userAuth as UserAuth).dcID as TrueDcId
@@ -736,9 +771,7 @@ export class ApiManager extends ApiManagerMethods {
 
         if(error.code === 401 && this.baseDcId === dcId) {
           if(error.type !== 'SESSION_PASSWORD_NEEDED') {
-            AccountController.update(this.getAccountNumber(), {
-              dcId: undefined
-            });
+            AccountController.clearFields(this.getAccountNumber(), ['dcId']);
           }
           throw error;
         } else if(error.code === 401 && this.baseDcId && dcId !== this.baseDcId) {
