@@ -19,12 +19,13 @@
 
 import {Centrifuge, type Subscription} from 'centrifuge';
 import {fromBinary} from '@bufbuild/protobuf';
-import {createClient} from '@connectrpc/connect';
+import {Code, ConnectError, createClient} from '@connectrpc/connect';
 
 import {backendWsOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
+import {refreshImpulseSession} from './session';
 import {protoToTL} from './grpc/adapter';
-import {UpdateSchema} from './grpc/gen/v1/types_pb';
+import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 import {SyncService} from './grpc/gen/v1/internal/impulse/sync/sync_service_pb';
 import {grpcTransport} from './grpc/transport';
 
@@ -35,9 +36,9 @@ const TOKEN_EXPIRED_CODE = 109;
 // Guards against a re-spin storm if module state is ever transiently reset.
 const SPIN_UP_COOLDOWN_MS = 30_000;
 
-export type RealtimeUpdateSink = (update: any, date?: number) => void;
+export type RealtimeUpdateSink = (updates: any) => void;
 
-type Envelope = {
+export type Envelope = {
   type?: number,
   pts?: number | string,
   ptsCount?: number | string,
@@ -104,12 +105,29 @@ export function stopImpulseRealtime(): void {
 
 async function fetchToken(): Promise<string> {
   const client = createClient(SyncService, grpcTransport);
-  const response = await client.getCentrifugoToken({});
+
+  // This call goes straight through the generated client, so it never passes the
+  // 401-retry in grpcInvoke -- on a restored-but-expired session it just failed
+  // with AUTH_KEY_UNREGISTERED and the push channel stayed down for the whole
+  // tab. Renew and try once more, the same way every other call does.
+  const response = await client.getCentrifugoToken({}).catch(async(err: unknown) => {
+    if(!isUnauthenticated(err) || !await refreshImpulseSession()) {
+      throw err;
+    }
+
+    logger.info('Retrying the Centrifugo token after a session refresh');
+    return client.getCentrifugoToken({});
+  });
+
   if(!response?.token) {
     throw new Error('Sync.GetCentrifugoToken returned no token');
   }
 
   return response.token;
+}
+
+function isUnauthenticated(err: unknown): boolean {
+  return ConnectError.from(err).code === Code.Unauthenticated;
 }
 
 async function spinUp(userId: string): Promise<void> {
@@ -163,34 +181,56 @@ function handleEnvelope(envelope: Envelope | undefined, channel: string): void {
     return;
   }
 
-  const bytes = readBytes(envelope.data);
-  if(!bytes) {
-    logger.warn('Non-binary realtime update ignored', {type: envelope.type, channel});
-    return;
-  }
-
-  let update: any;
+  let updates: any;
   try {
-    update = protoToTL(fromBinary(UpdateSchema, bytes), UpdateSchema);
+    updates = decodeRealtimeEnvelope(envelope);
   } catch(err) {
     // A decode failure must never escape into the worker's error handler.
     logger.warn('Realtime update decode failed', {type: envelope.type, channel}, err);
     return;
   }
 
-  if(!update || typeof update !== 'object') {
+  if(!updates || typeof updates !== 'object') {
+    logger.warn('Non-binary realtime update ignored', {type: envelope.type, channel});
     return;
   }
 
-  // TL carries pts on the update itself; the envelope repeats it out of band, so
+  // TL carries pts on each update; the envelope repeats it out of band, so
   // restore it when the decoded update did not already have it.
-  applyMetadata(update, envelope);
+  for(const update of updates.updates ?? []) {
+    applyMetadata(update, envelope);
+  }
+
+  const date = asNumber(envelope.date);
+  if(date !== undefined) {
+    updates.date = date;
+  }
+
+  // Only failures were recorded here, so a channel that delivered nothing looked
+  // exactly like one that delivered everything -- and a response to sendMessage,
+  // which the updates manager also processes, was mistaken for a push. Record
+  // every publication that gets this far.
+  logger.info('Realtime update received', {
+    updates: (updates.updates ?? []).map((update: any) => update._),
+    pts: asNumber(envelope.pts),
+    ptsCount: asNumber(envelope.ptsCount ?? envelope.pts_count),
+    channel
+  });
 
   try {
-    sink(update, asNumber(envelope.date));
+    sink(updates);
   } catch(err) {
     logger.warn('Realtime update dispatch failed', {type: envelope.type}, err);
   }
+}
+
+export function decodeRealtimeEnvelope(envelope: Envelope): any | undefined {
+  const bytes = readBytes(envelope.data);
+  if(!bytes) {
+    return undefined;
+  }
+
+  return protoToTL(fromBinary(UpdatesSchema, bytes), UpdatesSchema);
 }
 
 function applyMetadata(update: any, envelope: Envelope): void {

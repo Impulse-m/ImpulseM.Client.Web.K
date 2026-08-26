@@ -142,8 +142,8 @@ export class ApiManager extends ApiManagerMethods {
           return;
         }
 
-        setRealtimeSink((update, date) => {
-          this.apiUpdatesManager.processUpdateMessage({_: 'updateShort', update, date});
+        setRealtimeSink((updates) => {
+          this.apiUpdatesManager.processUpdateMessage(updates);
         });
 
         startImpulseRealtime(String(data.userId));
