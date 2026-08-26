@@ -113,11 +113,26 @@ export class ApiManager extends ApiManagerMethods {
    * reconnect should run forceGetDifference -- so it is not only the caption.
    */
   private reportImpulseConnected() {
+    const dcId = this.baseDcId || App.baseDcId;
+
+    // The name is the KEY, not a label. rootScope files each status under `status.name`
+    // (rootScope.ts:293) and ConnectionStatusComponent looks one up as `'NET-' + baseDcId`
+    // (connectionStatus.ts:101) — the name MTPNetworker gives its client connection
+    // (networker.ts:244, where the suffix is empty for a non-file networker).
+    //
+    // This used to send a readable 'impulse-gateway'. Both sides then worked perfectly: the status
+    // was dispatched, stored, and never found, because it was filed under one key and read under
+    // another. Nothing errored, and the chat-list search sat on "Waiting for network" for the life
+    // of the tab — which is also why `hadConnect` never armed, so a reconnect never ran
+    // forceGetDifference either. The caption was the visible half of it.
+    //
+    // Composed from the same two pieces the reader uses, rather than written out, so the two
+    // cannot drift apart again without the expression itself changing.
     this.rootScope.dispatchEvent('connection_status_change', {
       _: 'networkerStatus',
       status: ConnectionStatus.Connected,
-      dcId: this.baseDcId || App.baseDcId,
-      name: 'impulse-gateway',
+      dcId,
+      name: 'NET-' + dcId,
       isFileNetworker: false,
       isFileDownload: false,
       isFileUpload: false
