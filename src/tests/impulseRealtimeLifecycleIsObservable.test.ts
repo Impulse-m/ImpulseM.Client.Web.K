@@ -19,6 +19,9 @@ import {describe, expect, it} from 'vitest';
  * is what this guard protects: whoever deletes one of these handlers takes the answer away again,
  * and the next person to look will see a quiet log and conclude the lane is healthy.
  */
+const QUOTE = String.fromCharCode(39);
+
+
 describe('the realtime lane logs its own lifecycle', () => {
   const source = readFileSync('src/lib/impulse/realtime.ts', 'utf8');
 
@@ -27,18 +30,20 @@ describe('the realtime lane logs its own lifecycle', () => {
    * looks exactly like a dead socket unless the two are recorded apart.
    */
   const required = [
-    {event: "centrifuge.on('connecting'", why: 'a reconnect loop is invisible without the attempts'},
-    {event: "centrifuge.on('connected'", why: 'the only line that may claim a socket exists'},
-    {event: "centrifuge.on('disconnected'", why: 'the drop, with the code and reason Centrifugo gives — the whole question'},
-    {event: "sub.on('subscribing'", why: 'a subscription retrying under a live socket is otherwise silent'},
-    {event: "sub.on('subscribed'", why: 'the only line that may claim updates can now arrive'},
-    {event: "sub.on('unsubscribed'", why: 'a channel dropped under a live socket delivers nothing and reports nothing'}
+    {owner: 'centrifuge', event: 'connecting', why: 'a reconnect loop is invisible without the attempts'},
+    {owner: 'centrifuge', event: 'connected', why: 'the only line that may claim a socket exists'},
+    {owner: 'centrifuge', event: 'disconnected', why: 'the drop, with the code and reason Centrifugo gives — the whole question'},
+    {owner: 'sub', event: 'subscribing', why: 'a subscription retrying under a live socket is otherwise silent'},
+    {owner: 'sub', event: 'subscribed', why: 'the only line that may claim updates can now arrive'},
+    {owner: 'sub', event: 'unsubscribed', why: 'a channel dropped under a live socket delivers nothing and reports nothing'}
   ];
 
-  it.each(required)('handles $event', ({event, why}) => {
+  it.each(required)('handles $owner.on($event)', ({owner, event, why}) => {
+    const handler = `${owner}.on(${QUOTE}${event}${QUOTE}`;
+
     expect(
-      source.includes(event),
-      `src/lib/impulse/realtime.ts no longer registers ${event}). Without it: ${why}.\n\n` +
+      source.includes(handler),
+      `src/lib/impulse/realtime.ts no longer registers ${handler}). Without it: ${why}.\n\n` +
       'Diagnosing this lane from logs is the only tool there is — it runs in a worker, in the ' +
       'user\'s browser, and nobody can attach a debugger to it after the fact.'
     ).toBe(true);
