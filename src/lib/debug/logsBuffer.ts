@@ -194,14 +194,77 @@ function pushEntry(e: LogEntry) {
  * normal production users pay nothing; under dev / ?debug=1 it records the full
  * timeline. Never throws.
  */
+/**
+ * How long one call site's shipping budget lasts, and how many lines it may ship inside it.
+ */
+const SHIP_WINDOW_MS = 10_000;
+const SHIP_BUDGET_PER_WINDOW = 20;
+
+type ShipBudget = {windowStartedAt: number, shipped: number, suppressed: number};
+
+const shipBudgets = new Map<string, ShipBudget>();
+
+/**
+ * Whether this line may go to the network, and what to say if its call site has been throttled.
+ *
+ * Every upstream logger call reaches the sink, deliberately and unconditionally — see the note in
+ * `capture`. That is right for a timeline and wrong for a network, and the difference had never
+ * been drawn: a single upstream module logging inside a render loop put five thousand lines on the
+ * wire in eight minutes, ninety-seven per cent of everything the client sent. The call site was not
+ * doing anything unusual. It logged ten times a second because upstream logs go to a console, where
+ * ten a second costs nothing.
+ *
+ * So the budget belongs here rather than at any call site: the next chatty one will not know to ask
+ * either, and a telemetry pipeline that one caller can saturate is broken regardless of who
+ * saturates it.
+ *
+ * Suppression is never silent. When a window closes having dropped anything, the next line from
+ * that key carries the count, so a reader sees "this was throttled and by how much" instead of a
+ * gap that looks like the code stopped running.
+ */
+function shippingDecision(level: LogTypes, prefix: string, args: any[]): {allow: boolean, suppressed: number} {
+  const first = args.length > 0 && typeof args[0] === 'string' ? args[0] : '';
+  const key = `${level}|${prefix}|${first}`;
+  const now = Date.now();
+
+  let budget = shipBudgets.get(key);
+  if(!budget || now - budget.windowStartedAt >= SHIP_WINDOW_MS) {
+    const suppressed = budget ? budget.suppressed : 0;
+    budget = {windowStartedAt: now, shipped: 1, suppressed: 0};
+    shipBudgets.set(key, budget);
+    return {allow: true, suppressed};
+  }
+
+  if(budget.shipped < SHIP_BUDGET_PER_WINDOW) {
+    budget.shipped++;
+    return {allow: true, suppressed: 0};
+  }
+
+  budget.suppressed++;
+  return {allow: false, suppressed: 0};
+}
+
+
 export function capture(level: LogTypes, prefix: string, args: any[]): void {
   // The Loki sink runs BEFORE the `enabled` gate: the ring buffer is a debug
   // aid (DEBUG-only), while telemetry ships in every build. Registered by
   // lib/impulseLogger, so this module stays a leaf — the dependency points
   // the other way.
+  //
+  // It is also the only path here that leaves the machine, so it is the only one that carries a
+  // budget. The ring buffer is bounded by its own size and costs nothing to fill.
   if(sink) {
     try {
-      sink(level, prefix, args);
+      const decision = shippingDecision(level, prefix, args);
+      if(decision.allow) {
+        sink(
+          level,
+          prefix,
+          decision.suppressed > 0
+            ? [...args, `[${decision.suppressed} further lines from this call site were not shipped]`]
+            : args
+        );
+      }
     } catch(err) {
       // Telemetry must never break the app it is observing.
     }
