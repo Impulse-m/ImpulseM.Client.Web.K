@@ -4,6 +4,7 @@ import VIDEO_MIME_TYPES_SUPPORTED from '@environment/videoMimeTypesSupport';
 import {createImageAndURLFromBlob} from '@helpers/createImageAndURLFromBlob';
 import {getAppWindow} from '@helpers/appWindow';
 import {createObjectURL, revokeObjectURL} from '@helpers/objectUrl';
+import resolveAvatarPickedFile from '@helpers/resolveAvatarPickedFile';
 import rootScope from '@lib/rootScope';
 
 
@@ -41,7 +42,7 @@ export async function getFileAndOpenEditor({
   shouldOpenEditor,
   onSkipEditor
 }: GetFileAndOpenEditorArgs) {
-  const input = createHiddenFileInput(acceptMediaTypes);
+  const input = createHiddenFileInput(acceptMediaTypes, isEditingForAvatar);
   document.body.append(input);
 
   const file = await getFileFromInput(input).finally(() => {
@@ -55,13 +56,15 @@ export async function getFileAndOpenEditor({
     return;
   }
 
-  const isVideo = file.type.startsWith('video/');
+  const avatarFile = await resolveAvatarPickedFile(file, isEditingForAvatar);
+
+  const isVideo = avatarFile.type.startsWith('video/');
 
   let mediaSrc: string;
   if(isVideo) {
-    mediaSrc = createObjectURL(file);
+    mediaSrc = createObjectURL(avatarFile);
   } else {
-    const imgResult = await createImageAndURLFromBlob(file); // make sure to render the image to know if it's valid
+    const imgResult = await createImageAndURLFromBlob(avatarFile); // make sure to render the image to know if it's valid
     if(!imgResult.ok) return;
     mediaSrc = imgResult.url;
   }
@@ -79,12 +82,14 @@ export async function getFileAndOpenEditor({
     isEditingForumAvatar,
     canFinishWithoutChanges: true,
     canImageResultInGIF,
-    getMediaBlob: async() => file,
+    getMediaBlob: async() => avatarFile,
     managers: rootScope.managers,
     mediaSrc,
     mediaType: isVideo ? 'video' : 'image',
     // Editing an avatar with a video → avatar-video mode (≤10s trim, forced mute,
-    // cover-frame picker). Non-avatar callers are unaffected.
+    // cover-frame picker). Non-avatar callers are unaffected. A gif converted by
+    // resolveAvatarPickedFile above lands here too, since avatarFile is now a
+    // plain mp4.
     isVideoAvatarMode: isEditingForAvatar && isVideo,
     initialTab: isVideo ? 'adjustments' : 'crop',
     onEditFinish: (editorResult) => onFinish({editorResult, originalFile: file}),
@@ -93,7 +98,7 @@ export async function getFileAndOpenEditor({
   });
 }
 
-function createHiddenFileInput(acceptMediaTypes: Array<'photo' | 'video'>): HTMLInputElement {
+function createHiddenFileInput(acceptMediaTypes: Array<'photo' | 'video'>, includeGifForAvatar?: boolean): HTMLInputElement {
   const input = document.createElement('input');
   input.type = 'file';
   input.style.display = 'none';
@@ -101,6 +106,10 @@ function createHiddenFileInput(acceptMediaTypes: Array<'photo' | 'video'>): HTML
   const mimeTypes: string[] = [];
   if(acceptMediaTypes.includes('photo')) mimeTypes.push(...IMAGE_MIME_TYPES_SUPPORTED);
   if(acceptMediaTypes.includes('video')) mimeTypes.push(...VIDEO_MIME_TYPES_SUPPORTED);
+  // Avatars have no gif arm of their own (see resolveAvatarPickedFile above) — offer
+  // gif in the avatar picker without widening IMAGE_MIME_TYPES_SUPPORTED itself, since
+  // that constant is read by unrelated image flows.
+  if(includeGifForAvatar && !mimeTypes.includes('image/gif')) mimeTypes.push('image/gif');
   input.accept = mimeTypes.join(',');
 
   return input;
