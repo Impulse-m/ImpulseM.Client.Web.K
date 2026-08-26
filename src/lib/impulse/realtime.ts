@@ -174,10 +174,23 @@ function handleEnvelope(envelope: Envelope | undefined, channel: string): void {
     return;
   }
 
-  // Too large to ride the push channel; the updates manager will pick it up
-  // through getDifference.
+  // Too large to ride the push channel. Returning here used to be the whole of it, on the
+  // reasoning that the updates manager would pick the update up through getDifference. It cannot:
+  // the envelope never reaches the manager, so nothing creates the sequence gap that would make it
+  // ask. Nothing else is guaranteed to arrive either, so the chat simply stays as it was --
+  // missing that message, or that edit, or that read mark -- until some later event happens to
+  // expose a gap by coincidence.
+  //
+  // Canon has a constructor for exactly this situation and says what it obliges: updatesTooLong
+  // means "too many updates to deliver here, fetch the difference"
+  // (.demo/telegram-docs-text/constructor/updatesTooLong.md). The manager already answers it by
+  // forcing that fetch, beside new_session_created, and has done since long before this transport
+  // existed. So the honest move is to say the thing canon defines and let the path that was
+  // written for it do the work, rather than reach past it and call getDifference from here --
+  // a second recovery route beside a working one is how this file's other defect happened.
   if(envelope.oversize) {
-    logger.info('Oversize realtime update deferred to getDifference', {type: envelope.type});
+    logger.info('Oversize realtime update; asking for the difference', {type: envelope.type});
+    sink({_: 'updatesTooLong'});
     return;
   }
 
