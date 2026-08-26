@@ -153,6 +153,30 @@ async function spinUp(userId: string): Promise<void> {
   });
 
   const channel = `user:${userId}`;
+
+  // The connection's own lifecycle, logged from the events rather than from the call sites.
+  //
+  // What used to stand at the end of this function was `logger.info('Realtime connected')`,
+  // written immediately after calling connect() and subscribe(). Both are asynchronous and return
+  // nothing, so that line recorded an INTENTION as an OUTCOME: it appeared whether or not a socket
+  // was ever established. Reading the logs back, five "connected" lines in seventeen minutes looked
+  // like a connection that kept dropping and recovering, while the subscribe-proxy on the server
+  // had been called twice in forty minutes. The log agreed with itself and described something that
+  // had not happened.
+  //
+  // Nothing recorded the other edge at all -- no disconnect, no unsubscribe, no reason code -- so
+  // the one question worth asking ("what is killing it?") had no evidence anywhere. These handlers
+  // exist to answer exactly that: every transition, with the code and reason Centrifugo supplies.
+  centrifuge.on('connecting', (ctx: any) => {
+    logger.info('Realtime connecting', {channel, code: ctx?.code, reason: ctx?.reason});
+  });
+  centrifuge.on('connected', (ctx: any) => {
+    logger.info('Realtime connected', {channel, transport: ctx?.transport});
+  });
+  centrifuge.on('disconnected', (ctx: any) => {
+    logger.warn('Realtime disconnected', {channel, code: ctx?.code, reason: ctx?.reason});
+  });
+
   const sub = centrifuge.newSubscription(channel);
   sub.on('publication', (ctx: any) => {
     handleEnvelope(ctx?.data as Envelope, channel);
@@ -161,12 +185,31 @@ async function spinUp(userId: string): Promise<void> {
     logger.warn('Centrifugo subscription error', {channel, code: ctx?.error?.code});
   });
 
+  // Subscription state is tracked separately from connection state on purpose: a live socket
+  // carrying no subscription delivers nothing, and that is indistinguishable from a dead socket
+  // unless both are recorded. `recovered` is the field that says whether the messages missed while
+  // the subscription was down were replayed, or silently skipped.
+  sub.on('subscribing', (ctx: any) => {
+    logger.info('Realtime subscribing', {channel, code: ctx?.code, reason: ctx?.reason});
+  });
+  sub.on('subscribed', (ctx: any) => {
+    logger.info('Realtime subscribed', {
+      channel,
+      recoverable: ctx?.recoverable,
+      wasRecovering: ctx?.wasRecovering,
+      recovered: ctx?.recovered
+    });
+  });
+  sub.on('unsubscribed', (ctx: any) => {
+    logger.warn('Realtime unsubscribed', {channel, code: ctx?.code, reason: ctx?.reason});
+  });
+
   connection = centrifuge;
   subscription = sub;
 
   sub.subscribe();
   centrifuge.connect();
-  logger.info('Realtime connected', {channel});
+  logger.info('Realtime spin-up requested', {channel});
 }
 
 function handleEnvelope(envelope: Envelope | undefined, channel: string): void {
