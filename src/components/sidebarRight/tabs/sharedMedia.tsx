@@ -715,6 +715,10 @@ const SharedMedia: Component = () => {
       name: 'SharedMediaTab2',
       type: 'media'
     }, {
+      inputFilter: 'inputMessagesFilterGif',
+      name: 'GIFs',
+      type: 'gifs'
+    }, {
       name: 'SharedMedia.Gifts',
       type: 'gifts'
     }, {

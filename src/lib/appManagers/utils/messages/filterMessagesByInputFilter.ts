@@ -51,6 +51,11 @@ export default function filterMessagesByInputFilter({
       neededDocTypes.push('video');
       break;
 
+    case 'inputMessagesFilterGif':
+      neededContents['messageMediaDocument'] = true;
+      neededDocTypes.push('gif');
+      break;
+
     case 'inputMessagesFilterDocument':
       neededContents['messageMediaDocument'] = true;
       // excludeDocTypes.push('video');

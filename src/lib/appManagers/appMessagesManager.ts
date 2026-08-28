@@ -208,6 +208,7 @@ export type MyInputMessagesFilter = 'inputMessagesFilterEmpty'
   | 'inputMessagesFilterPhotos'
   | 'inputMessagesFilterPhotoVideo'
   | 'inputMessagesFilterVideo'
+  | 'inputMessagesFilterGif'
   | 'inputMessagesFilterDocument'
   | 'inputMessagesFilterVoice'
   | 'inputMessagesFilterRoundVoice'
@@ -7409,7 +7410,7 @@ export class AppMessagesManager extends AppManager {
       filters,
       top_msg_id: threadId && historyType !== HistoryType.Saved ? getServerMessageId(threadId) : undefined,
       saved_peer_id: historyType === HistoryType.Saved ? this.appPeersManager.getInputPeerById(threadId) : undefined
-    }, {cacheSeconds: 60e3});
+    }, {cacheSeconds: 60});
 
     if(migration) {
       const legacyResult = func(method, {
@@ -7553,7 +7554,14 @@ export class AppMessagesManager extends AppManager {
   }
 
   private handleNewMessage(message: MyMessage) {
+    this.clearSearchCountersCache(message.peerId);
     this.rootScope.dispatchEvent('history_multiappend', message);
+  }
+
+  private clearSearchCountersCache(peerId: PeerId) {
+    this.apiManager.clearCache('messages.getSearchCounters', (params) => {
+      return this.appPeersManager.getPeerId(params.peer) === peerId;
+    });
   }
 
   private handleNewDialogs = () => {
@@ -9702,9 +9710,7 @@ export class AppMessagesManager extends AppManager {
       return;
     }
 
-    this.apiManager.clearCache('messages.getSearchCounters', (params) => {
-      return this.appPeersManager.getPeerId(params.peer) === peerId;
-    });
+    this.clearSearchCountersCache(peerId);
 
     const
       threadKeys = new Set<string>(),

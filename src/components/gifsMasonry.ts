@@ -10,6 +10,27 @@ import wrapVideo from '@components/wrappers/video';
 import noop from '@helpers/noop';
 import {MiddlewareHelper, getMiddleware} from '@helpers/middleware';
 import positionElementByIndex from '@helpers/dom/positionElementByIndex';
+import {Message, PhotoSize} from '@layer';
+
+type GifsMasonryAddOptions = {
+  element?: HTMLElement,
+  key?: DocId | string,
+  mediaClass?: string,
+  message?: Message.message,
+  noLiveInfo?: boolean,
+  noInfo?: boolean,
+  photoSize?: PhotoSize,
+  useProvidedDocument?: boolean
+};
+
+type GifsMasonryItem = {
+  doc?: MyDocument,
+  mediaClass?: string,
+  message?: Message.message,
+  noLiveInfo: boolean,
+  noInfo: boolean,
+  photoSize?: PhotoSize
+};
 
 export default class GifsMasonry {
   public lazyLoadQueue: LazyLoadQueueRepeat2;
@@ -17,7 +38,8 @@ export default class GifsMasonry {
   private timeout: number = 0;
   private managers: AppManagers;
   private middlewareHelper: MiddlewareHelper;
-  private map: Map<DocId, HTMLElement>;
+  private map: Map<DocId | string, HTMLElement>;
+  private items: WeakMap<HTMLElement, GifsMasonryItem>;
 
   constructor(
     private element: HTMLElement,
@@ -28,6 +50,7 @@ export default class GifsMasonry {
     this.managers = rootScope.managers;
     this.middlewareHelper = getMiddleware();
     this.map = new Map();
+    this.items = new WeakMap();
 
     this.lazyLoadQueue = new LazyLoadQueueRepeat2(undefined, ({target, visible}) => {
       if(visible) {
@@ -71,6 +94,19 @@ export default class GifsMasonry {
     this.lazyLoadQueue.clear();
   }
 
+  public setActive(active: boolean) {
+    if(active) {
+      this.lazyLoadQueue.unlockAndRefresh();
+      return;
+    }
+
+    this.lazyLoadQueue.lock();
+    for(const div of this.lazyLoadQueue.intersector.getVisible()) {
+      this.processInvisibleDiv(div, true);
+    }
+    this.lazyLoadQueue.intersector.clearVisible();
+  }
+
   private processVisibleDiv(div: HTMLElement) {
     const video = div.querySelector('video');
     if(video) {
@@ -78,8 +114,8 @@ export default class GifsMasonry {
     }
 
     const load = () => {
-      const docId = div.dataset.docId;
-      const promise = Promise.all([this.managers.appDocsManager.getDoc(docId), this.scrollPromise]).then(async([doc]) => {
+      const item = this.items.get(div);
+      const promise = Promise.all([item?.doc || this.managers.appDocsManager.getDoc(div.dataset.docId), this.scrollPromise]).then(async([doc]) => {
         if(!this.lazyLoadQueue.intersector.isVisible(div)) {
           this.processInvisibleDiv(div);
           return;
@@ -93,10 +129,13 @@ export default class GifsMasonry {
           lazyLoadQueue: null,
           // lazyLoadQueue: EmoticonsDropdown.lazyLoadQueue,
           group: this.group,
-          noInfo: true,
+          noInfo: item?.noLiveInfo || (item?.noInfo ?? true),
           noPreview: true,
-          middleware
+          middleware,
+          message: item?.message,
+          photoSize: item?.photoSize
         });
+        item?.mediaClass && res.video?.classList.add(item.mediaClass);
 
         const promise = res.loadPromise;
         promise.finally(() => {
@@ -124,11 +163,11 @@ export default class GifsMasonry {
     this.lazyLoadQueue.push({div, load});
   }
 
-  public processInvisibleDiv = (div: HTMLElement) => {
+  public processInvisibleDiv = (div: HTMLElement, force = false) => {
     return this.scrollPromise.then(async() => {
       // return;
 
-      if(this.lazyLoadQueue.intersector.isVisible(div)) {
+      if(!force && this.lazyLoadQueue.intersector.isVisible(div)) {
         return;
       }
 
@@ -139,7 +178,7 @@ export default class GifsMasonry {
         await doubleRaf();
       }
 
-      if(this.lazyLoadQueue.intersector.isVisible(div)) {
+      if(!force && this.lazyLoadQueue.intersector.isVisible(div)) {
         return;
       }
 
@@ -165,17 +204,26 @@ export default class GifsMasonry {
     }
   }
 
-  public add(doc: MyDocument, appendTo = this.element) {
-    if(this.map.has(doc.id)) {
-      return;
+  public add(doc: MyDocument, appendTo = this.element, options: GifsMasonryAddOptions = {}) {
+    const key = options.key ?? doc.id;
+    if(this.map.has(key)) {
+      return Promise.resolve(undefined);
     }
 
-    const div = document.createElement('div');
+    const div = options.element || document.createElement('div');
     div.classList.add('gif', 'grid-item'/* , 'fade-in-transition' */);
     // div.style.opacity = '0';
     div.dataset.docId = '' + doc.id;
     div.middlewareHelper = this.middlewareHelper.get().create();
-    this.map.set(doc.id, div);
+    this.map.set(key, div);
+    this.items.set(div, {
+      doc: options.useProvidedDocument ? doc : undefined,
+      mediaClass: options.mediaClass,
+      message: options.message,
+      noLiveInfo: options.noLiveInfo ?? false,
+      noInfo: options.noInfo ?? true,
+      photoSize: options.photoSize
+    });
 
     appendTo.append(div);
 
@@ -183,14 +231,26 @@ export default class GifsMasonry {
 
     // let preloader = new ProgressivePreloader(div);
 
-    wrapVideo({
+    const promise = wrapVideo({
       doc,
       container: div as HTMLDivElement,
       lazyLoadQueue: null,
-      noInfo: true,
+      noInfo: options.noInfo ?? true,
       onlyPreview: true,
-      middleware: div.middlewareHelper.get()
+      middleware: div.middlewareHelper.get(),
+      message: options.message,
+      photoSize: options.photoSize
     });
+    promise.then((result) => {
+      if(!options.mediaClass) {
+        return;
+      }
+
+      [result.thumb?.images.thumb, result.thumb?.images.full].filter(Boolean).forEach((image) => {
+        image.classList.add(options.mediaClass);
+      });
+    });
+    return promise;
   }
 
   public delete(docId: DocId) {

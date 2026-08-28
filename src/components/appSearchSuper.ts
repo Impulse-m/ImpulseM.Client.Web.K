@@ -113,6 +113,7 @@ import {SearchSuperMediaInputFilter} from '@components/sharedMediaFilters';
 import {getMediaTypeForProfileTab, orderMediaTabsByMain, ProfileTabMediaType} from '@components/sharedMediaProfileTab';
 import {supportsSharedMediaScrollDate} from '@components/sharedMediaScrollDate';
 import createSharedMediaScrollDateBadge from '@components/sharedMediaScrollDateBadge';
+import GifsMasonry from '@components/gifsMasonry';
 
 export type SearchSuperType = MyInputMessagesFilter/*  | 'members' */;
 export type SearchSuperContext = {
@@ -130,7 +131,7 @@ export type SearchSuperContext = {
 } & Pick<RequestHistoryOptions, 'chatType' | 'communityId'>;
 
 export type SearchSuperMediaType = 'stories' | 'members' | 'media' |
-  'files' | 'links' | 'music' | 'chats' | 'voice' | 'groups' | 'similar' |
+  'gifs' | 'files' | 'links' | 'music' | 'chats' | 'voice' | 'groups' | 'similar' |
   'savedDialogs' | 'saved' | 'channels' | 'apps' | 'gifts' | 'posts';
 export type SearchSuperMediaTab = {
   inputFilter?: SearchSuperType,
@@ -403,6 +404,7 @@ export default class AppSearchSuper {
   private prevTabId = -1;
 
   private lazyLoadQueue = new LazyLoadQueue();
+  private gifsMasonry: GifsMasonry;
   public middleware = getMiddleware();
 
   public historyStorage: Partial<{[type in SearchSuperType]: {mid: number, peerId: PeerId}[]}> = {};
@@ -594,6 +596,7 @@ export default class AppSearchSuper {
     const noSectionTypes: Set<SearchSuperMediaType> = new Set([
       'stories',
       'media',
+      'gifs',
       'gifts',
       'chats',
       'channels',
@@ -624,11 +627,15 @@ export default class AppSearchSuper {
           });
         });
         itemsContainer = items;
-      } else if(mediaTab.type === 'media') {
+      } else if(mediaTab.type === 'media' || mediaTab.type === 'gifs') {
         const grid = document.createElement('div');
         grid.classList.add('search-super-content-media-grid');
         content.append(grid);
         itemsContainer = grid;
+        if(mediaTab.type === 'gifs') {
+          this.gifsMasonry = new GifsMasonry(grid, 'SHARED-MEDIA-GIFS', this.scrollable);
+          this.gifsMasonry.setActive(false);
+        }
       }
 
       this.tabsContainer.append(container);
@@ -682,6 +689,12 @@ export default class AppSearchSuper {
 
       const fromMediaTab = this.mediaTab;
       this.mediaTab = newMediaTab;
+      if(fromMediaTab.type === 'gifs') {
+        this.gifsMasonry.setActive(false);
+      }
+      if(newMediaTab.type === 'gifs') {
+        this.gifsMasonry.setActive(true);
+      }
 
       if(!supportsSharedMediaScrollDate(newMediaTab.type)) {
         this.scrollDateBadge?.hide();
@@ -829,6 +842,12 @@ export default class AppSearchSuper {
         if(this.mediaFilterStagingItemsTab) return;
         return onMediaClick('grid-item', 'grid-item', mediaTab.inputFilter, e);
       },
+      {listenerSetter: this.listenerSetter}
+    );
+    const gifsTab = this.mediaTabsMap.get('gifs');
+    gifsTab?.itemsTab && attachClickEvent(
+      gifsTab.itemsTab,
+      onMediaClick.bind(null, 'grid-item', 'grid-item', gifsTab.inputFilter),
       {listenerSetter: this.listenerSetter}
     );
     this.tabs.inputMessagesFilterDocument && attachClickEvent(
@@ -1185,21 +1204,7 @@ export default class AppSearchSuper {
       });
     }
 
-    const sensitive = this.isMessageSensitive(message);
-
-    if((message.media as MessageMedia.messageMediaPhoto).pFlags.spoiler || sensitive) {
-      const mediaSpoiler = await wrapMediaSpoiler({
-        animationGroup: 'chat',
-        media,
-        middleware,
-        sensitive,
-        width: 140,
-        height: 140,
-        multiply: 0.3
-      });
-
-      div.append(mediaSpoiler);
-    }
+    await this.appendPhotoVideoSpoiler({div, media, message, middleware});
 
     [
       wrapped.images.thumb,
@@ -1209,6 +1214,49 @@ export default class AppSearchSuper {
     });
 
     promises.push(wrapped.loadPromises.thumb);
+
+    return {element: div, message};
+  }
+
+  private async appendPhotoVideoSpoiler({div, media, message, middleware}: {
+    div: HTMLElement,
+    media: Photo.photo | MyDocument,
+    message: Message.message,
+    middleware: Middleware
+  }) {
+    const sensitive = this.isMessageSensitive(message);
+    if(!(message.media as MessageMedia.messageMediaPhoto).pFlags.spoiler && !sensitive) {
+      return;
+    }
+
+    const mediaSpoiler = await wrapMediaSpoiler({
+      animationGroup: 'chat',
+      media,
+      middleware,
+      sensitive,
+      width: 140,
+      height: 140,
+      multiply: 0.3
+    });
+    div.append(mediaSpoiler);
+  }
+
+  private async processGifFilter({message, promises, middleware}: ProcessSearchSuperResult) {
+    const doc = getMediaFromMessage(message, true) as MyDocument;
+    const div = document.createElement('div');
+    const size = choosePhotoSize(doc, 200, 200);
+    const wrapped = await this.gifsMasonry.add(doc, undefined, {
+      element: div,
+      key: `${message.peerId}_${message.mid}`,
+      mediaClass: 'grid-item-media',
+      noLiveInfo: true,
+      noInfo: false,
+      photoSize: size,
+      useProvidedDocument: true
+    });
+
+    await this.appendPhotoVideoSpoiler({div, media: doc, message, middleware});
+    wrapped?.thumb && promises.push(wrapped.thumb.loadPromises.thumb);
 
     return {element: div, message};
   }
@@ -1426,6 +1474,11 @@ export default class AppSearchSuper {
       case 'inputMessagesFilterPhotoVideo':
       case 'inputMessagesFilterVideo': {
         processCallback = this.processPhotoVideoFilter;
+        break;
+      }
+
+      case 'inputMessagesFilterGif': {
+        processCallback = this.processGifFilter;
         break;
       }
 
@@ -3039,6 +3092,7 @@ export default class AppSearchSuper {
     this.setMainMediaTab();
 
     this.lazyLoadQueue.clear();
+    this.gifsMasonry?.setActive(false);
 
     this.mediaTabs.forEach((mediaTab) => {
       const {inputFilter} = mediaTab;
@@ -3172,6 +3226,7 @@ export default class AppSearchSuper {
     this.scrollable.destroy();
     this.swipeHandler?.removeListeners();
     this.selection?.cleanup();
+    this.gifsMasonry?.detach();
 
     this.scrollStartCallback =
       this.onChangeTab =

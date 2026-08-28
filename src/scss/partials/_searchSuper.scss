@@ -146,7 +146,8 @@
     color: var(--secondary-text-color);
   }
 
-  &-content-media {
+  &-content-media,
+  &-content-gifs {
     .grid-item {
       overflow: hidden;
     }
@@ -182,6 +183,7 @@
   }
 
   &-content-media,
+  &-content-gifs,
   &-content-stories {
     .checkbox-field {
       inset-inline-end: .25rem;
@@ -211,6 +213,7 @@
   }
 
   &-container-media,
+  &-container-gifs,
   &-container-stories {
     padding: 0 1px 1px;
   }
