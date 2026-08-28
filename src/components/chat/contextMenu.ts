@@ -10,6 +10,7 @@ import PopupSendNow from '@components/popups/sendNow';
 import {toastNew} from '@components/toast';
 import I18n, {i18n, LangPackKey} from '@lib/langPack';
 import findUpClassName from '@helpers/dom/findUpClassName';
+import getSelectionElementFromTarget from '@components/chat/getSelectionElementFromTarget';
 import cancelEvent from '@helpers/dom/cancelEvent';
 import {attachClickEvent, simulateClickEvent} from '@helpers/dom/clickEvent';
 import isSelectionEmpty from '@helpers/dom/isSelectionEmpty';
@@ -41,6 +42,7 @@ import deferredPromise, {CancellablePromise} from '@helpers/cancellablePromise';
 import showStickersPopup from '@components/popups/stickers';
 import getMediaFromMessage from '@appManagers/utils/messages/getMediaFromMessage';
 import canSaveMessageMedia from '@appManagers/utils/messages/canSaveMessageMedia';
+import {addToProfileMusic, getSavedMusicDocument, removeFromProfileMusic} from '@components/savedMusicActions';
 import getGroupedText from '@appManagers/utils/messages/getGroupedText';
 import PopupElement from '@components/popups';
 import confirmationPopup, {PopupConfirmationOptions} from '@components/confirmationPopup';
@@ -295,7 +297,7 @@ export default class ChatContextMenu {
           '.peer-title',
           '.reply',
           '.document',
-          'audio-element',
+          '.audio',
           // 'avatar-element',
           'a',
           '.bubble-beside-button',
@@ -573,6 +575,10 @@ export default class ChatContextMenu {
 
       const cleanupHighlight = this.highlightPollAnswer();
 
+      // * the menu belongs to a message, not to an avatar — highlight it the way it gets selected
+      const activeElement = bubble && getSelectionElementFromTarget(e.target);
+      activeElement && this.chat.bubbles.toggleActiveBubble(activeElement, true);
+
       // if(reactionsMenu) {
       //   reactionsMenu.widthContainer.style.top = element.style.top;
       //   reactionsMenu.widthContainer.style.left = element.style.left;
@@ -584,6 +590,7 @@ export default class ChatContextMenu {
       contextMenuController.openBtnMenu(element, () => {
         reactionsCallbacks?.onClose();
         cleanupHighlight?.();
+        activeElement && this.chat.bubbles.toggleActiveBubble(activeElement, false);
 
         this.mid = 0;
         this.peerId = undefined;
@@ -1206,6 +1213,16 @@ export default class ChatContextMenu {
         this.chat.container
       )
     }, {
+      icon: 'note_filled',
+      text: 'SavedMusic.AddToProfile',
+      onClick: () => addToProfileMusic(this.getSavedMusicDocId()),
+      verify: () => this.verifySavedMusic(false)
+    }, {
+      icon: 'delete',
+      text: 'SavedMusic.RemoveFromProfile',
+      onClick: () => removeFromProfileMusic(this.getSavedMusicDocId()),
+      verify: () => this.verifySavedMusic(true)
+    }, {
       icon: 'checkretract',
       text: 'Chat.Poll.Unvote',
       onClick: this.onRetractVote,
@@ -1229,12 +1246,12 @@ export default class ChatContextMenu {
       }/* ,
       cancelEvent: true */
     }, {
-      icon: 'statistics',
+      icon: 'statistics_chart',
       text: 'ViewStatistics',
       onClick: this.onStatisticsClick,
       verify: this.canViewMessageStatistics
     }, {
-      icon: 'statistics',
+      icon: 'statistics_chart',
       text: 'PollStats.View',
       onClick: this.onPollStatisticsClick,
       verify: async() => this.canViewPollStatistics() && !await this.canViewMessageStatistics()
@@ -1503,6 +1520,22 @@ export default class ChatContextMenu {
     return ButtonMenu({
       buttons: filteredButtons
     })
+  }
+
+  private getSavedMusicDocId() {
+    return getSavedMusicDocument(
+      this.message,
+      isEphemeralMessage(this.message) ? false : this.noForwards
+    )?.id;
+  }
+
+  private async verifySavedMusic(inProfile: boolean) {
+    const docId = this.getSavedMusicDocId();
+    if(!docId || useIsFrozen()) {
+      return false;
+    }
+
+    return await this.managers.appSavedMusicManager.isInProfile(docId) === inProfile;
   }
 
   public static canDownload(
@@ -2127,7 +2160,7 @@ export default class ChatContextMenu {
   };
 
   private onSelectClick = () => {
-    this.chat.selection.toggleByElement(findUpClassName(this.target, 'grouped-item') || findUpClassName(this.target, 'bubble'));
+    this.chat.selection.toggleByElement(getSelectionElementFromTarget(this.target));
   };
 
   private onClearSelectionClick = () => {

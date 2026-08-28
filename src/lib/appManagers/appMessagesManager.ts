@@ -62,6 +62,7 @@ import getPeerActiveUsernames from '@appManagers/utils/peers/getPeerActiveUserna
 import {BroadcastEvents} from '@lib/rootScope';
 import setBooleanFlag from '@helpers/object/setBooleanFlag';
 import getMessageThreadId from '@appManagers/utils/messages/getMessageThreadId';
+import getPinnedMessagesKey from '@appManagers/utils/messages/getPinnedMessagesKey';
 import callbackify from '@helpers/callbackify';
 import wrapMessageEntities from '@lib/richTextProcessor/wrapMessageEntities';
 import isLegacyMessageId from '@appManagers/utils/messageId/isLegacyMessageId';
@@ -4855,8 +4856,14 @@ export class AppMessagesManager extends AppManager {
       // ! folder's global offset date: the latter is never filled for forums (it comes from the
       // ! peer's own history, which topics don't share), so paging with it repeats the first page
       // ! forever and the list freezes after ~100 topics.
-      // ! the top message is read from the peer's own storage: a botforum's peer is a user, so its
-      // ! mids are legacy ones and a by-id lookup could pick another chat's message
+      // ! the offsets are the per-forum ones advanced strictly in the server's response order —
+      // ! never the tail of the locally sorted list: drafts reorder it, and topics fetched by id
+      // ! (every topic draft injects its topic on startup) can sit far below the loaded frontier,
+      // ! so a tail-derived offset would make the next page skip everything in between.
+      // ! server search still pages by its own results' tail; the top message is read from the
+      // ! peer's own storage: a botforum's peer is a user, so its mids are legacy ones and a
+      // ! by-id lookup could pick another chat's message
+      const paginationOffsets = !isSearch && this.dialogsStorage.getForumTopicsPaginationOffsets(peerId);
       const offsetTopicMessage = offsetTopic &&
         this.getMessageFromStorage(this.getHistoryMessagesStorage(peerId), offsetTopic.top_message);
       promise = this.apiManager.invokeApiSingleProcess({
@@ -4864,15 +4871,26 @@ export class AppMessagesManager extends AppManager {
         params: params = {
           peer: this.appPeersManager.getInputPeerById(peerId),
           limit: useLimit,
-          offset_date: offsetTopicMessage?.date || offsetTopic?.date || 0,
-          offset_id: offsetTopic ? getServerMessageId(offsetTopic.top_message) : 0,
-          offset_topic: offsetTopic ? getServerMessageId(offsetTopic.id) : 0,
-          q: query
+          ...(paginationOffsets ? {
+            offset_date: paginationOffsets.date,
+            offset_id: paginationOffsets.id,
+            offset_topic: paginationOffsets.topic
+          } : {
+            offset_date: offsetTopicMessage?.date || offsetTopic?.date || 0,
+            offset_id: offsetTopic ? getServerMessageId(offsetTopic.top_message) : 0,
+            offset_topic: offsetTopic ? getServerMessageId(offsetTopic.id) : 0,
+            q: query
+          })
         },
         options: requestOptions,
         processResult: (result) => {
           result = this.dialogsStorage.processTopics(peerId, result);
-          return processResult(result);
+          const processed = processResult(result);
+          if(processed && !isSearch) {
+            this.dialogsStorage.updateForumTopicsPaginationOffsets(peerId, result.topics as ForumTopic[]);
+          }
+
+          return processed;
         }
       });
     } else if(filterType === FilterType.Saved) {
@@ -5415,6 +5433,38 @@ export class AppMessagesManager extends AppManager {
       value: historyMirror,
       accountNumber: this.getAccountNumber()
     }, port);
+  }
+
+  // * The worker keeps the full message cache for every account; the tab only mirrors slices of it.
+  // * Counts only - a per-message byte estimate would cost more than it is worth (see memoryStats).
+  public getMemoryStats() {
+    const countStorages = (byKey: {[key: string]: MessagesStorage}) => {
+      let storages = 0, messages = 0;
+      for(const key in byKey) {
+        ++storages;
+        messages += byKey[key].size;
+      }
+
+      return {storages, messages};
+    };
+
+    const history = countStorages(this.messagesStorageByPeerId);
+    const grouped = countStorages(this.groupedMessagesStorage);
+    const scheduled = countStorages(this.scheduledMessagesStorage);
+    const logs = countStorages(this.logsMessagesStorage);
+
+    let threadHistories = 0;
+    for(const peerId in this.threadsStorage) {
+      threadHistories += Object.keys(this.threadsStorage[peerId]).length;
+    }
+
+    return {
+      messageStorages: history.storages + grouped.storages + scheduled.storages + logs.storages,
+      cachedMessages: history.messages + grouped.messages + scheduled.messages + logs.messages,
+      historyStorages: Object.keys(this.historiesStorage).length,
+      threadHistoryStorages: threadHistories,
+      searchStorages: Object.keys(this.searchesStorage).length
+    };
   }
 
   public getMessagesStorageByKey(key: MessagesStorageKey) {
@@ -6082,11 +6132,7 @@ export class AppMessagesManager extends AppManager {
       delete s[peerId];
     });
 
-    for(const key in this.pinnedMessages) {
-      if(+key === peerId || key.startsWith(peerId + '_')) {
-        delete this.pinnedMessages[key];
-      }
-    }
+    this.flushPinnedMessagesCache(peerId);
 
     const needSingleMessages = this.needSingleMessages.get(peerId);
     if(needSingleMessages) {
@@ -6126,26 +6172,36 @@ export class AppMessagesManager extends AppManager {
     this.dialogsStorage.flushForumTopicsCache(peerId);
   }
 
-  public hidePinnedMessages(peerId: PeerId) {
+  public hidePinnedMessages(peerId: PeerId, threadId?: number) {
     return Promise.all([
       this.appStateManager.getState(),
-      this.getPinnedMessage(peerId)
+      this.getPinnedMessage(peerId, threadId)
     ])
     .then(([state, pinned]) => {
-      state.hiddenPinnedMessages[peerId] = pinned.maxId;
+      state.hiddenPinnedMessages[getPinnedMessagesKey(peerId, threadId)] = pinned.maxId;
       this.appStateManager.pushToState('hiddenPinnedMessages', state.hiddenPinnedMessages);
-      this.rootScope.dispatchEvent('peer_pinned_hidden', {peerId, maxId: pinned.maxId});
+      this.rootScope.dispatchEvent('peer_pinned_hidden', {peerId, threadId, maxId: pinned.maxId});
     });
   }
 
-  public getPinnedMessagesKey(peerId: PeerId, threadId?: number) {
-    return peerId + (threadId ? '_' + threadId : '');
+  // Every cached pin of the peer, thread-scoped entries included: the plate in a
+  // forum topic (or a saved sub-dialog) caches under `${peerId}_${threadId}`, and
+  // `getPinnedMessage` short-circuits on a cached `maxId` forever — so dropping
+  // only the peer-wide key would leave a topic pointing at a pin that's gone.
+  private flushPinnedMessagesCache(peerId: PeerId) {
+    for(const key in this.pinnedMessages) {
+      if(+key === peerId || key.startsWith(peerId + '_')) {
+        delete this.pinnedMessages[key];
+      }
+    }
   }
 
   public getPinnedMessage(peerId: PeerId, threadId?: number) {
-    const p = this.pinnedMessages[this.getPinnedMessagesKey(peerId, threadId)] ??= {};
+    const p = this.pinnedMessages[getPinnedMessagesKey(peerId, threadId)] ??= {};
     if(p.promise) return p.promise;
-    else if(p.maxId) return Promise.resolve(p);
+    // `count` alone settles it: a peer/thread with nothing pinned has no `maxId`
+    // to short-circuit on, and would otherwise re-run this on every call.
+    else if(p.maxId || p.count !== undefined) return Promise.resolve(p);
 
     return p.promise = Promise.resolve(this.getHistory({
       peerId,
@@ -6163,11 +6219,11 @@ export class AppMessagesManager extends AppManager {
   }
 
   public getPinnedMessagesCount(peerId: PeerId, threadId?: number) {
-    return this.pinnedMessages[this.getPinnedMessagesKey(peerId, threadId)]?.count;
+    return this.pinnedMessages[getPinnedMessagesKey(peerId, threadId)]?.count;
   }
 
   public getPinnedMessagesMaxId(peerId: PeerId, threadId?: number) {
-    return this.pinnedMessages[this.getPinnedMessagesKey(peerId, threadId)]?.maxId;
+    return this.pinnedMessages[getPinnedMessagesKey(peerId, threadId)]?.maxId;
   }
 
   public updatePinnedMessage(peerId: PeerId, mid: number, unpin?: boolean, silent?: boolean, pm_oneside?: boolean) {
@@ -6190,9 +6246,10 @@ export class AppMessagesManager extends AppManager {
     });
   }
 
-  public unpinAllMessages(peerId: PeerId): Promise<boolean> {
+  public unpinAllMessages(peerId: PeerId, threadId?: number): Promise<boolean> {
     return this.apiManager.invokeApiSingle('messages.unpinAllMessages', {
-      peer: this.appPeersManager.getInputPeerById(peerId)
+      peer: this.appPeersManager.getInputPeerById(peerId),
+      top_msg_id: threadId ? getServerMessageId(threadId) : undefined
     }).then((affectedHistory) => {
       this.apiUpdatesManager.processLocalUpdate({
         _: 'updatePts',
@@ -6202,19 +6259,28 @@ export class AppMessagesManager extends AppManager {
 
       if(!affectedHistory.offset) {
         const storage = this.getHistoryMessagesStorage(peerId);
+        const isForum = threadId ? this.appPeersManager.isForum(peerId) : false;
+        const isBotforum = threadId ? this.appPeersManager.isBotforum(peerId) : false;
         storage.forEach((message) => {
-          if((message as Message.message).pFlags.pinned) {
-            delete (message as Message.message).pFlags.pinned;
+          if(!(message as Message.message).pFlags.pinned) {
+            return;
           }
+
+          // the request only unpinned this thread — leave the other topics' pins
+          if(threadId && getMessageThreadId(message, {isForum, isBotforum}) !== threadId) {
+            return;
+          }
+
+          delete (message as Message.message).pFlags.pinned;
         });
 
-        this.rootScope.dispatchEvent('peer_pinned_messages', {peerId, unpinAll: true});
-        delete this.pinnedMessages[this.getPinnedMessagesKey(peerId)];
+        this.rootScope.dispatchEvent('peer_pinned_messages', {peerId, threadId, unpinAll: true});
+        this.flushPinnedMessagesCache(peerId);
 
         return true;
       }
 
-      return this.unpinAllMessages(peerId);
+      return this.unpinAllMessages(peerId, threadId);
     });
   }
 
@@ -7418,19 +7484,64 @@ export class AppMessagesManager extends AppManager {
         filters
       });
 
-      return Promise.all([result, legacyResult]).then(([searchCounters, legacySearchCounters]) => {
-        const out: MessagesSearchCounter[] = searchCounters.map((searchCounter, idx) => {
-          return {
-            ...searchCounter,
-            count: searchCounter.count + legacySearchCounters[idx].count
-          };
-        });
-
-        return out;
+      const [searchCounters, legacySearchCounters] = await Promise.all([result, legacyResult]);
+      const out: MessagesSearchCounter[] = searchCounters.map((searchCounter, idx) => {
+        return {
+          ...searchCounter,
+          count: searchCounter.count + legacySearchCounters[idx].count
+        };
       });
+
+      return this.makeSearchCountersExact(peerId, threadId, out);
     }
 
-    return result;
+    return this.makeSearchCountersExact(peerId, threadId, await result);
+  }
+
+  /**
+   * The server may flag a `messages.getSearchCounters` answer as `inexact`, and
+   * for Saved Messages that number is not merely imprecise but plainly wrong: it
+   * reports 5 pinned messages against 17 real ones, 171 photos against 276.
+   * Re-read those counters from the very search the tab lists, so a number can
+   * never contradict the content shown under it — that search merges a migrated
+   * chat's history on its own, so it supersedes the sum above instead of adding
+   * to it, and its result is cached in the search storage the tab reuses.
+   * Counters the server calls exact (channels, groups) are passed through
+   * untouched, and a re-read that fails keeps the server's guess.
+   */
+  private makeSearchCountersExact(
+    peerId: PeerId,
+    threadId: number,
+    counters: MessagesSearchCounter[]
+  ): MaybePromise<MessagesSearchCounter[]> {
+    if(!counters.some((counter) => counter.pFlags?.inexact)) {
+      return counters;
+    }
+
+    return Promise.all(counters.map(async(counter) => {
+      if(!counter.pFlags?.inexact) {
+        return counter;
+      }
+
+      try {
+        const {count} = await this.getHistory({
+          peerId,
+          threadId,
+          inputFilter: counter.filter as {_: MyInputMessagesFilter},
+          offsetId: 0,
+          limit: 1
+        });
+
+        if(typeof(count) !== 'number') {
+          return counter;
+        }
+
+        return {...counter, pFlags: {}, count};
+      } catch(err) {
+        this.log.error('exact search counter error:', peerId, counter.filter._, err);
+        return counter;
+      }
+    }));
   }
 
   // True if the user can revoke (delete-for-everyone) messages in this peer.
@@ -7553,15 +7664,20 @@ export class AppMessagesManager extends AppManager {
     });
   }
 
-  private handleNewMessage(message: MyMessage) {
-    this.clearSearchCountersCache(message.peerId);
-    this.rootScope.dispatchEvent('history_multiappend', message);
-  }
-
+  // * shared media counters are cached in the worker for a long time, so any message that can land
+  // * in one of the filters (i.e. any non-service message) has to invalidate them
   private clearSearchCountersCache(peerId: PeerId) {
     this.apiManager.clearCache('messages.getSearchCounters', (params) => {
       return this.appPeersManager.getPeerId(params.peer) === peerId;
     });
+  }
+
+  private handleNewMessage(message: MyMessage) {
+    if(message._ === 'message') {
+      this.clearSearchCountersCache(message.peerId);
+    }
+
+    this.rootScope.dispatchEvent('history_multiappend', message);
   }
 
   private handleNewDialogs = () => {
@@ -12178,7 +12294,7 @@ export class AppMessagesManager extends AppManager {
   }
 
   private resetPinnedMessagesCache(peerId: PeerId, mids: number[], pinned: boolean) {
-    delete this.pinnedMessages[this.getPinnedMessagesKey(peerId)];
+    this.flushPinnedMessagesCache(peerId);
     // Also drop the cached `inputMessagesFilterPinned` search storages
     // for this peer. Otherwise a subsequent `getHistory({inputFilter: pinned})`
     // returns the stale pre-update slice, leaving the plate showing a
@@ -12190,7 +12306,14 @@ export class AppMessagesManager extends AppManager {
       }
     }
     this.appStateManager.getState().then((state) => {
-      delete state.hiddenPinnedMessages[peerId];
+      // thread-scoped entries included, same reasoning as `flushPinnedMessagesCache`:
+      // the plate in a topic keys its hidden state under `${peerId}_${threadId}`
+      for(const key in state.hiddenPinnedMessages) {
+        if(+key === peerId || key.startsWith(peerId + '_')) {
+          delete state.hiddenPinnedMessages[key];
+        }
+      }
+
       this.appStateManager.pushToState('hiddenPinnedMessages', state.hiddenPinnedMessages);
       this.rootScope.dispatchEvent('peer_pinned_messages', {peerId, mids, pinned});
     });

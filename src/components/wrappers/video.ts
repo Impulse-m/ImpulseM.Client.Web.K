@@ -32,7 +32,7 @@ import rootScope from '@lib/rootScope';
 import {ThumbCache} from '@lib/storages/thumbs';
 import animationIntersector, {AnimationItemGroup} from '@components/animationIntersector';
 import appMediaPlaybackController, {AppMediaPlaybackController, MediaSearchContext} from '@components/appMediaPlaybackController';
-import AudioElement, {findMediaTargets} from '@components/audio';
+import {DeferredMediaElement, findMediaTargets} from '@components/audio';
 import Button from '@components/button';
 import Icon from '@components/icon';
 import {createProgressRing, getProgressRingCircumference} from '@components/progressRing';
@@ -110,6 +110,9 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
   let noAutoDownload = autoDownloadSize === 0;
   const isGroupedItem = !(boxWidth && boxHeight);
   uploadingFileName ??= message?.uploadingFileName?.[0];
+  // * a round video keeps looping its muted preview while it uploads, like the official clients do;
+  // * a regular video would just play under the progress spinner, so it waits for the upload instead
+  const suppressAutoplayWhileUploading = !!uploadingFileName && doc.type !== 'round';
   canAutoplay ??= /* doc.sticker ||  */(
     (
       doc.type !== 'video' || (
@@ -140,7 +143,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
             middleware = myMiddlewareHelper.get();
           }
 
-          spanTime.append(noSoundIcon = Icon('nosound', 'video-time-icon'));
+          spanTime.append(noSoundIcon = Icon('nosound_filled', 'video-time-icon'));
         } else {
           needPlayButton = true;
         }
@@ -155,7 +158,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
     }
 
     if(needPlayButton) {
-      spanPlay = Button('btn-circle video-play position-center', {icon: 'largeplay', noRipple: true});
+      spanPlay = Button('btn-circle video-play position-center', {icon: 'largeplay_filled', noRipple: true});
       container.append(spanPlay);
     }
   }
@@ -304,7 +307,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
         fastRaf(onTimeUpdate);
       }, 1000, false);
 
-      const noSoundIcon = Icon('nosound', 'video-time-icon');
+      const noSoundIcon = Icon('nosound_filled', 'video-time-icon');
       const setIsPaused = (paused: boolean) => {
         divRound.classList.toggle('is-paused', paused);
         if(paused) {
@@ -395,12 +398,12 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
 
     if(message.pFlags.is_outgoing) {
       // ! WARNING ! just to type-check
-      (divRound as any as AudioElement).onLoad = onLoad;
+      (divRound as any as DeferredMediaElement).onLoad = onLoad;
       divRound.dataset.isOutgoing = '1';
     } else {
       onLoad();
     }
-  } else if(!noAutoplayAttribute && !uploadingFileName) {
+  } else if(!noAutoplayAttribute && !suppressAutoplayWhileUploading) {
     video.autoplay = true; // для safari
   }
 
@@ -508,10 +511,11 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
 
     // * autoplay is suppressed while the upload is in progress, and the bubble
     // * isn't re-rendered on send — resume playback once the upload completes
-    if(!noAutoplayAttribute && doc.type !== 'round') {
+    if(!noAutoplayAttribute && suppressAutoplayWhileUploading) {
       appDownloadManager.getUpload(uploadingFileName).then(() => {
         if(middleware && !middleware()) return;
-        video.play().catch(noop);
+        video.autoplay = true; // * so the intersector resumes it after it scrolls back into view
+        safePlay(video);
       }, noop);
     }
   } else if(!cacheContext.downloaded && !supportsStreaming && !withoutPreloader) {
@@ -571,7 +575,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
   video.muted = true;
   video.loop = true;
   // video.play();
-  if(!noAutoplayAttribute && !uploadingFileName) {
+  if(!noAutoplayAttribute && !suppressAutoplayWhileUploading) {
     video.autoplay = true;
   }
 
@@ -632,7 +636,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
         if(spanTime) {
           spanTime.classList.add('is-error');
           const previousIcon = spanTime.querySelector('.video-time-icon');
-          const newIcon = Icon('sendingerror', 'video-time-icon');
+          const newIcon = Icon('sendingerror_filled', 'video-time-icon');
           if(previousIcon) previousIcon.replaceWith(newIcon);
           else spanTime.append(newIcon);
         }
@@ -729,7 +733,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
     // container.append(button);
 
     // const updateIcon = (muted: boolean) => {
-    //   replaceButtonIcon(button, muted ? 'speakeroff' : 'speaker');
+    //   replaceButtonIcon(button, muted ? 'speakeroff_filled' : 'speaker_filled');
     // };
 
     // updateIcon(video.muted);

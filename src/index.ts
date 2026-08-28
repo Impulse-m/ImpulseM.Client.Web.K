@@ -259,7 +259,7 @@ function setRootClasses() {
     });
   }
 
-  // root.style.setProperty('--quote-icon', `"${getIconContent('quote')}"`);
+  // root.style.setProperty('--quote-icon', `"${getIconContent('quote_filled')}"`);
 
   if(IS_FIREFOX) {
     add.push('is-firefox', 'no-backdrop');

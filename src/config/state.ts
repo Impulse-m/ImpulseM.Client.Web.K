@@ -156,6 +156,11 @@ export type StateSettings = {
     textStyle?: string;
     textFont?: FontKey;
   },
+  // Name this browser reports to Telegram as `device_model` in initConnection —
+  // what other devices see in Active Sessions. Empty = the raw user agent.
+  // Renaming only reaches the server on the next initConnection, which
+  // networkerFactory forces by dropping `connectionInited`.
+  customDeviceModel: string,
   // Persisted device choices for the audio/video stack used by the
   // SettingsCallsPanel ("Speakers and Camera" tab) and the per-call settings
   // popup. Empty string = follow the OS default (no setSinkId / no deviceId
@@ -226,7 +231,8 @@ export type State = {
   version: typeof STATE_VERSION,
   build: typeof BUILD,
   authState: AuthState,
-  hiddenPinnedMessages: {[peerId: PeerId]: number},
+  /** Key: `getPinnedMessagesKey(peerId, threadId)` — thread-scoped in a forum topic. */
+  hiddenPinnedMessages: {[peerIdOrThreadKey: string]: number},
   hideChatJoinRequests: {[peerId: PeerId]: number},
   botConnectionReviews: BotConnectionReview[],
   // stateId?: number, // ! DEPRECATED
@@ -558,6 +564,7 @@ export const SETTINGS_INIT: StateSettings = {
   mediaEditor: {
     colorByBrush: {}
   },
+  customDeviceModel: '',
   callDevices: {
     speakerId: '',
     microphoneId: '',

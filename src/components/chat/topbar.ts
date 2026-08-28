@@ -7,6 +7,7 @@ import rootScope, {BroadcastEvents} from '@lib/rootScope';
 import ButtonIcon from '@components/buttonIcon';
 import ButtonMenuToggle from '@components/buttonMenuToggle';
 import createChatPinnedMessage, {ChatPinnedMessageController} from '@components/chat/pinnedMessage';
+import getPinnedMessagesKey from '@appManagers/utils/messages/getPinnedMessagesKey';
 import ListenerSetter from '@helpers/listenerSetter';
 import PopupDeleteDialog from '@components/popups/deleteDialog';
 import {showPeerReport} from '@components/popups/reportAd';
@@ -23,7 +24,7 @@ import replaceContent from '@helpers/dom/replaceContent';
 import {ChatFull, Chat as MTChat, GroupCall, Dialog, InputGroupCall, User, UserFull} from '@layer';
 import {showSharingPickerPopup} from '@components/popups/pickUser';
 import PopupPeer, {PopupPeerCheckboxOptions} from '@components/popups/peer';
-import {AppEditContactTab} from '@components/solidJsTabs/tabs';
+import {AppEditBotTab, AppEditContactTab} from '@components/solidJsTabs/tabs';
 import IS_GROUP_CALL_SUPPORTED from '@environment/groupCallSupport';
 import IS_CALL_SUPPORTED from '@environment/callSupport';
 import {CallType} from '@lib/calls/types';
@@ -48,7 +49,6 @@ import createBadge from '@helpers/createBadge';
 import AppStatisticsTab from '@components/sidebarRight/tabs/statistics';
 import {ChatType} from './chatType';
 import {RtmpStartStreamPopup} from '@components/rtmp/adminPopup';
-import assumeType from '@helpers/assumeType';
 import PopupSendGift from '@components/popups/sendGift';
 import PaidMessagesInterceptor, {PAYMENT_REJECTED} from '@components/chat/paidMessagesInterceptor';
 import {openRemoveFeePopup} from '@components/chat/removeFee';
@@ -76,9 +76,7 @@ import showAddBotToChat from '@components/popups/addBotToChat';
 import openBoosts from '@components/openBoosts';
 import getAddBotToChatAction from '@appManagers/utils/bots/getAddBotToChatAction';
 import canReportBot from '@appManagers/utils/bots/canReportBot';
-import {handleChannelsTooMuch} from '@components/popups/channelsTooMuch';
-import handleCommunityChatJoinError
-from '@components/communities/handleCommunityChatJoinError';
+import joinChat from '@components/chat/joinChat';
 
 type ButtonToVerify = {element?: HTMLElement, verify: () => boolean | Promise<boolean>};
 
@@ -241,9 +239,8 @@ export default class ChatTopbar {
     this.floatingPlatesWrapper.classList.add('topbar-floating-plates', 'hide');
     if(!this.chat.isPreview) this.container.append(this.floatingPlatesWrapper);
 
-    if(this.pinnedMessage) {
-      this.appendPinnedMessage(this.pinnedMessage);
-    }
+    // the pinned plate is prepended here by `revealPreparedPinnedMessage`, in the
+    // same frame as the bubbles it belongs to
 
     this.plates.mount(this.floatingPlatesWrapper);
 
@@ -664,7 +661,7 @@ export default class ChatTopbar {
       onClick: () => this.onDirectMessagesClick(),
       verify: () => this.chat.isChannel && this.chat.canManageDirectMessages && !this.chat.isMonoforum && !!(this.chat.peer as MTChat.channel).linked_monoforum_id && this.chat.type !== ChatType.Logs
     }, {
-      icon: 'statistics',
+      icon: 'statistics_chart',
       text: 'Statistics',
       onClick: () => {
         this.appSidebarRight.createTab(AppStatisticsTab).open(this.peerId.toChatId());
@@ -865,6 +862,15 @@ export default class ChatTopbar {
     }
   }
 
+  /** Bot we manage — opens the same tab as the profile's edit button. */
+  public editBot() {
+    if(!this.appSidebarRight.isTabExists(AppEditBotTab)) {
+      this.appSidebarRight.createTab(AppEditBotTab).open(this.peerId);
+
+      this.appSidebarRight.toggleSidebar(true);
+    }
+  }
+
   public async blockUser(showReport?: boolean, showDelete?: boolean, onConfirmed?: (promise: Promise<any>) => void) {
     const peerId = this.peerId;
     const checkboxes: PopupPeerCheckboxOptions[] = [
@@ -966,7 +972,10 @@ export default class ChatTopbar {
     this.subtitle = document.createElement('div');
     this.subtitle.classList.add('info');
 
-    this.pinnedMessage = createChatPinnedMessage(this, this.chat, this.managers);
+    // No plate here: `setupPinnedMessageForPeer` builds one per peer/thread and
+    // installs it in `revealPreparedPinnedMessage`. Creating one eagerly only
+    // produced a throwaway plate (rendered, listened, then destroyed on the
+    // first peer change) whose `isStatic` was decided before the chat had a type.
 
     this.btnCall = ButtonIcon('phone');
     this.btnGroupCall = ButtonIcon('videochat');
@@ -1058,7 +1067,7 @@ export default class ChatTopbar {
       const middleware = this.chat.bubbles.getMiddleware();
       if(!middleware() || !this.pinnedMessage) return;
 
-      this.pinnedMessage.setUserHidden(!!this.chat.appState.hiddenPinnedMessages[this.chat.peerId]);
+      this.pinnedMessage.setUserHidden(!!this.chat.appState.hiddenPinnedMessages[getPinnedMessagesKey(this.chat.peerId, this.chat.threadId)]);
 
       if(isTopMessage) {
         this.pinnedMessage.unsetScrollDownListener();
@@ -1098,9 +1107,13 @@ export default class ChatTopbar {
   }
 
   public openPinned(byCurrent: boolean) {
+    const currentMid = byCurrent ? +this.pinnedMessage.container.dataset.mid : 0;
     this.chat.appImManager.setInnerPeer({
       peerId: this.peerId,
-      lastMsgId: byCurrent ? +this.pinnedMessage.container.dataset.mid : 0,
+      // the pinned list is per-topic in a forum — without the thread the tab
+      // would list every pin of the forum instead of this topic's
+      threadId: this.chat.threadId,
+      lastMsgId: currentMid || 0,
       type: ChatType.Pinned
     });
   }
@@ -1109,35 +1122,10 @@ export default class ChatTopbar {
     const middleware = this.chat.bubbles.getMiddleware();
     button.setAttribute('disabled', 'true');
 
-    const chatId = this.peerId.toChatId();
-    const isChannel = await this.managers.appChatsManager.isChannel(chatId);
-    const promise = handleChannelsTooMuch(() => {
-      return isChannel ?
-        this.managers.appChatsManager.joinChannel(chatId) :
-        this.managers.appChatsManager.addChatUser(chatId, rootScope.myId);
-    });
-
-    promise.then((result) => {
-      if(result?._ === 'chatInviteJoinWebView') {
-        void this.chat.appImManager.openJoinChatWebView(result);
-      }
-    }).catch((err) => {
-      assumeType<ApiError>(err);
-      const chat = this.chat.peer;
-      const isBroadcast = chat?._ === 'channel' &&
-        !!chat.pFlags.broadcast;
-      if(handleCommunityChatJoinError({
-        error: err,
-        isBroadcast,
-        communityId: chat?._ === 'channel' && chat.linked_community_id ?
-          chat.linked_community_id.toChatId() :
-          undefined,
-        managers: this.managers
-      })) {
-        return;
-      }
-
-      throw err;
+    joinChat({
+      peerId: this.peerId,
+      managers: this.managers,
+      appImManager: this.chat.appImManager
     }).finally(() => {
       if(!middleware()) {
         return;
@@ -1206,14 +1194,14 @@ export default class ChatTopbar {
     }
   }
 
-  private pinnedMessageSetupForPeerId: PeerId | undefined;
+  private pinnedMessageSetupForKey: string | undefined;
   /**
    * Plate swap deferred from `setupPinnedMessageForPeer` until the
    * bubbles-mount moment inside `bubbles.setPeer`. `kind='install'`
    * carries a detached new plate and (optionally) a `prepareInitialPromise`
-   * that resolves once the new plate's content is rendered — awaited
-   * by `revealPreparedPinnedMessage` with a timeout so plate and bubbles
-   * paint together. `kind='destroy'` means the new peer has no plate,
+   * that resolves once the new plate's content is rendered — awaited in
+   * `finishPeerChange`'s `Promise.all`, so by the time
+   * `revealPreparedPinnedMessage` runs the plate and bubbles paint together. `kind='destroy'` means the new peer has no plate,
    * but the old one must stay visible until bubbles swap.
    */
   private pendingPinnedSetup:
@@ -1233,18 +1221,23 @@ export default class ChatTopbar {
    * `revealPreparedPinnedMessage` right before bubbles mount, so plate
    * and bubbles paint in the same frame.
    *
-   * Idempotent per peerId. Returns the `prepareInitial` promise (if
-   * any) so callers can await content readiness in parallel with the
+   * Idempotent per peer + thread. Returns the `prepareInitial` promise
+   * (if any) so callers can await content readiness in parallel with the
    * other `finishPeerChange` promises.
    */
   public setupPinnedMessageForPeer(): Promise<void> | undefined {
     const peerId = this.chat.peerId;
-    if(this.pinnedMessageSetupForPeerId === peerId) {
+    const threadId = this.chat.threadId;
+    // The pinned list is per-topic in a forum, and on mobile the same chat
+    // instance is reused across peer changes — keying on peerId alone would
+    // keep the previous topic's plate on a topic switch.
+    const setupKey = peerId + (threadId ? '_' + threadId : '');
+    if(this.pinnedMessageSetupForKey === setupKey) {
       return this.pendingPinnedSetup?.kind === 'install' ?
         this.pendingPinnedSetup.prepareInitialPromise :
         undefined;
     }
-    this.pinnedMessageSetupForPeerId = peerId;
+    this.pinnedMessageSetupForKey = setupKey;
 
     // Drop an orphaned pending plate from an even earlier peer change.
     if(this.pendingPinnedSetup?.kind === 'install') {
@@ -1267,14 +1260,18 @@ export default class ChatTopbar {
     if(this.chat.type === ChatType.Discussion) {
       newPlate.setStaticMessage(this.chat.threadId);
     } else {
-      newPlate.setUserHidden(!!this.chat.appState.hiddenPinnedMessages[peerId]);
+      newPlate.setUserHidden(!!this.chat.appState.hiddenPinnedMessages[getPinnedMessagesKey(peerId, threadId)]);
       const savedPosition = this.chat.appImManager.getChatSavedPosition(this.chat);
       const cachedFull = untrack(() => this.chat.fullPeer());
       // Prefer the full saved plate state (mid + index + count) so the
       // plate restores exactly the view the user left on — including the
       // pin-list border indicator and counter. Fall back to fullPeer's
       // `pinned_msg_id`, which is always the newest pin (index 0).
-      const pinnedMessageId = cachedFull && 'pinned_msg_id' in cachedFull ?
+      // `pinned_msg_id` is peer-scoped. In a forum topic the pinned list is
+      // per-topic (the plate fetches it with `threadId`), so seeding from it
+      // would paint a foreign pin — or any pin at all in a topic that has
+      // none — until the thread-scoped fetch resolves and hides it again.
+      const pinnedMessageId = !threadId && cachedFull && 'pinned_msg_id' in cachedFull ?
         cachedFull.pinned_msg_id :
         undefined;
       const hint = savedPosition?.pinnedMessages ||
@@ -1490,13 +1487,16 @@ export default class ChatTopbar {
       else titleEl = i18n('PinnedMessagesCount', [count]);
 
       if(count === undefined) {
-        this.managers.appMessagesManager.getSearchCounters(
-          peerId,
-          [{_: 'inputMessagesFilterPinned'}],
-          false
-        ).then((result) => {
+        // Not `messages.getSearchCounters`: for some peers the server answers it
+        // with an `inexact` count that undercounts badly — in Saved Messages it
+        // returns 5 while 17 messages are pinned (an exact answer there needs
+        // `saved_peer_id`, which the peer-wide pinned tab has no business
+        // sending). `getPinnedMessage` reads the count off the very
+        // `inputMessagesFilterPinned` search this tab's list is built from, so
+        // the title can't disagree with what's rendered under it — the same
+        // source the official clients use for this counter.
+        this.managers.appMessagesManager.getPinnedMessage(peerId, this.chat.threadId).then(({count}) => {
           if(!middleware()) return;
-          const count = result[0].count;
           this.setTitle(count);
 
           // ! костыль х2, это нужно делать в другом месте
@@ -1519,9 +1519,8 @@ export default class ChatTopbar {
         key: 'Chat.Title.Comments',
         minusFirst: this.chat.isForum
       });
-      if(count === undefined) {
+      if(count === undefined && middleware()) {
         const historyStorage = this.chat.getHistoryStorage();
-        if(!middleware()) return;
         el.compareAndUpdate(typeof(historyStorage.count) !== 'number' ?
           {key: 'Loading', args: undefined} :
           {args: [historyStorage.count - (this.chat.isForum ? 1 : 0)]}
@@ -1543,13 +1542,21 @@ export default class ChatTopbar {
         })
         // generateTitleIcons(peerId)
       ]);
+    }
 
+    // Always a callback, never `undefined` — `setPeerCallbacks` and `setTitle`
+    // both call the result unconditionally, so bailing out here used to risk a
+    // 'setTitleCallback is not a function' in the middle of a peer change.
+    return () => {
+      // A newer `setTitleManual` destroyed our helper, so it owns the title now.
+      // Without this the pinned tab could end up stuck on 'Loading': the count
+      // resolves from cache before the caller gets around to invoking this
+      // callback, and the stale 'Loading' element would overwrite the count
+      // that the inner `setTitle(count)` already painted.
       if(!middleware()) {
         return;
       }
-    }
 
-    return () => {
       replaceContent(this.title, titleEl);
       // if(icons) {
       //   this.title.append(...icons);

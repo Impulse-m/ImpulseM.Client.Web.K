@@ -158,7 +158,7 @@ export default class PopupBoost extends PopupPeer {
     const limitLine = new LimitLine({
       progress: true,
       hint: {
-        icon: 'boost',
+        icon: 'boost_filled',
         noStartEnd: true
       }
     });
@@ -196,7 +196,7 @@ export default class PopupBoost extends PopupPeer {
         isCancel: true
       } : {
         langKey: isBroadcast ? 'BoostChannel' : 'BoostGroup',
-        iconLeft: 'boost',
+        iconLeft: 'boost_filled',
         callback: onClick
       }]));
     };
@@ -265,8 +265,8 @@ export default class PopupBoost extends PopupPeer {
             titleLangKey: 'BoostingMoreBoostsNeeded',
             descriptionLangKey: 'Boost.GetMoreBoosts',
             descriptionLangArgs: [
-              await wrapPeerTitle({peerId: this.peerId}),
-              appConfig.boosts_per_sent_gift ?? 1
+              appConfig.boosts_per_sent_gift ?? 1,
+              await wrapPeerTitle({peerId: this.peerId})
             ],
             button: {
               langKey: 'GiftPremium'

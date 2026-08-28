@@ -22,12 +22,13 @@ import {fireMessageEffectByBubble, MessageRender} from '@components/chat/message
 import LazyLoadQueue from '@components/lazyLoadQueue';
 import ListenerSetter from '@helpers/listenerSetter';
 import showChatToast from '@components/chat/chatToast';
-import AudioElement from '@components/audio';
+import {AudioElement, DeferredMediaElement, isAudioElement} from '@components/audio';
 import {ChannelParticipant, Chat as MTChat, ChatParticipant, Document, Game, Message, MessageEntity,  MessageMedia,  MessageReplyHeader, Photo, PhotoSize, ReactionCount, SponsoredMessage, User, UserFull, WebPage, WebPageAttribute, Reaction, DocumentAttribute, InputStickerSet, TextWithEntities, FactCheck, WebDocument, MessageExtendedMedia, PeerSettings, LangPackString, ForumTopic, MessageAction} from '@layer';
 import {BOT_START_PARAM, NULL_PEER_ID, REPLIES_PEER_ID, SEND_WHEN_ONLINE_TIMESTAMP, STARS_CURRENCY} from '@appManagers/constants';
 import {FocusDirection, ScrollStartCallbackDimensions} from '@helpers/fastSmoothScroll';
 import useHeavyAnimationCheck, {getHeavyAnimationPromise, dispatchHeavyAnimationEvent, interruptHeavyAnimation} from '@hooks/useHeavyAnimationCheck';
 import {doubleRaf, fastRaf, fastRafPromise} from '@helpers/schedulers';
+import withTimeout from '@helpers/schedulers/withTimeout';
 import deferredPromise from '@helpers/cancellablePromise';
 import memoizeAsyncWithTTL from '@helpers/memoizeAsyncWithTTL';
 import RepliesElement from '@components/chat/replies';
@@ -122,10 +123,10 @@ import toHHMMSS from '@helpers/string/toHHMMSS';
 import {BatchProcessor} from '@helpers/sortedList';
 import wrapUrl from '@lib/richTextProcessor/wrapUrl';
 import getMessageThreadId from '@appManagers/utils/messages/getMessageThreadId';
-import wrapTopicNameButton from '@components/wrappers/topicNameButton';
 import wrapMediaSpoiler, {onMediaSpoilerClick} from '@components/wrappers/mediaSpoiler';
 import {copyTextToClipboard} from '@helpers/clipboard';
 import liteMode from '@helpers/liteMode';
+import getSelectionElementFromTarget from '@components/chat/getSelectionElementFromTarget';
 import getMediaDurationFromMessage from '@appManagers/utils/messages/getMediaDurationFromMessage';
 import getParticipantRank from '@appManagers/utils/chats/getParticipantRank';
 import wrapParticipantRank from '@components/wrappers/participantRank';
@@ -144,7 +145,6 @@ import callbackify from '@helpers/callbackify';
 import {avatarNew, findUpAvatar} from '@components/avatarNew';
 import Icon from '@components/icon';
 import apiManagerProxy from '@lib/apiManagerProxy';
-import {_tgico} from '@helpers/tgico';
 import setBlankToAnchor from '@lib/richTextProcessor/setBlankToAnchor';
 import addAnchorListener, {UNSAFE_ANCHOR_LINK_TYPES} from '@helpers/addAnchorListener';
 import {formatDaysDuration, formatMonthsDuration} from '@helpers/date';
@@ -318,6 +318,9 @@ type GenerateLocalMessageType<IsService> = IsService extends true ? Message.mess
 const SPONSORED_MESSAGE_ID_OFFSET = 1;
 export const STICKY_OFFSET = 3;
 const SCROLLED_DOWN_THRESHOLD = 300;
+// * generous enough for slow media on a bad connection, short enough that a promise which will
+// * never settle cannot brick the chat
+const MEDIA_PROMISES_TIMEOUT = 10000;
 const PEER_CHANGED_ERROR = new Error('peer changed');
 
 const DO_NOT_SLICE_VIEWPORT = false;
@@ -344,8 +347,18 @@ const BIG_EMOJI_SIZES_LENGTH = Object.keys(BIG_EMOJI_SIZES).length;
 // * on a while longer and fades (tdesktop: activeFadeIn + fadeWrap + activeFadeOut)
 const BUBBLE_HIGHLIGHT_DURATION = 2000;
 const BUBBLE_TEXT_HIGHLIGHT_DURATION = 4000;
+// * fade of the "active" highlight, matches the one ChatSelection uses for `is-selected`
+const BUBBLE_ACTIVE_DURATION = 200;
 // * parts of `.message` that are not the message text (link preview / fact-check boxes included)
 const BUBBLE_TEXT_HIGHLIGHT_SKIP = '.time, .reactions, .reply, .code-header, .webpage';
+
+/** what a jump is really about inside the message it lands on, see `ChatBubbles.scrollToBubble` */
+type MessageFocus = {
+  /** the search query / the quote about to be lit up in the text */
+  textHighlight?: TextHighlightMatch,
+  /** an element of the bubble: the answer a poll option link points at */
+  element?: HTMLElement
+};
 
 const TOPIC_ICON_SIZE = makeMediaSize(64, 64);
 
@@ -1062,13 +1075,14 @@ export default class ChatBubbles {
             documentContainer.dataset.mid = '' + mid;
           }
 
-          const element = bubble.querySelector(`audio-element[data-mid="${tempId}"], .document[data-doc-id="${tempId}"], .media-round[data-mid="${tempId}"]`) as HTMLElement;
+          const element = bubble.querySelector(`.audio[data-mid="${tempId}"], .document[data-doc-id="${tempId}"], .media-round[data-mid="${tempId}"]`) as HTMLElement;
           if(element) {
-            if(element instanceof AudioElement || element.classList.contains('media-round')) {
+            if(isAudioElement(element)) {
+              element.replaceMessage(message);
+            } else if(element.classList.contains('media-round')) {
               element.dataset.mid = '' + message.mid;
               delete element.dataset.isOutgoing;
-              (element as AudioElement).message = message;
-              (element as AudioElement).onLoad(true);
+              (element as DeferredMediaElement).onLoad(true);
             } else {
               element.dataset.docId = '' + doc.id;
               (element as any).doc = doc;
@@ -1176,71 +1190,6 @@ export default class ChatBubbles {
       const bubble = this.getBubble(makeFullMid(message));
       if(!bubble) return;
       this.setBubbleRepliesCount(bubble, message.replies.replies);
-    });
-
-    this.listenerSetter.add(rootScope)('message_transcribed', ({peerId, mid, text, pending}) => {
-      if(peerId !== this.peerId) return;
-
-      const bubble = this.getBubble(makeFullMid(peerId, mid));
-      if(!bubble) return;
-
-      // TODO: Move it to AudioElement method `finishVoiceTranscription`
-      const audioElement = bubble.querySelector('audio-element') as AudioElement;
-      if(!audioElement) {
-        return;
-      }
-
-      // const scrollSaver = this.createScrollSaver(false);
-      // scrollSaver.save();
-
-      const speechTextDiv = bubble.querySelector('.document-wrapper, .quote-text.has-document') as HTMLElement;
-      const speechRecognitionIcon = audioElement.querySelector('.audio-to-text-button span');
-      const speechRecognitionLoader = audioElement.querySelector('.loader');
-      if(speechTextDiv && speechRecognitionIcon) {
-        let transcribedText = speechTextDiv.querySelector('.audio-transcribed-text');
-        if(!transcribedText) {
-          transcribedText = document.createElement('div');
-          transcribedText.classList.add('audio-transcribed-text');
-          transcribedText.append(document.createTextNode(''));
-
-          if(speechTextDiv.classList.contains('document-wrapper')) {
-            audioElement.after(transcribedText);
-          } else {
-            speechTextDiv.append(transcribedText);
-          }
-
-          if(pending) {
-            const dots = document.createElement('span');
-            dots.classList.add('audio-transcribing-dots');
-            transcribedText.append(dots);
-          }
-        } else if(!pending) {
-          const dots = transcribedText.querySelector('.audio-transcribing-dots');
-          dots?.remove();
-        }
-
-        if(!text && !pending/*  && !transcribedText.classList.contains('has-some-text') */) {
-          transcribedText.replaceChildren(i18n('Chat.Voice.Transribe.Error'));
-          transcribedText.classList.add('is-error');
-        } else if(text) {
-          // transcribedText.classList.add('has-some-text');
-          transcribedText.firstChild.textContent = text;
-        }
-
-        speechRecognitionIcon.classList.remove(_tgico('transcribe'));
-        speechRecognitionIcon.classList.add(_tgico('up'));
-
-        if(!pending && speechRecognitionLoader) {
-          speechRecognitionLoader.classList.remove('active');
-          setTimeout(() => {
-            speechRecognitionLoader.remove();
-          }, 300);
-        }
-
-        audioElement.transcriptionState = 2;
-      }
-
-      // scrollSaver.restore();
     });
 
     this.listenerSetter.add(rootScope)('grouped_edit', ({peerId, messages, deletedMids}) => {
@@ -1517,7 +1466,7 @@ export default class ChatBubbles {
 
     if(DEBUG) {
       this.listenerSetter.add(container)('dblclick', (e) => {
-        const bubble = findUpClassName(e.target, 'grouped-item') || findUpClassName(e.target, 'bubble');
+        const bubble = getSelectionElementFromTarget(e.target);
         if(bubble) {
           const fullMid = getBubbleFullMid(bubble);
 
@@ -4833,7 +4782,7 @@ export default class ChatBubbles {
     position: ScrollLogicalPosition,
     forceDirection?: FocusDirection,
     forceDuration?: number,
-    textHighlight?: TextHighlightMatch
+    focusOn?: MessageFocus
   ) {
     const bubble = findUpClassName(element, 'bubble');
 
@@ -4869,10 +4818,13 @@ export default class ChatBubbles {
     // overridable, so compensate via margin to land at viewport.bottom instead.
     const margin = 4 + (position === 'end' ? containerRect.bottom - bubblesViewportRect.bottom : 0);
 
-    // * a bubble that does not fit the screen is centered by its start, so the text we are
-    // * jumping to can stay far below it — center that text instead then
-    const focus = position === 'center' && textHighlight ?
-      this.getTextHighlightFocus(element, textHighlight, bubblesViewportRect.height) :
+    // * a bubble that does not fit the screen is centered by its start, so the part we are
+    // * jumping to can stay far below it — center that part instead then
+    const focus = position === 'center' && focusOn ?
+      this.measureFocus(element, focusOn, bubblesViewportRect.height, {
+        startElement: fallbackToElementStartWhenCentering || element,
+        margin
+      }) :
       undefined;
 
     const isTogglingHelper = this.chat.container.classList.contains('is-toggling-helper');
@@ -4905,10 +4857,10 @@ export default class ChatBubbles {
         const diff = rowsWrapperHeight - 54;
         return rect.height + diff; */
       } : () => bubblesViewportRect.height,
-      // * the position is read again when the scroll starts, the offset of the text inside the
-      // * bubble survives the bubble moving until then
+      // * the position is read again when the scroll starts, the offset of the focused part
+      // * inside the bubble survives the bubble moving until then
       getElementPosition: ({elementRect}) => elementRect.top + (focus?.offset || 0) - bubblesViewportRect.top,
-      // * the fallback would scroll to the date group instead of the text we are centering on
+      // * the fallback would scroll to the date group instead of the part we are centering on
       fallbackToElementStartWhenCentering: focus ? undefined : fallbackToElementStartWhenCentering,
       startCallback: (dimensions) => {
         // this.onScroll(true, this.scrolledDown && dimensions.distanceToEnd <= SCROLLED_DOWN_THRESHOLD ? undefined : dimensions);
@@ -4987,6 +4939,41 @@ export default class ChatBubbles {
   }
 
   /**
+   * Marks the bubble (or a single grouped document inside it) as the active one — the target of an
+   * opened context menu. Paints the very same highlight ChatSelection paints on a selected message,
+   * but never doubles it: an already selected element is left alone.
+   */
+  public toggleActiveBubble(element: HTMLElement, active: boolean) {
+    const datasetKey = 'activeTimeout';
+    if(element.dataset[datasetKey]) {
+      clearTimeout(+element.dataset[datasetKey]);
+      delete element.dataset[datasetKey];
+    }
+
+    if(active) {
+      element.classList.remove('is-active-backwards');
+      element.classList.toggle('is-active', !element.classList.contains('is-selected'));
+      return;
+    }
+
+    if(!element.classList.contains('is-active')) {
+      return;
+    }
+
+    // * the selection has taken the highlight over in the meantime (or there is nothing to animate)
+    if(element.classList.contains('is-selected') || !liteMode.isAvailable('animations')) {
+      element.classList.remove('is-active', 'is-active-backwards');
+      return;
+    }
+
+    element.classList.add('is-active-backwards');
+    element.dataset[datasetKey] = '' + setTimeout(() => {
+      delete element.dataset[datasetKey];
+      element.classList.remove('is-active', 'is-active-backwards');
+    }, BUBBLE_ACTIVE_DURATION);
+  }
+
+  /**
    * Lights up the search query / the quote inside the bubble text. Together with the flash
    * above it looks the way tdesktop does it: the whole bubble flashes, the flash "collapses"
    * onto the found text, which stays a while and fades away.
@@ -5028,28 +5015,52 @@ export default class ChatBubbles {
   }
 
   /**
-   * Where the search query / the quote is inside the bubble (its offset from the bubble's top and
-   * its height), but only when the bubble is too tall to be shown as a whole and its start does
-   * not bring the text into view either (tdesktop: AdjustScrollForRange).
+   * Where the focused part sits inside the bubble (its offset from the bubble's top and its
+   * height), but only when the bubble is too tall to be centered as a whole and the scroll that
+   * happens instead — the start of `plainScroll.startElement` put at the top of the viewport —
+   * does not bring that part into view either (tdesktop: AdjustScrollForRange).
    */
-  private getTextHighlightFocus(element: HTMLElement, match: TextHighlightMatch, viewportHeight: number) {
+  private measureFocus(
+    element: HTMLElement,
+    focusOn: MessageFocus,
+    viewportHeight: number,
+    plainScroll: {startElement: HTMLElement, margin: number}
+  ) {
     // * the same size fastSmoothScroll compares against before it gives up on centering
     if(element.scrollHeight < viewportHeight) {
       return;
     }
 
-    const container = this.getBubbleTextContainer(element);
-    const rect = container && findTextRect(container, match, BUBBLE_TEXT_HIGHLIGHT_SKIP);
+    let rect: DOMRect;
+    if(focusOn.element) {
+      rect = focusOn.element.getBoundingClientRect();
+    } else {
+      const container = this.getBubbleTextContainer(element);
+      rect = container && findTextRect(container, focusOn.textHighlight, BUBBLE_TEXT_HIGHLIGHT_SKIP);
+    }
+
     if(!rect) {
       return;
     }
 
-    const offset = rect.top - element.getBoundingClientRect().top;
-    if(offset + rect.height <= viewportHeight) { // * the bubble's start shows it anyway
+    const {startElement, margin} = plainScroll;
+    if(rect.bottom - startElement.getBoundingClientRect().top + margin <= viewportHeight) { // * shown anyway
       return;
     }
 
-    return {offset, height: rect.height};
+    return {offset: rect.top - element.getBoundingClientRect().top, height: rect.height};
+  }
+
+  /** what the jump is about inside the message: the text about to be lit up, or the poll answer */
+  private getMessageFocus(
+    bubble: HTMLElement,
+    fullMid: FullMid,
+    highlight?: TextHighlightMatch,
+    pollOption?: string | Uint8Array
+  ): MessageFocus {
+    const index = this.getBubblePollAnswerIndex(bubble, fullMid, pollOption);
+    const element = index === -1 ? undefined : bubble.querySelector<HTMLElement>(`[data-poll-option-idx="${index}"]`);
+    return highlight || element ? {textHighlight: highlight, element} : undefined;
   }
 
   private createDateBubble(timestamp: number, date: Date = new Date(timestamp * 1000)) {
@@ -5142,10 +5153,10 @@ export default class ChatBubbles {
   }
 
   public updateStickyIntersectorRootMargin = () => {
-    if(!this.stickyIntersector) return;
     const top = this.chat.chatPaddingTop[0]();
     const bottom = this.chat.chatPaddingBottom[0]();
-    this.stickyIntersector.setRootMargin(`-${top}px 0px -${bottom}px 0px`);
+    this.stickyIntersector?.setRootMargin(`-${top}px 0px -${bottom}px 0px`);
+    this.separatorIntersectorRoot?.setTopOffset(top);
   };
 
   public updateGoDownVisibility = () => {
@@ -5423,7 +5434,8 @@ export default class ChatBubbles {
         } else if(isTarget) {
           // * the highlight waits for the scroll to settle (iOS does the same) — otherwise it
           // * plays while the message is still travelling
-          this.scrollToBubble(bubble, 'center', undefined, undefined, highlight).then(() => {
+          const focusOn = this.getMessageFocus(bubble, lastMsgFullMid, highlight, pollOption);
+          this.scrollToBubble(bubble, 'center', undefined, undefined, focusOn).then(() => {
             if(!middleware()) return;
             this.highlightBubble(bubble, highlight);
             this.highlightBubblePollAnswer(bubble, lastMsgFullMid, pollOption);
@@ -5731,7 +5743,7 @@ export default class ChatBubbles {
               position,
               !samePeer ? FocusDirection.Static : undefined,
               undefined,
-              willHighlight ? highlight : undefined
+              willHighlight ? this.getMessageFocus(bubble, lastMsgFullMid, highlight, pollOption) : undefined
             );
           }
 
@@ -6159,7 +6171,12 @@ export default class ChatBubbles {
     promises.push(getHeavyAnimationPromise());
 
     log('media promises to call', promises, loadQueue, this.isHeavyAnimationInProgress);
-    await m(Promise.all([...promises, this.setUnreadDelimiter()]).catch(noop)); // не нашёл места лучше
+    // * `.catch(noop)` only covers a rejection — a promise that simply never settles slips straight
+    // * through it and parks this batch forever. Everything behind the queue then hangs with it
+    // * (`performHistoryResult` → `Chat.setPeerPromise`), which leaves the chat permanently
+    // * unopenable with no error anywhere. Bound the wait: the bubbles are already built, so at
+    // * worst some media finishes loading after mount instead of before it.
+    await m(withTimeout(Promise.all([...promises, this.setUnreadDelimiter()]).catch(noop), MEDIA_PROMISES_TIMEOUT)); // не нашёл места лучше
     await m(fastRafPromise()); // have to be the last
     log('media promises end');
 
@@ -6658,24 +6675,24 @@ export default class ChatBubbles {
     !first && bubble.classList.remove('is-sending', 'is-error', 'is-sent', 'is-read');
     status && bubble.classList.add('is-' + status);
     bubble.querySelectorAll('.time, .time-inner').forEach((element) => {
-      const isReplacingFirst = !!element.querySelector('.time-sending-status');
+      // * the status is not necessarily the first child anymore (the replies counter can be
+      // * prepended after it), so look up the previous status itself instead of assuming
+      // * its position - otherwise the new icon replaces a foreign element and the old status stays
+      const previous = element.querySelector(':scope > .time-sending-status');
       if(!status) {
-        if(isReplacingFirst) {
-          element.firstElementChild.remove();
-        }
-
+        previous?.remove();
         return;
       }
 
       let icon: Icon;
-      if(status === 'error') icon = 'sendingerror';
+      if(status === 'error') icon = 'sendingerror_filled';
       else if(status === 'sending') icon = 'sending';
       else if(status === 'sent') icon = 'check';
       else icon = 'checks';
 
       const newIcon = Icon(icon, 'time-sending-status');
-      if(isReplacingFirst) {
-        element.firstElementChild.replaceWith(newIcon);
+      if(previous) {
+        previous.replaceWith(newIcon);
       } else {
         element.prepend(newIcon);
       }
@@ -6685,7 +6702,7 @@ export default class ChatBubbles {
   private setBubbleRepliesCount(bubble: HTMLElement, count: number) {
     if(this.chat.threadId) return;
     bubble.querySelectorAll('.time, .time-inner').forEach((element) => {
-      let previous = element.querySelector('.time-replies');
+      let previous = element.querySelector(':scope > .time-replies');
       if(!count) {
         previous?.remove();
         return;
@@ -7505,7 +7522,7 @@ export default class ChatBubbles {
           let elem: HTMLElement;
           if(isMyStory) elem = i18n('ExpiredStoryMentionYou', [await wrapPeerTitle({peerId: message.peerId})]);
           else elem = i18n('ExpiredStoryMention');
-          const icon = Icon('bomb', 'expired-story-icon');
+          const icon = Icon('bomb_filled', 'expired-story-icon');
           s.append(icon, elem);
         } else {
           s.classList.add('bubble-story-mention-wrapper');
@@ -7798,7 +7815,7 @@ export default class ChatBubbles {
       onError: (error) => {
         if(error.type === 'SUMMARY_FLOOD_PREMIUM') {
           const {hide} = showChatToast({
-            icon: 'premium_speed',
+            icon: 'premium_speed_filled',
             title: i18n('Summary.Limited'),
             textElement: i18n('Summary.Limited.Text', [
               anchorCallback(() => {
@@ -7823,7 +7840,7 @@ export default class ChatBubbles {
         })
       ) : undefined;
 
-    let isMessageEmpty = !context.messageMessage && !isSponsored && !factCheck/*  && (!topicNameButtonContainer || isStandaloneMedia) */;
+    let isMessageEmpty = !context.messageMessage && !isSponsored && !factCheck;
     context.mediaRequiresMessageDiv = false;
 
     context.canHaveTail = true;
@@ -7965,33 +7982,6 @@ export default class ChatBubbles {
     }
 
     bubbleContainer.prepend(messageDiv);
-
-    let topicNameButtonContainer: HTMLElement;
-    if(isMessage && (this.chat.isAllMessagesForum || (this.chat.hashtagType === 'my' && isOut))) {
-      const result = await wrapTopicNameButton({
-        peerId: message.peerId,
-        threadId: getMessageThreadId(message, {isForum: this.chat.isForum}),
-        lastMsgId: message.mid,
-        wrapOptions: {
-          middleware
-        },
-        withIcons: true,
-        dialog: true,
-        noLink: this.chat.type === ChatType.Search
-      });
-
-      const {element} = result;
-      // if(isStandaloneMedia) {
-      //   element.classList.add('floating-part');
-      // }
-
-      topicNameButtonContainer = document.createElement('div');
-      topicNameButtonContainer.classList.add(
-        /* 'name',  */'topic-name-button-container',
-        'bubble-name-chip-container'
-      );
-      topicNameButtonContainer.append(element);
-    }
 
     let hasBesideButton = false;
     if(isMessage && message.views) {
@@ -8316,7 +8306,7 @@ export default class ChatBubbles {
           if(webPage.cached_page) {
             const span = document.createElement('span');
             span.append(
-              Icon('boost', 'inline-icon', 'inline-icon-left'),
+              Icon('boost_filled', 'inline-icon', 'inline-icon-left'),
               i18n('WebPage.InstantView')
             );
             props.footer = {
@@ -9661,7 +9651,7 @@ export default class ChatBubbles {
       (showNameForVerificationCodes && !replyTo);
 
     let nameDiv: HTMLElement;
-    if(needName || fwdFrom || replyTo || topicNameButtonContainer) { // chat
+    if(needName || fwdFrom || replyTo) { // chat
       let title: HTMLElement;
       let titleVia: typeof title;
       let noColor: boolean;
@@ -9673,7 +9663,7 @@ export default class ChatBubbles {
       const hasTwoTitles = _isForwardOfForward && !isOut && fwdFrom.from_name && fwdFrom.saved_from_name;
 
       let mustHaveName = shouldKeepSenderNameAcrossGroup(isEphemeral, isOut) ||
-        !!(message.viaBotId/*  || topicNameButtonContainer */) ||
+        !!message.viaBotId ||
         storyFromPeerId;
       const isHidden = !!(fwdFrom && (!fwdFrom.from_id || fwdFromName));
       if(message.viaBotId) {
@@ -9882,20 +9872,6 @@ export default class ChatBubbles {
         bubble.classList.remove('hide-name');
       }
 
-      if(topicNameButtonContainer) {
-        if(context.isStandaloneMedia) {
-          topicNameButtonContainer.classList.add('floating-part');
-        } else {
-          if(!nameDiv) {
-            nameDiv = document.createElement('div');
-          }
-
-          nameDiv.append(topicNameButtonContainer);
-
-          bubble.classList.remove('hide-name');
-        }
-      }
-
       if(nameDiv && !bubble.classList.contains('hide-name')) {
         nameDiv.classList.add('name');
         setDirection(nameDiv);
@@ -9963,15 +9939,6 @@ export default class ChatBubbles {
       }/*  else if((message as Message.message).from_boosts_applied) {
         this.wrapTitleAndRank(firstElement, message as Message.message);
       } */
-
-      if(topicNameButtonContainer && context.isStandaloneMedia) {
-        if(!context.attachmentDiv) {
-          this.log.error('no attachment div?', bubble, message);
-          debugger;
-        } else {
-          context.attachmentDiv.after(topicNameButtonContainer);
-        }
-      }
 
       if(mustHaveName) {
         bubble.classList.add('must-have-name');
@@ -10305,16 +10272,13 @@ export default class ChatBubbles {
     // title.after(wrappedRank);
     const container = document.createElement('div');
     container.classList.add('title-flex');
-    if(title.classList.contains('topic-name-button-container')) {
-      container.classList.add('title-flex-topic');
-    }
     title.replaceWith(container);
     let boostsElement: HTMLElement;
     const boosts = message.from_boosts_applied;
     if(boosts) {
       boostsElement = document.createElement('span');
       boostsElement.classList.add('bubble-name-boosts');
-      boostsElement.append(Icon('boosts', 'inline-icon', 'bubble-name-boosts-icon'), '' + boosts);
+      boostsElement.append(Icon('boosts_filled', 'inline-icon', 'bubble-name-boosts-icon'), '' + boosts);
     }
     title.classList.add('bubble-name-first');
     container.append(...[title, wrappedRank, boostsElement].filter(Boolean));
@@ -10358,7 +10322,7 @@ export default class ChatBubbles {
     badge.classList.add('ephemeral-badge');
     badge.setAttribute('role', 'note');
     badge.title = I18n.format('Ephemeral.About', true);
-    badge.append(Icon('eyecross_outline', 'ephemeral-badge-icon'));
+    badge.append(Icon('eyecross', 'ephemeral-badge-icon'));
 
     if(message.pFlags.out) {
       const receiverPeerId = message.ephemeral_receiver_id.toPeerId(false);
@@ -10691,6 +10655,8 @@ export default class ChatBubbles {
       return this.managers.acknowledged.appMessagesManager.getHistory({
         peerId: this.peerId,
         inputFilter: {_: 'inputMessagesFilterPinned'},
+        // thread-scoped in a forum topic, like `getPinnedMessagesMaxId` above
+        threadId: this.chat.threadId,
         offsetPeerId,
         offsetId,
         limit,
@@ -11011,7 +10977,7 @@ export default class ChatBubbles {
     } else if(type === 'premiumRequired') {
       const stickerDiv = document.createElement('div');
       stickerDiv.classList.add(BASE_CLASS + '-sticker');
-      stickerDiv.append(Icon('premium_restrict'));
+      stickerDiv.append(Icon('premium_restrict_filled'));
 
       const subtitle = i18n('Chat.PremiumRequired', [await wrapPeerTitle({peerId: this.peerId, onlyFirstName: true})]);
       subtitle.classList.add('center', BASE_CLASS + '-subtitle');
@@ -11025,7 +10991,7 @@ export default class ChatBubbles {
     } else if(type === 'paidMessages') {
       const stickerDiv = document.createElement('div');
       stickerDiv.classList.add(BASE_CLASS + '-sticker');
-      stickerDiv.append(Icon('premium_restrict'));
+      stickerDiv.append(Icon('premium_restrict_filled'));
 
       const starsAmount = await this.managers.appPeersManager.getStarsAmount(this.peerId); // should be cached probably here
 
@@ -12238,28 +12204,30 @@ export default class ChatBubbles {
     return entry;
   }
 
-  private highlightBubblePollAnswer(bubble?: HTMLElement, lastMsgFullMid?: FullMid, pollOption?: string | Uint8Array) {
-    if(!bubble || lastMsgFullMid === EMPTY_FULL_MID || !pollOption) return;
+  /** the answer a jump points at (a poll option link), -1 when there is none */
+  private getBubblePollAnswerIndex(bubble?: HTMLElement, lastMsgFullMid?: FullMid, pollOption?: string | Uint8Array) {
+    if(!bubble || lastMsgFullMid === EMPTY_FULL_MID || !pollOption) return -1;
 
     const message = this.chat.getMessage(lastMsgFullMid);
-    if(!message || message?._ !== 'message' || message?.media?._ !== 'messageMediaPoll') return;
+    if(!message || message?._ !== 'message' || message?.media?._ !== 'messageMediaPoll') return -1;
 
     let option: Uint8Array;
     if(pollOption instanceof Uint8Array) {
       option = pollOption;
     } else {
       const maxLength = 100;
-      if(pollOption.length > maxLength) return; // discard possibly malformed parameter
+      if(pollOption.length > maxLength) return -1; // discard possibly malformed parameter
       option = linkToPollOption(pollOption);
-      if(!option) return;
+      if(!option) return -1;
     }
 
-    const context = this.contexts.get(bubble);
-    if(!context) return;
+    return message.media.poll.answers.findIndex((answer) => answer._ === 'pollAnswer' && compareUint8Arrays(answer.option, option));
+  }
 
-    const pollOptionIndex = message.media.poll.answers.findIndex((answer) => answer._ === 'pollAnswer' && compareUint8Arrays(answer.option, option));
+  private highlightBubblePollAnswer(bubble?: HTMLElement, lastMsgFullMid?: FullMid, pollOption?: string | Uint8Array) {
+    const pollOptionIndex = this.getBubblePollAnswerIndex(bubble, lastMsgFullMid, pollOption);
     if(pollOptionIndex === -1) return;
 
-    context.pollMessageContentControls?.highlightAnswerWithTimeout?.(pollOptionIndex, 3000);
+    this.contexts.get(bubble)?.pollMessageContentControls?.highlightAnswerWithTimeout?.(pollOptionIndex, 3000);
   }
 }

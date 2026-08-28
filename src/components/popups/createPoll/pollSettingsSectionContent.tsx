@@ -8,7 +8,7 @@ import showDatePickerPopup from '@components/popups/datePicker';
 import showPickCountryPopup from '@components/popups/pickCountry';
 import SimpleFormField from '@components/simpleFormField';
 import Space from '@components/space';
-import StaticSwitch from '@components/staticSwitch';
+import CheckboxFieldTsx from '@components/checkboxFieldTsx';
 import {wrapFormattedDuration} from '@components/wrappers/wrapDuration';
 import contextMenuController from '@helpers/contextMenuController';
 import {formatFullSentTime} from '@helpers/date';
@@ -115,7 +115,7 @@ export const PollSettingsSectionContent = (props: {
           title='NewPoll.ShowWhoVoted'
           subtitle='NewPoll.ShowWhoVotedSubtitle'
           mediaStyle={getGradientStyle(0)}
-          icon='eye1'
+          icon='eye1_filled'
           checked={context.store.showWhoVoted}
           onClick={() => {
             if(context.store.showWhoVoted) {
@@ -135,7 +135,7 @@ export const PollSettingsSectionContent = (props: {
         title='NewPoll.AllowMultipleAnswers'
         subtitle='NewPoll.AllowMultipleAnswersSubtitle'
         mediaStyle={getGradientStyle(1)}
-        icon='poll_multiple_answers'
+        icon='poll_multiple_answers_filled'
         checked={context.store.allowMultipleAnswers}
         onClick={handleSettingsFlag('allowMultipleAnswers')}
       />
@@ -162,7 +162,7 @@ export const PollSettingsSectionContent = (props: {
         title='NewPoll.ShuffleOptions'
         subtitle='NewPoll.ShuffleOptionsSubtitle'
         mediaStyle={getGradientStyle(4)}
-        icon='replace'
+        icon='replace_circles'
         checked={context.store.shuffleOptions}
         onClick={handleSettingsFlag('shuffleOptions')}
       />
@@ -222,7 +222,7 @@ export const PollSettingsSectionContent = (props: {
         title='NewPoll.LimitDuration'
         subtitle='NewPoll.LimitDurationSubtitle'
         mediaStyle={getGradientStyle(8)}
-        icon='timer'
+        icon='timer_filled'
         checked={context.store.durationLimited}
         onClick={handleSettingsFlag('durationLimited')}
       />
@@ -251,18 +251,20 @@ export const PollSettingsSectionContent = (props: {
                 </Row.RightContent>
               </Row>
             </div>
-            <Row clickable={handleSettingsFlag('hideResults')}>
+            <Row>
+              <Row.CheckboxFieldToggle>
+                <CheckboxFieldTsx
+                  toggle
+                  checked={context.store.hideResults}
+                  onChange={handleSettingsFlag('hideResults')}
+                />
+              </Row.CheckboxFieldToggle>
               <Row.Title>
                 <I18nTsx key='NewPoll.HideResults' />
               </Row.Title>
               <Row.Subtitle>
                 <I18nTsx key='NewPoll.HideResultsSubtitle' />
               </Row.Subtitle>
-              <Row.RightContent>
-                <StaticSwitch
-                  checked={context.store.hideResults}
-                />
-              </Row.RightContent>
             </Row>
           </div>
         </Show>
@@ -350,7 +352,16 @@ const SettingsOption = (props: {
   const {Row} = useHotReloadGuard();
 
   return (
-    <Row clickable={props.onClick} disabled={props.disabled}>
+    <Row disabled={props.disabled}>
+      <Row.CheckboxFieldToggle>
+        <CheckboxFieldTsx
+          toggle
+          checked={props.checked}
+          disabled={props.disabled}
+          lockIcon={props.disabled ? 'lock' : undefined}
+          onChange={() => props.onClick?.()}
+        />
+      </Row.CheckboxFieldToggle>
       <Row.Media class={styles.mediaIcon} size='small' style={props.mediaStyle}>
         <IconTsx icon={props.icon} />
       </Row.Media>
@@ -358,9 +369,6 @@ const SettingsOption = (props: {
         <I18nTsx key={props.title} />
       </Row.Title>
       <Row.Subtitle><I18nTsx key={props.subtitle} /></Row.Subtitle>
-      <Row.RightContent>
-        <StaticSwitch checked={props.checked} handleContent={props.disabled ? <StaticSwitch.HandleIcon icon='lock' /> : undefined} />
-      </Row.RightContent>
     </Row>
   );
 };

@@ -10,6 +10,7 @@ import PopupDeleteMessages from '@components/popups/deleteMessages';
 import showForwardPopup from '@components/popups/forward';
 import {showSelectedMessagesReport} from '@components/popups/reportAd';
 import SetTransition from '@components/singleTransition';
+import getSelectionElementFromTarget from '@components/chat/getSelectionElementFromTarget';
 import ListenerSetter from '@helpers/listenerSetter';
 import PopupSendNow from '@components/popups/sendNow';
 import appNavigationController, {NavigationItem} from '@components/appNavigationController';
@@ -398,8 +399,13 @@ export class AppSelection extends EventListenerBase<{
   }
 
   protected getCheckboxInputFromElement(element: HTMLElement): HTMLInputElement {
-    return element.firstElementChild?.tagName === 'LABEL' &&
-      element.firstElementChild.firstElementChild as HTMLInputElement;
+    const field = element.firstElementChild;
+    const input = field?.firstElementChild;
+    if(!field?.classList.contains('checkbox-field') || !input?.classList.contains('checkbox-field-input')) {
+      return;
+    }
+
+    return input as HTMLInputElement;
   }
 
   protected async updateContainer(forceSelection = false) {
@@ -634,8 +640,8 @@ export class SearchSelection extends AppSelection {
   /* public appendCheckbox(element: HTMLElement, checkboxField: CheckboxField) {
     checkboxField.label.classList.add('bubble-select-checkbox');
 
-    if(element.classList.contains('document') || element.tagName === 'AUDIO-ELEMENT') {
-      element.querySelector('.document, audio-element').append(checkboxField.label);
+    if(element.classList.contains('document') || element.classList.contains('audio')) {
+      element.querySelector('.document, .audio').append(checkboxField.label);
     } else {
       super.appendCheckbox(bubble, checkboxField);
     }
@@ -810,7 +816,7 @@ export default class ChatSelection extends AppSelection {
   ) {
     super({
       managers,
-      getElementFromTarget: (target) => findUpClassName(target, 'grouped-item') || findUpClassName(target, 'bubble'),
+      getElementFromTarget: getSelectionElementFromTarget,
       verifyTarget: (e, target) => {
         // LEFT BUTTON
         // проверка внизу нужна для того, чтобы не активировать селект если target потомок .bubble
@@ -862,7 +868,7 @@ export default class ChatSelection extends AppSelection {
     checkboxField.label.classList.add('bubble-select-checkbox');
 
     if(bubble.classList.contains('document-container')) {
-      bubble.querySelector('.document, audio-element').append(checkboxField.label);
+      bubble.querySelector('.document, .audio').append(checkboxField.label);
     } else {
       super.appendCheckbox(bubble, checkboxField);
     }
@@ -1023,23 +1029,8 @@ export default class ChatSelection extends AppSelection {
   }
 
   protected getCheckboxInputFromElement(bubble: HTMLElement) {
-    /* let perf = performance.now();
-    let checkbox = bubble.firstElementChild.tagName === 'LABEL' && bubble.firstElementChild.firstElementChild as HTMLInputElement;
-    console.log('getCheckboxInputFromBubble firstElementChild time:', performance.now() - perf);
-
-    perf = performance.now();
-    checkbox = bubble.querySelector('label input');
-    console.log('getCheckboxInputFromBubble querySelector time:', performance.now() - perf); */
-    /* let perf = performance.now();
-    let contains = bubble.classList.contains('document-container');
-    console.log('getCheckboxInputFromBubble classList time:', performance.now() - perf);
-
-    perf = performance.now();
-    contains = bubble.className.includes('document-container');
-    console.log('getCheckboxInputFromBubble className time:', performance.now() - perf); */
-
     return bubble.classList.contains('document-container') ?
-      bubble.querySelector('label input') as HTMLInputElement :
+      bubble.querySelector('.bubble-select-checkbox > .checkbox-field-input') as HTMLInputElement :
       super.getCheckboxInputFromElement(bubble);
   }
 

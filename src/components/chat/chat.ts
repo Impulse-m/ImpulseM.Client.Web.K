@@ -69,9 +69,14 @@ import SolidJSHotReloadGuardProvider from '@lib/solidjs/hotReloadGuardProvider';
 import hasRights from '@appManagers/utils/chats/hasRights';
 import {ChatType} from '@components/chat/chatType';
 import {animateSingle} from '@helpers/animation';
+import focusSearchInput from '@components/chat/focusSearchInput';
 
 export type ChatSearchKeys = Pick<RequestHistoryOptions, 'query' | 'isCacheableSearch' | 'isPublicHashtag' | 'savedReaction' | 'fromPeerId' | 'inputFilter' | 'hashtagType'>;
 export const CHAT_SEARCH_KEYS: (keyof ChatSearchKeys)[] = ['query', 'isCacheableSearch', 'isPublicHashtag', 'savedReaction', 'fromPeerId', 'inputFilter', 'hashtagType'];
+
+// * after this long an in-flight peer change is treated as abandoned rather than as a reason to
+// * ignore further attempts to open the same chat
+const STUCK_SET_PEER_TIMEOUT = 15000;
 
 export default class Chat extends EventListenerBase<{
   setPeer: (mid: number, isTopMessage: boolean) => void
@@ -106,6 +111,7 @@ export default class Chat extends EventListenerBase<{
   public chatPaddingBottom: Signal<number>;
 
   public setPeerPromise: Promise<void>;
+  private setPeerPromiseStartedAt: number;
   public peerChanged: boolean;
 
   public log: ReturnType<typeof logger>;
@@ -1056,7 +1062,12 @@ export default class Chat extends EventListenerBase<{
           this.autoDownload = useAutoDownloadSettings(this.peer, this.appSettings);
         });
       });
-    } else if(this.setPeerPromise) {
+    } else if(this.setPeerPromise && (Date.now() - this.setPeerPromiseStartedAt) < STUCK_SET_PEER_TIMEOUT) {
+      // Deduplicating a peer change that is already in flight is only correct while that change can
+      // still finish. If it never settles, this early return silently swallows every retry and the
+      // chat can never be opened again for the lifetime of the tab. Past the deadline, fall through
+      // and start a fresh change — `bubbles.setPeer` bumps `setPeerTempId`, which invalidates the
+      // abandoned flow.
       return;
     }
 
@@ -1122,6 +1133,7 @@ export default class Chat extends EventListenerBase<{
     }
 
     const bubblesSetPeerPromise = this.bubbles.setPeer({...options, samePeer, sameSearch});
+    this.setPeerPromiseStartedAt = Date.now();
     const setPeerPromise = this.setPeerPromise = bubblesSetPeerPromise.then((result) => {
       return result.promise;
     }).catch(noop).finally(() => {
@@ -1306,10 +1318,13 @@ export default class Chat extends EventListenerBase<{
     this.searchSignal?.(undefined);
   }
 
-  public initSearch(options: {query?: string, filterPeerId?: PeerId, reaction?: Reaction} = {}): void {
+  public initSearch(options: {query?: string, filterPeerId?: PeerId, reaction?: Reaction, focus?: boolean} = {}): void {
     if(!this.peerId) return;
     options.query ||= '';
     this.searchSignal(options);
+    if(options.focus) {
+      focusSearchInput(this.topbar.container);
+    }
   }
 
   public canSend(action?: ChatRights) {
@@ -1394,7 +1409,12 @@ export default class Chat extends EventListenerBase<{
   }
 
   public isPinnedMessagesNeeded() {
-    return this.type === ChatType.Chat || (this.isForum && this.type !== ChatType.Static && this.type !== ChatType.Logs);
+    // A forum topic (and the view-as-messages mode) is a `Chat` like any other,
+    // so the type alone decides. The old `|| this.isForum` also matched a
+    // forum's Pinned / Scheduled / Search tabs — which grew `Static` / `Logs`
+    // exclusions one at a time and still put a pinned plate inside the forum's
+    // own pinned-messages list, where no other peer has one.
+    return this.type === ChatType.Chat;
   }
 
   public isForwardOfForward(message: Message) {

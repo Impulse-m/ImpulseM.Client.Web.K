@@ -7,7 +7,7 @@
 
 import type {MyTopPeer} from '@appManagers/appUsersManager';
 import tsNow from '@helpers/tsNow';
-import {ChannelParticipantsFilter, ChannelsChannelParticipants, ChannelParticipant, Chat, ChatFull, ChatParticipants, ChatPhoto, ExportedChatInvite, InputChannel, InputFile, SendMessageAction, Update, UserFull, Photo, PhotoSize, Updates, ChatParticipant, PeerSettings, SendAsPeer, InputGroupCall, Birthday, TextWithEntities, UsersUserFull, MessagesChatFull, ProfileTab} from '@layer';
+import {ChannelParticipantsFilter, ChannelsChannelParticipants, ChannelParticipant, Chat, ChatFull, ChatParticipants, ChatPhoto, ExportedChatInvite, InputChannel, InputFile, SendMessageAction, Update, UserFull, Photo, PhotoSize, Updates, ChatParticipant, PeerSettings, SendAsPeer, InputGroupCall, Birthday, TextWithEntities, UsersUserFull, MessagesChatFull, ProfileTab, Document} from '@layer';
 import SearchIndex from '@lib/searchIndex';
 import {AppManager} from '@appManagers/manager';
 import getServerMessageId from '@appManagers/utils/messageId/getServerMessageId';
@@ -23,7 +23,7 @@ import getPeerActiveUsernames from '@appManagers/utils/peers/getPeerActiveUserna
 import getParticipantsCount from '@appManagers/utils/chats/getParticipantsCount';
 import callbackifyAll from '@helpers/callbackifyAll';
 import indexOfAndSplice from '@helpers/array/indexOfAndSplice';
-import {PEER_FULL_TTL} from '@appManagers/constants';
+import {FOLDER_ID_ALL, PEER_FULL_TTL} from '@appManagers/constants';
 import {isParticipantAdmin} from '@lib/appManagers/utils/chats/isParticipantAdmin';
 import type {State} from '@config/state';
 import safeReplaceObject from '@helpers/object/safeReplaceObject';
@@ -202,6 +202,11 @@ export class AppProfileManager extends AppManager {
       if(userFull.saved_music) {
         userFull.saved_music = this.appDocsManager.saveDoc(userFull.saved_music, referenceContext);
       }
+
+      this.appSavedMusicManager.applyTopSavedMusic(
+        peerId.toUserId(),
+        userFull.saved_music as Document.document
+      );
     } else {
       const fullChat = fullPeer as ChatFull;
       if(fullChat._ === 'communityFull') {
@@ -291,26 +296,6 @@ export class AppProfileManager extends AppManager {
     const intro = profile?.business_intro;
 
     return intro && (intro.title || intro.description || intro.sticker);
-  }
-
-  public async getSavedMusic(userId: UserId, offset: number = 0, limit: number = 50) {
-    const result = await this.apiManager.invokeApi('users.getSavedMusic', {
-      id: this.appUsersManager.getUserInput(userId),
-      offset,
-      limit,
-      hash: 0
-    });
-
-    if(result._ === 'users.savedMusicNotModified') {
-      return {count: result.count, documents: []};
-    }
-
-    const referenceContext: ReferenceContext = {type: 'savedMusic', userId};
-    const documents = result.documents
-    .map((doc) => this.appDocsManager.saveDoc(doc, referenceContext))
-    .filter(Boolean);
-
-    return {count: result.count, documents};
   }
 
   public getProfileByPeerId(peerId: PeerId, override?: boolean) {
@@ -1301,6 +1286,33 @@ export class AppProfileManager extends AppManager {
 
         return this.peerSettings[peerId] = messagesPeerSettings.settings;
       }
+    });
+  }
+
+  /**
+   * The settings bar's unarchive action. Auto-archiving an unknown sender mutes them
+   * too, so accepting the chat has to hand notifications back — otherwise it returns
+   * to the list looking ordinary while staying silently muted. Mirrors tdesktop's
+   * `ContactStatus::setupUnarchiveHandler`.
+   */
+  public unarchiveFromSettingsBar(peerId: PeerId) {
+    // Drop the flags the bar was drawn from so it goes with the click instead of a
+    // round-trip later; `editPeerFolders` refreshes the settings itself once the
+    // server answers, which is what makes the optimistic edit safe.
+    this.modifyCachedPeerSettings(peerId, (settings) => {
+      delete settings.pFlags.autoarchived;
+      delete settings.pFlags.block_contact;
+      delete settings.pFlags.report_spam;
+    });
+
+    this.appMessagesManager.editPeerFolders([peerId], FOLDER_ID_ALL);
+
+    return this.appNotificationsManager.updateNotifySettings({
+      _: 'inputNotifyPeer',
+      peer: this.appPeersManager.getInputPeerById(peerId)
+    }, {
+      // no fields — drop the per-peer override and inherit the global settings
+      _: 'inputPeerNotifySettings'
     });
   }
 

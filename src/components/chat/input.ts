@@ -27,7 +27,14 @@ import tsNow from '@helpers/tsNow';
 import appNavigationController, {NavigationItem} from '@components/appNavigationController';
 import {IS_MOBILE, IS_MOBILE_SAFARI} from '@environment/userAgent';
 import I18n, {FormatterArguments, i18n, join, LangPackKey} from '@lib/langPack';
-import {AttachedMediaType, canUploadAsWhenEditing, generateTail, getMediaTypeForMessage, slowModeTimer} from '@components/chat/utils';
+import {
+  AttachedMediaType,
+  canUploadAsWhenEditing,
+  generateTail,
+  getMediaTypeForMessage,
+  shouldUseReplaceMediaIcon,
+  slowModeTimer
+} from '@components/chat/utils';
 import findUpClassName from '@helpers/dom/findUpClassName';
 import ButtonCorner from '@components/buttonCorner';
 import blurActiveElement from '@helpers/dom/blurActiveElement';
@@ -102,6 +109,7 @@ import IMAGE_MIME_TYPES_SUPPORTED from '@environment/imageMimeTypesSupport';
 import VIDEO_MIME_TYPES_SUPPORTED from '@environment/videoMimeTypesSupport';
 import {ChatRights} from '@appManagers/appChatsManager';
 import getPeerActiveUsernames from '@appManagers/utils/peers/getPeerActiveUsernames';
+import getChatMembershipAction from '@appManagers/utils/chats/getChatMembershipAction';
 import replaceContent from '@helpers/dom/replaceContent';
 import getTextWidth from '@helpers/canvas/getTextWidth';
 import {FontFull} from '@config/font';
@@ -656,7 +664,7 @@ export default class ChatInput {
         this.replyHover.toggle(false);
       }
     }, this.replyElements.replyInAnother = {
-      icon: 'replace',
+      icon: 'replace_circles',
       text: 'ReplyToAnotherChat',
       onClick: () => this.changeReplyRecipient()
     }, this.replyElements.doNotReply = {
@@ -721,7 +729,7 @@ export default class ChatInput {
         onClick: () => {
           this.changeForwardRecipient();
         },
-        icon: 'replace'
+        icon: 'replace_squares'
       },
       {
         icon: 'delete',
@@ -895,7 +903,7 @@ export default class ChatInput {
   }
 
   private constructScheduledButton() {
-    this.btnScheduled = this.createButtonIcon('scheduled btn-scheduled float hide', {noRipple: true});
+    this.btnScheduled = this.createButtonIcon('schedule btn-scheduled float hide', {noRipple: true});
 
     attachClickEvent(this.btnScheduled, (e) => {
       this.appImManager.openScheduled(this.chat.peerId);
@@ -1093,6 +1101,25 @@ export default class ChatInput {
       onClick: () => this.onAttachClick(true),
       verify: () => canUploadAsWhenEditing({asWhat: 'document', message: this.editMessage})
       // verify: () => this.chat.canSend('send_docs')
+    }, {
+      icon: 'music_filled',
+      text: 'SharedMusicTab2',
+      onClick: async() => {
+        const {default: showMusicSearchPopup} = await import('@components/popups/musicSearch');
+        showMusicSearchPopup({chat: this.chat});
+      },
+      verify: async() => {
+        if(this.editMsgId) return false;
+        // Either half of the picker is reason enough to offer it: the inline-bot search (which the
+        // server gates behind an app-config username) or the user's own profile playlist.
+        // getAppConfig comes off the proxy's warm cache, and the ids list is cached in the worker.
+        const [{music_search_username}, myMusicIds] = await Promise.all([
+          apiManagerProxy.getAppConfig(),
+          this.managers.appSavedMusicManager.getMyIds()
+        ]);
+
+        return !!music_search_username || !!myMusicIds.length;
+      }
     }, {
       icon: 'brush',
       get text() {
@@ -1335,7 +1362,7 @@ export default class ChatInput {
     this.inlineHelper = new InlineHelper(this.rowsWrapper, this.autocompleteHelperController, this.chat, this.managers);
     this.rowsWrapper.append(this.newMessageWrapper);
 
-    this.btnCancelRecord = this.createButtonIcon('binfilled btn-circle btn-record-cancel chat-input-secondary-button chat-secondary-button');
+    this.btnCancelRecord = this.createButtonIcon('bin_filled btn-circle btn-record-cancel chat-input-secondary-button chat-secondary-button');
 
     this.btnSendContainer = document.createElement('div');
     this.btnSendContainer.classList.add('btn-send-container');
@@ -1347,7 +1374,7 @@ export default class ChatInput {
       ['schedule', 'schedule'],
       ['check', 'edit'],
       ['microphone_filled', 'record'],
-      ['recordround', 'record-video'],
+      ['recordround_filled', 'record-video'],
       ['forward_filled', 'forward']
     ];
     this.btnSend.append(...icons.map(([name, type]) => Icon(name, 'animated-button-icon-icon', 'btn-send-icon-' + type)));
@@ -1557,7 +1584,7 @@ export default class ChatInput {
         if(originalChat.topbar.pinnedMessage) {
           originalChat.topbar.pinnedMessage.setHidden(true);
         }
-      });
+      }, this.chat.threadId);
     });
     // * pinned part end
 
@@ -1911,11 +1938,16 @@ export default class ChatInput {
     }
 
     const chat = this.chat.peer;
-    if(!chat || !(chat as MTChat.channel).pFlags.left || (chat as MTChat.channel).pFlags.broadcast) {
+    const membershipAction = getChatMembershipAction(chat);
+    if(
+      !membershipAction ||
+      membershipAction === 'leave' ||
+      (chat as MTChat.channel).pFlags.broadcast
+    ) {
       return;
     }
 
-    if((chat as MTChat.channel).pFlags.join_request) {
+    if(membershipAction === 'request') {
       return 'request';
     }
 
@@ -3956,19 +3988,20 @@ export default class ChatInput {
 
     if(this.willSendWebPage) {
       const lastUrl = this.lastUrl;
-      let needReturn = false;
-      if(this.helperType) {
-        // if(this.helperFunc) {
-        await this.helperFunc();
-        // }
+      const needReturn = !!this.helperType;
 
-        needReturn = true;
+      // * has to be dropped BEFORE restoring the previous helper, otherwise
+      // * setTopInfo would ignore it and the preview would stay in the plate
+      this.willSendWebPage = null;
+
+      if(needReturn) {
+        await this.helperFunc();
+        this.willSendWebPage = null; // * in case a new one has been fetched meanwhile
       }
 
       // * restore values
       this.lastUrl = lastUrl;
       this.noWebPage = true;
-      this.willSendWebPage = null;
 
       if(needReturn) return;
     }
@@ -4911,7 +4944,7 @@ export default class ChatInput {
       if(this.replyIsEphemeral && newReply) {
         newReply.classList.add('is-ephemeral-reply');
         newReply.querySelector('.reply-title')?.prepend(
-          Icon('eyecross_outline', 'reply-title-ephemeral-icon')
+          Icon('eyecross', 'reply-title-ephemeral-icon')
         );
       }
       this.setReplyTo(replyTo);
@@ -5024,6 +5057,7 @@ export default class ChatInput {
 
     this.inputState.set({
       isEditing: false,
+      isReplacingMedia: false,
       isSuggesting: false
     });
 
@@ -5111,8 +5145,10 @@ export default class ChatInput {
       this.helperFunc = callerFunc;
     }
 
+    const isEditing = type === 'edit';
     this.inputState.set({
-      isEditing: type === 'edit',
+      isEditing,
+      isReplacingMedia: shouldUseReplaceMediaIcon(isEditing, message),
       isSuggesting: type === 'suggested'
     });
 

@@ -627,13 +627,6 @@
         }
       }
 
-      .animated-close-icon {
-        &:before,
-        &:after {
-          background-color: currentColor;
-        }
-      }
-
       .sidebar-header__title,
       .btn-icon {
         @include animation-level(2) {
@@ -1000,21 +993,6 @@
 
 .profile-music {
   cursor: pointer;
-}
-
-.saved-music-container {
-  .saved-music-content {
-    .audio {
-      padding: 0.3125rem 1rem;
-
-      &:not(.audio-show-progress) {
-        .audio-time,
-        .audio-description:before {
-          display: none;
-        }
-      }
-    }
-  }
 }
 
 .search-super-content-gifts {

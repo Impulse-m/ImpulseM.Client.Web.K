@@ -757,7 +757,7 @@ export const MediaAttachment = (props: {
         onClick: onEdit
       },
       {
-        icon: 'replace',
+        icon: 'replace_squares',
         text: 'ReplacePhoto',
         onClick: onChoose
       },
@@ -780,7 +780,7 @@ export const MediaAttachment = (props: {
         onClick: onEdit
       }] as MenuButtons : []),
       {
-        icon: 'replace',
+        icon: 'replace_squares',
         get text() {
           return isAttachedGIF() ? 'ReplaceGIF' : 'ReplaceVideo';
         },
@@ -798,7 +798,7 @@ export const MediaAttachment = (props: {
     pivot: stickerEl,
     buttons: () => [
       {
-        icon: 'replace',
+        icon: 'replace_squares',
         text: 'ReplaceSticker',
         onClick: () => onChooseSticker(stickerEl())
       },
@@ -890,7 +890,7 @@ export const MediaAttachment = (props: {
             <div class={styles.videoAttachmentBadge}>
               {attachedMedia.isAnimated ?
                 'GIF' :
-                <IconTsx icon='play' class={styles.videoAttachmentBadgeIcon} />}
+                <IconTsx icon='play_filled' class={styles.videoAttachmentBadgeIcon} />}
             </div>
           </div>
         )}
