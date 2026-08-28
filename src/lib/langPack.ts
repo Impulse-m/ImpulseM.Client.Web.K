@@ -88,6 +88,27 @@ namespace I18n {
   export const countriesList: HelpCountry[] = [];
   let pluralRules: Intl.PluralRules;
 
+  /**
+   * `pluralRules` is assigned only inside applyLangPack, which returns early for a
+   * pack whose language is no longer the requested one and does not run at all
+   * until the first pack lands. Any plural formatted before that threw
+   * "can't access property select, pluralRules is undefined" and took the whole
+   * Solid tree down during IM boot. Resolve lazily instead of at module scope --
+   * Intl.PluralRules may still be waiting on polyfillPromise when this module is
+   * evaluated.
+   */
+  function getPluralRules(): Intl.PluralRules {
+    if(pluralRules) {
+      return pluralRules;
+    }
+
+    try {
+      return pluralRules = new Intl.PluralRules(lastRequestedNormalizedLangCode || 'en');
+    } catch(err) {
+      return pluralRules = new Intl.PluralRules('en');
+    }
+  }
+
   let cacheLangPackPromise: Promise<LangPackDifference>;
   let lastRequestedLangCode: string;
   let lastRequestedNormalizedLangCode: string;
@@ -253,9 +274,32 @@ namespace I18n {
     return loadLangPack(langCode, web, ignoreCache).then(([langPack1, langPack2, localLangPack1, localLangPack2, countries, _]) => {
       let strings: LangPackString[] = [];
 
-      const pushLocal = () => [localLangPack1, localLangPack2].forEach((l) => {
-        formatLocalStrings(l.default as any, strings);
-      });
+      // The compiled-in packs are a fallback for keys the server did not send; they
+      // must never shadow a translation that arrived. Order alone cannot guarantee
+      // that: TEST_LOCAL (on whenever import.meta.env.DEV, i.e. every dev session)
+      // appends them AFTER the server pack, and applyLangPack writes the array into
+      // a Map sequentially, so the last write wins. That is how lang.ts:2006
+      // 'LanguageName': 'English' replaced the pack's "Deutsch" and kept the entire
+      // interface in English however many times the language was switched.
+      const pushLocal = () => {
+        const serverKeys = new Set<string>();
+        for(const pack of [langPack1, langPack2].filter(Boolean)) {
+          for(const string of pack.strings || []) {
+            serverKeys.add(string.key);
+          }
+        }
+
+        const local: LangPackString[] = [];
+        [localLangPack1, localLangPack2].forEach((l) => {
+          formatLocalStrings(l.default as any, local);
+        });
+
+        for(const string of local) {
+          if(!serverKeys.has(string.key)) {
+            strings.push(string);
+          }
+        }
+      };
 
       if(!TEST_LOCAL) pushLocal();
       strings = strings.concat(...[langPack1.strings, langPack2.strings].filter(Boolean));
@@ -298,22 +342,18 @@ namespace I18n {
   export function applyLangPack(langPack: LangPackDifference) {
     const currentLangCode = lastRequestedLangCode;
     if(langPack.lang_code !== currentLangCode) {
+      // A pack that arrives after the requested language moved on is dropped here.
+      // `switch <-` is logged before this point, so a discarded pack looked exactly
+      // like an applied one: strings merged, interface unchanged.
+      langLog('pack discarded, language moved on', {
+        packLangCode: langPack.lang_code,
+        currentLangCode,
+        strings: langPack.strings?.length
+      });
       return;
     }
 
-    try {
-      pluralRules = new Intl.PluralRules(lastRequestedNormalizedLangCode);
-    } catch(err) {
-      console.error('pluralRules error', err);
-      pluralRules = new Intl.PluralRules(lastRequestedNormalizedLangCode.split('-', 1)[0]);
-    }
-
-    try {
-      pluralRules = new Intl.PluralRules(langPack.lang_code);
-    } catch(err) {
-      console.error('pluralRules error', err);
-      pluralRules = new Intl.PluralRules(langPack.lang_code.split('-', 1)[0]);
-    }
+    langLog('applying to interface', {langCode: currentLangCode, strings: langPack.strings?.length});
 
     strings.clear();
 
@@ -351,13 +391,21 @@ namespace I18n {
     }
 
     const elements = Array.from(document.querySelectorAll(`.i18n`)) as HTMLElement[];
+    let updated = 0;
     elements.forEach((element) => {
       const instance = weakMap.get(element);
 
       if(instance) {
         instance.update();
+        ++updated;
       }
     });
+
+    // How much of the interface this sweep actually reaches. Everything upstream
+    // reports success -- pack fetched, strings merged, applied -- while the screen
+    // stays put, so the open question is whether there is anything here to update:
+    // only elements built through I18n carry the `i18n` class and a weakMap entry.
+    langLog('interface elements refreshed', {found: elements.length, updated});
 
     rootScope.dispatchEventSingle('language_apply');
   }
@@ -495,7 +543,7 @@ namespace I18n {
       if(str._ === 'langPackStringPluralized' && args?.length) {
         let v = args[0] as number | string;
         if(typeof(v) === 'string') v = +v.replace(/\D/g, '');
-        const s = pluralRules.select(v);
+        const s = getPluralRules().select(v);
         // @ts-ignore
         input = str[s + '_value'] || str['other_value'];
       } else if(str._ === 'langPackString') {
