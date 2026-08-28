@@ -33,7 +33,11 @@ const SENSITIVE_KEYS = new Set([
   'text', 'message', 'caption', 'body', 'content', 'bytes',
   'firstname', 'lastname', 'username', 'phone', 'phonenumber', 'email',
   'filename', 'password', 'passcode', 'authkey', 'sessionkey',
-  'phonecode', 'smscode', 'emailcode', 'recoverycode', 'code'
+  'phonecode', 'smscode', 'emailcode', 'recoverycode'
+  // NOT 'code': the sensitive ones are named above, while a bare `code` is an
+  // HTTP status or an error code. Redacting it turned every failure in Loki into
+  // `{"type":"AUTH_KEY_UNREGISTERED","code":"[REDACTED]"}` -- the one field that
+  // says how bad it was.
 ]);
 const BEARER_PATTERN = /Bearer\s+\S+/gi;
 const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
@@ -113,7 +117,7 @@ export function getLogger(module: string): Logger {
  */
 export function captureAppLog(level: number, prefix: string, args: unknown[]): void {
   const [firstArg, ...rest] = args;
-  const message = typeof firstArg === 'string' ? sanitizeString(firstArg) : safelyStringify(firstArg);
+  const message = describeValue(firstArg);
   const payload = rest.length ? {values: rest.map((value) => safelySanitizeValue(value))} : undefined;
   const logLevel = toLogLevel(level);
 
@@ -141,8 +145,14 @@ function normalizeModule(prefix: string): string {
     return 'app';
   }
 
+  // Bound loggers nest their prefixes -- '[ACC-1-UPDATES] [processUpdate]' -- and
+  // stripping only the outermost brackets left 'ACC-1-UPDATES] [processUpdate',
+  // which is neither readable nor groupable. Join the segments instead.
   // eslint-disable-next-line no-control-regex
-  return prefix.replace(/\x1b\[[0-9;]*m/g, '').replace(/^\[|\]$/g, '').trim() || 'app';
+  return prefix.replace(/\x1b\[[0-9;]*m/g, '')
+  .replace(/\]\s*\[/g, '/')
+  .replace(/[[\]]/g, '')
+  .trim() || 'app';
 }
 
 function emit(level: LogLevel, module: string, message: string, payload: unknown, error: unknown): void {
@@ -281,10 +291,33 @@ if(typeof document !== 'undefined') {
 
 if(typeof self !== 'undefined' && typeof addEventListener === 'function') {
   addEventListener('pagehide', flushOnHide);
+
+  // Capture uncaught errors and unhandled promise rejections into the same Loki sink. Without
+  // this, client-side crashes (a null-deref opening a menu, a viewer that throws on open) are
+  // invisible to telemetry and can only be found by reproducing them in front of a devtools
+  // console -- which is exactly why several client bugs could not be traced. Runs in the main
+  // thread, web worker and service worker alike (every context imports this module).
+  const uncaughtLogger = getLogger('uncaught');
+  addEventListener('error', (event) => {
+    const errorEvent = event as ErrorEvent;
+    // Only script errors: resource-load failures surface as a bare Event (no message/error) and
+    // reach a non-capturing window listener only when they bubble, which they do not.
+    if(errorEvent.error === undefined && !errorEvent.message) {
+      return;
+    }
+    uncaughtLogger.error('uncaught error', undefined, errorEvent.error ?? errorEvent);
+  });
+  addEventListener('unhandledrejection', (event) => {
+    uncaughtLogger.error('unhandled rejection', undefined, (event as PromiseRejectionEvent).reason ?? event);
+  });
 }
 
 function sanitizeValue(value: unknown, key?: string, seen = new WeakSet<object>()): unknown {
-  if(key && isSensitiveKey(key)) {
+  // Redaction keys off the field NAME, so anything merely named like a secret was
+  // blanked whatever it held -- `hasSessionToken: true` came back '[REDACTED]',
+  // which is how a diagnostic added to answer a question ended up answering
+  // nothing. A boolean cannot carry a credential; let it through.
+  if(key && typeof value !== 'boolean' && isSensitiveKey(key)) {
     return REDACTED;
   }
 
@@ -465,6 +498,33 @@ function safelyStringify(value: unknown): string {
     return sanitizeString(String(value));
   } catch{
     return '[Unserializable value]';
+  }
+}
+
+/**
+ * Render whatever was logged as the leading argument. `String(value)` collapses
+ * every object to '[object Object]' -- which is exactly how a diagnostic like
+ * `log.error(apiError)` reached Loki carrying no information at all. Objects are
+ * serialised (and sanitised) instead; primitives keep their plain form.
+ */
+function describeValue(value: unknown): string {
+  if(typeof value === 'string') {
+    return sanitizeString(value);
+  }
+
+  if(value === null || value === undefined || typeof value !== 'object') {
+    return safelyStringify(value);
+  }
+
+  const sanitized = safelySanitizeValue(value);
+  if(typeof sanitized === 'string') {
+    return truncateString(sanitized, MAX_ERROR_MESSAGE_LENGTH);
+  }
+
+  try {
+    return truncateString(JSON.stringify(sanitized) ?? safelyStringify(sanitized), MAX_ERROR_MESSAGE_LENGTH);
+  } catch{
+    return truncateString(safelyStringify(sanitized), MAX_ERROR_MESSAGE_LENGTH);
   }
 }
 
