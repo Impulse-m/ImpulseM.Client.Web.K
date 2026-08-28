@@ -427,6 +427,16 @@ async function moveAccessKeysToMultiAccountFormat() {
   data['auth_key_fingerprint'] = fingerprint;
   data['userId'] = typeof(userAuth) === 'string' || typeof(userAuth) === 'number' ? +userAuth : (userAuth?.id ? +userAuth.id : undefined);
 
+  // Everything above comes from the pre-multi-account top-level keys. ImpulseM
+  // never writes them -- there is no MTProto, so no auth keys, and sign-in stores
+  // `user_auth` in the new format only -- which left this function writing a
+  // record of pure `undefined` over a live session with `overrideAll`, wiping it
+  // seconds after every sign-in. If there is nothing legacy to carry over, do not
+  // touch the record at all.
+  if(!Object.values(data).some((value) => value !== undefined)) {
+    return;
+  }
+
   await AccountController.update(1, data, true);
 }
 
@@ -454,7 +464,19 @@ async function moveStoragesToMultiAccountFormat() {
 }
 
 async function checkIfHasMultiAccount() {
-  return !!(await AccountController.get(1))[`dc${App.baseDcId}_auth_key`];
+  const account = await AccountController.get(1);
+
+  // Upstream probes for an MTProto auth key, because in canon that is the first
+  // thing a migrated account owns. ImpulseM never creates one -- every request
+  // goes to the gateway over gRPC -- so the probe answered "not migrated" on
+  // every boot, moveStoragesToMultiAccountFormat re-ran, and its `overrideAll`
+  // write wiped the account seconds after a successful sign-in. Ask instead
+  // whether the record holds anything only the new format puts there.
+  return !!(
+    account[`dc${App.baseDcId}_auth_key`] ||
+    account.userId !== undefined ||
+    account.impulse_session_token
+  );
 }
 
 function deleteOldDatabase() {

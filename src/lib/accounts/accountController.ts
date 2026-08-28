@@ -10,7 +10,10 @@ import StaticUtilityClass from '@lib/staticUtilityClass';
 import {AccountSessionData, ActiveAccountNumber} from '@lib/accounts/types';
 import {MAX_ACCOUNTS} from '@lib/accounts/constants';
 import bytesToHex from '@helpers/bytes/bytesToHex';
+import {getLogger} from '@lib/impulseLogger';
 import randomize from '@helpers/array/randomize';
+
+const logger = getLogger('account-storage');
 
 export class AccountController extends StaticUtilityClass {
   static async getTotalAccounts() {
@@ -83,10 +86,9 @@ export class AccountController extends StaticUtilityClass {
    */
   private static updateQueues = new Map<ActiveAccountNumber, Promise<AccountSessionData>>();
 
-  static update(accountNumber: ActiveAccountNumber, data: Partial<AccountSessionData>, overrideAll = false) {
+  private static enqueue(accountNumber: ActiveAccountNumber, task: () => Promise<AccountSessionData>) {
     const previous = this.updateQueues.get(accountNumber);
-    const next = (previous ? previous.catch(() => {}) : Promise.resolve())
-    .then(() => this.applyUpdate(accountNumber, data, overrideAll));
+    const next = (previous ? previous.catch(() => {}) : Promise.resolve()).then(task);
 
     this.updateQueues.set(accountNumber, next);
     next.catch(() => {}).then(() => {
@@ -98,13 +100,79 @@ export class AccountController extends StaticUtilityClass {
     return next;
   }
 
+  static update(accountNumber: ActiveAccountNumber, data: Partial<AccountSessionData>, overrideAll = false) {
+    return this.enqueue(accountNumber, () => this.applyUpdate(accountNumber, data, overrideAll));
+  }
+
+  /**
+   * Deleting a field is explicit, because `update` now reads an absent value as
+   * "leave this alone" rather than "erase it" -- the same contract the A client
+   * uses (`...(sessionToken && {sessionToken})` on write, `removeItem` to clear).
+   * Writing `undefined` through `update` no longer removes anything.
+   */
+  static clearFields(accountNumber: ActiveAccountNumber, keys: (keyof AccountSessionData)[]) {
+    return this.enqueue(accountNumber, async() => {
+      const data = await this.get(accountNumber, true);
+      for(const key of keys) {
+        delete data[key];
+      }
+
+      await sessionStorage.set({[`account${accountNumber}`]: data});
+      logger.debug('Account fields cleared', {accountNumber, keys});
+      return data;
+    });
+  }
+
+  /**
+   * `overrideAll` rebuilds a record from scratch -- the legacy single-account
+   * migration in loadState uses it. It must not take the gateway session with it:
+   * those tokens are live credentials no migration can reconstruct, and dropping
+   * them silently signed the user out on the next reload, minutes after a
+   * perfectly successful sign-in. A caller that really means to clear them passes
+   * them explicitly (see clearImpulseSession), and `data` still wins below.
+   */
+  private static readonly SURVIVES_OVERRIDE = ['impulse_session_token', 'impulse_refresh_token'] as const;
+
   private static async applyUpdate(accountNumber: ActiveAccountNumber, data: Partial<AccountSessionData>, overrideAll = false) {
     const prevData = await this.get(accountNumber, true);
 
+    let base: AccountSessionData = prevData;
+    if(overrideAll) {
+      base = {};
+      for(const key of this.SURVIVES_OVERRIDE) {
+        if(prevData[key] !== undefined) {
+          base[key] = prevData[key];
+        }
+      }
+    }
+
+    // An undefined value means "this caller has nothing to say about that field",
+    // never "erase it". Without this rule the legacy migration -- which builds a
+    // record of pure undefined when there is no MTProto to migrate -- wiped a live
+    // session, and any future writer omitting a field would do the same. Explicit
+    // removal goes through clearFields.
+    const writes: Partial<AccountSessionData> = {};
+    for(const key of Object.keys(data) as (keyof AccountSessionData)[]) {
+      if(data[key] !== undefined) {
+        (writes as any)[key] = data[key];
+      }
+    }
+
     const updatedData = {
-      ...(overrideAll ? {} : prevData),
-      ...data
+      ...base,
+      ...writes
     };
+
+    // Every write to an account record, named. A session that vanished between a
+    // successful sign-in and the next reload left no trace anywhere, because the
+    // write that erased it was an ordinary successful update -- not an error.
+    logger.debug('Account record written', {
+      accountNumber,
+      overrideAll,
+      writes: Object.keys(writes),
+      keepsUserId: updatedData.userId !== undefined,
+      keepsSessionToken: updatedData.impulse_session_token !== undefined
+    });
 
     this.fillMissingData(updatedData);
 
