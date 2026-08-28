@@ -43,7 +43,10 @@ export default function getMediaThumbIfNeeded({
         currentSizeIndex = i;
       } else if(currentSizeIndex) {
         const cacheContext = apiManagerProxy.getCacheContext(photo, size.type);
-        if(cacheContext.downloaded) {
+        // A mirror cache entry caught mid-reset reads {downloaded: true, url: ''}; feeding that empty
+        // url to renderImageFromUrl renders a permanently blank thumb ("image disappears on expand").
+        // Require the url too (matching apiFileManager's guard) and fall through to the stripped blur.
+        if(cacheContext.downloaded && cacheContext.url) {
           return getImageFromStrippedThumb(photo, size as PhotoSize.photoCachedSize, false, cacheContext.url);
         }
       }

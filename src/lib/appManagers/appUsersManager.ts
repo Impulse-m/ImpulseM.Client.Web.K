@@ -573,6 +573,21 @@ export class AppUsersManager extends AppManager {
     const oldUser = this.users[userId];
     const previousCommunityId = oldUser?.linked_community_id?.toChatId();
 
+    // Client A recorded the same question in users.ts ([avatar-debug]): an avatar
+    // that exists on the server never reaching the interface, with
+    // userFull.profile_photo and user.photo arriving empty. Record what actually
+    // survives the proto -> TL conversion for self, so "the server has it" and
+    // "the client received it" stop being the same sentence.
+    if(user.pFlags?.self) {
+      this.log('self user photo', {
+        photo: (user.photo as any)?._,
+        photoId: (user.photo as any)?.photo_id !== undefined ? String((user.photo as any).photo_id) : undefined,
+        dcId: (user.photo as any)?.dc_id,
+        hasStripped: Boolean((user.photo as any)?.stripped_thumb),
+        keys: Object.keys(user)
+      });
+    }
+
     // ! commented block can affect performance !
     // if(oldUser && !override) {
     //   console.log('saveApiUser same');

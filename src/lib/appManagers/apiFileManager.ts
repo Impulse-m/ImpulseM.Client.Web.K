@@ -459,7 +459,7 @@ export class ApiFileManager extends AppManager {
     const cb = () => this.invokeApiWithReference({
       context: location as InputFileLocation.inputDocumentFileLocation,
       callback: () => {
-        return this.apiManager.invokeApi('upload.getFile', {
+        return (this.apiManager.invokeApi('upload.getFile', {
           location,
           offset,
           limit
@@ -467,7 +467,24 @@ export class ApiFileManager extends AppManager {
           dcId,
           fileDownload: true,
           floodMaxTimeout
-        }) as Promise<MyUploadFile>;
+        }) as Promise<MyUploadFile>).then((result) => {
+          // "Image corrupt or truncated" means the assembled bytes are not the
+          // picture. Downloads are sliced by offset/limit and, for avatars, the
+          // total size is unknown -- so a part that comes back longer or shorter
+          // than asked, or of the wrong type, silently corrupts the whole file.
+          // Compare what was requested with what arrived; the upload side failed
+          // exactly this way today by handing over an ArrayBuffer.
+          const bytes = (result as any)?.bytes;
+          this.log('getFile part', {
+            offset,
+            limit,
+            received: bytes?.byteLength ?? bytes?.length,
+            bytesType: bytes?.constructor?.name,
+            type: (result as any)?.type?._
+          });
+
+          return result;
+        });
       },
       checkCancel
     });

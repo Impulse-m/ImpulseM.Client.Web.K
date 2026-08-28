@@ -152,6 +152,19 @@ export class AppProfileManager extends AppManager {
 
     if(isUser) {
       const userFull = fullPeer as UserFull.userFull;
+
+      // The short user form reaches saveApiUser with no `photo` key at all, so the
+      // avatar can only come from here. Record what survived the conversion --
+      // client A logged the same three fields for the same reason (users.ts
+      // [avatar-debug]) after an avatar that existed on the server never appeared.
+      this.log('full user photos', {
+        peerId,
+        profilePhoto: (userFull.profile_photo as any)?._,
+        personalPhoto: (userFull.personal_photo as any)?._,
+        fallbackPhoto: (userFull.fallback_photo as any)?._,
+        keys: Object.keys(userFull)
+      });
+
       if(userFull.profile_photo) {
         userFull.profile_photo = this.appPhotosManager.savePhoto(userFull.profile_photo, {type: 'profilePhoto', peerId});
       }
@@ -1029,7 +1042,13 @@ export class AppProfileManager extends AppManager {
       (opts as {file?: InputFile; video?: InputFile; videoStartTs?: number; fallback?: boolean; botId?: BotId});
 
     return this.apiManager.invokeApi('photos.uploadProfilePhoto', {
-      file,
+      // Canon: the file, video and video_emoji_markup flags are mutually exclusive
+      // (core.telegram.org/method/photos.uploadProfilePhoto). An animated avatar is sent as
+      // video ALONE, with video_start_ts naming the static-preview frame the server decodes
+      // from it -- tdlib branches on exactly one input file (td/telegram/UserManager.cpp:515-524).
+      // The editor produces a cover blob for its own local preview, but sending it as `file`
+      // alongside the video breaks the exclusivity and the server refuses with PHOTO_INVALID.
+      file: video ? undefined : file,
       video,
       video_start_ts: videoStartTs,
       bot: botId ? this.appUsersManager.getUserInput(botId) : undefined,
@@ -1132,7 +1151,14 @@ export class AppProfileManager extends AppManager {
       })
     }).then((deletedList) => {
       this.apiManager.clearCache('photos.getUserPhotos', () => true);
-      return this.appUsersManager.getApiUsers([this.rootScope.myId.toUserId()]).then(() => deletedList);
+      return this.appUsersManager.getApiUsers([this.rootScope.myId.toUserId()]).then(() => {
+        // The open profile-avatars carousel is already rendered from the now-invalidated
+        // getUserPhotos; signal it to rebuild so the deleted avatar leaves the screen
+        // without a page reload. Deleting a non-current photo emits no server update, so
+        // the deleting session must refresh its own UI here.
+        this.rootScope.dispatchEvent('avatar_update', {peerId: this.rootScope.myId});
+        return deletedList;
+      });
     });
   }
 

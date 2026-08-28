@@ -3,6 +3,7 @@ import AvatarListLoader from '@helpers/avatarListLoader';
 import {Photo} from '@layer';
 import appDownloadManager from '@lib/appDownloadManager';
 import appImManager from '@lib/appImManager';
+import chooseProfileVideoSize from '@appManagers/utils/photos/chooseProfileVideoSize';
 import rootScope from '@lib/rootScope';
 import AppMediaViewerBase from '@components/mediaViewer/base';
 import confirmationPopup from '@components/confirmationPopup';
@@ -82,9 +83,18 @@ export default class AppMediaViewerAvatar extends AppMediaViewerBase<'', 'delete
   };
 
   onDownloadClick = () => {
+    const photo = this.target.photo;
+    // An animated avatar must download as its mp4 video (the 'u' videoSize), not the still frame.
+    // openMedia already branches on video_sizes to drive the overlay; mirror it here. Passing the
+    // videoSize as `thumb` makes downloadToDisc fetch the mp4 (getPhotoDownloadOptions handles it).
+    const videoSize = photo.video_sizes?.length ? chooseProfileVideoSize(photo, 'full') : undefined;
+    // The avatar viewer opens over the profile, where there may be no active chat with a message
+    // list (appImManager.chat.bubbles is undefined) -- reaching through it for a lazy-load queueId
+    // crashed the download. The queueId only prioritises the shared queue; fall back to undefined.
     appDownloadManager.downloadToDisc({
-      media: this.target.photo,
-      queueId: appImManager.chat.bubbles.lazyLoadQueue.queueId
+      media: photo,
+      thumb: videoSize,
+      queueId: appImManager.chat?.bubbles?.lazyLoadQueue?.queueId
     });
   };
 

@@ -359,19 +359,15 @@ export default class PeerProfileAvatars {
       });
     });
 
-    /* this.listenerSetter.add(rootScope)('avatar_update', (peerId) => {
+    this.listenerSetter.add(rootScope)('avatar_update', ({peerId}) => {
+      // A photo was added or removed for this peer (upload / delete). The caller invalidates
+      // getUserPhotos, but the carousel's nodes are already built, so rebuild it from fresh
+      // data instead of leaving a deleted avatar (or a missing new one) on screen until the
+      // profile panel is reopened. Upstream left this listener stubbed out.
       if(this.peerId === peerId) {
-        const photo = appPeersManager.getPeerPhoto(peerId);
-        if(photo) {
-          const id = photo.photo_id;
-          const previous = this.listLoader.previous;
-          for(let i = 0; i < previous.length; ++i) {
-            if(previous[i] === id)
-          }
-          this.listLoader.previous.forEach((_id, idx, arr) => {});
-        }
+        this.reload();
       }
-    }); */
+    });
   }
 
   public goWithoutTransition(distance: number) {
@@ -385,10 +381,29 @@ export default class PeerProfileAvatars {
     });
   }
 
+  // Rebuild the carousel from fresh data after its photo list changed (a photo was uploaded
+  // or deleted). setPeer clears and refetches (the caller invalidated getUserPhotos), so this
+  // is just a guarded re-entry into it.
+  public reload() {
+    if(this.uploadInProgress || !this.peerId) {
+      return;
+    }
+
+    this.setPeer(this.peerId, this.threadId);
+  }
+
   public async setPeer(peerId: PeerId, threadId?: number) {
     this.peerId = peerId;
     this.threadId = threadId;
     this.middlewareHelper.clean();
+
+    // setPeer rebuilds the whole carousel; drop any previously built nodes first so a re-entry
+    // (an avatar added or removed) rebuilds cleanly instead of appending duplicates onto the old
+    // ones -- which is what doubled the avatars on rapid uploads. Idempotent on the first call
+    // (the containers are already empty).
+    this.avatars.replaceChildren();
+    this.tabs.replaceChildren();
+    this.avatars.style.transform = '';
 
     // A topic isn't backed by its own photo history — render the topic icon as a
     // single, collapse-locked avatar, exactly like a chat with no avatar photo.

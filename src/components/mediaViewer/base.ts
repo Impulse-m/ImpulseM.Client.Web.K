@@ -2523,12 +2523,14 @@ export default class AppMediaViewerBase<
     if(useContainerAsTarget && !isLiveStream) {
       const cacheContext = await this.managers.thumbsStorage.getCacheContext(media, size?.type);
       let img: HTMLImageElement | HTMLCanvasElement;
-      if(cacheContext.downloaded) {
+      if(cacheContext.downloaded && cacheContext.url) {
         img = new Image();
         // Await decode: setMoverToTarget draws this thumbnail onto a canvas via
         // drawImage, which yields a BLANK canvas for a not-yet-decoded image —
         // so without this the (container-target) slide would be empty until it
         // ends. Mirrors the stripped-thumb branch below, which already awaits.
+        // Require url too: a mirror entry caught mid-reset reads {downloaded: true, url: ''}, which
+        // renders a permanently blank thumb — fall through to the stripped blur instead.
         thumbPromise = renderImageFromUrlPromise(img, cacheContext.url, false).catch(() => {});
       } else {
         const gotThumb = getMediaThumbIfNeeded({
