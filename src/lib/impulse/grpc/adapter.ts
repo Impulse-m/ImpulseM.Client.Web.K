@@ -25,6 +25,7 @@ import {create} from '@bufbuild/protobuf';
 import {Code, ConnectError, createClient} from '@connectrpc/connect';
 
 import Schema from '@lib/mtproto/schema';
+import {formatJSONValue} from '@lib/mtproto/tl_utils';
 import {getLogger} from '@lib/impulseLogger';
 import {captureImpulseSessionToken, refreshImpulseSession, whenImpulseSessionReady} from '../session';
 import {getServiceAndMethod} from './serviceMap';
@@ -490,6 +491,9 @@ export async function grpcInvoke(
   try {
     const response = await methodFn.call(client, request, {signal: abortSignal});
     const result = protoToTL(response, descMethod.output);
+    if(method === 'help.getAppConfig' && result?._ === 'help.appConfig') {
+      result.config = formatJSONValue(result.config);
+    }
     await captureImpulseSessionToken(result);
     return result;
   } catch(err) {

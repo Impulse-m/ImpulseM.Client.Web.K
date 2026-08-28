@@ -21,6 +21,27 @@ const boolTrue = +Schema.API.constructors.find((c) => c.predicate === 'boolTrue'
 const vector = +Schema.API.constructors.find((c) => c.predicate === 'vector').id;
 export const gzipPacked = +Schema.MTProto.constructors.find((c) => c.predicate === 'gzip_packed').id;
 
+export function formatJSONValue(jsonValue: JSONValue | any): any {
+  if(!jsonValue?._) return jsonValue;
+  switch(jsonValue._) {
+    case 'jsonNull':
+      return null;
+    case 'jsonArray':
+      return jsonValue.value.map(formatJSONValue);
+    case 'jsonObject': {
+      const out: any = {};
+      const objectValues = jsonValue.value;
+      for(let i = 0, length = objectValues.length; i < length; ++i) {
+        const objectValue = objectValues[i];
+        out[objectValue.key] = formatJSONValue(objectValue.value);
+      }
+      return out;
+    }
+    default:
+      return jsonValue.value;
+  }
+}
+
 // * using slice to have a new buffer, otherwise the buffer will be copied to main thread
 const sliceMethod: 'slice' | 'subarray' = 'slice'; // subarray
 
@@ -782,29 +803,10 @@ class TLDeserialization<FetchLongAs extends Long> {
     }
 
     if(type === 'JSONValue') {
-      return this.formatJSONValue(result);
+      return formatJSONValue(result);
     }
 
     return result;
-  }
-
-  private formatJSONValue(jsonValue: JSONValue): any {
-    if(!jsonValue._) return jsonValue;
-    switch(jsonValue._) {
-      case 'jsonNull':
-        return null;
-      case 'jsonObject': {
-        const out: any = {};
-        const objectValues = jsonValue.value;
-        for(let i = 0, length = objectValues.length; i < length; ++i) {
-          const objectValue = objectValues[i];
-          out[objectValue.key] = this.formatJSONValue(objectValue.value);
-        }
-        return out;
-      }
-      default:
-        return jsonValue.value;
-    }
   }
 
   public getOffset() {
