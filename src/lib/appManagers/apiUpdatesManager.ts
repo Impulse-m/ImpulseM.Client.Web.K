@@ -160,6 +160,10 @@ class ApiUpdatesManager {
     return true;
   }
 
+  // Fire-and-forget on purpose. Returning the in-flight syncLoading promise made every caller
+  // able to await it, and reloadConversation did -- so a difference that was slow to converge
+  // blocked the dialog reload, and with it anything sequenced behind it. Handing the gap to
+  // getDifference is the canonical repair; waiting for it to finish is not part of that contract.
   public forceGetDifference() {
     if(!this.updatesState.syncLoading) {
       this.getDifference();

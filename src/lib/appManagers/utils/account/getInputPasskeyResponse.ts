@@ -4,7 +4,8 @@ import {InputPasskeyCredential, InputPasskeyResponse} from '@layer';
 export default function getInputPasskey(credential: PublicKeyCredential): InputPasskeyResponse {
   const json = credential.toJSON();
   const {response} = json;
-  const clientData = atob(response.clientDataJSON);
+  const decoder = new TextDecoder();
+  const clientData = decoder.decode(base64ToBytes(response.clientDataJSON));
   let ret: InputPasskeyResponse;
   if('attestationObject' in response) {
     ret = {
@@ -18,7 +19,7 @@ export default function getInputPasskey(credential: PublicKeyCredential): InputP
       client_data: {_: 'dataJSON', data: clientData},
       authenticator_data: base64ToBytes(response.authenticatorData),
       signature: base64ToBytes(response.signature),
-      user_handle: atob(response.userHandle)
+      user_handle: response.userHandle ? decoder.decode(base64ToBytes(response.userHandle)) : ''
     };
   }
 

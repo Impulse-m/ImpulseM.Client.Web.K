@@ -2595,6 +2595,9 @@ export class AppMessagesManager extends AppManager {
             uploaded = false;
 
             uploadPromise = this.apiFileManager.upload({file, fileName: uploadingFileName});
+            if(actionName) {
+              this.setTyping(peerId, {_: actionName, progress: 0}, undefined, options.threadId);
+            }
             uploadPromise.catch((err) => {
               if(uploaded) {
                 return;
@@ -2883,7 +2886,7 @@ export class AppMessagesManager extends AppManager {
 
     let photo: MyPhoto, document: MyDocument;
 
-    let actionName: Extract<SendMessageAction['_'], 'sendMessageUploadAudioAction' | 'sendMessageUploadDocumentAction' | 'sendMessageUploadPhotoAction' | 'sendMessageUploadVideoAction'>;
+    let actionName: Extract<SendMessageAction['_'], 'sendMessageUploadAudioAction' | 'sendMessageUploadDocumentAction' | 'sendMessageUploadPhotoAction' | 'sendMessageUploadRoundAction' | 'sendMessageUploadVideoAction'>;
 
     if(isDocument) { // maybe it's a sticker or gif
       attachType = 'document';
@@ -2951,7 +2954,7 @@ export class AppMessagesManager extends AppManager {
     } else if(getEnvironment().VIDEO_MIME_TYPES_SUPPORTED.has(fileType as VIDEO_MIME_TYPE)) {
       attachType = 'video';
       apiFileName = 'video.mp4';
-      actionName = 'sendMessageUploadVideoAction';
+      actionName = args.isRoundMessage ? 'sendMessageUploadRoundAction' : 'sendMessageUploadVideoAction';
 
       const videoAttribute: DocumentAttribute.documentAttributeVideo = {
         _: 'documentAttributeVideo',
@@ -5713,22 +5716,18 @@ export class AppMessagesManager extends AppManager {
       };
 
       const invoke = async() => {
-        for(;;) {
-          const result = await this.apiManager.invokeApi(
-            'messages.getPeerDialogs',
-            {peers: inputDialogPeers},
-            {floodMaxTimeout: Infinity}
-          );
-          const currentState = this.apiUpdatesManager.updatesState;
-          const {state} = result;
-          if(currentState.pts && currentState.pts !== state.pts) {
-            this.log.warn('current pts is different, will try again', currentState.pts, state.pts);
-            await pause(500);
-            continue;
+        const result = await this.apiManager.invokeApi('messages.getPeerDialogs', {peers: inputDialogPeers});
+        const currentState = this.apiUpdatesManager.updatesState;
+        const {state} = result;
+        if(currentState.pts && currentState.pts !== state.pts) {
+          this.log.warn('current pts is different, waiting for updates', currentState.pts, state.pts);
+          await pause(500);
+          if(currentState.pts !== state.pts) {
+            this.apiUpdatesManager.forceGetDifference();
           }
-
-          return result;
         }
+
+        return result;
       };
 
       return invoke().then((result) => {
@@ -11985,8 +11984,7 @@ export class AppMessagesManager extends AppManager {
       !peerId ||
       !(await this.canSendToPeer(peerId)) ||
       peerId === this.appPeersManager.peerId ||
-      // (!force && deepEqual(typing?.action, action))
-      (!force && typing?.action?._ === action._) ||
+      (!force && deepEqual(typing?.action, action)) ||
       this.appPeersManager.isMonoforum(peerId)
     ) {
       return Promise.resolve(false);

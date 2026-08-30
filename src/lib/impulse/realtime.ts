@@ -23,11 +23,11 @@ import {Code, ConnectError, createClient} from '@connectrpc/connect';
 
 import {backendWsOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
-import {refreshImpulseSession} from './session';
+import {refreshImpulseSession, whenImpulseSessionReady} from './session';
 import {protoToTL} from './grpc/adapter';
 import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 import {SyncService} from './grpc/gen/v1/internal/impulse/sync/sync_service_pb';
-import {grpcTransport} from './grpc/transport';
+import {grpcTransport, requireGrpcSessionToken} from './grpc/transport';
 
 const logger = getLogger('impulse-realtime');
 
@@ -103,7 +103,10 @@ export function stopImpulseRealtime(): void {
   activeUserId = undefined;
 }
 
-async function fetchToken(): Promise<string> {
+export async function fetchCentrifugoToken(): Promise<string> {
+  await whenImpulseSessionReady();
+  requireGrpcSessionToken();
+
   const client = createClient(SyncService, grpcTransport);
 
   // This call goes straight through the generated client, so it never passes the
@@ -131,7 +134,7 @@ function isUnauthenticated(err: unknown): boolean {
 }
 
 async function spinUp(userId: string): Promise<void> {
-  const token = await fetchToken();
+  const token = await fetchCentrifugoToken();
 
   // The userId may have changed while the token was in flight.
   if(activeUserId !== userId) {
@@ -140,7 +143,7 @@ async function spinUp(userId: string): Promise<void> {
 
   const centrifuge = new Centrifuge(CENTRIFUGO_WS, {
     token,
-    getToken: () => fetchToken()
+    getToken: () => fetchCentrifugoToken()
   });
 
   centrifuge.on('error', (ctx: any) => {

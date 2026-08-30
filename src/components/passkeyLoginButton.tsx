@@ -47,12 +47,17 @@ export default function PasskeyLoginButton(props: {
     try {
       const userIds = await AccountController.getUserIds();
       const credential = await navigator.credentials.get({
-        publicKey: PublicKeyCredential.parseRequestOptionsFromJSON(JSON.parse(passkeyOptionJSON).publicKey)
+        publicKey: PublicKeyCredential.parseRequestOptionsFromJSON(JSON.parse(passkeyOptionJSON))
       });
       const inputPasskeyCredential = getInputPasskeyCredential(credential as PublicKeyCredential);
-      const [dcId, userId] = (inputPasskeyCredential.response as InputPasskeyResponse.inputPasskeyResponseLogin).user_handle
-      .split(':').map((n) => parseInt(n));
+      const userHandle = (
+        inputPasskeyCredential.response as InputPasskeyResponse.inputPasskeyResponseLogin
+      ).user_handle;
+      const match = /^(\d+):(\d+)$/.exec(userHandle);
+      if(!match) throw new Error('Invalid passkey user handle');
 
+      const dcId = Number(match[1]) as TrueDcId;
+      const userId = Number(match[2]);
       const existingIndex = userIds.indexOf(userId);
       if(existingIndex !== -1) {
         changeAccount(existingIndex + 1 as ActiveAccountNumber);

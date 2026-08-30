@@ -79,6 +79,10 @@ const SERIALIZATION_FAILURE: SerializedError = {
   name: 'SerializationError',
   message: 'The thrown value could not be serialized'
 };
+const MISSING_REJECTION_REASON: SerializedError = {
+  name: 'UnknownError',
+  message: 'No rejection reason was provided'
+};
 
 const originalConsole = {
   debug: console.debug.bind(console),
@@ -121,13 +125,20 @@ export function captureAppLog(level: number, prefix: string, args: unknown[]): v
   const payload = rest.length ? {values: rest.map((value) => safelySanitizeValue(value))} : undefined;
   const logLevel = toLogLevel(level);
 
+  // The app's legacy logger is variadic and puts the human-readable text first, so the thrown
+  // value usually sits somewhere in `rest` -- serializing only `firstArg` reduced every such
+  // record in Loki to a bare headline with no type, no message and no stack, which is how a
+  // client-side TypeError could be visible in the browser console yet invisible in telemetry.
+  // Take the first Error found anywhere in the arguments, and fall back to the old behaviour.
+  const thrown = args.find((value) => value instanceof Error) ?? firstArg;
+
   emitRecord({
     timestamp: new Date().toISOString(),
     level: logLevel,
     module: normalizeModule(prefix),
     message,
     payload,
-    error: logLevel === 'error' ? safelySerializeError(firstArg) : undefined
+    error: logLevel === 'error' ? safelySerializeError(thrown) : undefined
   });
 }
 
@@ -281,6 +292,11 @@ function flushOnHide(): void {
   }
 }
 
+function reportUnhandledRejection(event: PromiseRejectionEvent, logger: Logger): void {
+  const reason = event.reason === undefined ? MISSING_REJECTION_REASON : event.reason;
+  logger.error('unhandled rejection', undefined, reason);
+}
+
 if(typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if(document.visibilityState === 'hidden') {
@@ -308,7 +324,7 @@ if(typeof self !== 'undefined' && typeof addEventListener === 'function') {
     uncaughtLogger.error('uncaught error', undefined, errorEvent.error ?? errorEvent);
   });
   addEventListener('unhandledrejection', (event) => {
-    uncaughtLogger.error('unhandled rejection', undefined, (event as PromiseRejectionEvent).reason ?? event);
+    reportUnhandledRejection(event as PromiseRejectionEvent, uncaughtLogger);
   });
 }
 
@@ -541,7 +557,8 @@ function sanitizeString(value: string): string {
 
 export const testLoggerSanitizers = {
   sanitizeValue,
-  serializeError
+  serializeError,
+  reportUnhandledRejection
 };
 
 // Registering here (rather than logsBuffer importing us) keeps logsBuffer a

@@ -59,6 +59,14 @@ export function getGrpcSessionToken(): string | undefined {
   return currentSessionToken;
 }
 
+export function requireGrpcSessionToken(): string {
+  if(!currentSessionToken) {
+    throw new Error('Impulse session is not ready');
+  }
+
+  return currentSessionToken;
+}
+
 /**
  * gRPC-web puts trailers in the response body, so they arrive on `trailer` once the
  * whole unary response has been read. Headers are checked too: the value is the same

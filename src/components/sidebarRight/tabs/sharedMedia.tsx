@@ -563,6 +563,7 @@ const SharedMedia: Component = () => {
     ['stories', 'StoriesCount'],
     ['members', 'Members'],
     ['media', 'MediaFiles'],
+    ['gifs', 'GIFs'],
     ['gifts', 'StarGiftsCount'],
     ['saved', 'SavedMessagesCount'],
     ['files', 'Files'],

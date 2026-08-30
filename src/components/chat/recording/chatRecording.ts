@@ -804,6 +804,16 @@ export default class ChatRecording {
     }
 
     this.active = value;
+    this.input.managers.appMessagesManager.setTyping(
+      this.input.chat.peerId,
+      value ? {
+        _: this.recordingType === 'video' ? 'sendMessageRecordRoundAction' : 'sendMessageRecordAudioAction'
+      } : {
+        _: 'sendMessageCancelAction'
+      },
+      undefined,
+      this.input.chat.threadId
+    );
     this.input.inputState.set({isRecording: value});
     this.input.setShrinking(this.active, ['is-recording']);
     this.input.updateSendBtn();

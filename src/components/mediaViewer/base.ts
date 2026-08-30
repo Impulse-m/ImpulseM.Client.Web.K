@@ -359,7 +359,7 @@ export default class AppMediaViewerBase<
     buttonsDiv.classList.add(MEDIA_VIEWER_CLASSNAME + '-buttons');
 
     topButtons.concat(['download', 'rotate', 'zoomin', 'close']).forEach((name) => {
-      // The rotate button turns the image counterclockwise (matching ImpulseM
+      // The rotate button turns the image counterclockwise (matching Telegram
       // Desktop), so it carries the left-pointing glyph while keeping the plain
       // `rotate` key in this.buttons.
       const icon: Icon = name === 'rotate' ? 'rotate_left' : name as Icon;
@@ -890,7 +890,7 @@ export default class AppMediaViewerBase<
 
   // After a 90°/270° turn the media's bounding box has width/height swapped; scale
   // it so the rotated box fits (and fills) the available viewport in the new
-  // orientation — same behaviour as ImpulseM Desktop. 0°/180° keep the box, so fit
+  // orientation — same behaviour as Telegram Desktop. 0°/180° keep the box, so fit
   // is 1. Independent of zoom (zoom multiplies on top in screen space).
   protected getRotationFitScale(rotation = this.rotation) {
     const normalized = ((rotation % 360) + 360) % 360;
@@ -949,7 +949,7 @@ export default class AppMediaViewerBase<
       this.moversContainer.classList.remove('no-transition');
     }
 
-    this.rotation -= 90; // counterclockwise, matching ImpulseM Desktop
+    this.rotation -= 90; // counterclockwise, matching Telegram Desktop
     this.applyMoversTransform();
     this.updateVideoControlsLock();
   }
@@ -2523,14 +2523,12 @@ export default class AppMediaViewerBase<
     if(useContainerAsTarget && !isLiveStream) {
       const cacheContext = await this.managers.thumbsStorage.getCacheContext(media, size?.type);
       let img: HTMLImageElement | HTMLCanvasElement;
-      if(cacheContext.downloaded && cacheContext.url) {
+      if(cacheContext.downloaded) {
         img = new Image();
         // Await decode: setMoverToTarget draws this thumbnail onto a canvas via
         // drawImage, which yields a BLANK canvas for a not-yet-decoded image —
         // so without this the (container-target) slide would be empty until it
         // ends. Mirrors the stripped-thumb branch below, which already awaits.
-        // Require url too: a mirror entry caught mid-reset reads {downloaded: true, url: ''}, which
-        // renders a permanently blank thumb — fall through to the stripped blur instead.
         thumbPromise = renderImageFromUrlPromise(img, cacheContext.url, false).catch(() => {});
       } else {
         const gotThumb = getMediaThumbIfNeeded({

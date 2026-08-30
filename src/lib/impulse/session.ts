@@ -36,7 +36,20 @@ let pendingTokens: {token: string, refresh: string} | undefined;
  * policy in rejectPromise signed the user out. The token in storage was correct
  * the entire time; nobody had put it on the request yet.
  */
+export class ImpulseSessionRestoreError extends Error {
+  public readonly code = 'IMPULSE_SESSION_RESTORE_FAILED';
+  public readonly cause: unknown;
+
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.cause = cause;
+    this.name = 'ImpulseSessionRestoreError';
+  }
+}
+
 let resolveSessionReady: () => void;
+let rejectSessionReady: (reason: ImpulseSessionRestoreError) => void;
+let sessionRestoreStarted = false;
 let sessionReadySettled = false;
 
 // createManagers builds managers for all four slots and calls after() on every
@@ -48,43 +61,32 @@ let sessionReadySettled = false;
 // its own once every slot has turned out to be empty (nobody is signed in).
 const emptySlots = new Set<ActiveAccountNumber>();
 
-function settleSessionReady(): void {
+function settleSessionReady(error?: ImpulseSessionRestoreError): void {
   if(sessionReadySettled) {
     return;
   }
 
   sessionReadySettled = true;
-  resolveSessionReady();
+  if(error) {
+    rejectSessionReady(error);
+  } else {
+    resolveSessionReady();
+  }
 }
-const sessionReady = new Promise<void>((resolve) => {
+const sessionReady = new Promise<void>((resolve, reject) => {
   resolveSessionReady = resolve;
+  rejectSessionReady = reject;
 });
+sessionReady.catch(() => {});
 
-const SESSION_READY_TIMEOUT = 3_000;
-
-/**
- * Gate every request on the restore -- but never indefinitely. If a context ever
- * issues RPCs without going through apiManager.after(), an unbounded wait here
- * would hang every call in that context forever, which looks exactly like a dead
- * network: endless spinners, "waiting for network", nothing ever resolving. A
- * request that goes out unauthenticated fails loudly and recoverably; one that
- * never goes out at all does not.
- */
 export function whenImpulseSessionReady(): Promise<void> {
-  if(sessionReadySettled) {
-    return sessionReady;
+  if(import.meta.env.DEV && !sessionRestoreStarted) {
+    return Promise.reject(new ImpulseSessionRestoreError(
+      'Impulse session restore was not started; apiManager.after() was bypassed'
+    ));
   }
 
-  return Promise.race([
-    sessionReady,
-    new Promise<void>((resolve) => setTimeout(() => {
-      if(!sessionReadySettled) {
-        logger.warn('Session restore did not finish in time; letting requests through');
-      }
-
-      resolve();
-    }, SESSION_READY_TIMEOUT))
-  ]);
+  return sessionReady;
 }
 let currentRefreshToken: string | undefined;
 let refreshInFlight: Promise<boolean> | undefined;
@@ -223,13 +225,10 @@ async function runRefresh(): Promise<boolean> {
 
 /** Restore headers on boot so the first RPC after a reload is already authenticated. */
 export async function restoreImpulseSession(accountNumber: ActiveAccountNumber): Promise<void> {
+  sessionRestoreStarted = true;
   try {
     const data = await AccountController.get(accountNumber);
-    if(!data) {
-      return;
-    }
-
-    if(data.userId === undefined) {
+    if(!data || data.userId === undefined) {
       emptySlots.add(accountNumber);
       if(emptySlots.size >= MAX_ACCOUNTS) {
         settleSessionReady();
@@ -237,6 +236,10 @@ export async function restoreImpulseSession(accountNumber: ActiveAccountNumber):
 
       logger.info('Session slot is empty', {accountNumber});
       return;
+    }
+
+    if(!data.impulse_session_token) {
+      throw new ImpulseSessionRestoreError('Stored account has no Impulse session token');
     }
 
     await setImpulseAccount(accountNumber);
@@ -259,12 +262,14 @@ export async function restoreImpulseSession(accountNumber: ActiveAccountNumber):
     });
   } catch(err) {
     logger.warn('Failed to restore the session', {accountNumber}, err);
+    settleSessionReady(err instanceof ImpulseSessionRestoreError ? err : new ImpulseSessionRestoreError(
+      'Failed to restore the Impulse session',
+      err
+    ));
   } finally {
-    // Released on every path: a restore that found nothing, or failed outright,
-    // must not stall every request for the lifetime of the tab.
-    // A signed-in slot releases the gate; an empty one only does so once every
-    // slot has reported in, above. A failure releases it too -- a restore that
-    // threw must not hold every request for the life of the tab.
+    // A signed-in slot releases the gate only after its headers are restored. An
+    // empty slot only does so once every slot has reported in, above. Failures
+    // reject the shared gate in catch, so no request can leave unauthenticated.
     if(currentAccount === accountNumber) {
       settleSessionReady();
     }
