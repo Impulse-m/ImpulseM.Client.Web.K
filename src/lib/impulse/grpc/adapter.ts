@@ -21,7 +21,7 @@
  */
 
 import type {DescField, DescMessage, DescService} from '@bufbuild/protobuf';
-import {create} from '@bufbuild/protobuf';
+import {create, ScalarType} from '@bufbuild/protobuf';
 import {Code, ConnectError, createClient} from '@connectrpc/connect';
 
 import Schema from '@lib/mtproto/schema';
@@ -164,7 +164,7 @@ function omitAbsentConditionalVectors(predicate: string, plain: Record<string, a
 
 // ── TL -> proto ────────────────────────────────────────────────────────────
 
-function buildProtoInit(tlValue: any, schema: DescMessage): any {
+export function buildProtoInit(tlValue: any, schema: DescMessage): any {
   if(tlValue === null || tlValue === undefined) {
     return {};
   }
@@ -218,6 +218,15 @@ function buildProtoInit(tlValue: any, schema: DescMessage): any {
 }
 
 function convertFieldValue(raw: any, field: DescField): any {
+  if(typeof raw === 'number' && !Number.isInteger(raw) && field.fieldKind === 'scalar' && (
+    field.scalar === ScalarType.INT32 ||
+    field.scalar === ScalarType.INT64 ||
+    field.scalar === ScalarType.UINT32 ||
+    field.scalar === ScalarType.UINT64
+  )) {
+    return Math.trunc(raw);
+  }
+
   if(raw instanceof Uint8Array) {
     return raw;
   }
