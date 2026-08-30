@@ -478,6 +478,15 @@ export class ApiFileManager extends AppManager {
     floodMaxTimeout?: number,
     priority?: number
   }) {
+    if(location._ === 'inputDocumentFileLocation' && !(
+      (typeof location.id === 'string' && /^-?\d+$/.test(location.id)) ||
+      (typeof location.id === 'number' && Number.isInteger(location.id))
+    )) {
+      const error = makeError('MEDIA_ID_PENDING');
+      error.code = 400;
+      return Promise.reject(error);
+    }
+
     const cb = () => this.invokeApiWithReference({
       context: location as InputFileLocation.inputDocumentFileLocation,
       callback: () => {

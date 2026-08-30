@@ -160,7 +160,7 @@ declare global {
   type LocalFileError = ApiFileManagerError | ReferenceError | StorageError;
   type LocalErrorType = LocalFileError | NetworkerError | FiltersError | LottieError |
     'UNKNOWN' | 'NO_DOC' | 'MIDDLEWARE' | 'PORT_DISCONNECTED' | 'NO_AUTO_DOWNLOAD' | 'CHAT_PRIVATE' | 'NO_WASM' |
-    'CANCELED' | 'TIMEOUT' | 'TAB_ALREADY_OPEN' |
+    'CANCELED' | 'TIMEOUT' | 'TAB_ALREADY_OPEN' | 'MEDIA_ID_PENDING' |
     // ImpulseM gRPC transport invariants — a TL method reached the gateway
     // bridge without a proto mapping, or the generated client lacks it.
     'GRPC_METHOD_UNMAPPED' | 'GRPC_METHOD_MISSING' |

@@ -22,7 +22,7 @@ import {fireMessageEffectByBubble, MessageRender} from '@components/chat/message
 import LazyLoadQueue from '@components/lazyLoadQueue';
 import ListenerSetter from '@helpers/listenerSetter';
 import showChatToast from '@components/chat/chatToast';
-import {AudioElement, DeferredMediaElement, isAudioElement} from '@components/audio';
+import {AudioElement, isAudioElement} from '@components/audio';
 import {ChannelParticipant, Chat as MTChat, ChatParticipant, Document, Game, Message, MessageEntity,  MessageMedia,  MessageReplyHeader, Photo, PhotoSize, ReactionCount, SponsoredMessage, User, UserFull, WebPage, WebPageAttribute, Reaction, DocumentAttribute, InputStickerSet, TextWithEntities, FactCheck, WebDocument, MessageExtendedMedia, PeerSettings, LangPackString, ForumTopic, MessageAction} from '@layer';
 import {BOT_START_PARAM, NULL_PEER_ID, REPLIES_PEER_ID, SEND_WHEN_ONLINE_TIMESTAMP, STARS_CURRENCY} from '@appManagers/constants';
 import {FocusDirection, ScrollStartCallbackDimensions} from '@helpers/fastSmoothScroll';
@@ -72,6 +72,7 @@ import placeEphemeralBadge, {
   shouldKeepSenderNameAcrossGroup,
   shouldRenderSenderNameWithEphemeralBadge
 } from '@components/chat/placeEphemeralBadge';
+import rebindRoundElementOnSent from '@components/chat/utils/rebindRoundElementOnSent';
 import {getAppWindow, onAppWindowChange, onBeforeAppWindowChange} from '@helpers/appWindow';
 import getObjectKeysAndSort from '@helpers/object/getObjectKeysAndSort';
 import forEachReverse from '@helpers/array/forEachReverse';
@@ -1080,9 +1081,7 @@ export default class ChatBubbles {
             if(isAudioElement(element)) {
               element.replaceMessage(message);
             } else if(element.classList.contains('media-round')) {
-              element.dataset.mid = '' + message.mid;
-              delete element.dataset.isOutgoing;
-              (element as DeferredMediaElement).onLoad(true);
+              rebindRoundElementOnSent(element, message);
             } else {
               element.dataset.docId = '' + doc.id;
               (element as any).doc = doc;
