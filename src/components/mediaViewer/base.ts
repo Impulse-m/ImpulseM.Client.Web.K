@@ -72,6 +72,7 @@ import getMediaViewerClipPath from '@components/mediaViewer/clipPath';
 import getMediaViewerSnapshotSize from '@components/mediaViewer/snapshotSize';
 import shouldSnapshotImage from '@components/mediaViewer/shouldSnapshotImage';
 import getMediaViewerDocumentSize from '@components/mediaViewer/documentSize';
+import getMediaViewerCacheType from '@components/mediaViewer/mediaCacheType';
 import getDocumentURL from '@appManagers/utils/docs/getDocumentURL';
 import choosePhotoSize from '@appManagers/utils/photos/choosePhotoSize';
 import assumeType from '@helpers/assumeType';
@@ -2575,7 +2576,7 @@ export default class AppMediaViewerBase<
     const supportsStreaming: boolean = !!(isDocument && media.supportsStreaming);
     const preloader = isLiveStream ? undefined : supportsStreaming ? this.preloaderStreamable : this.preloader;
 
-    const getCacheContext = (type = size?.type) => {
+    const getCacheContext = (type = getMediaViewerCacheType(media as MyPhoto | MyDocument, size)) => {
       if(isLiveStream) return {url: getRtmpStreamUrl(media)};
       if(isHlsStream && apiManagerProxy.isServiceWorkerOnline()) return {url: getDocumentURL(media as MyDocument, {supportsHlsStreaming: true})};
       return this.managers.thumbsStorage.getCacheContext(media, type);
