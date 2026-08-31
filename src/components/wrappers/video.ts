@@ -331,6 +331,15 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
       };
 
       const onPlay = () => {
+        // A round bubble paints frames into ITS OWN canvas from the shared playback element. If the
+        // bubble that owns this closure has been detached by a re-render, playback runs while the
+        // circle the user is looking at is painted by nobody.
+        roundLog.info('play event', {
+          mid: message.mid,
+          canvasConnected: canvas.isConnected,
+          bubbleConnected: divRound.isConnected,
+          sameElementAsController: appMediaPlaybackController.getMedia(message.peerId, message.mid) === globalVideo
+        });
         video.classList.add('hide');
         setIsPaused(false);
         animateSingle(onFrame, canvas);
