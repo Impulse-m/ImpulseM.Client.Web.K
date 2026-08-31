@@ -139,6 +139,15 @@ export class ApiManager extends ApiManagerMethods {
     });
   }
 
+  private startRealtimeBringUp(userId: UserId): void {
+    setRealtimeSink((updates) => {
+      this.apiUpdatesManager.processUpdateMessage(updates);
+    });
+
+    startImpulseRealtime(String(userId));
+    this.reportImpulseConnected();
+  }
+
   protected after() {
     const result = super.after();
 
@@ -157,12 +166,7 @@ export class ApiManager extends ApiManagerMethods {
           return;
         }
 
-        setRealtimeSink((updates) => {
-          this.apiUpdatesManager.processUpdateMessage(updates);
-        });
-
-        startImpulseRealtime(String(data.userId));
-        this.reportImpulseConnected();
+        this.startRealtimeBringUp(data.userId);
       });
     });
 
@@ -327,7 +331,7 @@ export class ApiManager extends ApiManagerMethods {
 
     await setImpulseAccount(this.getAccountNumber());
     applyImpulseUserId((userAuth as UserAuth).id as unknown as string);
-    startImpulseRealtime(String((userAuth as UserAuth).id));
+    this.startRealtimeBringUp((userAuth as UserAuth).id);
 
     if(!userAuth.dcID) {
       const baseDcId = await this.getBaseDcId();
