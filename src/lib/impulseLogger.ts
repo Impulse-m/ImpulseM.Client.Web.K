@@ -23,6 +23,8 @@ import {backendHttpOrigin} from '@config/backendOrigin';
 const FLUSH_BATCH_SIZE = 20;
 const FLUSH_INTERVAL_MS = 2_000;
 const MAX_BUFFER_ENTRIES = 1_000;
+// The Fetch standard caps total in-flight keepalive request bodies at 64 KiB.
+const KEEPALIVE_BODY_BUDGET_BYTES = 65_536;
 const MAX_ERROR_MESSAGE_LENGTH = 2_048;
 const MAX_ERROR_NAME_LENGTH = 128;
 const MAX_ERROR_STACK_LENGTH = 32_768;
@@ -97,6 +99,7 @@ const loggers = new Map<string, Logger>();
 let buffer: LokiEntry[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
 let isFlushing = false;
+let isRetrying = false;
 let droppedEntries = 0;
 
 export function getLogger(module: string): Logger {
@@ -226,10 +229,25 @@ function buildPayload(entries: LokiEntry[]): string {
   return JSON.stringify({streams});
 }
 
+function getPayloadByteLength(entries: LokiEntry[]): number {
+  return new TextEncoder().encode(buildPayload(entries)).byteLength;
+}
+
+function boundBufferToKeepaliveBudget(): void {
+  while(buffer.length && getPayloadByteLength(buffer) > KEEPALIVE_BODY_BUDGET_BYTES) {
+    buffer.shift();
+    ++droppedEntries;
+  }
+}
+
 function flush(): void {
   flushTimer = undefined;
   if(isFlushing || !buffer.length) {
     return;
+  }
+
+  if(isRetrying) {
+    boundBufferToKeepaliveBudget();
   }
 
   if(droppedEntries) {
@@ -245,16 +263,18 @@ function flush(): void {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: buildPayload(batch),
-    keepalive: true,
     credentials: 'omit'
   }).then((response) => {
     if(!response.ok) {
       throw new Error(`Loki responded ${response.status}`);
     }
+    isRetrying = false;
   }).catch((err: unknown) => {
     // Requeue instead of dropping: a transient gateway blip must not silently
     // erase the diagnostics that explain it. Oldest-first, bounded.
     buffer = batch.concat(buffer).slice(-MAX_BUFFER_ENTRIES);
+    isRetrying = true;
+    boundBufferToKeepaliveBudget();
     originalConsole.warn('[logging] Loki transport failed', safelySerializeError(err));
   }).finally(() => {
     isFlushing = false;
@@ -270,15 +290,25 @@ function flush(): void {
  * `Access-Control-Allow-Credentials: true` -- so the final batch was dropped and
  * the failure surfaced as a CORS error in the user's console. `fetch` with
  * `keepalive` outlives the unload the same way a beacon does while keeping the
- * request credential-free, exactly like the normal flush above.
+ * request credential-free, like the normal flush above.
  */
 function flushOnHide(): void {
   if(!buffer.length) {
     return;
   }
 
-  const batch = buffer;
-  buffer = [];
+  let firstEntryIndex = buffer.length - 1;
+  while(firstEntryIndex >= 0 &&
+    getPayloadByteLength(buffer.slice(firstEntryIndex)) <= KEEPALIVE_BODY_BUDGET_BYTES) {
+    --firstEntryIndex;
+  }
+
+  const batch = buffer.slice(firstEntryIndex + 1);
+  if(!batch.length) {
+    return;
+  }
+
+  buffer = buffer.slice(0, firstEntryIndex + 1);
   try {
     fetch(LOKI_PUSH_URL, {
       method: 'POST',
