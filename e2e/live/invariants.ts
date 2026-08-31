@@ -37,7 +37,17 @@ export class ConsoleCleanInvariant {
 
   public static async attach(page: Page, label: string): Promise<ConsoleCleanInvariant> {
     const invariant = new ConsoleCleanInvariant(label);
+    await invariant.wire(page);
+    return invariant;
+  }
 
+
+  /**
+   * Wires the invariant onto a page. Called once by attach; called again by a warm-cache
+   * scenario after a full browser restart hands the persona a NEW page over the same profile
+   * — failures accumulate across all wired pages, so a restart never opens a blind spot.
+   */
+  public async wire(page: Page): Promise<void> {
     page.on('console', (message) => {
       if(message.type() !== 'error') {
         return;
@@ -45,29 +55,39 @@ export class ConsoleCleanInvariant {
 
       const location = message.location();
       const where = location.url ? ` (${location.url}:${location.lineNumber})` : '';
-      invariant.failures.push(`[console.error]${where} ${message.text()}`);
+      this.failures.push(`[console.error]${where} ${message.text()}`);
     });
 
     page.on('pageerror', (error) => {
-      invariant.failures.push(`[pageerror] ${error.message}\n${error.stack ?? ''}`);
+      this.failures.push(`[pageerror] ${error.message}\n${error.stack ?? ''}`);
     });
 
     // Belt over the pageerror braces: an explicit in-page unhandledrejection listener, reported
     // through a binding that survives navigations (a reload mid-scenario must not open a
     // blind spot). Chromium usually surfaces these as pageerror too; duplicates are collapsed
     // in assertClean by message text.
-    await page.exposeBinding(`impulseReportUnhandled${ConsoleCleanInvariant.bindingSuffix(label)}`, (source, rendered: string) => {
-      invariant.failures.push(`[unhandledrejection] ${rendered}`);
+    const bindingName = `impulseReportUnhandled${ConsoleCleanInvariant.bindingSuffix(this.label)}`;
+    await page.exposeBinding(bindingName, (source, rendered: string) => {
+      this.failures.push(`[unhandledrejection] ${rendered}`);
     });
-    await page.addInitScript((bindingName: string) => {
+    await page.addInitScript((name: string) => {
       window.addEventListener('unhandledrejection', (event) => {
         const reason = (event as PromiseRejectionEvent).reason;
-        const rendered = reason instanceof Error ? `${reason.message}\n${reason.stack ?? ''}` : String(reason);
-        (window as any)[bindingName]?.(rendered);
+        // App-level rejections are plain ApiError-shaped objects; String() would render them
+        // as the useless "[object Object]", so serialize them verbatim.
+        let rendered: string;
+        if(reason instanceof Error) {
+          rendered = `${reason.message}\n${reason.stack ?? ''}`;
+        } else {
+          try {
+            rendered = JSON.stringify(reason);
+          } catch(ignored) {
+            rendered = String(reason);
+          }
+        }
+        (window as any)[name]?.(rendered);
       });
-    }, `impulseReportUnhandled${ConsoleCleanInvariant.bindingSuffix(label)}`);
-
-    return invariant;
+    }, bindingName);
   }
 
 

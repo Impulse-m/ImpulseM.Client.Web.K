@@ -1,7 +1,7 @@
 import {readFileSync} from 'fs';
 import {join} from 'path';
 
-import {Browser, BrowserContext, Page, expect} from '@playwright/test';
+import {Browser, BrowserContext, chromium, Page, expect} from '@playwright/test';
 
 import {devStackTestCode, Persona} from '../../src/tests/liveharness/personas';
 import {ConsoleCleanInvariant} from './invariants';
@@ -39,17 +39,28 @@ export function roundNoteFixtures(): {webmBase64: string, posterBase64: string} 
 
 export class PersonaSession {
   public readonly persona: Persona;
-  public readonly page: Page;
+  public page: Page;
   public readonly consoleClean: ConsoleCleanInvariant;
 
-  private readonly context: BrowserContext;
+  private context: BrowserContext;
+  private readonly userDataDir: string | undefined;
+  private readonly baseUrl: string | undefined;
 
 
-  private constructor(persona: Persona, context: BrowserContext, page: Page, consoleClean: ConsoleCleanInvariant) {
+  private constructor(
+    persona: Persona,
+    context: BrowserContext,
+    page: Page,
+    consoleClean: ConsoleCleanInvariant,
+    userDataDir?: string,
+    baseUrl?: string
+  ) {
     this.persona = persona;
     this.context = context;
     this.page = page;
     this.consoleClean = consoleClean;
+    this.userDataDir = userDataDir;
+    this.baseUrl = baseUrl;
   }
 
 
@@ -58,6 +69,40 @@ export class PersonaSession {
     const page = await context.newPage();
     const consoleClean = await ConsoleCleanInvariant.attach(page, persona.firstName);
     return new PersonaSession(persona, context, page, consoleClean);
+  }
+
+
+  /**
+   * Warm-cache variant (issue #108): the persona lives in an on-disk chromium profile
+   * (userDataDir), so its IndexedDB, localStorage, caches and service worker survive not just
+   * a page reload but a FULL browser restart (restartBrowserProfile) — the state the CEO's
+   * long-lived session is always in and no fresh-context scenario can reproduce.
+   */
+  public static async openPersistent(userDataDir: string, persona: Persona, baseUrl: string): Promise<PersonaSession> {
+    const context = await PersonaSession.launchPersistent(userDataDir, baseUrl);
+    const page = context.pages()[0] ?? await context.newPage();
+    const consoleClean = await ConsoleCleanInvariant.attach(page, persona.firstName);
+    return new PersonaSession(persona, context, page, consoleClean, userDataDir, baseUrl);
+  }
+
+
+  /**
+   * Closes the whole browser over the persistent profile and launches a fresh one on the SAME
+   * profile directory — a real browser restart, not a tab reload. Leaves the new page on '/'
+   * WITHOUT waiting for the app to become ready: the caller verifies storage survival first
+   * (a restart that silently wiped IndexedDB must fail by name, not by an opaque auth-page
+   * timeout) and then awaits readiness itself.
+   */
+  public async restartBrowserProfile(): Promise<void> {
+    if(!this.userDataDir || !this.baseUrl) {
+      throw new Error('restartBrowserProfile is only valid on a session opened with openPersistent');
+    }
+
+    await this.context.close();
+    this.context = await PersonaSession.launchPersistent(this.userDataDir, this.baseUrl);
+    this.page = this.context.pages()[0] ?? await this.context.newPage();
+    await this.consoleClean.wire(this.page);
+    await this.page.goto('/', {waitUntil: 'domcontentloaded'});
   }
 
 
@@ -361,16 +406,29 @@ export class PersonaSession {
   }
 
 
+  /**
+   * Public for the warm-cache flow: after restartBrowserProfile the SPEC verifies storage
+   * survival on the fresh page first and only then awaits app readiness through this.
+   */
+  public async waitForImReady(): Promise<void> {
+    await this.page.waitForFunction(() => {
+      const w = window as any;
+      return !document.body.classList.contains('has-auth-pages') && !!w.appImManager && !!w.rootScope?.managers;
+    }, undefined, {timeout: 180_000});
+  }
+
+
   private messageInput() {
     return this.page.locator('.input-message-input[contenteditable="true"]:not(.input-field-input-fake)').first();
   }
 
 
-  private async waitForImReady(): Promise<void> {
-    await this.page.waitForFunction(() => {
-      const w = window as any;
-      return !document.body.classList.contains('has-auth-pages') && !!w.appImManager && !!w.rootScope?.managers;
-    }, undefined, {timeout: 180_000});
+  private static async launchPersistent(userDataDir: string, baseUrl: string): Promise<BrowserContext> {
+    return chromium.launchPersistentContext(userDataDir, {
+      headless: true,
+      viewport: {width: 1280, height: 800},
+      baseURL: baseUrl
+    });
   }
 
 

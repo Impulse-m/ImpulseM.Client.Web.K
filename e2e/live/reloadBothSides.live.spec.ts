@@ -1,6 +1,6 @@
 import {assertRenderCompleteness} from './invariants';
 import {liveLane} from './lane';
-import {noisePhoto, recorderWebmVideo} from './mediaFixtures';
+import {recorderWebmVideo, structuredPhoto} from './mediaFixtures';
 import {test} from './pair';
 
 /*
@@ -22,7 +22,7 @@ test('interleaved text+media from both personas survive a reload of both pages',
   await recipient.sendTextThroughUi(`bravo-${nonce}-1`);
   await sender.waitForIncomingText(`bravo-${nonce}-1`);
 
-  await sender.attachMediaThroughUi([noisePhoto(`interleaved-${nonce}.png`, 512, 384)]);
+  await sender.attachMediaThroughUi([structuredPhoto(`interleaved-${nonce}.png`, 512, 384)]);
   await recipient.attachMediaThroughUi([recorderWebmVideo(`interleaved-${nonce}.webm`)]);
 
   await sender.sendTextThroughUi(`alpha-${nonce}-2`);
