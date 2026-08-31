@@ -68,7 +68,7 @@ export class AppStickersManager extends AppManager {
       if(!this.getGreetingStickersPromise) {
         this.getGreetingStickersTimeout ??= ctx.setTimeout(() => {
           this.getGreetingStickersTimeout = undefined;
-          this.getGreetingSticker(true);
+          void this.getGreetingSticker(true).catch((): void => undefined);
         }, 5000);
       }
 

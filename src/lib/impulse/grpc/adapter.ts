@@ -221,11 +221,24 @@ function convertFieldValue(raw: any, field: DescField): any {
   const isInt64 = field.fieldKind === 'scalar' && (
     field.scalar === ScalarType.INT64 || field.scalar === ScalarType.UINT64
   );
+  if(isInt64 && raw === '') {
+    return 0;
+  }
+
   if(isInt64 && (
     (typeof raw === 'string' && !/^-?\d+$/.test(raw)) ||
     (typeof raw === 'number' && !Number.isInteger(raw))
   )) {
     throw new Error(`Invalid integer value for field ${field.name}: ${raw}`);
+  }
+
+  if(
+    field.fieldKind === 'scalar' &&
+    field.scalar === ScalarType.INT64 &&
+    typeof raw === 'string' &&
+    BigInt(raw) > BigInt('9223372036854775807')
+  ) {
+    return BigInt.asIntN(64, BigInt(raw)).toString();
   }
 
   if(typeof raw === 'number' && !Number.isInteger(raw) && field.fieldKind === 'scalar' && (
