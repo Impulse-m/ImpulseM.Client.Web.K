@@ -400,12 +400,13 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
       }
     };
 
+    // The circle must answer the finger from the file the user just recorded — it is already on this
+    // machine and the preview is looping it. The ack changes WHICH message the toggle drives, not
+    // whether the circle answers at all.
+    onLoad();
     if(message.pFlags.is_outgoing) {
-      // ! WARNING ! just to type-check
       (divRound as any as DeferredMediaElement).onLoad = onLoad;
       divRound.dataset.isOutgoing = '1';
-    } else {
-      onLoad();
     }
   } else if(!noAutoplayAttribute && !suppressAutoplayWhileUploading) {
     video.autoplay = true; // для safari
