@@ -5,6 +5,7 @@ import {Browser, BrowserContext, chromium, Page, expect} from '@playwright/test'
 
 import {devStackTestCode, Persona} from '../../src/tests/liveharness/personas';
 import {ConsoleCleanInvariant} from './invariants';
+import {captureMediaDiagnostics, describePlaybackFailure, installMediaDiagnostics, MediaElementState} from './mediaPlayback';
 
 /*
  * One persona = one isolated browser context on the lane's own client instance. Everything a
@@ -28,6 +29,19 @@ import {ConsoleCleanInvariant} from './invariants';
  */
 const liveharnessFixturesDir = join(__dirname, '..', '..', 'src', 'tests', 'liveharness', 'fixtures');
 
+/**
+ * One console/pageerror line with its arrival time — ALL levels, not just errors (the
+ * console-clean invariant owns the error-level failures; the trail exists so a playback or
+ * rebind red can quote what the console said AROUND the failing action).
+ */
+export type ConsoleTrailEntry = {
+  at: number,
+  kind: string,
+  text: string
+};
+
+const consoleTrailCap = 400;
+
 
 export function roundNoteFixtures(): {webmBase64: string, posterBase64: string} {
   return {
@@ -41,6 +55,7 @@ export class PersonaSession {
   public readonly persona: Persona;
   public page: Page;
   public readonly consoleClean: ConsoleCleanInvariant;
+  public readonly consoleTrail: ConsoleTrailEntry[] = [];
 
   private context: BrowserContext;
   private readonly userDataDir: string | undefined;
@@ -68,7 +83,9 @@ export class PersonaSession {
     const context = await browser.newContext();
     const page = await context.newPage();
     const consoleClean = await ConsoleCleanInvariant.attach(page, persona.firstName);
-    return new PersonaSession(persona, context, page, consoleClean);
+    const session = new PersonaSession(persona, context, page, consoleClean);
+    await session.wireDiagnostics(page);
+    return session;
   }
 
 
@@ -82,7 +99,9 @@ export class PersonaSession {
     const context = await PersonaSession.launchPersistent(userDataDir, baseUrl);
     const page = context.pages()[0] ?? await context.newPage();
     const consoleClean = await ConsoleCleanInvariant.attach(page, persona.firstName);
-    return new PersonaSession(persona, context, page, consoleClean, userDataDir, baseUrl);
+    const session = new PersonaSession(persona, context, page, consoleClean, userDataDir, baseUrl);
+    await session.wireDiagnostics(page);
+    return session;
   }
 
 
@@ -102,6 +121,7 @@ export class PersonaSession {
     this.context = await PersonaSession.launchPersistent(this.userDataDir, this.baseUrl);
     this.page = this.context.pages()[0] ?? await this.context.newPage();
     await this.consoleClean.wire(this.page);
+    await this.wireDiagnostics(this.page);
     await this.page.goto('/', {waitUntil: 'domcontentloaded'});
   }
 
@@ -239,11 +259,20 @@ export class PersonaSession {
 
 
   public async sendTextThroughUi(text: string): Promise<void> {
+    await this.typeAndSendText(text);
+    await this.waitForOwnBubbleWithText(text);
+  }
+
+
+  /**
+   * The raw UI send with NO settle wait — for scenarios whose subject IS the settling (the
+   * defect-B rebind pin installs its own hooks between the keystroke and the assertion).
+   */
+  public async typeAndSendText(text: string): Promise<void> {
     const input = this.messageInput();
     await input.click();
     await this.page.keyboard.type(text, {delay: 10});
     await this.page.keyboard.press('Enter');
-    await this.waitForOwnBubbleWithText(text);
   }
 
 
@@ -267,7 +296,7 @@ export class PersonaSession {
     await confirm.click();
     await this.page.locator('.popup-new-media').waitFor({state: 'hidden', timeout: 30_000});
 
-    await this.waitForOutgoingSettled();
+    await this.waitForOutgoingSettled('attached media');
   }
 
 
@@ -308,7 +337,7 @@ export class PersonaSession {
       });
     }, fixtures);
 
-    await this.waitForOutgoingSettled();
+    await this.waitForOutgoingSettled('round note');
   }
 
 
@@ -321,6 +350,7 @@ export class PersonaSession {
   public async playRoundNote(side: string): Promise<void> {
     const round = this.page.locator('.media-round[data-mid]').last();
     await round.waitFor({state: 'visible', timeout: 60_000});
+    const clickAt = Date.now();
     await round.locator('canvas.video-round-canvas').click();
 
     await this.page.waitForFunction(() => {
@@ -328,11 +358,25 @@ export class PersonaSession {
       const playing: HTMLMediaElement | undefined = w.appMediaPlaybackController?.playingMedia;
       const started = !!document.querySelector('.media-round[data-mid] video.media-video.hide');
       return started && !!playing && !playing.paused && playing.currentTime > 0;
-    }, undefined, {timeout: 60_000}).catch(() => {
+    }, undefined, {timeout: 60_000}).catch(async() => {
+      const diagnostics = await captureMediaDiagnostics(this.page);
+      // The round note plays through a GLOBAL media element (appMediaPlaybackController), not
+      // the bubble's muted preview — run #2 caught it outside the bubble with the same blob
+      // src and zero play() calls, so same-src elements count as relevant.
+      const roundSrcs = new Set(
+        diagnostics.elements
+          .filter((state: MediaElementState) => state.inRoundBubble && state.currentSrc)
+          .map((state: MediaElementState) => state.currentSrc)
+      );
+      const relevant = diagnostics.elements.filter((state: MediaElementState) => {
+        return state.inRoundBubble || state.isPlaybackControllerMedia || roundSrcs.has(state.currentSrc);
+      });
       throw new Error(
         `the round note on the ${side} side never started playing after a click on its bubble — ` +
-        'the user-visible shape of issue #91 (eternal spinner: the click resolves against a stale ' +
-        'temp message/document and the download never produces playable media)'
+        'the user-visible shape of issue #91 (eternal spinner: the click never turns into moving ' +
+        'video for the user).\n' +
+        describePlaybackFailure(diagnostics, relevant) + '\n' +
+        `console around the click:\n${this.formatConsoleTrailSince(clickAt - 2_000)}`
       );
     });
 
@@ -346,11 +390,84 @@ export class PersonaSession {
 
 
   /**
+   * The board's defect-A surface for a PLAIN video: click the video bubble the way a user
+   * does; the client opens the media viewer and must actually start playback there —
+   * currentTime advancing past zero with readyState beyond HAVE_CURRENT_DATA. A red names
+   * the lane that broke (no source / src refused / decode error / no play() call) from the
+   * page-wide media instrumentation, plus the console around the click.
+   */
+  public async playVideoFromBubble(side: string): Promise<void> {
+    const bubble = this.page.locator('.bubble[data-mid]', {has: this.page.locator('.video-time')}).last();
+    await bubble.waitFor({state: 'visible', timeout: 60_000});
+
+    // Click the media CONTAINER, not a leaf: an inline-autoplaying <video> sits on top of
+    // the poster <img>, so a leaf click gets refused as intercepted — while whichever
+    // descendant is on top (video, poster, play button) is exactly what the user hits, and
+    // Playwright accepts a hit on a descendant of the clicked element.
+    const clickTarget = bubble.locator('.attachment, .bubble__media-container').first();
+    const clickAt = Date.now();
+    await clickTarget.click({timeout: 30_000}).catch(async(error: Error) => {
+      const diagnostics = await captureMediaDiagnostics(this.page);
+      throw new Error(
+        `the video bubble on the ${side} side could not even be clicked: ${error.message}\n` +
+        describePlaybackFailure(diagnostics, []) + '\n' +
+        `console around the click attempt:\n${this.formatConsoleTrailSince(clickAt - 2_000)}`
+      );
+    });
+
+    await this.page.waitForFunction(() => {
+      const viewerVideo = document.querySelector<HTMLVideoElement>('.media-viewer-whole video');
+      // HAVE_CURRENT_DATA is 2 — playback must be PAST it, with the clock actually moving.
+      return !!viewerVideo && !viewerVideo.paused && viewerVideo.currentTime > 0 && viewerVideo.readyState > 2;
+    }, undefined, {timeout: 60_000}).catch(async() => {
+      const diagnostics = await captureMediaDiagnostics(this.page);
+      const relevant = diagnostics.elements.filter((state: MediaElementState) => {
+        return state.inMediaViewer || state.isPlaybackControllerMedia;
+      });
+      throw new Error(
+        `the plain video on the ${side} side never started playing after a click on its bubble — ` +
+        'the board-reported defect A shape: the user clicks the video and never gets moving ' +
+        'pictures.\n' +
+        describePlaybackFailure(diagnostics, relevant) + '\n' +
+        `console around the click:\n${this.formatConsoleTrailSince(clickAt - 2_000)}`
+      );
+    });
+  }
+
+
+  /**
+   * Leaves the media viewer opened by playVideoFromBubble, so the scenario can hand the
+   * page back to further UI steps with nothing overlaying the chat.
+   */
+  public async closeMediaViewer(): Promise<void> {
+    await this.page.keyboard.press('Escape');
+    await this.page.locator('.media-viewer-whole').waitFor({state: 'detached', timeout: 30_000}).catch(async() => {
+      throw new Error('the media viewer did not close on Escape — the overlay is stuck over the chat');
+    });
+  }
+
+
+  /**
+   * A settled incoming (non-outgoing) video bubble — the .video-time badge is the marker
+   * every video message carries regardless of autoplay/thumbnail state.
+   */
+  public async waitForIncomingVideo(): Promise<void> {
+    await this.page
+      .locator('.bubble[data-mid]:not(.is-outgoing):not(.is-sending)', {has: this.page.locator('.video-time')})
+      .last()
+      .waitFor({state: 'visible', timeout: 90_000});
+  }
+
+
+  /**
    * Ack discipline for outgoing sends: bubbles carry is-outgoing/is-sending until the server
    * ack rebinds them (bubbles.ts:964,1170); an is-error bubble is an immediate, named failure
-   * rather than a timeout.
+   * rather than a timeout. On ANY failure the red carries the pending bubbles' state and the
+   * console trail since the send — a media send that produces ZERO server RPCs dies inside
+   * the client worker, and this capture is the only page-side evidence of where.
    */
-  public async waitForOutgoingSettled(): Promise<void> {
+  public async waitForOutgoingSettled(what: string): Promise<void> {
+    const sinceMs = Date.now() - 10_000;
     await this.page.waitForFunction(() => {
       const container: HTMLElement | undefined = (window as any).appImManager?.chat?.bubbles?.container;
       if(!container) {
@@ -362,7 +479,35 @@ export class PersonaSession {
       }
 
       return !container.querySelector('.bubble.is-outgoing, .bubble.is-sending');
-    }, undefined, {timeout: 120_000});
+    }, undefined, {timeout: 120_000}).catch(async(error: Error) => {
+      const capture = await this.page.evaluate(() => {
+        const container: HTMLElement | undefined = (window as any).appImManager?.chat?.bubbles?.container;
+        const pendingBubbles = container ?
+          Array.from(container.querySelectorAll<HTMLElement>('.bubble.is-outgoing, .bubble.is-sending, .bubble.is-error'))
+            .map((bubble) => ({
+              mid: bubble.dataset.mid ?? '',
+              classes: bubble.className,
+              preloaderText: bubble.querySelector('.preloader-container')?.textContent ?? '(no preloader)'
+            })) :
+          [];
+
+        return {
+          pendingBubbles,
+          messageSentEvents: (window as any).__impulseSentEvents ?? []
+        };
+      }).catch(() => ({
+        pendingBubbles: [] as {mid: string, classes: string, preloaderText: string}[],
+        messageSentEvents: [] as {tempId: string, mid: string, at: number}[]
+      }));
+
+      throw new Error(
+        `the ${what} send never settled on the ${this.persona.firstName} page: the user's bubble keeps the ` +
+        `clock/sending state forever instead of becoming a sent message (${error.message.split('\n')[0]}).\n` +
+        `pending bubbles: ${JSON.stringify(capture.pendingBubbles)}\n` +
+        `message_sent events on the main thread: ${JSON.stringify(capture.messageSentEvents)}\n` +
+        `console since the send:\n${this.formatConsoleTrailSince(sinceMs)}`
+      );
+    });
   }
 
 
@@ -415,11 +560,72 @@ export class PersonaSession {
       const w = window as any;
       return !document.body.classList.contains('has-auth-pages') && !!w.appImManager && !!w.rootScope?.managers;
     }, undefined, {timeout: 180_000});
+
+    // Standing ack recorder: every 'message_sent' the worker mirrors onto the main-thread
+    // rootScope is logged, so a send that never settles can be split into "the ack never
+    // reached the main thread" vs "the ack arrived and the DOM rebind dropped it"
+    // (waitForOutgoingSettled quotes this on timeout). Re-armed after reloads because
+    // every reload path passes through here.
+    await this.page.evaluate(() => {
+      const w = window as any;
+      if(w.__impulseSentEvents) {
+        return;
+      }
+      w.__impulseSentEvents = [];
+      w.rootScope.addEventListener('message_sent', (payload: any) => {
+        w.__impulseSentEvents.push({
+          tempId: String(payload?.tempId),
+          mid: String(payload?.mid),
+          at: Date.now()
+        });
+      });
+    });
+  }
+
+
+  /**
+   * The console entries (all levels) and page errors recorded at or after `sinceMs`,
+   * formatted for an assertion message — bounded so a chatty page cannot drown the red.
+   */
+  public formatConsoleTrailSince(sinceMs: number): string {
+    const recent = this.consoleTrail.filter((entry) => entry.at >= sinceMs).slice(-40);
+    if(recent.length === 0) {
+      return '  (no console entries in the window)';
+    }
+
+    return recent
+      .map((entry) => `  [+${entry.at - sinceMs}ms][${entry.kind}] ${entry.text.slice(0, 500)}`)
+      .join('\n');
   }
 
 
   private messageInput() {
     return this.page.locator('.input-message-input[contenteditable="true"]:not(.input-field-input-fake)').first();
+  }
+
+
+  /**
+   * Per-page diagnostic wiring on top of the console-clean invariant: the full console trail
+   * (all levels, ring-capped) and the media playback instrumentation (init script, so it is
+   * in place before any app code runs and survives reloads). Re-invoked by
+   * restartBrowserProfile for the fresh page, mirroring consoleClean.wire.
+   */
+  private async wireDiagnostics(page: Page): Promise<void> {
+    const push = (kind: string, text: string) => {
+      this.consoleTrail.push({at: Date.now(), kind, text});
+      if(this.consoleTrail.length > consoleTrailCap) {
+        this.consoleTrail.splice(0, this.consoleTrail.length - consoleTrailCap);
+      }
+    };
+
+    page.on('console', (message) => {
+      push(message.type(), message.text());
+    });
+    page.on('pageerror', (error) => {
+      push('pageerror', `${error.message}\n${error.stack ?? ''}`);
+    });
+
+    await installMediaDiagnostics(page);
   }
 
 
