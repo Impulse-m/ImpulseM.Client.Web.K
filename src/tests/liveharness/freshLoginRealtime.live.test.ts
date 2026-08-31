@@ -43,7 +43,8 @@ import {waitUntil} from './wait';
  *
  * A negative control then reboots over the now-persisted storage and requires the same three
  * facts on the reload form — so a fix cannot go green here by breaking the path the CEO's
- * sessions rely on. Standing B1 invariants close the file.
+ * sessions rely on. Its driven act is the OFFLINE transition, deliberately — see the
+ * debounce note at the drive site. Standing B1 invariants close the file.
  */
 const subscribeTimeoutMs = 60_000;
 const syncSettleTimeoutMs = 60_000;
@@ -52,7 +53,10 @@ const connectedFilingTimeoutMs = 15_000;
 
 type UserUpdateEvent = {
   userId: any,
-  atMs: number
+  atMs: number,
+  /** The stored status of that user AT THE MOMENT the event dispatched — see the capture note. */
+  statusName: string | undefined,
+  status: any
 };
 
 type AppliedStatus = {
@@ -76,6 +80,7 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
   let ownerKey = '';
   let ownerRawId: any;
   let inboxChannel = '';
+  let scenarioStartUnix = 0;
   let syncSettled = false;
   let onlineActionStartMs = 0;
   let onlineApplied: AppliedStatus | undefined;
@@ -84,6 +89,7 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
 
   beforeAll(async() => {
     rejections.install();
+    scenarioStartUnix = Math.floor(Date.now() / 1000);
 
     // ---- step 1: a boot that finds NO persisted account — the branch after() early-outs of ----
     // The wire observer must ride the boot hook: installNodeEnv overwrites globalThis.WebSocket
@@ -107,8 +113,18 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
     inboxChannel = `user:${viewerKey}`;
 
     tapPresenceDeliveries(stack1.managers.apiUpdatesManager, presenceDeliveries);
+    // Status is captured INSIDE the event dispatch, not polled from storage afterwards.
+    // 'user_update' is dispatched synchronously by the updateUserStatus handler right after
+    // the storage write — so the capture IS the application moment. Polling later is racy
+    // against issue #101: Sync hydrates the users[] of every durable update with status:null
+    // (UpdateDispatcher.cs:790 -> UserMapper.Map), and the client's saveApiUser replaces the
+    // stored user wholesale, deleting keys absent from the payload — a trailing hydrated
+    // update about the owner (e.g. the contact-flow fan-out arriving late) wipes a
+    // just-applied status within a millisecond. THIS scenario pins bring-up APPLICATION;
+    // status durability against #101 is that issue's own contract, not this file's.
     stack1.managers.rootScope.addEventListener('user_update', (userId: any) => {
-      userUpdateEvents.push({userId, atMs: Date.now()});
+      const status = stack1!.managers.appUsersManager.getUser(userId)?.status;
+      userUpdateEvents.push({userId, atMs: Date.now(), statusName: status?._, status});
     });
     stack1.managers.apiUpdatesManager.attach();
 
@@ -200,18 +216,15 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
 
     onlineApplied = await waitUntil(
       () => {
-        const eventSeen = userUpdateEvents.some((event) => {
-          return String(event.userId) === ownerKey && event.atMs >= onlineActionStartMs;
+        const applied = userUpdateEvents.find((event) => {
+          return String(event.userId) === ownerKey &&
+            event.atMs >= onlineActionStartMs &&
+            event.statusName === 'userStatusOnline';
         });
-        if(!eventSeen) {
-          return undefined;
-        }
-
-        const status = stack1!.managers.appUsersManager.getUser(ownerRawId)?.status;
-        return status?._ === 'userStatusOnline' ? {status, matchedAtMs: Date.now()} : undefined;
+        return applied ? {status: applied.status, matchedAtMs: applied.atMs} : undefined;
       },
       presenceTimeoutMs,
-      "a 'user_update'-keyed application of userStatusOnline for the owner on the fresh-login session"
+      "a 'user_update'-captured application of userStatusOnline for the owner on the fresh-login session"
     ).catch((): undefined => undefined);
 
     console.log('[liveharness] fresh-login evidence:', JSON.stringify({
@@ -356,10 +369,6 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
       'boots logged out and guards nothing'
     ).toBe(true);
 
-    // Re-pin the baseline BEFORE the reboot: the fresh leg drove the owner online, so the
-    // control leg needs its own real offline->online transition to assert.
-    await owner!.invoke('account.updateStatus', {offline: true});
-
     await stack1!.dispose();
     stack2 = await bootLiveManagerStack(liveLane.gatewayOrigin, {
       afterEnvInstalled: () => reloadWire.install()
@@ -373,8 +382,10 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
     const controlDeliveries: PresenceDelivery[] = [];
     tapPresenceDeliveries(stack2.managers.apiUpdatesManager, controlDeliveries);
     const controlUserUpdates: UserUpdateEvent[] = [];
+    // Application-time capture, same rationale as the fresh leg (issue #101).
     stack2.managers.rootScope.addEventListener('user_update', (userId: any) => {
-      controlUserUpdates.push({userId, atMs: Date.now()});
+      const status = stack2!.managers.appUsersManager.getUser(userId)?.status;
+      controlUserUpdates.push({userId, atMs: Date.now(), statusName: status?._, status});
     });
     stack2.managers.apiUpdatesManager.attach();
 
@@ -420,6 +431,11 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
       'the owner user object must be in the reloaded viewer\'s users storage after the contacts ' +
       'fill — appUsersManager silently drops updateUserStatus for users it does not know'
     ).toBe(true);
+    // No baseline-status precondition on purpose: getContacts hydrates a lastOnlineAt-derived
+    // userStatusOffline (UserGrpcService.MapToProtoUser), never the live Redis online state, so
+    // the hydrated baseline says nothing about the owner's actual state after the fresh leg.
+    // The transition proof is the CAPTURED application event below: recorded at dispatch time
+    // and gated on atMs >= actionStartMs, it can only come from the driven push.
 
     // Fact B on the reload form.
     const {ConnectionStatus} = await import('@lib/mtproto/connectionStatus');
@@ -442,25 +458,30 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
       'fresh-login fix; a fix must ADD the trio to the fresh path, not move it'
     ).toBeDefined();
 
-    // Fact A on the reload form.
+    // Fact A on the reload form — driven as the OFFLINE transition, deliberately. The server
+    // debounces presence per-target per-statusKey (UpdateDispatcher.TryRecordPresence within
+    // PresenceOptions.DebounceWindow), and the online statusKey is the CONSTANT 'online': a
+    // second online drive landing near an earlier online publish for the same target is
+    // suppressed server-side BY DESIGN, so an online-driving control raced the fresh leg's own
+    // online act and intermittently saw no envelope at all (a 45s delivery timeout with facts
+    // A/B/C green). The offline statusKey embeds the transition time ('offline:{WasOnline}'),
+    // so an offline drive is never a debounce repeat of anything this scenario drove before —
+    // and the fresh leg's online state is exactly the baseline that makes it a real transition.
     const actionStartMs = Date.now();
-    await owner!.invoke('account.updateStatus', {offline: false});
+    await owner!.invoke('account.updateStatus', {offline: true});
     let applied: AppliedStatus | undefined;
     try {
       applied = await waitUntil(
         () => {
-          const eventSeen = controlUserUpdates.some((event) => {
-            return String(event.userId) === ownerKey && event.atMs >= actionStartMs;
+          const captured = controlUserUpdates.find((event) => {
+            return String(event.userId) === ownerKey &&
+              event.atMs >= actionStartMs &&
+              event.statusName === 'userStatusOffline';
           });
-          if(!eventSeen) {
-            return undefined;
-          }
-
-          const status = stack2!.managers.appUsersManager.getUser(controlOwnerRawId)?.status;
-          return status?._ === 'userStatusOnline' ? {status, matchedAtMs: Date.now()} : undefined;
+          return captured ? {status: captured.status, matchedAtMs: captured.atMs} : undefined;
         },
         presenceTimeoutMs,
-        "a 'user_update'-keyed application of userStatusOnline for the owner on the reloaded session"
+        "a 'user_update'-captured application of userStatusOffline for the owner on the reloaded session"
       );
     } catch{
       // Timed out — the ladder below names the dying hop.
@@ -474,7 +495,7 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
         inboxChannel,
         ownerKey,
         ownerRawId: controlOwnerRawId,
-        expectedStatusName: 'userStatusOnline',
+        expectedStatusName: 'userStatusOffline',
         actionStartMs,
         leg: 'RELOAD control leg',
         timeoutMs: presenceTimeoutMs,
@@ -483,6 +504,20 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
       });
       expect(applied, verdict).toBeDefined();
     }
+
+    const offlineMatchedAtUnix = Math.floor(applied!.matchedAtMs / 1000);
+    const wasOnline = applied!.status.was_online;
+    expect(
+      typeof wasOnline === 'number' && wasOnline > 0,
+      `userStatusOffline.was_online ("${String(wasOnline)}") must be a real last-seen unix time — ` +
+      'zero/absent renders "last seen a long time ago" for a contact who was online seconds ago'
+    ).toBe(true);
+    expect(
+      wasOnline >= scenarioStartUnix - 3600 && wasOnline <= offlineMatchedAtUnix + 300,
+      `userStatusOffline.was_online ("${String(wasOnline)}") must fall inside this scenario's ` +
+      `lifetime (${scenarioStartUnix - 3600}..${offlineMatchedAtUnix + 300}) — a value outside it is ` +
+      'epoch garbage or a milliseconds-for-seconds mixup, both of which corrupt "last seen" for the user'
+    ).toBe(true);
   }, 300_000);
 
   it('standing invariants: clean wire and zero unhandled rejections across both boots', async() => {
