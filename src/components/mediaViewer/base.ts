@@ -2875,10 +2875,26 @@ export default class AppMediaViewerBase<
                 langPackKey: IS_MOBILE ? 'Video.Unsupported.Mobile' : 'Video.Unsupported.Desktop'
               });
 
+              // Code 4 (SRC_NOT_SUPPORTED) is the COMMON failure, and it was the one case that
+              // logged nothing: the user got the "can't be played" toast while the reason left no
+              // trace anywhere, so an investigation had only the toast to go on. Record every
+              // failure, with the source kind, because a stream URL failing and a codec the browser
+              // refuses look identical on screen and are different defects.
               const error = video.error;
-              if(error && error.code !== 4) {
-                this.log.error('Error ' + error.code + '; details: ' + error.message);
-              }
+              const src = video.currentSrc || video.src || '';
+              const sourceKind = src.startsWith('blob:') ? 'blob' :
+                src.includes('/stream/') ? 'service-worker-stream' :
+                src ? 'other' : 'none';
+              this.log.error(
+                'video failed to play',
+                {
+                  code: error?.code,
+                  message: error?.message,
+                  sourceKind,
+                  networkState: video.networkState,
+                  readyState: video.readyState
+                }
+              );
 
               preloader?.detach();
             };
