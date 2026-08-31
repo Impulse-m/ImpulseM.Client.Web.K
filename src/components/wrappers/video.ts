@@ -39,6 +39,7 @@ import {createProgressRing, getProgressRingCircumference} from '@components/prog
 import LazyLoadQueue from '@components/lazyLoadQueue';
 import ProgressivePreloader from '@components/preloader';
 import wrapPhoto from '@components/wrappers/photo';
+import attachRoundPlaybackTap from '@components/wrappers/utils/roundPlaybackTap';
 import SuperIntersectionObserver, {IntersectionCallback} from '@helpers/dom/superIntersectionObserver';
 import VideoPlayer from '@lib/mediaPlayer';
 import debounce from '@helpers/schedulers/debounce';
@@ -210,6 +211,9 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
     divRound.dataset.mid = '' + message.mid;
     divRound.dataset.peerId = '' + message.peerId;
     (divRound as any).message = message;
+    // The listener must exist before the deferred playback media is wired after the server ack.
+    const playbackTap = attachRoundPlaybackTap(divRound);
+    middleware.onClean(playbackTap.destroy);
 
     const strokeWidth = 3.5;
     const roundVideoSize = doc.w || mediaSizes.active.round.width;
@@ -353,7 +357,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
       globalVideo.addEventListener('pause', onPaused);
       globalVideo.addEventListener('ended', onEnded);
 
-      attachClickEvent(canvas, (e) => {
+      playbackTap.arm((e) => {
         cancelEvent(e);
 
         // ! костыль
