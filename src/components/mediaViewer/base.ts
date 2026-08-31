@@ -2885,18 +2885,47 @@ export default class AppMediaViewerBase<
               const sourceKind = src.startsWith('blob:') ? 'blob' :
                 src.includes('/stream/') ? 'service-worker-stream' :
                 src ? 'other' : 'none';
-              this.log.error(
-                'video failed to play',
-                {
-                  code: error?.code,
-                  message: error?.message,
-                  sourceKind,
-                  networkState: video.networkState,
-                  readyState: video.readyState
-                }
-              );
 
               preloader?.detach();
+
+              void (async() => {
+                let sourceProbe: {
+                  resolved?: boolean,
+                  status?: number,
+                  size?: number,
+                  type?: string,
+                  skipped?: boolean
+                };
+
+                if(!src || sourceKind === 'service-worker-stream') {
+                  sourceProbe = {skipped: true};
+                } else {
+                  try {
+                    const response = await fetch(src);
+                    const blob = await response.blob();
+                    sourceProbe = {
+                      resolved: true,
+                      status: response.status,
+                      size: blob.size,
+                      type: blob.type
+                    };
+                  } catch{
+                    sourceProbe = {resolved: false};
+                  }
+                }
+
+                this.log.error(
+                  'video failed to play',
+                  {
+                    code: error?.code,
+                    message: error?.message,
+                    sourceKind,
+                    networkState: video.networkState,
+                    readyState: video.readyState,
+                    sourceProbe
+                  }
+                );
+              })();
             };
 
             const onMediaLoadPromise = onMediaLoad(video);

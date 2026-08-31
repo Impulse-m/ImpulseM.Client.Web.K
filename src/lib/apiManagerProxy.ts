@@ -789,8 +789,13 @@ class ApiManagerProxy extends MTProtoMessagePort {
         throw 1;
       }
 
+      if(!registration) {
+        this.log.warn('SW unavailable: registration returned no worker');
+        this.invokeVoid('serviceWorkerOnline', false);
+        return;
+      }
+
       this.log('SW registered', registration);
-      this.serviceWorkerRegistration = registration;
 
       const url = new URL(window.location.href);
       const FIX_KEY = 'swfix';
@@ -813,11 +818,19 @@ class ApiManagerProxy extends MTProtoMessagePort {
       }
 
       const sw = registration.installing || registration.waiting || registration.active;
-      sw.addEventListener('statechange', (e) => {
+      const controller = navigator.serviceWorker.controller || sw;
+      if(!controller) {
+        this.log.warn('SW unavailable: registration has no worker');
+        this.invokeVoid('serviceWorkerOnline', false);
+        return;
+      }
+
+      this.serviceWorkerRegistration = registration;
+
+      sw?.addEventListener('statechange', (e) => {
         this.log('SW statechange', e);
       });
 
-      const controller = navigator.serviceWorker.controller || registration.installing || registration.waiting || registration.active;
       this.attachServiceWorker(controller);
 
       if(import.meta.env.VITE_MTPROTO_SW) {
@@ -831,7 +844,11 @@ class ApiManagerProxy extends MTProtoMessagePort {
   }
 
   private registerServiceWorker() {
-    if(!('serviceWorker' in navigator)) return;
+    if(!('serviceWorker' in navigator)) {
+      this.log.warn('SW unavailable: navigator has no service worker');
+      this.invokeVoid('serviceWorkerOnline', false);
+      return;
+    }
 
     if(Modes.noServiceWorker) {
       navigator.serviceWorker.getRegistrations().then(regs => {
