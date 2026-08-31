@@ -13,6 +13,7 @@
     "test": "vitest",
     "test:ephemeral-bot": "node ./src/tests/fixtures/ephemeralBot/bot.mjs",
     "test:lottie": "playwright test",
+    "test:e2e:live": "playwright test --config=playwright.live.config.ts",
     "whybundled": "pnpm run profile && whybundled stats.json",
     "generate-mtproto-types": "node ./src/scripts/generate_mtproto_types.js src/",
     "generate-error-types": "node ./src/scripts/generate_error_types.js src/",

@@ -228,7 +228,7 @@ describeLive('B1 presence: a mutual contact going online/offline must be APPLIED
             return status?._ === 'userStatusOnline' ? {status, matchedAtMs: Date.now()} : undefined;
           },
           presenceTimeoutMs,
-          "a 'user_update'-keyed application of userStatusOnline for the owner"
+          'a \'user_update\'-keyed application of userStatusOnline for the owner'
         );
       } catch{
         // Timed out — the ladder below names the dying hop.
@@ -246,7 +246,7 @@ describeLive('B1 presence: a mutual contact going online/offline must be APPLIED
           actionStartMs: onlineActionStartMs,
           leg: 'ONLINE leg',
           timeoutMs: presenceTimeoutMs,
-          headline: "in the real client this is the CEO's bug (the peer never changes online state)"
+          headline: 'in the real client this is the CEO\'s bug (the peer never changes online state)'
         });
         expect(onlineApplied, verdict).toBeDefined();
       }
@@ -306,7 +306,7 @@ describeLive('B1 presence: a mutual contact going online/offline must be APPLIED
             return status?._ === 'userStatusOffline' ? {status, matchedAtMs: Date.now()} : undefined;
           },
           presenceTimeoutMs,
-          "a 'user_update'-keyed application of userStatusOffline for the owner"
+          'a \'user_update\'-keyed application of userStatusOffline for the owner'
         );
       } catch{
         // Timed out — the ladder below names the dying hop.
@@ -324,7 +324,7 @@ describeLive('B1 presence: a mutual contact going online/offline must be APPLIED
           actionStartMs: offlineActionStartMs,
           leg: 'OFFLINE leg',
           timeoutMs: presenceTimeoutMs,
-          headline: "in the real client this is the CEO's bug (the peer never changes online state)"
+          headline: 'in the real client this is the CEO\'s bug (the peer never changes online state)'
         });
         expect(offlineApplied, verdict).toBeDefined();
       }

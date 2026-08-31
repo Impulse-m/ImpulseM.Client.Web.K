@@ -224,7 +224,7 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
         return applied ? {status: applied.status, matchedAtMs: applied.atMs} : undefined;
       },
       presenceTimeoutMs,
-      "a 'user_update'-captured application of userStatusOnline for the owner on the fresh-login session"
+      'a \'user_update\'-captured application of userStatusOnline for the owner on the fresh-login session'
     ).catch((): undefined => undefined);
 
     console.log('[liveharness] fresh-login evidence:', JSON.stringify({
@@ -329,7 +329,7 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
     ).toBe(true);
   }, 60_000);
 
-  it("fact B: ConnectionStatus.Connected is FILED under 'NET-' + baseDcId — the missing reportImpulseConnected half of the bring-up trio", async() => {
+  it('fact B: ConnectionStatus.Connected is FILED under \'NET-\' + baseDcId — the missing reportImpulseConnected half of the bring-up trio', async() => {
     const {ConnectionStatus} = await import('@lib/mtproto/connectionStatus');
     const App = (await import('@config/app')).default;
 
@@ -352,8 +352,8 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
     expect(
       filed,
       `the fresh-login session never filed ConnectionStatus.Connected under '${statusKey}' — the ` +
-      "exact key ConnectionStatusComponent reads (connectionStatus.ts:101: connectionStatus['NET-' " +
-      "+ baseDcId]). reportImpulseConnected() runs only on apiManager.after()'s persisted-account " +
+      'exact key ConnectionStatusComponent reads (connectionStatus.ts:101: connectionStatus[\'NET-\' ' +
+      '+ baseDcId]). reportImpulseConnected() runs only on apiManager.after()\'s persisted-account ' +
       'branch; setUserAuth (fresh login) never calls it, so nothing ever dispatches ' +
       'connection_status_change for this session. In the real client the header sits on "Waiting ' +
       'for network..." for the life of the tab, hadConnect never arms, and a reconnect never runs ' +
@@ -481,7 +481,7 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
           return captured ? {status: captured.status, matchedAtMs: captured.atMs} : undefined;
         },
         presenceTimeoutMs,
-        "a 'user_update'-captured application of userStatusOffline for the owner on the reloaded session"
+        'a \'user_update\'-captured application of userStatusOffline for the owner on the reloaded session'
       );
     } catch{
       // Timed out — the ladder below names the dying hop.

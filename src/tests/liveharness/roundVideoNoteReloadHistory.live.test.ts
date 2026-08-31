@@ -8,6 +8,7 @@ import {isServerShapedId, UnhandledRejectionGuard} from './invariants';
 import {describeLive, liveLane} from './liveGate';
 import {bootLiveManagerStack, LiveStack} from './managerStack';
 import {ephemeralPersona} from './personas';
+import {waitUntil} from './wait';
 
 
 /*
@@ -33,33 +34,6 @@ function fixtureBytes(name: string): ArrayBuffer {
   const buffer = readFileSync(join(fixturesDirectory, name));
   return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
 }
-
-function waitUntil<T>(
-  probe: () => T | undefined,
-  timeoutMs: number,
-  what: string
-): Promise<T> {
-  const startedAt = Date.now();
-  return new Promise<T>((resolve, reject) => {
-    const tick = () => {
-      const value = probe();
-      if(value !== undefined) {
-        resolve(value);
-        return;
-      }
-
-      if(Date.now() - startedAt > timeoutMs) {
-        reject(new Error(`timed out after ${timeoutMs}ms waiting for ${what}`));
-        return;
-      }
-
-      setTimeout(tick, 250);
-    };
-
-    tick();
-  });
-}
-
 
 describeLive('B1 seed: a server-acked round video note must survive a client reload', () => {
   it('the reloaded manager stack finds every acked message — the round note above all — with its final mid and a server-shaped document id', async() => {

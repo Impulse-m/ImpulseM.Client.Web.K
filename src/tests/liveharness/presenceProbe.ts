@@ -131,7 +131,7 @@ export async function diagnosePresenceHop(args: {
   const envelopes = wire.publicationsOn(inboxChannel).filter((record) => record.receivedAtMs >= actionStartMs);
   if(!envelopes.length) {
     return prefix + 'ENVELOPE NOT ARRIVING — the subscription was acked before the action, yet no ' +
-      "publication reached the viewer's own websocket after account.updateStatus. The loss is " +
+      'publication reached the viewer\'s own websocket after account.updateStatus. The loss is ' +
       'upstream of the web client (server fan-out/audience or channel routing) despite the green ' +
       `C# server lane. Wire evidence: ${wire.describeWire(inboxChannel)}`;
   }
@@ -139,7 +139,7 @@ export async function diagnosePresenceHop(args: {
   const {matches, notes} = await decodePresenceEnvelopes(envelopes, ownerKey);
   if(!matches.length) {
     return prefix + `DECODE DROPPING — ${envelopes.length} publication(s) reached the socket after the ` +
-      "action, but the client's own decodeRealtimeEnvelope (realtime.ts, UpdatesSchema + protoToTL) " +
+      'action, but the client\'s own decodeRealtimeEnvelope (realtime.ts, UpdatesSchema + protoToTL) ' +
       `produced no updateUserStatus for the owner. Decode notes: ${notes.join(' | ') || 'none'}`;
   }
 
@@ -157,5 +157,5 @@ export async function diagnosePresenceHop(args: {
   return prefix + 'MANAGER NOT APPLYING — processUpdateMessage received ' +
     `updateUserStatus(${applied.map((d) => d.statusName).join(', ')}) yet appUsersManager reports ` +
     `status=${ownerInStore?.status?._ ?? '<none>'} (owner is ${ownerInStore ? 'present' : 'ABSENT'} in ` +
-    "the users storage — the updateUserStatus handler drops updates for users it does not know)";
+    'the users storage — the updateUserStatus handler drops updates for users it does not know)';
 }

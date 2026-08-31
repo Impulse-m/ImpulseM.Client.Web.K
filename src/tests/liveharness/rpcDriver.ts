@@ -1,0 +1,121 @@
+import {devStackTestCode, Persona} from './personas';
+
+
+/*
+ * A second, MINIMAL RPC session for two-party live scenarios.
+ *
+ * The manager stack is a per-process singleton graph (module-global session token, account
+ * slots, fake-indexeddb) — two full stacks cannot coexist in one vitest process. When a
+ * scenario needs a counterparty to ACT (send a message, flip online status) while the primary
+ * stack observes, the counterparty is driven through this driver: the same gateway, the same
+ * generated proto descriptors, the same TL<->proto conversion stages the production adapter
+ * runs (buildProtoInit -> create -> transport-serialize, protoToTL back), the same auth
+ * header shape the production transport sends (user-id + `authorization: Bearer`,
+ * grpc/transport.ts authInterceptor) — but its OWN transport and its OWN identity, touching
+ * none of the module-global session state the primary stack lives on.
+ *
+ * Graph discipline: every invoke re-imports its codecs dynamically, so the driver always
+ * speaks through the CURRENT module graph and survives the vi.resetModules a reboot performs.
+ * The identity (user id + session token) is plain data and carries across graphs, exactly
+ * like the persisted session of a real client.
+ */
+export type MinimalRpcSession = {
+  persona: Persona,
+  userId: string,
+  invoke(method: string, params?: any): Promise<any>
+};
+
+
+export async function openMinimalRpcSession(gatewayOrigin: string, persona: Persona): Promise<MinimalRpcSession> {
+  const identity: {userId?: string, sessionToken?: string} = {};
+
+  const invoke = async(method: string, params: any = {}): Promise<any> => {
+    const [{createClient}, {createGrpcWebTransport}, {create}, serviceMap, adapter] = await Promise.all([
+      import('@connectrpc/connect'),
+      import('@connectrpc/connect-web'),
+      import('@bufbuild/protobuf'),
+      import('@lib/impulse/grpc/serviceMap'),
+      import('@lib/impulse/grpc/adapter')
+    ]);
+
+    const mapping = serviceMap.getServiceAndMethod(method);
+    if(!mapping) {
+      throw new Error(`minimal RPC session: no gRPC mapping for ${method} — the gateway cannot serve it`);
+    }
+
+    const transport = createGrpcWebTransport({
+      baseUrl: gatewayOrigin,
+      interceptors: [(next) => async(request) => {
+        if(identity.userId) {
+          request.header.set('user-id', identity.userId);
+        }
+
+        if(identity.sessionToken) {
+          request.header.set('authorization', `Bearer ${identity.sessionToken}`);
+        }
+
+        return next(request);
+      }]
+    });
+
+    const client: any = createClient(mapping.service, transport);
+    const protoRequest = create(mapping.method.input, adapter.buildProtoInit(params, mapping.method.input));
+    const response = await client[mapping.method.localName](protoRequest);
+    return adapter.protoToTL(response, mapping.method.output);
+  };
+
+  // The same auth sequence the client's login page drives (see ./authFlow.ts), issued
+  // through this driver's own transport so the primary stack's identity stays untouched.
+  const app = (await import('@config/app')).default;
+
+  const sentCode = await invoke('auth.sendCode', {
+    phone_number: persona.phone,
+    api_id: app.id,
+    api_hash: app.hash,
+    settings: {_: 'codeSettings', pFlags: {}}
+  });
+
+  if(!sentCode?.phone_code_hash) {
+    throw new Error(
+      `minimal RPC session: auth.sendCode returned no phone_code_hash (got ${JSON.stringify(sentCode?._)}) — ` +
+      'is the dev stack up with Auth__Registration__UseTestCode=true?'
+    );
+  }
+
+  let auth = await invoke('auth.signIn', {
+    phone_number: persona.phone,
+    phone_code_hash: sentCode.phone_code_hash,
+    phone_code: devStackTestCode
+  });
+
+  if(auth?._ === 'auth.authorizationSignUpRequired') {
+    auth = await invoke('auth.signUp', {
+      phone_number: persona.phone,
+      phone_code_hash: sentCode.phone_code_hash,
+      first_name: persona.firstName,
+      last_name: persona.lastName
+    });
+  }
+
+  if(auth?._ !== 'auth.authorization') {
+    throw new Error(
+      `minimal RPC session: auth flow did not end in auth.authorization (got ${JSON.stringify(auth?._)})`
+    );
+  }
+
+  if(typeof auth.session_token !== 'string' || !auth.session_token) {
+    throw new Error(
+      'minimal RPC session: auth.authorization carried no session_token — every later call of this ' +
+      'driver would travel unauthenticated'
+    );
+  }
+
+  identity.userId = String(auth.user.id);
+  identity.sessionToken = auth.session_token;
+
+  return {
+    persona,
+    userId: identity.userId,
+    invoke
+  };
+}

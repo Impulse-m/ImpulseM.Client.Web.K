@@ -11,6 +11,9 @@ const PORT = 8099;
 
 export default defineConfig({
   testDir: './e2e',
+  // The live B2 lane (e2e/live) has its own config (playwright.live.config.ts) with an env
+  // gate and its own server; keep it out of the lottie run.
+  testIgnore: '**/live/**',
   fullyParallel: false,
   workers: 1, // one sticker on screen at a time keeps the screenshot detector unambiguous
   timeout: 60_000,

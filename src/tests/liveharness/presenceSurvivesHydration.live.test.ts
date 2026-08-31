@@ -128,7 +128,7 @@ function survivalVerdict(args: {
     'never "cleared"; Telegram ships update-rider hydrations as MIN users and neither reference ' +
     'client lets those touch a known status (tdlib UserManager::on_get_user applies status to an ' +
     'already-received user only from a non-min payload, .demo/tdlib/td/telegram/UserManager.cpp:' +
-    "3319-3321; this fork's own saveApiUser ignores min payloads for known users, " +
+    '3319-3321; this fork\'s own saveApiUser ignores min payloads for known users, ' +
     'appUsersManager.ts:598-600). The fix may land on either side — hydrate the real ' +
     'viewer-masked status (GetUsersQuery machinery), mark riders min, or stop deleting on ' +
     `absence — this assert pins only the user-visible invariant. Rider evidence: ` +
@@ -260,7 +260,7 @@ describeLive('B1 presence durability: an applied online status must survive a la
           return captured ?? undefined;
         },
         presenceTimeoutMs,
-        "a 'user_update'-captured application of userStatusOnline for the owner"
+        'a \'user_update\'-captured application of userStatusOnline for the owner'
       ).catch((): undefined => undefined);
 
       if(!onlineApplied) {
@@ -307,7 +307,7 @@ describeLive('B1 presence durability: an applied online status must survive a la
         },
         triggerTimeoutMs,
         'the push-borne users[] hydration of the contact-edge updateUser (owner mentioned) to ride ' +
-        "into the viewer's inbox after contacts.deleteContacts"
+        'into the viewer\'s inbox after contacts.deleteContacts'
       ).catch((): undefined => undefined);
       console.log('[liveharness] durability trigger (contact edge) evidence:', JSON.stringify({
         ridersB,

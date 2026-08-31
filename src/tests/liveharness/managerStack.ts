@@ -44,6 +44,17 @@ import {WireInvariants} from './invariants';
  * Run:  IMPULSE_LIVE_GATEWAY=http://localhost:5200 npx vitest run src/tests/liveharness
  * (endpoint discipline documented in ./liveGate.ts).
  */
+export type BootOptions = {
+  /**
+   * Runs synchronously right after installNodeEnv() and before ANY src module of the new
+   * graph loads. installNodeEnv OVERWRITES global shims (WebSocket included) on every boot,
+   * so this hook is the only race-free spot to wrap a global for wire observation
+   * (RealtimeWireObserver) — installing after boot returns would race the realtime spin-up
+   * that after() kicks off during createManagers.
+   */
+  afterEnvInstalled?: () => void
+};
+
 export type LiveStack = {
   managers: any,
   accountNumber: 1,
@@ -61,7 +72,7 @@ export type LiveStack = {
 };
 
 
-export async function bootLiveManagerStack(gatewayOrigin: string): Promise<LiveStack> {
+export async function bootLiveManagerStack(gatewayOrigin: string, options?: BootOptions): Promise<LiveStack> {
   // A boot IS a page load: fresh module graph over the same persisted client state.
   vi.resetModules();
 
@@ -71,6 +82,7 @@ export async function bootLiveManagerStack(gatewayOrigin: string): Promise<LiveS
 
   const {installNodeEnv} = await import('../api/nodeEnv');
   installNodeEnv();
+  options?.afterEnvInstalled?.();
 
   await import('@lib/polyfill');
   await import('@helpers/peerIdPolyfill');
