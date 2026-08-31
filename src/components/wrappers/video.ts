@@ -3,6 +3,7 @@ import {IS_H265_SUPPORTED} from '@environment/videoSupport';
 import {animateSingle} from '@helpers/animation';
 import deferredPromise, {CancellablePromise} from '@helpers/cancellablePromise';
 import cancelEvent from '@helpers/dom/cancelEvent';
+import {getLogger} from '@lib/impulseLogger';
 import {attachClickEvent} from '@helpers/dom/clickEvent';
 import createVideo from '@helpers/dom/createVideo';
 import handleVideoLeak from '@helpers/dom/handleVideoLeak';
@@ -51,6 +52,7 @@ import {ChatAutoDownloadSettings} from '@hooks/useAutoDownloadSettings';
 const MAX_VIDEO_AUTOPLAY_SIZE = 50 * 1024 * 1024; // 50 MB
 export const USE_VIDEO_OBSERVER = false;
 
+const roundLog = getLogger('ROUND-TAP');
 const roundVideoProgressRingResizers = new Set<() => void>();
 mediaSizes.addEventListener('changeScreen', (from, to) => {
   if(to === ScreenSize.mobile || from === ScreenSize.mobile) {
@@ -213,6 +215,12 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
     (divRound as any).message = message;
     // The listener must exist before the deferred playback media is wired after the server ack.
     const playbackTap = attachRoundPlaybackTap(divRound);
+    roundLog.info('bubble built', {
+      mid: message.mid,
+      isOutgoing: !!message.pFlags?.is_outgoing,
+      docType: doc.type,
+      supportsStreaming: !!doc.supportsStreaming
+    });
     middleware.onClean(playbackTap.destroy);
 
     const strokeWidth = 3.5;
@@ -263,6 +271,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
 
     const onLoad = () => {
       const message: Message.message = (divRound as any).message;
+      roundLog.info('onLoad', {mid: message?.mid, isOutgoing: !!message?.pFlags?.is_outgoing});
       const globalVideo = appMediaPlaybackController.addMedia({
         message,
         autoload: !noAutoDownload,
@@ -359,6 +368,17 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
 
       playbackTap.arm((e) => {
         cancelEvent(e);
+        roundLog.info('toggle', {
+          mid: message.mid,
+          paused: globalVideo.paused,
+          readyState: globalVideo.readyState,
+          networkState: globalVideo.networkState,
+          currentTime: globalVideo.currentTime,
+          srcKind: (globalVideo.currentSrc || globalVideo.src || '').startsWith('blob:') ? 'blob' :
+            (globalVideo.currentSrc || globalVideo.src || '').includes('/stream/') ? 'stream' :
+            (globalVideo.currentSrc || globalVideo.src) ? 'other' : 'none',
+          error: globalVideo.error?.code
+        });
 
         // ! костыль
         if(preloader && !preloader.detached) {
@@ -382,6 +402,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
           }
 
           safePlay(globalVideo);
+          roundLog.info('play requested', {mid: message.mid});
         } else {
           globalVideo.pause();
         }
