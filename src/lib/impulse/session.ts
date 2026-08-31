@@ -239,7 +239,27 @@ export async function restoreImpulseSession(accountNumber: ActiveAccountNumber):
     }
 
     if(!data.impulse_session_token) {
-      throw new ImpulseSessionRestoreError('Stored account has no Impulse session token');
+      // Not a failure: this is what being signed out looks like from storage. The 401 policy
+      // clears the token and leaves the account record behind, so a single backend blip used to
+      // land here -- and throwing rejected the shared gate, which every boot consumer awaits.
+      // getLangPack died with it and the app never reached a screen the user could act on, so a
+      // transient outage turned into a permanently blank tab that only clearing site data fixed.
+      //
+      // A slot that holds no usable session cannot claim the gate, exactly like an empty one, and
+      // for the same reason: there is no token for anyone to wait for. Reporting in lets the gate
+      // open once every slot has, which is the path a browser with no stored account already
+      // takes -- and that path ends on the sign-in screen.
+      emptySlots.add(accountNumber);
+      if(emptySlots.size >= MAX_ACCOUNTS) {
+        settleSessionReady();
+      }
+
+      logger.info('Session slot is signed out: stored account carries no session token', {
+        accountNumber,
+        hasUserId: true,
+        hasRefreshToken: Boolean(data.impulse_refresh_token)
+      });
+      return;
     }
 
     await setImpulseAccount(accountNumber);
