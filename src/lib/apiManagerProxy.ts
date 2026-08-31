@@ -832,6 +832,7 @@ class ApiManagerProxy extends MTProtoMessagePort {
       });
 
       this.attachServiceWorker(controller);
+      this.invokeVoid('serviceWorkerOnline', true);
 
       if(import.meta.env.VITE_MTPROTO_SW) {
         this.onWorkerFirstMessage(controller);

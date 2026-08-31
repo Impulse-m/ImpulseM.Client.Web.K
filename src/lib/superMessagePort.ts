@@ -672,13 +672,20 @@ class SuperMessagePort<
         throw new Error('no listener');
       }
 
+      if(innerTask.void) {
+        // Notifications have no result owner, so the first-listener rule must not drop later subscribers.
+        for(const listener of listeners) {
+          // @ts-ignore
+          this.invokeListenerCallback(innerTask.type, listener, innerTask.payload, source, event);
+        }
+
+        return;
+      }
+
       const listener = listeners.values().next().value;
 
       // @ts-ignore
       let result = this.invokeListenerCallback(innerTask.type, listener, innerTask.payload, source, event);
-      if(innerTask.void) {
-        return;
-      }
 
       isPromise = result instanceof Promise;
 

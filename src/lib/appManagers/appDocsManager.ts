@@ -42,6 +42,10 @@ type FixedChromiumMp4CacheEntry = {
   url?: string
 };
 
+function canDocumentStream(doc: MyDocument) {
+  return (doc.type === 'gif' && doc.size > 8e6) || doc.type === 'audio' || doc.type === 'video';
+}
+
 // let TEST_FILE_REFERENCE = '5436366378309293244', TEST_FILE_REFERENCE_TIMES = 3;
 
 export class AppDocsManager extends AppManager {
@@ -81,16 +85,29 @@ export class AppDocsManager extends AppManager {
     this.altDocsByMainMediaDocument = {};
 
     MTProtoMessagePort.getInstance<false>().addEventListener('serviceWorkerOnline', (online) => {
-      if(!online) {
-        this.onServiceWorkerFail();
-      }
+      // The optimistic boot-time flag can classify documents before registration reports the real state.
+      this.reclassifyStreamingDocuments();
+      this.appMessagesManager?.mirrorAllMessages();
     });
   }
 
-  private onServiceWorkerFail = () => {
+  private reclassifyStreamingDocuments = () => {
     for(const id in this.docs) {
       const doc = this.docs[id];
 
+      if(appManagersManager.isServiceWorkerOnline && canDocumentStream(doc)) {
+        doc.supportsStreaming = true;
+
+        const cacheContext = this.thumbsStorage.getCacheContext(doc);
+        if(!cacheContext.url) {
+          this.thumbsStorage.setCacheContextURL(doc, undefined, getDocumentURL(doc), 0);
+        }
+
+        continue;
+      }
+
+      // Without a worker the stream URL addresses a lane nobody serves, and an element handed one
+      // gets the dev server's page instead of the video, so the context goes with the flag.
       if(doc.supportsStreaming) {
         delete doc.supportsStreaming;
         this.thumbsStorage.deleteCacheContext(doc);
@@ -282,14 +299,7 @@ export class AppDocsManager extends AppManager {
       doc.file_name = `${doc.type}_${date}${ext ? '.' + ext : ''}`;
     }
 
-    if(
-      appManagersManager.isServiceWorkerOnline &&
-      (
-        (doc.type === 'gif' && doc.size > 8e6) ||
-        doc.type === 'audio' ||
-        doc.type === 'video'
-      )/*  || doc.mime_type.indexOf('video/') === 0 */
-    ) {
+    if(appManagersManager.isServiceWorkerOnline && canDocumentStream(doc)/*  || doc.mime_type.indexOf('video/') === 0 */) {
       doc.supportsStreaming = true;
 
       const cacheContext = this.thumbsStorage.getCacheContext(doc);
