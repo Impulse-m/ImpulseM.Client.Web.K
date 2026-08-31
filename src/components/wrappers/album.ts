@@ -110,6 +110,7 @@ export default function wrapAlbum({messages, media, attachmentDiv, middleware, u
         loadPromises,
         autoDownload,
         managers,
+        photoSize: choosePhotoSize(media, 480, 480),
         noAutoplayAttribute: true,
         uploadingFileName: uploadingFileName?.[idx]
       });
