@@ -79,8 +79,22 @@ export class PersonaSession {
   }
 
 
-  public static async open(browser: Browser, persona: Persona): Promise<PersonaSession> {
-    const context = await browser.newContext();
+  /**
+   * `blockServiceWorkers` opens the context with service workers blocked — a browser state
+   * the client must survive (first load before SW activation, private windows, a failed SW
+   * update). Without a service worker appDocsManager marks every video
+   * supportsStreaming=false (appDocsManager.ts:286), so playback takes the worker-minted
+   * BLOB URL lane — the exact lane behind the board's {sourceKind: "blob"} failure record,
+   * unreachable in this harness while the /stream/ lane is available.
+   */
+  public static async open(
+    browser: Browser,
+    persona: Persona,
+    options: {blockServiceWorkers?: boolean} = {}
+  ): Promise<PersonaSession> {
+    const context = await browser.newContext(
+      options.blockServiceWorkers ? {serviceWorkers: 'block'} : {}
+    );
     const page = await context.newPage();
     const consoleClean = await ConsoleCleanInvariant.attach(page, persona.firstName);
     const session = new PersonaSession(persona, context, page, consoleClean);
@@ -395,9 +409,14 @@ export class PersonaSession {
    * currentTime advancing past zero with readyState beyond HAVE_CURRENT_DATA. A red names
    * the lane that broke (no source / src refused / decode error / no play() call) from the
    * page-wide media instrumentation, plus the console around the click.
+   *
+   * `age` picks which video bubble the user clicks: 'newest' is the freshest exchange (the
+   * default), 'oldest' is the rewatch journey — the board's failing gesture is opening a
+   * video it had already seen, after newer media went through the session.
    */
-  public async playVideoFromBubble(side: string): Promise<void> {
-    const bubble = this.page.locator('.bubble[data-mid]', {has: this.page.locator('.video-time')}).last();
+  public async playVideoFromBubble(side: string, age: 'newest' | 'oldest' = 'newest'): Promise<void> {
+    const bubbles = this.page.locator('.bubble[data-mid]', {has: this.page.locator('.video-time')});
+    const bubble = age === 'oldest' ? bubbles.first() : bubbles.last();
     await bubble.waitFor({state: 'visible', timeout: 60_000});
 
     // Click the media CONTAINER, not a leaf: an inline-autoplaying <video> sits on top of
@@ -406,14 +425,33 @@ export class PersonaSession {
     // Playwright accepts a hit on a descendant of the clicked element.
     const clickTarget = bubble.locator('.attachment, .bubble__media-container').first();
     const clickAt = Date.now();
-    await clickTarget.click({timeout: 30_000}).catch(async(error: Error) => {
-      const diagnostics = await captureMediaDiagnostics(this.page);
-      throw new Error(
-        `the video bubble on the ${side} side could not even be clicked: ${error.message}\n` +
-        describePlaybackFailure(diagnostics, []) + '\n' +
-        `console around the click attempt:\n${this.formatConsoleTrailSince(clickAt - 2_000)}`
-      );
-    });
+    const clickBubble = async() => {
+      await clickTarget.click({timeout: 30_000}).catch(async(error: Error) => {
+        const diagnostics = await captureMediaDiagnostics(this.page);
+        throw new Error(
+          `the video bubble on the ${side} side could not even be clicked: ${error.message}\n` +
+          describePlaybackFailure(diagnostics, []) + '\n' +
+          `console around the click attempt:\n${this.formatConsoleTrailSince(clickAt - 2_000)}`
+        );
+      });
+    };
+
+    await clickBubble();
+
+    // Observed live (viewerRewatch run #1): a click landing ~120ms after the bubble renders —
+    // inside the render's heavy-animation window — is silently dropped: no viewer, no toast,
+    // no play() call. A human in that situation clicks again, so the scenario retries ONCE,
+    // waiting for the viewer element (the click's own success signal) before deciding; the
+    // playback assertion below stays the sole judge of the lane under test.
+    const viewerAppeared = await this.page
+      .waitForFunction(() => {
+        return !!document.querySelector<HTMLVideoElement>('.media-viewer-whole video');
+      }, undefined, {timeout: 10_000})
+      .then(() => true)
+      .catch(() => false);
+    if(!viewerAppeared) {
+      await clickBubble();
+    }
 
     await this.page.waitForFunction(() => {
       const viewerVideo = document.querySelector<HTMLVideoElement>('.media-viewer-whole video');
@@ -431,6 +469,19 @@ export class PersonaSession {
         describePlaybackFailure(diagnostics, relevant) + '\n' +
         `console around the click:\n${this.formatConsoleTrailSince(clickAt - 2_000)}`
       );
+    });
+  }
+
+
+  /**
+   * The src the media viewer's video element is actually playing from — for scenarios that
+   * must assert WHICH lane (blob vs /stream/) carried the playback, so a lane-specific test
+   * cannot silently go green on the other lane.
+   */
+  public async viewerVideoSrc(): Promise<string> {
+    return this.page.evaluate(() => {
+      const video = document.querySelector<HTMLVideoElement>('.media-viewer-whole video');
+      return video ? (video.currentSrc || video.getAttribute('src') || '') : '';
     });
   }
 
@@ -456,6 +507,20 @@ export class PersonaSession {
       .locator('.bubble[data-mid]:not(.is-outgoing):not(.is-sending)', {has: this.page.locator('.video-time')})
       .last()
       .waitFor({state: 'visible', timeout: 90_000});
+  }
+
+
+  /**
+   * Waits until at least `count` settled incoming videos are rendered — the single-bubble
+   * variant above returns as soon as ANY incoming video is visible, which is useless after a
+   * second send: the first video already satisfies it while the new one is still in flight.
+   */
+  public async waitForIncomingVideoCount(count: number): Promise<void> {
+    await this.page.waitForFunction((expected) => {
+      return document.querySelectorAll(
+        '.bubble[data-mid]:not(.is-outgoing):not(.is-sending) .video-time'
+      ).length >= expected;
+    }, count, {timeout: 90_000});
   }
 
 

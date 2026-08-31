@@ -15,7 +15,14 @@ import {Page} from '@playwright/test';
  *   - every media 'error' event, with the MediaError code/message and network/ready state;
  *   - the live state of every media element (DOM ones plus any detached element that was
  *     ever play()ed — appMediaPlaybackController's global media lives outside the DOM);
- *   - whether a service worker is controlling the page (the /stream/ URL lane depends on it).
+ *   - whether a service worker is controlling the page (the /stream/ URL lane depends on it);
+ *   - a fetch() probe of every element's src, run in page context at capture time: for the
+ *     board's exact signature (code 4, blob src, NETWORK_NO_SOURCE) the probe alone separates
+ *     a REVOKED blob URL (fetch rejects) from content the browser refuses to decode (fetch
+ *     resolves, and the blob's size and type say what the element was actually given);
+ *   - the media viewer's own 'video failed to play' failure records (mediaViewer/base.ts logs
+ *     them through console.error), captured structurally — the console text stream renders
+ *     the record object as an opaque handle, so the init script keeps the JSON.
  */
 export type MediaPlayCall = {
   elementId: number,
@@ -58,10 +65,21 @@ export type MediaElementState = {
   playCallCount: number
 };
 
+export type MediaSourceProbe = {
+  src: string,
+  fetchResolved: boolean,
+  status: number,
+  blobSize: number,
+  blobType: string,
+  fetchError: string
+};
+
 export type MediaDiagnostics = {
   playCalls: MediaPlayCall[],
   mediaErrors: MediaErrorEvent[],
   elements: MediaElementState[],
+  sourceProbes: MediaSourceProbe[],
+  viewerFailureRecords: string[],
   serviceWorkerControlling: boolean,
   serviceWorkerScriptUrl: string,
   serviceWorkerState: string,
@@ -79,9 +97,34 @@ export async function installMediaDiagnostics(page: Page): Promise<void> {
       playCalls: [] as any[],
       mediaErrors: [] as any[],
       trackedElements: [] as HTMLMediaElement[],
+      viewerFailureRecords: [] as string[],
       nextElementId: 1
     };
     (window as any).__impulseMediaDiag = diag;
+
+    // The media viewer logs its failure record ('video failed to play', {code, sourceKind,
+    // networkState, readyState}) through console.error. Playwright's console text stream
+    // renders the record object as an opaque handle, so keep the JSON here.
+    const originalConsoleError = console.error;
+    console.error = function(...args: any[]) {
+      try {
+        if(args.some((arg) => typeof arg === 'string' && arg.includes('video failed to play'))) {
+          diag.viewerFailureRecords.push(args.map((arg) => {
+            if(typeof arg === 'object' && arg !== null) {
+              try {
+                return JSON.stringify(arg);
+              } catch(ignored) {
+                return String(arg);
+              }
+            }
+            return String(arg);
+          }).join(' '));
+        }
+      } catch(ignored) {
+        // diagnostics must never break the page's own logging
+      }
+      return originalConsoleError.apply(this, args);
+    };
 
     const idOf = (element: any): number => {
       if(!element.__impulseMediaId) {
@@ -180,6 +223,33 @@ export async function captureMediaDiagnostics(page: Page): Promise<MediaDiagnost
       };
     });
 
+    // Probe every distinct src the elements carry, from the page itself: a blob: URL whose
+    // fetch rejects is REVOKED; one whose fetch resolves is alive, and its size/type say
+    // whether the element was given real video bytes the browser then refused to decode.
+    const distinctSrcs = [...new Set(
+      all
+        .map((element) => element.currentSrc || element.getAttribute('src') || '')
+        .filter((src) => !!src)
+    )];
+    const sourceProbes = [];
+    for(const src of distinctSrcs) {
+      const probe = {src, fetchResolved: false, status: 0, blobSize: 0, blobType: '', fetchError: ''};
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort('media source probe timed out after 5s'), 5_000);
+        const response = await fetch(src, {signal: controller.signal});
+        probe.fetchResolved = true;
+        probe.status = response.status;
+        const blob = await response.blob();
+        clearTimeout(timer);
+        probe.blobSize = blob.size;
+        probe.blobType = blob.type;
+      } catch(error) {
+        probe.fetchError = error instanceof Error ? error.message : String(error);
+      }
+      sourceProbes.push(probe);
+    }
+
     const registration = await navigator.serviceWorker?.getRegistration?.().catch((): undefined => undefined);
     const worker = navigator.serviceWorker?.controller ?? registration?.active ?? undefined;
 
@@ -187,6 +257,8 @@ export async function captureMediaDiagnostics(page: Page): Promise<MediaDiagnost
       playCalls: diag.playCalls,
       mediaErrors: diag.mediaErrors,
       elements,
+      sourceProbes,
+      viewerFailureRecords: (diag.viewerFailureRecords ?? []) as string[],
       serviceWorkerControlling: !!navigator.serviceWorker?.controller,
       serviceWorkerScriptUrl: worker?.scriptURL ?? '',
       serviceWorkerState: worker?.state ?? 'none',
@@ -245,6 +317,23 @@ export function describePlaybackFailure(diagnostics: MediaDiagnostics, relevant:
     `state=${diagnostics.serviceWorkerState}, script=${diagnostics.serviceWorkerScriptUrl || 'none'}, ` +
     `apiManagerProxy.isServiceWorkerOnline=${String(diagnostics.apiManagerProxySwOnline)}`;
 
+  const probeVerdict = (src: string): string => {
+    const probe = diagnostics.sourceProbes.find((candidate) => candidate.src === src);
+    if(!probe) {
+      return '';
+    }
+
+    if(probe.fetchResolved) {
+      return ` — yet fetch(src) from the page still resolves (status=${probe.status}, ` +
+        `${probe.blobSize} bytes, type="${probe.blobType}"): the URL is alive and readable, ` +
+        'so the refusal is about the CONTENT (a container/codec this browser will not play), ' +
+        'not a revoked blob';
+    }
+
+    return ` — and fetch(src) from the page rejects ("${probe.fetchError}"): the URL itself ` +
+      'is dead — for a blob: src that means a REVOKED object URL was handed to the element';
+  };
+
   const classify = (state: MediaElementState): string => {
     const src = state.currentSrc || state.srcAttribute;
     if(state.playCallCount === 0 && state.paused) {
@@ -254,7 +343,7 @@ export function describePlaybackFailure(diagnostics: MediaDiagnostics, relevant:
       return 'no source: the element never received a src';
     }
     if(state.errorCode === 4 || (state.errorCode === 0 && state.networkState === 3)) {
-      return `the src was refused (${state.errorCode === 4 ? 'MEDIA_ERR_SRC_NOT_SUPPORTED' : 'NETWORK_NO_SOURCE'}) — ${describeSrcLane(src)}`;
+      return `the src was refused (${state.errorCode === 4 ? 'MEDIA_ERR_SRC_NOT_SUPPORTED' : 'NETWORK_NO_SOURCE'}) — ${describeSrcLane(src)}${probeVerdict(src)}`;
     }
     if(state.errorCode === 2) {
       return `network error while fetching ${describeSrcLane(src)}`;
@@ -286,6 +375,23 @@ export function describePlaybackFailure(diagnostics: MediaDiagnostics, relevant:
   lines.push('media elements:');
   for(const state of diagnostics.elements) {
     lines.push(`  ${describeElement(state)}`);
+  }
+  lines.push('source probes (fetch(src) from the page):');
+  if(diagnostics.sourceProbes.length === 0) {
+    lines.push('  (no element carried a src to probe)');
+  }
+  for(const probe of diagnostics.sourceProbes) {
+    lines.push(probe.fetchResolved ?
+      `  ${probe.src} -> RESOLVED status=${probe.status}, ${probe.blobSize} bytes, type="${probe.blobType}"` :
+      `  ${probe.src} -> REJECTED ("${probe.fetchError}")`
+    );
+  }
+  lines.push('media viewer failure records (its own \'video failed to play\' log):');
+  if(diagnostics.viewerFailureRecords.length === 0) {
+    lines.push('  (the viewer logged no failure record)');
+  }
+  for(const record of diagnostics.viewerFailureRecords) {
+    lines.push(`  ${record}`);
   }
   lines.push(`play() calls: ${JSON.stringify(diagnostics.playCalls)}`);
   lines.push(`media error events: ${JSON.stringify(diagnostics.mediaErrors)}`);
