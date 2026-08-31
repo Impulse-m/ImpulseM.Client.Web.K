@@ -2235,7 +2235,7 @@ export default class ChatBubbles {
     const {peerId} = this;
     const wasLikeGroup = this.chat.isLikeGroup;
     this.chat.isLikeGroup = await this.chat._isLikeGroup(peerId);
-    const finishPeerChange = wasLikeGroup !== this.chat.isLikeGroup &&  await this.finishPeerChange();
+    const finishPeerChange: (() => void) | undefined = wasLikeGroup !== this.chat.isLikeGroup ? await this.finishPeerChange() : undefined;
 
     // * filter local and outgoing
     const fullMids = this.getRenderedHistory('desc', true);
@@ -10894,8 +10894,12 @@ export default class ChatBubbles {
 
       const middleware = this.getMiddleware();
 
+      const greetingStickerPromise: Promise<MyDocument | undefined> = this.managers.appStickersManager.getGreetingSticker().catch((error: unknown): MyDocument | undefined => {
+        if(error === 'NO_STICKERS') return undefined;
+        throw error;
+      });
       const promises = Promise.all([
-        this.managers.appStickersManager.getGreetingSticker(),
+        greetingStickerPromise,
         this.managers.appProfileManager.getProfile(message.peerId.toUserId())
       ]);
       await promises.then(async([doc, userFull]) => {
@@ -10939,28 +10943,30 @@ export default class ChatBubbles {
           bubble.classList.add('wider');
         }
 
-        const loadPromises: Promise<any>[] = [];
-        await wrapSticker({
-          doc,
-          // doc: appDocsManager.getDoc("5431607541660389336"), // cubigator mockup
-          div: stickerDiv,
-          middleware,
-          lazyLoadQueue: this.lazyLoadQueue,
-          group: this.chat.animationGroup,
-          // play: !!message.pending || !multipleRender,
-          play: true,
-          loop: true,
-          withThumb: true,
-          loadPromises,
-          liteModeKey: 'stickers_chat'
-        });
+        if(doc) {
+          const loadPromises: Promise<any>[] = [];
+          await wrapSticker({
+            doc,
+            // doc: appDocsManager.getDoc("5431607541660389336"), // cubigator mockup
+            div: stickerDiv,
+            middleware,
+            lazyLoadQueue: this.lazyLoadQueue,
+            group: this.chat.animationGroup,
+            // play: !!message.pending || !multipleRender,
+            play: true,
+            loop: true,
+            withThumb: true,
+            loadPromises,
+            liteModeKey: 'stickers_chat'
+          });
 
-        attachClickEvent(stickerDiv, (e) => {
-          cancelEvent(e);
-          this.chat.input.emoticonsDropdown.onMediaClick({target: e.target}, undefined, undefined, true);
-        });
+          attachClickEvent(stickerDiv, (e) => {
+            cancelEvent(e);
+            this.chat.input.emoticonsDropdown.onMediaClick({target: e.target}, undefined, undefined, true);
+          });
 
-        return Promise.all(loadPromises);
+          return Promise.all(loadPromises);
+        }
       });
 
       // this.renderMessagesQueue({
@@ -10972,7 +10978,10 @@ export default class ChatBubbles {
 
       subtitle.classList.add('center', BASE_CLASS + '-subtitle');
 
-      elements.push(subtitle, stickerDiv);
+      elements.push(subtitle);
+      if(stickerDiv.childNodes.length) {
+        elements.push(stickerDiv);
+      }
     } else if(type === 'premiumRequired') {
       const stickerDiv = document.createElement('div');
       stickerDiv.classList.add(BASE_CLASS + '-sticker');
