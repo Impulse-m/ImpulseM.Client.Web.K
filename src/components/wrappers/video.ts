@@ -401,8 +401,17 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
             appMediaPlaybackController.setTargets({peerId: message.peerId, mid: message.mid}, prev, next);
           }
 
-          safePlay(globalVideo);
-          roundLog.info('play requested', {mid: message.mid});
+          // safePlay swallows the rejection, and a refused play is the one outcome that looks
+          // exactly like a dead circle: the element is ready, paused, and nothing says why.
+          const playAttempt = globalVideo.play();
+          if(playAttempt instanceof Promise) {
+            playAttempt.then(
+              () => roundLog.info('play started', {mid: message.mid, currentTime: globalVideo.currentTime}),
+              (reason: unknown) => roundLog.error('play refused', {mid: message.mid}, reason)
+            );
+          } else {
+            roundLog.info('play requested (sync)', {mid: message.mid});
+          }
         } else {
           globalVideo.pause();
         }
