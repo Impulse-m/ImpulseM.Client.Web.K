@@ -5,6 +5,8 @@ import {getAppWindow, onAppWindowChange} from '@helpers/appWindow';
 
 const FOCUS_EVENT_NAME = IS_TOUCH_SUPPORTED ? 'touchstart' : 'mousemove';
 const DO_NOT_IDLE = IS_PREVIEW; // the preview window is never focused — don't let it look idle
+// Default documented by the server config constructor; used until config is available.
+const OFFLINE_BLUR_TIMEOUT_MS = 5e3;
 
 export class IdleController extends EventListenerBase<{
   change: (idle: boolean) => void
@@ -15,10 +17,18 @@ export class IdleController extends EventListenerBase<{
   private focusResolve: () => void;
 
   private boundWindow: Window;
+  private offlineBlurTimeout = OFFLINE_BLUR_TIMEOUT_MS;
+  private offlineBlurTimeoutId: number;
   private onBlur = () => {
-    this.isIdle = true;
+    clearTimeout(this.offlineBlurTimeoutId);
+    this.offlineBlurTimeoutId = window.setTimeout(() => {
+      this.offlineBlurTimeoutId = undefined;
+      this.isIdle = true;
+    }, this.offlineBlurTimeout);
   };
   private onActive = () => {
+    clearTimeout(this.offlineBlurTimeoutId);
+    this.offlineBlurTimeoutId = undefined;
     this.isIdle = false;
   };
 
@@ -64,12 +74,24 @@ export class IdleController extends EventListenerBase<{
     // Moving the app INTO a window (PiP pop-in/out) is itself active use of that window — wake up so
     // animations keep playing even though the window we left has just blurred.
     if(isSwitch) {
-      this.isIdle = false;
+      this.onActive();
     }
   }
 
   public getFocusPromise() {
     return this.focusPromise;
+  }
+
+  // Guarded rather than assigned: an absent offline_blur_timeout_ms arrives as undefined and a
+  // server that has not set one sends 0, and setTimeout treats both as "fire now" — which is the
+  // instant-offline bug this delay exists to remove, silently restored by the very config meant to
+  // configure it. Absence keeps the documented default instead of being read as zero.
+  public setOfflineBlurTimeout(timeout: number) {
+    if(!Number.isFinite(timeout) || timeout <= 0) {
+      return;
+    }
+
+    this.offlineBlurTimeout = timeout;
   }
 
   public get isIdle() {

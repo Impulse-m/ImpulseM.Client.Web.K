@@ -284,6 +284,9 @@ export class AppImManager extends EventListenerBase<{
 
   public construct(managers: AppManagers) {
     this.managers = managers;
+    managers.apiManager.getConfig().then((config) => {
+      idleController.setOfflineBlurTimeout(config.offline_blur_timeout_ms);
+    });
     internalLinkProcessor.construct(managers);
 
     uiNotificationsManager.constructAndStartAll();
