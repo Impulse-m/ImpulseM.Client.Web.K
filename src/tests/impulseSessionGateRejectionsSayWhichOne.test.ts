@@ -61,7 +61,7 @@ function testFilesUnder(root: string): string[] {
   let entries: Dirent[];
   try {
     entries = readdirSync(root, {withFileTypes: true});
-  } catch {
+  } catch(_) {
     // A root that does not exist yet is not a finding; an empty sweep overall is, below.
     return [];
   }
