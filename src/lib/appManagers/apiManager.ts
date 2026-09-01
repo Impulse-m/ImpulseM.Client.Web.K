@@ -49,6 +49,7 @@ import {MTAuthKey} from '@lib/mtproto/authKey';
  */
 import globalRootScope from '@lib/rootScope';
 import RepayRequestHandler from '@appManagers/utils/repayRequestHandler';
+import {isNotModifiedError, makeApiNotModified} from '@appManagers/utils/apiNotModified';
 
 const PREMIUM_FILE_NETWORKERS_COUNT = 6;
 const REGULAR_FILE_NETWORKERS_COUNT = 3;
@@ -740,6 +741,11 @@ export class ApiManager extends ApiManagerMethods {
         this.logOut();
       }
 
+      if(isNotModifiedError(error)) {
+        error.handled = true;
+        return makeApiNotModified(error);
+      }
+
       if(options.ignoreErrors) {
         throw error;
       }
@@ -778,7 +784,10 @@ export class ApiManager extends ApiManagerMethods {
       grpcInvoke(method, params).then(
         (result) => deferred.resolve(result),
         (error: ApiError) => {
-          rejectPromise(error).catch((finalError: ApiError) => deferred.reject(finalError));
+          rejectPromise(error).then(
+            (result) => deferred.resolve(result as MethodDeclMap[T]['res']),
+            (finalError: ApiError) => deferred.reject(finalError)
+          );
         }
       );
 
@@ -928,8 +937,8 @@ export class ApiManager extends ApiManagerMethods {
       cachedNetworker.attachPromise(deferred, options as MTMessage);
       return promise;
     })
+    .then((result) => result, rejectPromise)
     .then(deferred.resolve.bind(deferred))
-    .catch(rejectPromise)
     .catch(deferred.reject.bind(deferred));
 
     return deferred;

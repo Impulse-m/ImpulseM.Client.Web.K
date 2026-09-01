@@ -23,6 +23,7 @@ import callbackify from '@helpers/callbackify';
 import {SlicedCachedFetcher} from '@appManagers/utils/chats/slicedCachedFetcher';
 import {CHAT_LEGACY_ADMIN_RIGHTS} from '@lib/appManagers/utils/chats/constants';
 import {getStickerSetInputById} from '@lib/appManagers/utils/stickers/getStickerSetInput';
+import {isApiNotModified} from '@appManagers/utils/apiNotModified';
 
 export type Channel = Chat.channel;
 export type ChatPhotoUpload = {
@@ -936,7 +937,13 @@ export class AppChatsManager extends AppManager {
       });
     }
 
-    return promise.then(this.onChatUpdated.bind(this, id));
+    return promise.then((updates: Updates) => {
+      if(isApiNotModified(updates)) {
+        return;
+      }
+
+      this.onChatUpdated(id, updates);
+    });
   }
 
   public editAbout(id: ChatId, about: string) {

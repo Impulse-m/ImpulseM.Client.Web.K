@@ -25,6 +25,7 @@ import shake from '@helpers/dom/shake';
 import {purchaseUsernameCaption} from '@components/sidebarLeft/tabs/purchaseUsernameCaption';
 import {ConnectedBot, User, UserFull} from '@layer';
 import {trackAvatarUpload} from '@stores/avatarUpload';
+import {absorbApiNotModified} from '@appManagers/utils/apiNotModified';
 
 type AppEditProfileTabType = typeof AppEditProfileTab;
 
@@ -275,7 +276,9 @@ const EditProfileForm = (props: {
     }
 
     if(usernameInputField.isValidToChange()) {
-      promises.push(tab.managers.appUsersManager.updateUsername(usernameInputField.value));
+      promises.push(absorbApiNotModified(
+        tab.managers.appUsersManager.updateUsername(usernameInputField.value)
+      ));
     }
 
     if(isPersonalChannelChanged()) {

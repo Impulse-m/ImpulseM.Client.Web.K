@@ -27,6 +27,7 @@ import callbackify from '@helpers/callbackify';
 import {NULL_PEER_ID, TEST_NO_STORIES} from '@appManagers/constants';
 import MTProtoMessagePort from '@lib/mainWorker/mainMessagePort';
 import pause from '@helpers/schedulers/pause';
+import {isApiNotModified} from '@appManagers/utils/apiNotModified';
 
 export type User = MTUser.user;
 export type TopPeerType = 'correspondents' | 'bots_inline' | 'bots_app' | 'bots_guestchat';
@@ -1172,6 +1173,10 @@ export class AppUsersManager extends AppManager {
     return this.apiManager.invokeApi('account.updateUsername', {
       username
     }).then((user) => {
+      if(isApiNotModified(user)) {
+        return;
+      }
+
       this.saveApiUser(user);
     });
   }

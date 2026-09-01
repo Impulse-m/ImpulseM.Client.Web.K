@@ -204,9 +204,7 @@ export default class PopupBoost extends PopupPeer {
     const handleErrorType = (type: ErrorType) => {
       if(type === 'PREMIUM_ACCOUNT_REQUIRED') {
         showPremiumNeeded();
-      }/*  else if(type === 'BOOST_NOT_MODIFIED') {
-        showAlreadyBoosting();
-      } */ else if(type.includes('FLOOD_WAIT')) {
+      } else if(type.includes('FLOOD_WAIT')) {
         const wait = +type.split('_')[2];
         confirmationPopup({
           titleLangKey: 'CantBoostTooOften',

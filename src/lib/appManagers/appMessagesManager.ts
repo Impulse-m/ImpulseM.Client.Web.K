@@ -83,6 +83,7 @@ import canMessageHaveFactCheck from '@appManagers/utils/messages/canMessageHaveF
 import PaidMessagesQueue from '@appManagers/utils/messages/paidMessagesQueue';
 import type {ConfirmedPaymentResult} from '@components/chat/paidMessagesInterceptor';
 import RepayRequestHandler, {RepayRequest} from '@appManagers/utils/repayRequestHandler';
+import {isApiNotModified} from '@appManagers/utils/apiNotModified';
 import getPhotoInput from '@appManagers/utils/photos/getPhotoInput';
 import {BatchProcessor} from '@helpers/sortedList';
 import {increment, MonoforumDialog} from '@lib/storages/monoforumDialogs';
@@ -1784,14 +1785,13 @@ export class AppMessagesManager extends AppManager {
       invert_media: options.invertMedia,
       ...(inputMediaWebPage ? {media: inputMediaWebPage} : {})
     }).then((updates) => {
+      if(isApiNotModified(updates)) {
+        return;
+      }
+
       this.apiUpdatesManager.processUpdateMessage(updates);
     }, (error: ApiError) => {
       this.log.error('editMessage error:', error);
-
-      if(error?.type === 'MESSAGE_NOT_MODIFIED') {
-        error.handled = true;
-        return;
-      }
 
       if(error?.type === 'MESSAGE_EMPTY') {
         error.handled = true;
@@ -2043,16 +2043,16 @@ export class AppMessagesManager extends AppManager {
       schedule_date,
       invert_media: invertMedia
     }).then((updates) => {
+      if(isApiNotModified(updates)) {
+        this.revertMessageEdit(message.mid);
+        return;
+      }
+
       this.apiUpdatesManager.processUpdateMessage(updates);
     }, (error: ApiError) => {
       this.log.error('editMessage error:', error);
 
       this.revertMessageEdit(message.mid);
-
-      if(error?.type === 'MESSAGE_NOT_MODIFIED') {
-        error.handled = true;
-        return;
-      }
 
       if(error?.type === 'MESSAGE_EMPTY') {
         error.handled = true;
@@ -12765,41 +12765,42 @@ export class AppMessagesManager extends AppManager {
           msg_id: getServerMessageId(mid)
         });
 
+        if(isApiNotModified(updates)) {
+          continue;
+        }
+
         this.apiUpdatesManager.processUpdateMessage(updates);
       } catch(e) {
         console.error(e);
-
-        if((e as any).type !== 'MESSAGE_NOT_MODIFIED') {
         // revert
-          const storage = this.getHistoryMessagesStorage(peerId);
-          const message = this.getMessageFromStorage(storage, mid) as Message.message;
-          if(!message) {
-            return;
+        const storage = this.getHistoryMessagesStorage(peerId);
+        const message = this.getMessageFromStorage(storage, mid) as Message.message;
+        if(!message) {
+          return;
+        }
+
+        this.modifyMessage(message, (message) => {
+          const checklist = message.media as MessageMedia.messageMediaToDo;
+          if(!checklist.completions) checklist.completions = []
+
+          for(const oldItem of incompletedItems.values()) {
+            checklist.completions.push(oldItem)
           }
 
-          this.modifyMessage(message, (message) => {
-            const checklist = message.media as MessageMedia.messageMediaToDo;
-            if(!checklist.completions) checklist.completions = []
-
-            for(const oldItem of incompletedItems.values()) {
-              checklist.completions.push(oldItem)
+          for(const taskId of completedIds) {
+            const idx = checklist.completions.findIndex((completion) => completion.id === taskId);
+            if(idx !== -1) {
+              checklist.completions.splice(idx, 1);
             }
+          }
+        }, storage)
 
-            for(const taskId of completedIds) {
-              const idx = checklist.completions.findIndex((completion) => completion.id === taskId);
-              if(idx !== -1) {
-                checklist.completions.splice(idx, 1);
-              }
-            }
-          }, storage)
-
-          this.rootScope.dispatchEvent('message_edit', {
-            storageKey: storage.key,
-            peerId,
-            mid,
-            message
-          })
-        }
+        this.rootScope.dispatchEvent('message_edit', {
+          storageKey: storage.key,
+          peerId,
+          mid,
+          message
+        })
       }
     }
 

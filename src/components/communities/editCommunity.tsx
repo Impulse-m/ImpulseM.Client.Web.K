@@ -54,6 +54,7 @@ import openCommunityPendingRequests
 from '@components/communities/openCommunityPendingRequests';
 import openCommunityLinkedChat
 from '@components/communities/openCommunityLinkedChat';
+import {absorbApiNotModified} from '@appManagers/utils/apiNotModified';
 
 export default function EditCommunity() {
   const [tab] = useSuperTab<typeof AppEditCommunityTab>();
@@ -233,7 +234,9 @@ function EditCommunityForm(props: {
     setSaving(true);
     try {
       if(editInfo && trimmedTitle !== savedTitle()) {
-        await tab.managers.appChatsManager.editTitle(communityId, trimmedTitle);
+        await absorbApiNotModified(
+          tab.managers.appChatsManager.editTitle(communityId, trimmedTitle)
+        );
         setSavedTitle(trimmedTitle);
       }
 

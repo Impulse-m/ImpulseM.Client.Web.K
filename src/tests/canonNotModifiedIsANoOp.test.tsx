@@ -302,7 +302,7 @@ vi.mock('@lib/appImManager', () => ({
   default: {openJoinChatWebView: vi.fn(), setInnerPeer: vi.fn()}
 }));
 
-vi.mock('@lib/apiManagerProxy', () => ({default: {getPeer: () => undefined}}));
+vi.mock('@lib/apiManagerProxy', () => ({default: {getPeer: (): undefined => undefined}}));
 
 const communityState = vi.hoisted(() => ({
   community: undefined as any,
