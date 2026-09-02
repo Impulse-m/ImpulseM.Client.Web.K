@@ -343,8 +343,9 @@ export class AppEmojiManager extends AppManager {
   }
 
   public getCustomEmojiDocuments(docIds: DocId[]): Promise<MyDocument[]> {
-    if(!docIds.length) return Promise.resolve([]);
-    return this.apiManager.invokeApi('messages.getCustomEmojiDocuments', {document_id: docIds}).then((documents) => {
+    const validDocIds: DocId[] = docIds.filter((docId): docId is DocId => docId !== undefined && docId !== null);
+    if(!validDocIds.length) return Promise.resolve([]);
+    return this.apiManager.invokeApi('messages.getCustomEmojiDocuments', {document_id: validDocIds}).then((documents) => {
       return documents.map((doc) => {
         return this.appDocsManager.saveDoc(doc, {
           type: 'customEmoji',
@@ -352,7 +353,7 @@ export class AppEmojiManager extends AppManager {
         });
       });
     }, () => {
-      return new Array(docIds.length).fill(undefined);
+      return new Array(validDocIds.length).fill(undefined);
     });
   }
 

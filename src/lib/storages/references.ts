@@ -248,7 +248,9 @@ export class ReferencesStorage extends AppManager {
         return this.appProfileManager.getProfile(context.userId, true);
 
       case 'customEmoji':
-        return this.appEmojiManager.getCustomEmojiDocuments([context.docId]);
+        return context.docId === undefined || context.docId === null ?
+          Promise.resolve([]) :
+          this.appEmojiManager.getCustomEmojiDocuments([context.docId]);
 
       case 'attachMenuBotIcon':
         return this.appAttachMenuBotsManager.getAttachMenuBot(context.botId, true);

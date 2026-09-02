@@ -164,7 +164,16 @@ function omitAbsentConditionalVectors(predicate: string, plain: Record<string, a
 
 // ── TL -> proto ────────────────────────────────────────────────────────────
 
-export function buildProtoInit(tlValue: any, schema: DescMessage): any {
+type ProtoConversionContext = {
+  method: string,
+  droppedLongs: number
+};
+
+export function buildProtoInit(
+  tlValue: any,
+  schema: DescMessage,
+  context?: ProtoConversionContext
+): any {
   if(tlValue === null || tlValue === undefined) {
     return {};
   }
@@ -195,7 +204,7 @@ export function buildProtoInit(tlValue: any, schema: DescMessage): any {
       continue;
     }
 
-    init[field.localName] = convertFieldValue(raw, field);
+    init[field.localName] = convertFieldValue(raw, field, context);
   }
 
   if(schema.oneofs.length && typeof tlValue._ === 'string') {
@@ -208,7 +217,7 @@ export function buildProtoInit(tlValue: any, schema: DescMessage): any {
 
       init[oneof.localName] = {
         case: variant.localName,
-        value: variant.message ? buildProtoInit(tlValue, variant.message) : {}
+        value: variant.message ? buildProtoInit(tlValue, variant.message, context) : {}
       };
       break;
     }
@@ -217,7 +226,7 @@ export function buildProtoInit(tlValue: any, schema: DescMessage): any {
   return init;
 }
 
-function convertFieldValue(raw: any, field: DescField): any {
+function convertFieldValue(raw: any, field: DescField, context?: ProtoConversionContext): any {
   const isInt64 = field.fieldKind === 'scalar' && (
     field.scalar === ScalarType.INT64 || field.scalar === ScalarType.UINT64
   );
@@ -267,15 +276,32 @@ function convertFieldValue(raw: any, field: DescField): any {
   }
 
   if(Array.isArray(raw)) {
-    if(field.fieldKind === 'list' && (field as any).listKind === 'message' && field.message) {
-      return raw.map((item) => buildProtoInit(item, field.message));
+    if(field.fieldKind === 'list' && field.listKind === 'message' && field.message) {
+      return raw.map((item) => buildProtoInit(item, field.message, context));
+    }
+
+    if(field.fieldKind === 'list' && field.listKind === 'scalar' && (
+      field.scalar === ScalarType.INT64 || field.scalar === ScalarType.UINT64
+    )) {
+      const values: bigint[] = [];
+      for(const item of raw) {
+        if(item === undefined || item === null) {
+          if(context) {
+            context.droppedLongs++;
+          }
+          continue;
+        }
+
+        values.push(BigInt(item));
+      }
+      return values;
     }
 
     return raw;
   }
 
   if(field.fieldKind === 'message' && field.message) {
-    return buildProtoInit(raw, field.message);
+    return buildProtoInit(raw, field.message, context);
   }
 
   return raw;
@@ -503,6 +529,15 @@ export async function grpcInvoke(
   }
 
   const {service, method: descMethod} = mapping;
+  const conversionContext: ProtoConversionContext = {method, droppedLongs: 0};
+  const requestInit: Record<string, unknown> = buildProtoInit(params, descMethod.input, conversionContext);
+  if(conversionContext.droppedLongs) {
+    logger.warn('Dropped invalid Vector<long> elements', {
+      method: conversionContext.method,
+      dropped: conversionContext.droppedLongs
+    });
+  }
+  const request = create(descMethod.input, requestInit);
   const client = getOrCreateClient(service);
   const methodFn = client[descMethod.localName];
   if(typeof methodFn !== 'function') {
@@ -514,8 +549,6 @@ export async function grpcInvoke(
   // that wave used to travel unauthenticated. Already settled after boot, so this
   // costs a microtask.
   await whenImpulseSessionReady();
-
-  const request = create(descMethod.input, buildProtoInit(params, descMethod.input));
 
   try {
     const response = await methodFn.call(client, request, {signal: abortSignal});

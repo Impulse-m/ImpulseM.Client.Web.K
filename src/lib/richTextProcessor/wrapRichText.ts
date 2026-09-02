@@ -402,6 +402,10 @@ export default function wrapRichText(text: string, options: WrapRichTextOptions 
           break;
         }
 
+        if(entity.document_id === undefined || entity.document_id === null) {
+          break;
+        }
+
         while(nextEntity?._ === 'messageEntityEmoji' && nextEntity.offset < endOffset) {
           ++nasty.i;
           nasty.lastEntity = nextEntity;

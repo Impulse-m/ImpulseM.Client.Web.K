@@ -1032,7 +1032,9 @@ export class CustomEmojiRendererElement extends HTMLElement {
               loadPromises
             });
           }
-          missing.push(docId);
+          if(docId !== undefined && docId !== null) {
+            missing.push(docId);
+          }
           return;
         }
 
