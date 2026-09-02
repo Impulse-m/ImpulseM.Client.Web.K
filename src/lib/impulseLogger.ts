@@ -23,6 +23,11 @@ import {backendHttpOrigin} from '@config/backendOrigin';
 const FLUSH_BATCH_SIZE = 20;
 const FLUSH_INTERVAL_MS = 2_000;
 const MAX_BUFFER_ENTRIES = 1_000;
+// A crash inside a per-pointer-move listener can fire hundreds of identical reports a second;
+// the buffer is bounded at MAX_BUFFER_ENTRIES oldest-first, so the storm evicts exactly the
+// diagnostics that explain it.
+const MAX_REPORTS_PER_SIGNATURE: number = 10;
+const MAX_TRACKED_SIGNATURES: number = 512;
 // The Fetch standard caps total in-flight keepalive request bodies at 64 KiB.
 const KEEPALIVE_BODY_BUDGET_BYTES = 65_536;
 const MAX_ERROR_MESSAGE_LENGTH = 2_048;
@@ -95,6 +100,7 @@ const originalConsole = {
 
 const component: string = IS_SERVICE_WORKER ? 'service-worker' : (IS_WEB_WORKER ? 'worker' : 'main');
 const loggers = new Map<string, Logger>();
+const reportsBySignature: Map<string, number> = new Map();
 
 let buffer: LokiEntry[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
@@ -323,8 +329,51 @@ function flushOnHide(): void {
 }
 
 function reportUnhandledRejection(event: PromiseRejectionEvent, logger: Logger): void {
-  const reason = event.reason === undefined ? MISSING_REJECTION_REASON : event.reason;
-  logger.error('unhandled rejection', undefined, reason);
+  reportUncaught('unhandled rejection', getUnhandledRejectionReason(event), logger);
+}
+
+function getUnhandledRejectionReason(event: PromiseRejectionEvent): unknown {
+  return event.reason === undefined ? MISSING_REJECTION_REASON : event.reason;
+}
+
+function getErrorSignature(error: SerializedError): string {
+  const normalizedMessage: string = error.message.replace(/\d+/g, '#');
+  const header: string = `${error.name}: ${error.message}`;
+  const stackLines: string[] = error.stack?.split('\n') ?? [];
+  let frameIndex: number = 0;
+  while(frameIndex < stackLines.length && stackLines[frameIndex].trim() === header) {
+    ++frameIndex;
+  }
+  const topFrame: string = stackLines[frameIndex]?.trim() ?? '';
+  return JSON.stringify([error.name, normalizedMessage, topFrame]);
+}
+
+function reportUncaught(
+  kind: 'uncaught error' | 'unhandled rejection',
+  thrown: unknown,
+  logger: Logger
+): void {
+  const signature: string = getErrorSignature(safelySerializeError(thrown));
+  const previousCount: number | undefined = reportsBySignature.get(signature);
+
+  if(previousCount === undefined && reportsBySignature.size >= MAX_TRACKED_SIGNATURES) {
+    // A session producing more than 512 distinct failure shapes is beyond this ceiling; report
+    // new signatures normally and leave only the buffer bound in force rather than dropping an
+    // unknown failure on the floor.
+    logger.error(kind, undefined, thrown);
+    return;
+  }
+
+  const count: number = (previousCount ?? 0) + 1;
+  reportsBySignature.set(signature, count);
+  if(count > MAX_REPORTS_PER_SIGNATURE) {
+    return;
+  }
+
+  const payload: LogPayload | undefined = count === MAX_REPORTS_PER_SIGNATURE ?
+    {furtherOccurrencesSuppressed: true} :
+    undefined;
+  logger.error(kind, payload, thrown);
 }
 
 if(typeof document !== 'undefined') {
@@ -351,7 +400,7 @@ if(typeof self !== 'undefined' && typeof addEventListener === 'function') {
     if(errorEvent.error === undefined && !errorEvent.message) {
       return;
     }
-    uncaughtLogger.error('uncaught error', undefined, errorEvent.error ?? errorEvent);
+    reportUncaught('uncaught error', errorEvent.error ?? errorEvent, uncaughtLogger);
   });
   addEventListener('unhandledrejection', (event) => {
     reportUnhandledRejection(event as PromiseRejectionEvent, uncaughtLogger);
