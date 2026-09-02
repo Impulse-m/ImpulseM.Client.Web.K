@@ -1,5 +1,6 @@
 import {
   children,
+  createEffect,
   createRenderEffect,
   JSX,
   onCleanup,
@@ -153,6 +154,18 @@ const Row = (props: {children: JSX.Element} & Partial<{
       props.ref(container);
     }
   };
+  let container: HTMLElement;
+  const rowRef = (element: HTMLElement) => {
+    container = element;
+    ref(element);
+  };
+  createEffect(() => {
+    if(props['aria-disabled'] || props.disabled) {
+      container?.setAttribute('aria-disabled', 'true');
+    } else {
+      container?.removeAttribute('aria-disabled');
+    }
+  });
   const onClick: JSX.EventHandlerUnion<HTMLElement, MouseEvent> = (event) => {
     const clickable = props.clickable;
     if(typeof(clickable) === 'function') {
@@ -167,12 +180,11 @@ const Row = (props: {children: JSX.Element} & Partial<{
 
   return (
     <RippleElement
-      ref={ref}
+      ref={rowRef}
       component={props.as === 'a' ? 'a' : (props.as === 'label' || isCheckbox() ? 'label' : 'div')}
       role={props.role}
       tabIndex={props.tabIndex}
       aria-checked={props['aria-checked']}
-      aria-disabled={props['aria-disabled'] || props.disabled ? true : undefined}
       classList={{
         'row': true,
         'no-subtitle': !store.subtitle,

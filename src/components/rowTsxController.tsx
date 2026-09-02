@@ -161,6 +161,7 @@ const mountRowController = <T extends SliderSuperTabEventableConstructable = any
   let currentMedia: HTMLElement;
   const [hasSubtitle, setHasSubtitle] = createSignal(!!initialSubtitle);
   const [hasMidtitle, setHasMidtitle] = createSignal(false);
+  const [disabled, setDisabled] = createSignal(false);
   const [media, setMedia] = createSignal<{element: HTMLElement, size?: RowMediaSizeType}>();
   const parts: Partial<Record<
     'title' | 'titleRow' | 'titleRight' | 'subtitle' | 'subtitleRow' | 'subtitleRight' | 'midtitle',
@@ -252,7 +253,7 @@ const mountRowController = <T extends SliderSuperTabEventableConstructable = any
     },
     isDisabled: () => container.classList.contains('is-disabled'),
     toggleDisability: (disable = !container.classList.contains('is-disabled')) => {
-      container.classList.toggle('is-disabled', disable);
+      setDisabled(disable);
       return () => controller.toggleDisability(!disable);
     },
     disableWithPromise: (promise: Promise<any>) => {
@@ -282,6 +283,7 @@ const mountRowController = <T extends SliderSuperTabEventableConstructable = any
       havePadding={options.havePadding}
       noRipple={options.noRipple}
       noWrap={options.noWrap}
+      disabled={disabled()}
       as={options.asLink ? 'a' : (options.asLabel ? 'label' : undefined)}
       contextMenu={options.contextMenu}
       openContextMenuRef={(open) => openContextMenu = open}

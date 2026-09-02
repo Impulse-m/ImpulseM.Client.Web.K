@@ -9,6 +9,7 @@ vi.mock('@lib/apiManagerProxy', () => ({
 }));
 
 import {AppDownloadManager} from '@lib/appDownloadManager';
+import type {AppManagers} from '@lib/managers';
 import type {Document} from '@layer';
 
 const makeDocument = (id: DocId) => ({
@@ -25,13 +26,13 @@ const makeDocument = (id: DocId) => ({
   thumbs: []
 }) as unknown as Document.document;
 
-function makeManager(downloadMediaURL: (options: any) => Promise<string>) {
+function makeManager(downloadMediaURL: () => Promise<string>) {
   const manager = new AppDownloadManager();
-  (manager as any).managers = {
+  manager.construct({
     apiFileManager: {
       downloadMediaURL
     }
-  };
+  } as unknown as AppManagers);
   return manager;
 }
 

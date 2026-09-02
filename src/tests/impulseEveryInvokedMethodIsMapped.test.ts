@@ -49,7 +49,7 @@ describe('every invoked API method has a gRPC mapping', () => {
     return found;
   }
 
-  it('leaves no invoked method to fall through to a transport nothing answers', () => {
+  it('leaves no invoked method to fall through to a transport nothing answers [OpenFinding:IMPULSE-187-GRPC]', () => {
     const files = [...sourceFiles('src/lib'), ...sourceFiles('src/components')];
 
     expect(

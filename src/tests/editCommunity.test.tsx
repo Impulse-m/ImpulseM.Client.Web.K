@@ -217,6 +217,7 @@ vi.mock('@lib/appImManager', () => ({
 
 vi.mock('@lib/apiManagerProxy', () => ({
   default: {
+    getChat: () => mocks.peer,
     getPeer: () => mocks.peer
   }
 }));
@@ -296,6 +297,7 @@ describe('EditCommunity', () => {
           delete: mocks.deleteCommunity,
           editPhoto: mocks.editPhoto,
           editTitle: mocks.editTitle,
+          isChannel: () => true,
           joinChannel: mocks.joinChannel
         },
         appCommunitiesManager: {

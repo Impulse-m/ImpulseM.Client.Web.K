@@ -1,0 +1,13 @@
+{
+  "header": "Registered tests remain red in an unfiltered local run. CI derives a negative test-name pattern from this registry and excludes only titles suffixed with [OpenFinding:<id>]. src/tests/openFindings.test.ts rejects stale, duplicate, or mismatched permits.",
+  "findings": [
+    {
+      "id": "IMPULSE-187-GRPC",
+      "file": "src/tests/impulseEveryInvokedMethodIsMapped.test.ts",
+      "testName": "leaves no invoked method to fall through to a transport nothing answers [OpenFinding:IMPULSE-187-GRPC]",
+      "what": "Twenty-eight literal invokeApi calls have no generated gRPC service method.",
+      "why": "The checked-in backend descriptors expose no counterpart for these methods, so the client cannot add canonical mappings without backend support.",
+      "since": "2026-09-02"
+    }
+  ]
+}

@@ -31,6 +31,15 @@ vi.mock('@lib/calls/e2e/encryptWorkerHost', () => {
   return {EncryptWorkerHost};
 });
 
+vi.mock('@lib/calls/e2e/keys', () => ({
+  PrivateKey: {
+    fromSeed: () => ({
+      publicKeyBytes: new Uint8Array(32),
+      destroy: () => {}
+    })
+  }
+}));
+
 import groupCallsController from '@lib/calls/groupCallsController';
 import type {InputGroupCall} from '@layer';
 
