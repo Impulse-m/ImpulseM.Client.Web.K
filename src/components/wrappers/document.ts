@@ -16,7 +16,7 @@ import appImManager from '@lib/appImManager';
 import {AppManagers} from '@lib/managers';
 import getDownloadMediaDetails from '@appManagers/utils/download/getDownloadMediaDetails';
 import choosePhotoSize from '@appManagers/utils/photos/choosePhotoSize';
-import {joinElementsWith} from '@lib/langPack';
+import {fillDocumentDescription} from './documentDescription';
 import {MAX_FILE_SAVE_SIZE} from '@appManagers/constants';
 import apiManagerProxy from '@lib/apiManagerProxy';
 import wrapPlainText from '@lib/richTextProcessor/wrapPlainText';
@@ -225,12 +225,15 @@ export default async function wrapDocument({
     descriptionParts.push(await wrapSenderToPeer(message));
   }
 
+  // Reserves the width the row will need once download progress turns "202 KB" into
+  // "12 KB / 202 KB", so it does not reflow mid-download. Not a description part -- see
+  // fillDocumentDescription for why passing it through the joiner rendered "202 KB ·".
+  let widthReservation: HTMLElement;
   if(!withTime && !showSender) {
-    const b = document.createElement('span');
+    widthReservation = document.createElement('span');
     const bytesMaxEl = formatBytes(doc.size);
-    b.append(bytesJoiner, bytesMaxEl);
-    b.style.visibility = 'hidden';
-    descriptionParts.push(b);
+    widthReservation.append(bytesJoiner, bytesMaxEl);
+    widthReservation.style.visibility = 'hidden';
   }
 
   docDiv.innerHTML = `
@@ -260,7 +263,7 @@ export default async function wrapDocument({
   }
 
   const sizeDiv = docDiv.querySelector('.document-size') as HTMLElement;
-  bytesContainer.append(...joinElementsWith(descriptionParts, ' · '));
+  fillDocumentDescription(bytesContainer, descriptionParts, widthReservation);
   sizeDiv.append(bytesContainer);
 
   docDiv.prepend(icoDiv);
