@@ -18,15 +18,26 @@ const collectSourceFiles = (directory: string): string[] => readdirSync(director
   return /\.tsx?$/.test(entry.name) && !entry.name.endsWith('.d.ts') ? [path] : [];
 });
 
+const ROW_CONTROLLER_MODULE = '@components/rowTsxController';
+
 const importsRowController = (file: string) => {
   const source = readFileSync(file, 'utf8');
+  // A file that does not contain the module specifier cannot import it, so it is answered without
+  // an AST. This guard used to Babel-parse every .ts/.tsx under src -- thousands of full parses to
+  // ask about one import statement -- and took ~14 s against vitest's 5 s budget, so its verdict
+  // depended on machine load rather than on the property it exists to protect (#171). The parse
+  // below now runs only on the handful of candidates the substring lets through.
+  if(!source.includes(ROW_CONTROLLER_MODULE)) {
+    return false;
+  }
+
   const ast = parseSync(source, {
     filename: file,
     parserOpts: {plugins: file.endsWith('.tsx') ? ['typescript', 'jsx'] : ['typescript']}
   });
   return ast.program.body.some((statement) => (
     statement.type === 'ImportDeclaration' &&
-    statement.source.value === '@components/rowTsxController'
+    statement.source.value === ROW_CONTROLLER_MODULE
   ));
 };
 
