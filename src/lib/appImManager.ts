@@ -286,6 +286,7 @@ export class AppImManager extends EventListenerBase<{
     this.managers = managers;
     managers.apiManager.getConfig().then((config) => {
       idleController.setOfflineBlurTimeout(config.offline_blur_timeout_ms);
+      idleController.setOfflineIdleTimeout(config.offline_idle_timeout_ms);
     });
     internalLinkProcessor.construct(managers);
 

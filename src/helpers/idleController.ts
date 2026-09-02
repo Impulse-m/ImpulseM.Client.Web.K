@@ -7,6 +7,14 @@ const FOCUS_EVENT_NAME = IS_TOUCH_SUPPORTED ? 'touchstart' : 'mousemove';
 const DO_NOT_IDLE = IS_PREVIEW; // the preview window is never focused — don't let it look idle
 // Default documented by the server config constructor; used until config is available.
 const OFFLINE_BLUR_TIMEOUT_MS = 5e3;
+// The other half of the same contract, for a window that still HAS focus and is simply unattended.
+// Used until config arrives; our Config service serves 30 s for offline_idle_timeout_ms.
+const OFFLINE_IDLE_TIMEOUT_MS = 30e3;
+// The activity listener fires per pointer move. Re-arming the deadline on every one of them is
+// pure timer churn at ~60 Hz for a deadline measured in tens of seconds, so a move only pushes the
+// deadline out once per second. Worst case the reported idle moment is one second early, which is
+// under the resolution the field describes.
+const IDLE_REARM_THROTTLE_MS = 1e3;
 
 export class IdleController extends EventListenerBase<{
   change: (idle: boolean) => void
@@ -19,7 +27,14 @@ export class IdleController extends EventListenerBase<{
   private boundWindow: Window;
   private offlineBlurTimeout = OFFLINE_BLUR_TIMEOUT_MS;
   private offlineBlurTimeoutId: number;
+  private offlineIdleTimeout = OFFLINE_IDLE_TIMEOUT_MS;
+  private offlineIdleTimeoutId: number;
+  private idleDeadlineArmedAt = 0;
   private onBlur = () => {
+    // A blurred window is answered by the blur deadline alone. Leaving the idle deadline armed
+    // would leave two timers racing to describe one transition, and the loser would fire later
+    // against a state it no longer describes.
+    this.clearIdleDeadline();
     clearTimeout(this.offlineBlurTimeoutId);
     this.offlineBlurTimeoutId = window.setTimeout(() => {
       this.offlineBlurTimeoutId = undefined;
@@ -30,6 +45,7 @@ export class IdleController extends EventListenerBase<{
     clearTimeout(this.offlineBlurTimeoutId);
     this.offlineBlurTimeoutId = undefined;
     this.isIdle = false;
+    this.armIdleDeadline(false);
   };
 
   constructor() {
@@ -69,7 +85,12 @@ export class IdleController extends EventListenerBase<{
     win.addEventListener('blur', this.onBlur);
     win.addEventListener('focus', this.onActive);
     // * Prevent setting online after reloading page — wake on the first activity in this window
-    win.addEventListener(FOCUS_EVENT_NAME, this.onActive, {once: true, passive: true});
+    //
+    // Standing rather than {once: true}, which it used to be: the idle deadline measures time since
+    // the LAST activity, so it needs every activity, not the first one. The reload behaviour the
+    // once-listener was there for is unchanged — the controller still starts idle and still wakes on
+    // the first move — because the isIdle setter returns early when the value has not changed.
+    win.addEventListener(FOCUS_EVENT_NAME, this.onActive, {passive: true});
 
     // Moving the app INTO a window (PiP pop-in/out) is itself active use of that window — wake up so
     // animations keep playing even though the window we left has just blurred.
@@ -92,6 +113,48 @@ export class IdleController extends EventListenerBase<{
     }
 
     this.offlineBlurTimeout = timeout;
+  }
+
+
+  // Guarded exactly as the blur timeout is, and for the same reason: an absent
+  // offline_idle_timeout_ms arrives as undefined and a server that has not set one sends 0, both of
+  // which setTimeout reads as "fire now" — which would mark every focused client offline the
+  // instant config landed.
+  public setOfflineIdleTimeout(timeout: number) {
+    if(!Number.isFinite(timeout) || timeout <= 0) {
+      return;
+    }
+
+    this.offlineIdleTimeout = timeout;
+    // Config arrives after the first deadline is already armed, so the new value has to displace it
+    // rather than wait for the next pointer move — otherwise a server asking for a shorter idle
+    // window does not get one until the user happens to move.
+    this.armIdleDeadline(true);
+  }
+
+
+  private armIdleDeadline(force: boolean) {
+    if(this.isIdle || !this.boundWindow) {
+      return;
+    }
+
+    const now = Date.now();
+    if(!force && this.offlineIdleTimeoutId !== undefined && now - this.idleDeadlineArmedAt < IDLE_REARM_THROTTLE_MS) {
+      return;
+    }
+
+    this.clearIdleDeadline();
+    this.idleDeadlineArmedAt = now;
+    this.offlineIdleTimeoutId = window.setTimeout(() => {
+      this.offlineIdleTimeoutId = undefined;
+      this.isIdle = true;
+    }, this.offlineIdleTimeout);
+  }
+
+
+  private clearIdleDeadline() {
+    clearTimeout(this.offlineIdleTimeoutId);
+    this.offlineIdleTimeoutId = undefined;
   }
 
   public get isIdle() {
