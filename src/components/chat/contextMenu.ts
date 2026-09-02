@@ -31,7 +31,7 @@ import positionMenu, {MenuPositionPadding, positionFloatingMenu} from '@helpers/
 import {getAppWindow, getOverlayRoot} from '@helpers/appWindow';
 import contextMenuController from '@helpers/contextMenuController';
 import {attachContextMenuListener} from '@helpers/dom/attachContextMenuListener';
-import filterAsync from '@helpers/array/filterAsync';
+import filterButtonsWhileAlive from '@components/chat/filterButtonsWhileAlive';
 import appDownloadManager, {DownloadBlob} from '@lib/appDownloadManager';
 import {SERVICE_PEER_ID} from '@appManagers/constants';
 import {MessagesStorageKey, MyMessage} from '@appManagers/appMessagesManager';
@@ -718,7 +718,13 @@ export default class ChatContextMenu {
   }
 
   private async filterButtons(buttons: ChatContextMenu['buttons']) {
-    return filterAsync(buttons, async(button) => {
+    // Gated on the menu's own middleware, which cleanup() clears and Chat.destroy() reaches through
+    // contextMenu.destroy() BEFORE it nulls this.chat.bubbles. Several verify() bodies below read
+    // this.chat.bubbles.canForward(...) with no guard, and each one sits behind an await — so a
+    // teardown mid-build used to throw out of an un-awaited chain: no menu, no toast, nothing in
+    // Loki. See filterButtonsWhileAlive for why the gate is here rather than at the dereference.
+    const middleware = this.middleware.get();
+    return filterButtonsWhileAlive(buttons, middleware, async(button) => {
       let good: boolean;
 
       if((this.isSponsored && !button.isSponsored) || (!this.isSponsored && button.isSponsored)) {
@@ -1467,7 +1473,13 @@ export default class ChatContextMenu {
       }
     ];
 
-    const filteredButtons = await filterAsync(buttons, (button) => button.verify?.() ?? true);
+    // Gated during the filter, not only after it: a verify() below reaches
+    // this.chat.bubbles.canForward(...), and the post-filter check runs too late to stop the throw.
+    const filteredButtons = await filterButtonsWhileAlive(
+      buttons,
+      middleware,
+      (button) => button.verify?.() ?? true
+    );
 
     if(!middleware()) return;
 
@@ -1513,7 +1525,13 @@ export default class ChatContextMenu {
       }
     ];
 
-    const filteredButtons = await filterAsync(buttons, (button) => button.verify?.() ?? true);
+    // Gated during the filter, not only after it: a verify() below reaches
+    // this.chat.bubbles.canForward(...), and the post-filter check runs too late to stop the throw.
+    const filteredButtons = await filterButtonsWhileAlive(
+      buttons,
+      middleware,
+      (button) => button.verify?.() ?? true
+    );
 
     if(!middleware()) return;
 

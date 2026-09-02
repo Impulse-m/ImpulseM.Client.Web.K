@@ -77,32 +77,47 @@ export default function createContextMenu<T extends ButtonMenuItemOptionsVerifia
         return;
       }
 
-      const initResult = await init();
-      if(!initResult) {
-        onClose?.();
-        return;
-      }
+      // The catch above covered onOpen only, and everything below it -- init(), which awaits every
+      // button's verify() -- sat outside any handler. A throw there escaped this un-awaited async
+      // function as an unhandled rejection: no menu appeared, no toast, and nothing reached Loki,
+      // because the app wires no window-level rejection handler. That is why "the context menu
+      // often breaks" and the error dashboard stayed clean at the same time.
+      try {
+        const initResult = await init();
+        if(!initResult) {
+          onClose?.();
+          return;
+        }
 
-      target.classList.add('menu-open');
+        target.classList.add('menu-open');
 
-      _element = initResult.element;
-      const {cleanup, destroy} = initResult;
+        _element = initResult.element;
+        const {cleanup, destroy} = initResult;
 
-      positionMenu(e, _element);
-      contextMenuController.openBtnMenu(_element, () => {
+        positionMenu(e, _element);
+        contextMenuController.openBtnMenu(_element, () => {
+          target.classList.remove('menu-open');
+          onClose?.();
+          cleanup();
+
+          setTimeout(() => {
+            onCloseAfter?.();
+            destroy();
+          }, 300);
+        }, target);
+        onOpenAfter?.(_element, target);
+      } catch(err) {
+        log.error('Error building context menu:', err);
         target.classList.remove('menu-open');
         onClose?.();
-        cleanup();
-
-        setTimeout(() => {
-          onCloseAfter?.();
-          destroy();
-        }, 300);
-      }, target);
-      onOpenAfter?.(_element, target);
+      }
     };
 
-    r();
+    // Last resort. The body above is fully guarded, so a rejection arriving here means the guard
+    // itself failed -- which is worth a line rather than the silence this call used to produce.
+    r().catch((err) => {
+      log.error('Context menu open rejected outside its own handler:', err);
+    });
   };
 
   attachContextMenuListener({
