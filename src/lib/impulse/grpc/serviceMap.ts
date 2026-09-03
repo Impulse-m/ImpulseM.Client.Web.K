@@ -10,6 +10,7 @@
 import type {DescMethod, DescService} from '@bufbuild/protobuf';
 
 import {Account} from './gen/account_pb';
+import {Aicompose} from './gen/aicompose_pb';
 import {Auth} from './gen/auth_pb';
 import {Bots} from './gen/bots_pb';
 import {Channels} from './gen/channels_pb';
@@ -34,6 +35,9 @@ import {Users} from './gen/users_pb';
 
 const NAMESPACE_TO_SERVICE: Record<string, DescService> = {
   account: Account,
+  // Layer 228 (#194): declared on the server, answered with the documented refusal until the
+  // messages-ai-compose slice serves it. Mapped so the bridge reaches the server's answer.
+  aicompose: Aicompose,
   auth: Auth,
   bots: Bots,
   channels: Channels,

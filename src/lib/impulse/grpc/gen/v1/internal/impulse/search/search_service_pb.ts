@@ -2,8 +2,8 @@
 // @generated from file impulse/search/search_service.proto (package impulse.search, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { PeerResult, SearchCalendarDay, SearchCounter, SearchFilter, SearchResult } from "./search_types_pb";
 import { file_impulse_search_search_types } from "./search_types_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/search/search_service.proto.
  */
 export const file_impulse_search_search_service: GenFile = /*@__PURE__*/
-  fileDesc("CiNpbXB1bHNlL3NlYXJjaC9zZWFyY2hfc2VydmljZS5wcm90bxIOaW1wdWxzZS5zZWFyY2gihAEKFVNlYXJjaE1lc3NhZ2VzUmVxdWVzdBIPCgdjaGF0X2lkGAEgASgDEg0KBXF1ZXJ5GAIgASgJEg4KBm9mZnNldBgDIAEoBRINCgVsaW1pdBgEIAEoBRIsCgZmaWx0ZXIYBSABKA4yHC5pbXB1bHNlLnNlYXJjaC5TZWFyY2hGaWx0ZXIiaAoWU2VhcmNoTWVzc2FnZXNSZXNwb25zZRItCgdyZXN1bHRzGAEgAygLMhwuaW1wdWxzZS5zZWFyY2guU2VhcmNoUmVzdWx0Eg0KBWNvdW50GAIgASgFEhAKCGhhc19tb3JlGAMgASgIInEKE1NlYXJjaEdsb2JhbFJlcXVlc3QSDQoFcXVlcnkYASABKAkSDgoGb2Zmc2V0GAIgASgFEg0KBWxpbWl0GAMgASgFEiwKBmZpbHRlchgEIAEoDjIcLmltcHVsc2Uuc2VhcmNoLlNlYXJjaEZpbHRlciJmChRTZWFyY2hHbG9iYWxSZXNwb25zZRItCgdyZXN1bHRzGAEgAygLMhwuaW1wdWxzZS5zZWFyY2guU2VhcmNoUmVzdWx0Eg0KBWNvdW50GAIgASgFEhAKCGhhc19tb3JlGAMgASgIIloKGEdldFNlYXJjaENvdW50ZXJzUmVxdWVzdBIPCgdjaGF0X2lkGAEgASgDEi0KB2ZpbHRlcnMYAiADKA4yHC5pbXB1bHNlLnNlYXJjaC5TZWFyY2hGaWx0ZXIiTAoZR2V0U2VhcmNoQ291bnRlcnNSZXNwb25zZRIvCghjb3VudGVycxgBIAMoCzIdLmltcHVsc2Uuc2VhcmNoLlNlYXJjaENvdW50ZXIiMgoSU2VhcmNoUGVlcnNSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJEg0KBWxpbWl0GAIgASgFIkIKE1NlYXJjaFBlZXJzUmVzcG9uc2USKwoHcmVzdWx0cxgBIAMoCzIaLmltcHVsc2Uuc2VhcmNoLlBlZXJSZXN1bHQiRgoUU2VhcmNoSGFzaHRhZ1JlcXVlc3QSDwoHaGFzaHRhZxgBIAEoCRIOCgZvZmZzZXQYAiABKAUSDQoFbGltaXQYAyABKAUiVQoVU2VhcmNoSGFzaHRhZ1Jlc3BvbnNlEi0KB3Jlc3VsdHMYASADKAsyHC5pbXB1bHNlLnNlYXJjaC5TZWFyY2hSZXN1bHQSDQoFY291bnQYAiABKAUiWQoYR2V0U2VhcmNoQ2FsZW5kYXJSZXF1ZXN0Eg8KB2NoYXRfaWQYASABKAMSLAoGZmlsdGVyGAIgASgOMhwuaW1wdWxzZS5zZWFyY2guU2VhcmNoRmlsdGVyIkwKGUdldFNlYXJjaENhbGVuZGFyUmVzcG9uc2USLwoEZGF5cxgBIAMoCzIhLmltcHVsc2Uuc2VhcmNoLlNlYXJjaENhbGVuZGFyRGF5IoMBCiBHZXRTZWFyY2hSZXN1bHRzUG9zaXRpb25zUmVxdWVzdBIPCgdjaGF0X2lkGAEgASgDEiwKBmZpbHRlchgCIAEoDjIcLmltcHVsc2Uuc2VhcmNoLlNlYXJjaEZpbHRlchIRCglvZmZzZXRfaWQYAyABKAUSDQoFbGltaXQYBCABKAUibAohR2V0U2VhcmNoUmVzdWx0c1Bvc2l0aW9uc1Jlc3BvbnNlEg0KBWNvdW50GAEgASgFEjgKCXBvc2l0aW9ucxgCIAMoCzIlLmltcHVsc2Uuc2VhcmNoLlNlYXJjaFJlc3VsdHNQb3NpdGlvbiJFChVTZWFyY2hSZXN1bHRzUG9zaXRpb24SDgoGbXNnX2lkGAEgASgDEgwKBGRhdGUYAiABKAMSDgoGb2Zmc2V0GAMgASgFImQKFlNlYXJjaFNlbnRNZWRpYVJlcXVlc3QSDQoFcXVlcnkYASABKAkSLAoGZmlsdGVyGAIgASgOMhwuaW1wdWxzZS5zZWFyY2guU2VhcmNoRmlsdGVyEg0KBWxpbWl0GAMgASgFImkKF1NlYXJjaFNlbnRNZWRpYVJlc3BvbnNlEi0KB3Jlc3VsdHMYASADKAsyHC5pbXB1bHNlLnNlYXJjaC5TZWFyY2hSZXN1bHQSDQoFY291bnQYAiABKAUSEAoIaGFzX21vcmUYAyABKAgyvAYKDVNlYXJjaFNlcnZpY2USXwoOU2VhcmNoTWVzc2FnZXMSJS5pbXB1bHNlLnNlYXJjaC5TZWFyY2hNZXNzYWdlc1JlcXVlc3QaJi5pbXB1bHNlLnNlYXJjaC5TZWFyY2hNZXNzYWdlc1Jlc3BvbnNlElkKDFNlYXJjaEdsb2JhbBIjLmltcHVsc2Uuc2VhcmNoLlNlYXJjaEdsb2JhbFJlcXVlc3QaJC5pbXB1bHNlLnNlYXJjaC5TZWFyY2hHbG9iYWxSZXNwb25zZRJoChFHZXRTZWFyY2hDb3VudGVycxIoLmltcHVsc2Uuc2VhcmNoLkdldFNlYXJjaENvdW50ZXJzUmVxdWVzdBopLmltcHVsc2Uuc2VhcmNoLkdldFNlYXJjaENvdW50ZXJzUmVzcG9uc2USVgoLU2VhcmNoUGVlcnMSIi5pbXB1bHNlLnNlYXJjaC5TZWFyY2hQZWVyc1JlcXVlc3QaIy5pbXB1bHNlLnNlYXJjaC5TZWFyY2hQZWVyc1Jlc3BvbnNlElwKDVNlYXJjaEhhc2h0YWcSJC5pbXB1bHNlLnNlYXJjaC5TZWFyY2hIYXNodGFnUmVxdWVzdBolLmltcHVsc2Uuc2VhcmNoLlNlYXJjaEhhc2h0YWdSZXNwb25zZRJoChFHZXRTZWFyY2hDYWxlbmRhchIoLmltcHVsc2Uuc2VhcmNoLkdldFNlYXJjaENhbGVuZGFyUmVxdWVzdBopLmltcHVsc2Uuc2VhcmNoLkdldFNlYXJjaENhbGVuZGFyUmVzcG9uc2USgAEKGUdldFNlYXJjaFJlc3VsdHNQb3NpdGlvbnMSMC5pbXB1bHNlLnNlYXJjaC5HZXRTZWFyY2hSZXN1bHRzUG9zaXRpb25zUmVxdWVzdBoxLmltcHVsc2Uuc2VhcmNoLkdldFNlYXJjaFJlc3VsdHNQb3NpdGlvbnNSZXNwb25zZRJiCg9TZWFyY2hTZW50TWVkaWESJi5pbXB1bHNlLnNlYXJjaC5TZWFyY2hTZW50TWVkaWFSZXF1ZXN0GicuaW1wdWxzZS5zZWFyY2guU2VhcmNoU2VudE1lZGlhUmVzcG9uc2VCGaoCFkltcHVsc2VNLlByb3Rvcy5TZWFyY2hiBnByb3RvMw", [file_impulse_search_search_types]);
+  fileDesc("CiNpbXB1bHNlL3NlYXJjaC9zZWFyY2hfc2VydmljZS5wcm90bxIOaW1wdWxzZS5zZWFyY2gihAEKFVNlYXJjaE1lc3NhZ2VzUmVxdWVzdBIPCgdjaGF0X2lkGAEgASgDEg0KBXF1ZXJ5GAIgASgJEg4KBm9mZnNldBgDIAEoBRINCgVsaW1pdBgEIAEoBRIsCgZmaWx0ZXIYBSABKA4yHC5pbXB1bHNlLnNlYXJjaC5TZWFyY2hGaWx0ZXIiaAoWU2VhcmNoTWVzc2FnZXNSZXNwb25zZRItCgdyZXN1bHRzGAEgAygLMhwuaW1wdWxzZS5zZWFyY2guU2VhcmNoUmVzdWx0Eg0KBWNvdW50GAIgASgFEhAKCGhhc19tb3JlGAMgASgIInEKE1NlYXJjaEdsb2JhbFJlcXVlc3QSDQoFcXVlcnkYASABKAkSDgoGb2Zmc2V0GAIgASgFEg0KBWxpbWl0GAMgASgFEiwKBmZpbHRlchgEIAEoDjIcLmltcHVsc2Uuc2VhcmNoLlNlYXJjaEZpbHRlciJmChRTZWFyY2hHbG9iYWxSZXNwb25zZRItCgdyZXN1bHRzGAEgAygLMhwuaW1wdWxzZS5zZWFyY2guU2VhcmNoUmVzdWx0Eg0KBWNvdW50GAIgASgFEhAKCGhhc19tb3JlGAMgASgIIloKGEdldFNlYXJjaENvdW50ZXJzUmVxdWVzdBIPCgdjaGF0X2lkGAEgASgDEi0KB2ZpbHRlcnMYAiADKA4yHC5pbXB1bHNlLnNlYXJjaC5TZWFyY2hGaWx0ZXIiTAoZR2V0U2VhcmNoQ291bnRlcnNSZXNwb25zZRIvCghjb3VudGVycxgBIAMoCzIdLmltcHVsc2Uuc2VhcmNoLlNlYXJjaENvdW50ZXIiMgoSU2VhcmNoUGVlcnNSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJEg0KBWxpbWl0GAIgASgFIkIKE1NlYXJjaFBlZXJzUmVzcG9uc2USKwoHcmVzdWx0cxgBIAMoCzIaLmltcHVsc2Uuc2VhcmNoLlBlZXJSZXN1bHQiRgoUU2VhcmNoSGFzaHRhZ1JlcXVlc3QSDwoHaGFzaHRhZxgBIAEoCRIOCgZvZmZzZXQYAiABKAUSDQoFbGltaXQYAyABKAUiVQoVU2VhcmNoSGFzaHRhZ1Jlc3BvbnNlEi0KB3Jlc3VsdHMYASADKAsyHC5pbXB1bHNlLnNlYXJjaC5TZWFyY2hSZXN1bHQSDQoFY291bnQYAiABKAUiWQoYR2V0U2VhcmNoQ2FsZW5kYXJSZXF1ZXN0Eg8KB2NoYXRfaWQYASABKAMSLAoGZmlsdGVyGAIgASgOMhwuaW1wdWxzZS5zZWFyY2guU2VhcmNoRmlsdGVyIkwKGUdldFNlYXJjaENhbGVuZGFyUmVzcG9uc2USLwoEZGF5cxgBIAMoCzIhLmltcHVsc2Uuc2VhcmNoLlNlYXJjaENhbGVuZGFyRGF5IoMBCiBHZXRTZWFyY2hSZXN1bHRzUG9zaXRpb25zUmVxdWVzdBIPCgdjaGF0X2lkGAEgASgDEiwKBmZpbHRlchgCIAEoDjIcLmltcHVsc2Uuc2VhcmNoLlNlYXJjaEZpbHRlchIRCglvZmZzZXRfaWQYAyABKAUSDQoFbGltaXQYBCABKAUibAohR2V0U2VhcmNoUmVzdWx0c1Bvc2l0aW9uc1Jlc3BvbnNlEg0KBWNvdW50GAEgASgFEjgKCXBvc2l0aW9ucxgCIAMoCzIlLmltcHVsc2Uuc2VhcmNoLlNlYXJjaFJlc3VsdHNQb3NpdGlvbiJFChVTZWFyY2hSZXN1bHRzUG9zaXRpb24SDgoGbXNnX2lkGAEgASgDEgwKBGRhdGUYAiABKAMSDgoGb2Zmc2V0GAMgASgFImQKFlNlYXJjaFNlbnRNZWRpYVJlcXVlc3QSDQoFcXVlcnkYASABKAkSLAoGZmlsdGVyGAIgASgOMhwuaW1wdWxzZS5zZWFyY2guU2VhcmNoRmlsdGVyEg0KBWxpbWl0GAMgASgFImkKF1NlYXJjaFNlbnRNZWRpYVJlc3BvbnNlEi0KB3Jlc3VsdHMYASADKAsyHC5pbXB1bHNlLnNlYXJjaC5TZWFyY2hSZXN1bHQSDQoFY291bnQYAiABKAUSEAoIaGFzX21vcmUYAyABKAhCGaoCFkltcHVsc2VNLlByb3Rvcy5TZWFyY2hiBnByb3RvMw", [file_impulse_search_search_types]);
 
 /**
  * @generated from message impulse.search.SearchMessagesRequest
@@ -437,75 +437,4 @@ export type SearchSentMediaResponse = Message<"impulse.search.SearchSentMediaRes
  */
 export const SearchSentMediaResponseSchema: GenMessage<SearchSentMediaResponse> = /*@__PURE__*/
   messageDesc(file_impulse_search_search_service, 16);
-
-/**
- * @generated from service impulse.search.SearchService
- */
-export const SearchService: GenService<{
-  /**
-   * @generated from rpc impulse.search.SearchService.SearchMessages
-   */
-  searchMessages: {
-    methodKind: "unary";
-    input: typeof SearchMessagesRequestSchema;
-    output: typeof SearchMessagesResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.search.SearchService.SearchGlobal
-   */
-  searchGlobal: {
-    methodKind: "unary";
-    input: typeof SearchGlobalRequestSchema;
-    output: typeof SearchGlobalResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.search.SearchService.GetSearchCounters
-   */
-  getSearchCounters: {
-    methodKind: "unary";
-    input: typeof GetSearchCountersRequestSchema;
-    output: typeof GetSearchCountersResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.search.SearchService.SearchPeers
-   */
-  searchPeers: {
-    methodKind: "unary";
-    input: typeof SearchPeersRequestSchema;
-    output: typeof SearchPeersResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.search.SearchService.SearchHashtag
-   */
-  searchHashtag: {
-    methodKind: "unary";
-    input: typeof SearchHashtagRequestSchema;
-    output: typeof SearchHashtagResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.search.SearchService.GetSearchCalendar
-   */
-  getSearchCalendar: {
-    methodKind: "unary";
-    input: typeof GetSearchCalendarRequestSchema;
-    output: typeof GetSearchCalendarResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.search.SearchService.GetSearchResultsPositions
-   */
-  getSearchResultsPositions: {
-    methodKind: "unary";
-    input: typeof GetSearchResultsPositionsRequestSchema;
-    output: typeof GetSearchResultsPositionsResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.search.SearchService.SearchSentMedia
-   */
-  searchSentMedia: {
-    methodKind: "unary";
-    input: typeof SearchSentMediaRequestSchema;
-    output: typeof SearchSentMediaResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_impulse_search_search_service, 0);
 

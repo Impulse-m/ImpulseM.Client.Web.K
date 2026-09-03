@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/events/chat_events.proto.
  */
 export const file_impulse_events_chat_events: GenFile = /*@__PURE__*/
-  fileDesc("CiBpbXB1bHNlL2V2ZW50cy9jaGF0X2V2ZW50cy5wcm90bxIUaW1wdWxzZS5ldmVudHMuY2hhdHMiugcKCUNoYXRFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSCwoDcHRzGAIgASgDEhEKCXB0c19jb3VudBgDIAEoBRJCCg1jaGF0X3NuYXBzaG90GAogASgLMikuaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdFNuYXBzaG90VXBkYXRlZEgAEjQKB2RlbGV0ZWQYCyABKAsyIS5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0RGVsZXRlZEgAEj8KCG1pZ3JhdGVkGAwgASgLMisuaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdE1pZ3JhdGVkVG9DaGFubmVsSAASPQoKbWVtYmVyc2hpcBgNIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLk1lbWJlcnNoaXBDaGFuZ2VkSAASTwoUZm9ydW1fdG9waWNfc25hcHNob3QYDiABKAsyLy5pbXB1bHNlLmV2ZW50cy5jaGF0cy5Gb3J1bVRvcGljU25hcHNob3RVcGRhdGVkSAASRgoTZm9ydW1fdG9waWNfZGVsZXRlZBgPIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLkZvcnVtVG9waWNEZWxldGVkSAASRgoTam9pbl9yZXF1ZXN0X2hpZGRlbhgQIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLkpvaW5SZXF1ZXN0SGlkZGVuSAASSAoUY2hhdF9oaXN0b3J5X2RlbGV0ZWQYESABKAsyKC5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0SGlzdG9yeURlbGV0ZWRIABI5CgxjaGF0X2NyZWF0ZWQYEiABKAsyIS5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0Q3JlYXRlZEgAEkoKFWJhbm5lZF9yaWdodHNfY2hhbmdlZBgTIAEoCzIpLmltcHVsc2UuZXZlbnRzLmNoYXRzLkJhbm5lZFJpZ2h0c0NoYW5nZWRIABJTChpqb2luX3JlcXVlc3RzX2hpZGRlbl9iYXRjaBgUIAEoCzItLmltcHVsc2UuZXZlbnRzLmNoYXRzLkpvaW5SZXF1ZXN0c0hpZGRlbkJhdGNoSAASUAoYbWVtYmVyc2hpcF9jaGFuZ2VkX2JhdGNoGBUgASgLMiwuaW1wdWxzZS5ldmVudHMuY2hhdHMuTWVtYmVyc2hpcENoYW5nZWRCYXRjaEgAQgkKB3BheWxvYWQiOAoTQ2hhdFNuYXBzaG90VXBkYXRlZBIhCgRjaGF0GAEgASgLMhMuaW1wdWxzZS5jaGF0cy5DaGF0IjAKC0NoYXREZWxldGVkEg8KB2NoYXRfaWQYASABKAMSEAoIdXNlcl9pZHMYAiADKAMidgoVQ2hhdE1pZ3JhdGVkVG9DaGFubmVsEhMKC29sZF9jaGF0X2lkGAEgASgDEhYKDm5ld19jaGFubmVsX2lkGAIgASgDEjAKB21lbWJlcnMYAyADKAsyHy5pbXB1bHNlLmV2ZW50cy5jaGF0cy5NZW1iZXJQdHMi9wIKEU1lbWJlcnNoaXBDaGFuZ2VkEg8KB2NoYXRfaWQYASABKAMSDwoHdXNlcl9pZBgCIAEoAxI+CgZhY3Rpb24YAyABKA4yLi5pbXB1bHNlLmV2ZW50cy5jaGF0cy5NZW1iZXJzaGlwQ2hhbmdlZC5BY3Rpb24SEQoEcmFuaxgEIAEoCUgAiAEBEhUKCGFjdG9yX2lkGAUgASgDSAGIAQEivwEKBkFjdGlvbhIWChJBQ1RJT05fVU5TUEVDSUZJRUQQABIRCg1BQ1RJT05fSk9JTkVEEAESDwoLQUNUSU9OX0xFRlQQAhIRCg1BQ1RJT05fS0lDS0VEEAMSEQoNQUNUSU9OX0JBTk5FRBAEEhkKFUFDVElPTl9BRE1JTl9QUk9NT1RFRBAFEhgKFEFDVElPTl9BRE1JTl9ERU1PVEVEEAYSHgoaQUNUSU9OX0NSRUFUT1JfVFJBTlNGRVJSRUQQB0IHCgVfcmFua0ILCglfYWN0b3JfaWQiRQoZRm9ydW1Ub3BpY1NuYXBzaG90VXBkYXRlZBIoCgV0b3BpYxgBIAEoCzIZLmltcHVsc2UuY2hhdHMuRm9ydW1Ub3BpYyI2ChFGb3J1bVRvcGljRGVsZXRlZBIPCgdjaGF0X2lkGAEgASgDEhAKCHRvcGljX2lkGAIgASgDIu8BChFKb2luUmVxdWVzdEhpZGRlbhIPCgdjaGF0X2lkGAEgASgDEg8KB3VzZXJfaWQYAiABKAMSQgoIZGVjaXNpb24YAyABKA4yMC5pbXB1bHNlLmV2ZW50cy5jaGF0cy5Kb2luUmVxdWVzdEhpZGRlbi5EZWNpc2lvbhIVCghhY3Rvcl9pZBgEIAEoA0gAiAEBIlAKCERlY2lzaW9uEhgKFERFQ0lTSU9OX1VOU1BFQ0lGSUVEEAASFQoRREVDSVNJT05fQVBQUk9WRUQQARITCg9ERUNJU0lPTl9ERU5JRUQQAkILCglfYWN0b3JfaWQiwAEKF0pvaW5SZXF1ZXN0c0hpZGRlbkJhdGNoEg8KB2NoYXRfaWQYASABKAMSEwoLcmVxdWVzdF9pZHMYAiADKAMSEAoIdXNlcl9pZHMYAyADKAMSQgoIZGVjaXNpb24YBCABKA4yMC5pbXB1bHNlLmV2ZW50cy5jaGF0cy5Kb2luUmVxdWVzdEhpZGRlbi5EZWNpc2lvbhIQCghhY3Rvcl9pZBgFIAEoAxIXCg9pZGVtcG90ZW5jeV9rZXkYBiABKAkipgEKFk1lbWJlcnNoaXBDaGFuZ2VkQmF0Y2gSDwoHY2hhdF9pZBgBIAEoAxIQCgh1c2VyX2lkcxgCIAMoAxI+CgZhY3Rpb24YAyABKA4yLi5pbXB1bHNlLmV2ZW50cy5jaGF0cy5NZW1iZXJzaGlwQ2hhbmdlZC5BY3Rpb24SEAoIYWN0b3JfaWQYBCABKAMSFwoPaWRlbXBvdGVuY3lfa2V5GAUgASgJIrMBChJDaGF0SGlzdG9yeURlbGV0ZWQSDwoHY2hhdF9pZBgBIAEoAxIVCgh0b3BpY19pZBgCIAEoA0gAiAEBEhsKDnBhcnRpY2lwYW50X2lkGAMgASgDSAGIAQESFgoObWF4X21lc3NhZ2VfaWQYBCABKAMSDgoGcmV2b2tlGAUgASgIEhAKCGFjdG9yX2lkGAYgASgDQgsKCV90b3BpY19pZEIRCg9fcGFydGljaXBhbnRfaWQirwEKC0NoYXRDcmVhdGVkEg8KB2NoYXRfaWQYASABKAMSEgoKY3JlYXRvcl9pZBgCIAEoAxINCgV0aXRsZRgDIAEoCRIXCgp0dGxfcGVyaW9kGAQgASgFSACIAQESEgoKY3JlYXRlZF9hdBgFIAEoAxIwCgdtZW1iZXJzGAYgAygLMh8uaW1wdWxzZS5ldmVudHMuY2hhdHMuTWVtYmVyUHRzQg0KC190dGxfcGVyaW9kIikKCU1lbWJlclB0cxIPCgd1c2VyX2lkGAEgASgDEgsKA3B0cxgCIAEoAyKoAQoTQmFubmVkUmlnaHRzQ2hhbmdlZBIPCgdjaGF0X2lkGAEgASgDEg8KB3VzZXJfaWQYAiABKAMSNwoGcmlnaHRzGAMgASgLMicuaW1wdWxzZS5jaGF0cy5DaGF0QmFubmVkUmlnaHRzU25hcHNob3QSFQoIYWN0b3JfaWQYBCABKANIAIgBARISCgppc19kZWZhdWx0GAUgASgIQgsKCV9hY3Rvcl9pZEIfqgIcSW1wdWxzZU0uUHJvdG9zLkV2ZW50cy5DaGF0c2IGcHJvdG8z", [file_impulse_events_events_common, file_impulse_chats_chat_types]);
+  fileDesc("CiBpbXB1bHNlL2V2ZW50cy9jaGF0X2V2ZW50cy5wcm90bxIUaW1wdWxzZS5ldmVudHMuY2hhdHMiiggKCUNoYXRFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSCwoDcHRzGAIgASgDEhEKCXB0c19jb3VudBgDIAEoBRJCCg1jaGF0X3NuYXBzaG90GAogASgLMikuaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdFNuYXBzaG90VXBkYXRlZEgAEjQKB2RlbGV0ZWQYCyABKAsyIS5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0RGVsZXRlZEgAEj8KCG1pZ3JhdGVkGAwgASgLMisuaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdE1pZ3JhdGVkVG9DaGFubmVsSAASPQoKbWVtYmVyc2hpcBgNIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLk1lbWJlcnNoaXBDaGFuZ2VkSAASTwoUZm9ydW1fdG9waWNfc25hcHNob3QYDiABKAsyLy5pbXB1bHNlLmV2ZW50cy5jaGF0cy5Gb3J1bVRvcGljU25hcHNob3RVcGRhdGVkSAASRgoTZm9ydW1fdG9waWNfZGVsZXRlZBgPIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLkZvcnVtVG9waWNEZWxldGVkSAASRgoTam9pbl9yZXF1ZXN0X2hpZGRlbhgQIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLkpvaW5SZXF1ZXN0SGlkZGVuSAASSAoUY2hhdF9oaXN0b3J5X2RlbGV0ZWQYESABKAsyKC5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0SGlzdG9yeURlbGV0ZWRIABI5CgxjaGF0X2NyZWF0ZWQYEiABKAsyIS5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0Q3JlYXRlZEgAEkoKFWJhbm5lZF9yaWdodHNfY2hhbmdlZBgTIAEoCzIpLmltcHVsc2UuZXZlbnRzLmNoYXRzLkJhbm5lZFJpZ2h0c0NoYW5nZWRIABJTChpqb2luX3JlcXVlc3RzX2hpZGRlbl9iYXRjaBgUIAEoCzItLmltcHVsc2UuZXZlbnRzLmNoYXRzLkpvaW5SZXF1ZXN0c0hpZGRlbkJhdGNoSAASUAoYbWVtYmVyc2hpcF9jaGFuZ2VkX2JhdGNoGBUgASgLMiwuaW1wdWxzZS5ldmVudHMuY2hhdHMuTWVtYmVyc2hpcENoYW5nZWRCYXRjaEgAEk4KFGNoYXRfc2VydmljZV9tZXNzYWdlGBYgASgLMi4uaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdFNlcnZpY2VNZXNzYWdlUG9zdGVkSABCCQoHcGF5bG9hZCI4ChNDaGF0U25hcHNob3RVcGRhdGVkEiEKBGNoYXQYASABKAsyEy5pbXB1bHNlLmNoYXRzLkNoYXQiMAoLQ2hhdERlbGV0ZWQSDwoHY2hhdF9pZBgBIAEoAxIQCgh1c2VyX2lkcxgCIAMoAyLjAQoVQ2hhdE1pZ3JhdGVkVG9DaGFubmVsEhMKC29sZF9jaGF0X2lkGAEgASgDEhYKDm5ld19jaGFubmVsX2lkGAIgASgDEjAKB21lbWJlcnMYAyADKAsyHy5pbXB1bHNlLmV2ZW50cy5jaGF0cy5NZW1iZXJQdHMSEAoIYWN0b3JfaWQYBCABKAMSDQoFdGl0bGUYBSABKAkSGwoTb2xkX2NoYXRfbWVzc2FnZV9pZBgGIAEoAxIUCgxvbGRfY2hhdF9wdHMYByABKAMSFwoPbmV3X2NoYW5uZWxfcHRzGAggASgDIvcCChFNZW1iZXJzaGlwQ2hhbmdlZBIPCgdjaGF0X2lkGAEgASgDEg8KB3VzZXJfaWQYAiABKAMSPgoGYWN0aW9uGAMgASgOMi4uaW1wdWxzZS5ldmVudHMuY2hhdHMuTWVtYmVyc2hpcENoYW5nZWQuQWN0aW9uEhEKBHJhbmsYBCABKAlIAIgBARIVCghhY3Rvcl9pZBgFIAEoA0gBiAEBIr8BCgZBY3Rpb24SFgoSQUNUSU9OX1VOU1BFQ0lGSUVEEAASEQoNQUNUSU9OX0pPSU5FRBABEg8KC0FDVElPTl9MRUZUEAISEQoNQUNUSU9OX0tJQ0tFRBADEhEKDUFDVElPTl9CQU5ORUQQBBIZChVBQ1RJT05fQURNSU5fUFJPTU9URUQQBRIYChRBQ1RJT05fQURNSU5fREVNT1RFRBAGEh4KGkFDVElPTl9DUkVBVE9SX1RSQU5TRkVSUkVEEAdCBwoFX3JhbmtCCwoJX2FjdG9yX2lkIkUKGUZvcnVtVG9waWNTbmFwc2hvdFVwZGF0ZWQSKAoFdG9waWMYASABKAsyGS5pbXB1bHNlLmNoYXRzLkZvcnVtVG9waWMiNgoRRm9ydW1Ub3BpY0RlbGV0ZWQSDwoHY2hhdF9pZBgBIAEoAxIQCgh0b3BpY19pZBgCIAEoAyLvAQoRSm9pblJlcXVlc3RIaWRkZW4SDwoHY2hhdF9pZBgBIAEoAxIPCgd1c2VyX2lkGAIgASgDEkIKCGRlY2lzaW9uGAMgASgOMjAuaW1wdWxzZS5ldmVudHMuY2hhdHMuSm9pblJlcXVlc3RIaWRkZW4uRGVjaXNpb24SFQoIYWN0b3JfaWQYBCABKANIAIgBASJQCghEZWNpc2lvbhIYChRERUNJU0lPTl9VTlNQRUNJRklFRBAAEhUKEURFQ0lTSU9OX0FQUFJPVkVEEAESEwoPREVDSVNJT05fREVOSUVEEAJCCwoJX2FjdG9yX2lkIsABChdKb2luUmVxdWVzdHNIaWRkZW5CYXRjaBIPCgdjaGF0X2lkGAEgASgDEhMKC3JlcXVlc3RfaWRzGAIgAygDEhAKCHVzZXJfaWRzGAMgAygDEkIKCGRlY2lzaW9uGAQgASgOMjAuaW1wdWxzZS5ldmVudHMuY2hhdHMuSm9pblJlcXVlc3RIaWRkZW4uRGVjaXNpb24SEAoIYWN0b3JfaWQYBSABKAMSFwoPaWRlbXBvdGVuY3lfa2V5GAYgASgJIqYBChZNZW1iZXJzaGlwQ2hhbmdlZEJhdGNoEg8KB2NoYXRfaWQYASABKAMSEAoIdXNlcl9pZHMYAiADKAMSPgoGYWN0aW9uGAMgASgOMi4uaW1wdWxzZS5ldmVudHMuY2hhdHMuTWVtYmVyc2hpcENoYW5nZWQuQWN0aW9uEhAKCGFjdG9yX2lkGAQgASgDEhcKD2lkZW1wb3RlbmN5X2tleRgFIAEoCSKzAQoSQ2hhdEhpc3RvcnlEZWxldGVkEg8KB2NoYXRfaWQYASABKAMSFQoIdG9waWNfaWQYAiABKANIAIgBARIbCg5wYXJ0aWNpcGFudF9pZBgDIAEoA0gBiAEBEhYKDm1heF9tZXNzYWdlX2lkGAQgASgDEg4KBnJldm9rZRgFIAEoCBIQCghhY3Rvcl9pZBgGIAEoA0ILCglfdG9waWNfaWRCEQoPX3BhcnRpY2lwYW50X2lkIq8BCgtDaGF0Q3JlYXRlZBIPCgdjaGF0X2lkGAEgASgDEhIKCmNyZWF0b3JfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSFwoKdHRsX3BlcmlvZBgEIAEoBUgAiAEBEhIKCmNyZWF0ZWRfYXQYBSABKAMSMAoHbWVtYmVycxgGIAMoCzIfLmltcHVsc2UuZXZlbnRzLmNoYXRzLk1lbWJlclB0c0INCgtfdHRsX3BlcmlvZCK8AQoYQ2hhdFNlcnZpY2VNZXNzYWdlUG9zdGVkEg8KB2NoYXRfaWQYASABKAMSEgoKbWVzc2FnZV9pZBgCIAEoBRIQCghhY3Rvcl9pZBgDIAEoAxITCgthY3Rpb25fanNvbhgEIAEoCRIRCglwb3N0ZWRfYXQYBSABKAMSGgoScmVjaXBpZW50X3VzZXJfaWRzGAYgAygDEhgKEG1lbWJlcnNoaXBfZXBvY2gYByABKAMSCwoDcHRzGAggASgDIikKCU1lbWJlclB0cxIPCgd1c2VyX2lkGAEgASgDEgsKA3B0cxgCIAEoAyKoAQoTQmFubmVkUmlnaHRzQ2hhbmdlZBIPCgdjaGF0X2lkGAEgASgDEg8KB3VzZXJfaWQYAiABKAMSNwoGcmlnaHRzGAMgASgLMicuaW1wdWxzZS5jaGF0cy5DaGF0QmFubmVkUmlnaHRzU25hcHNob3QSFQoIYWN0b3JfaWQYBCABKANIAIgBARISCgppc19kZWZhdWx0GAUgASgIQgsKCV9hY3Rvcl9pZEIfqgIcSW1wdWxzZU0uUHJvdG9zLkV2ZW50cy5DaGF0c2IGcHJvdG8z", [file_impulse_events_events_common, file_impulse_chats_chat_types]);
 
 /**
  * The canonical impulse.chats.Chat message already covers both group
@@ -115,6 +115,12 @@ export type ChatEvent = Message<"impulse.events.chats.ChatEvent"> & {
      */
     value: MembershipChangedBatch;
     case: "membershipChangedBatch";
+  } | {
+    /**
+     * @generated from field: impulse.events.chats.ChatServiceMessagePosted chat_service_message = 22;
+     */
+    value: ChatServiceMessagePosted;
+    case: "chatServiceMessage";
   } | { case: undefined; value?: undefined };
 };
 
@@ -182,6 +188,63 @@ export type ChatMigratedToChannel = Message<"impulse.events.chats.ChatMigratedTo
    * @generated from field: repeated impulse.events.chats.MemberPts members = 3;
    */
   members: MemberPts[];
+
+  /**
+   * Who performed the migration. MigrateChatCommand refuses anyone but the basic group's
+   * creator, so this is always the creator -- and it is the from_id both migration service
+   * messages carry (messageActionChatMigrateTo in the old chat, messageActionChannelMigrateFrom
+   * in the new channel; see MigrationServiceMessageWriter).
+   *
+   * @generated from field: int64 actor_id = 4;
+   */
+  actorId: bigint;
+
+  /**
+   * The basic group's title at the moment of migration. messageActionChannelMigrateFrom#ea3948e9
+   * (.demo/tdlib/td/generate/scheme/telegram_api.tl:180) needs it to open the new channel's
+   * history, and carrying it here spares the projector a read back to Chats for a value the
+   * command already has in hand.
+   *
+   * @generated from field: string title = 5;
+   */
+  title: string;
+
+  /**
+   * The old basic group's closing line, allocated by the command rather than by the projector.
+   *
+   * messageActionChatMigrateTo#e1037f92 (.demo/tdlib/td/generate/scheme/telegram_api.tl:179) is a
+   * real stored message, and the RPC has to be able to name it in its own answer -- which it
+   * cannot do if the id appears only later, inside the projection. Carrying it also removes the
+   * hazard MigrationServiceMessageWriter documented against itself: MessageIdAllocator dedups on a
+   * token for a bounded TTL, so a Kafka redelivery arriving after that window used to mint a
+   * SECOND migrate-to line, permanently. A literal in the event bytes replays as itself.
+   *
+   * @generated from field: int64 old_chat_message_id = 6;
+   */
+  oldChatMessageId: bigint;
+
+  /**
+   * The pts the requester's own update_log row takes for that message.
+   *
+   * The requester's, specifically. This method's answer goes straight into the ordinary update
+   * pipeline -- MigrateChatQuery::on_result calls updates_manager_->on_get_updates
+   * (.demo/tdlib/td/telegram/DialogManager.cpp:216) -- so the number in it is compared against the
+   * receiving client's own cursor. Another member's pts is not merely useless there: a lower one
+   * is discarded as already applied and the line never appears, and a higher one opens a gap that
+   * forces that client into a full getDifference.
+   *
+   * @generated from field: int64 old_chat_pts = 7;
+   */
+  oldChatPts: bigint;
+
+  /**
+   * The new channel's opening line takes CreationServiceMessageId.Value, the seat kept free for
+   * exactly this in every chat kind that opens with one, so no id travels for it -- only its pts
+   * on the channel trail, which is a different counter from the per-user one above.
+   *
+   * @generated from field: int64 new_channel_pts = 8;
+   */
+  newChannelPts: bigint;
 };
 
 /**
@@ -548,6 +611,107 @@ export const ChatCreatedSchema: GenMessage<ChatCreated> = /*@__PURE__*/
   messageDesc(file_impulse_events_chat_events, 11);
 
 /**
+ * A service message a chat-lifecycle action posts into the chat's own history: a rename, a member
+ * added or removed, a photo changed, a forum topic created. Canon says each of these "sends a
+ * service message on it" in the first line of its own method page
+ * (.demo/telegram-docs-text/method/messages.editChatTitle.md:1 and its siblings), and the message is
+ * real: it has an id, getHistory returns it, it can be replied to.
+ *
+ * It travels on the CHAT lane rather than the message lane, and that is the whole point. The write
+ * has to happen before the fan-out: a client that received the push already holds the message, but
+ * when it opens the chat and getHistory comes back without the row, tdlib deletes every local server
+ * message newer than the response's top (.demo/tdlib/td/telegram/MessagesManager.cpp:7229-7231) and
+ * then refuses that id forever (:30489-30492, via deleted_message_ids at :31448). The line appears,
+ * vanishes, and that client can never be told again. So the Messages-side writer stores the row and
+ * only then re-emits onto message.events.v2, where push notifications, dialog state and counters
+ * pick it up exactly as they do for an ordinary message.
+ *
+ * @generated from message impulse.events.chats.ChatServiceMessagePosted
+ */
+export type ChatServiceMessagePosted = Message<"impulse.events.chats.ChatServiceMessagePosted"> & {
+  /**
+   * @generated from field: int64 chat_id = 1;
+   */
+  chatId: bigint;
+
+  /**
+   * Allocated ONCE, at command time, and carried here. A writer that allocates per attempt makes
+   * MessageIdAllocator's own dedup unreachable: past its Redis window a redelivery mints a second,
+   * permanent copy of the same line.
+   *
+   * @generated from field: int32 message_id = 2;
+   */
+  messageId: number;
+
+  /**
+   * Who performed the action -- the from_id the service message carries.
+   *
+   * @generated from field: int64 actor_id = 3;
+   */
+  actorId: bigint;
+
+  /**
+   * The action itself, serialized exactly as a stored message's action is, so the writer and the
+   * wire builder read one shape rather than two that drift.
+   *
+   * @generated from field: string action_json = 4;
+   */
+  actionJson: string;
+
+  /**
+   * The event's own instant in unix milliseconds, never the writer's clock: a replay has to
+   * reproduce the row byte for byte, same LWW timestamp and same values.
+   *
+   * @generated from field: int64 posted_at = 5;
+   */
+  postedAt: bigint;
+
+  /**
+   * Who the message goes to, captured at command time. Includes the member an action is ABOUT even
+   * when the action removed them: canon delivers a removal to the person removed, and by fan-out
+   * time they are already out of the roster -- the chat lane had to learn that the hard way and
+   * re-includes them explicitly.
+   *
+   * Ids only, no pts. Every recipient but the actor draws its own sequence number in the message
+   * projector's fan-out, exactly as it does for an ordinary message; carrying a MemberPts here and
+   * filling only the actor's would be an absence read as a zero.
+   *
+   * @generated from field: repeated int64 recipient_user_ids = 6;
+   */
+  recipientUserIds: bigint[];
+
+  /**
+   * The chat's own version at the moment of the action, so a consumer pinning membership reads the
+   * same roster the command saw rather than whatever the cache holds when it runs.
+   *
+   * @generated from field: int64 membership_epoch = 7;
+   */
+  membershipEpoch: bigint;
+
+  /**
+   * The sequence number this message announces itself at, and which one depends on the chat's kind
+   * exactly as it does on NewMessage.pts: for a basic group it is the pts the ACTOR's command
+   * reserved, which the projector's sender leg commits — leaving that reservation uncommitted
+   * freezes the actor's catch-up cursor behind a hole nothing fills until the reaper runs. For a
+   * megagroup or broadcast it is the CHANNEL's pts, because a channel is read fan-out: its members
+   * pull the trail rather than being written to, and recipient_user_ids is empty for that reason.
+   *
+   * The chat's kind is not repeated here: it travels on the envelope, the same way ChatCreated's
+   * does, and ChatProjector already reads it there.
+   *
+   * @generated from field: int64 pts = 8;
+   */
+  pts: bigint;
+};
+
+/**
+ * Describes the message impulse.events.chats.ChatServiceMessagePosted.
+ * Use `create(ChatServiceMessagePostedSchema)` to create a new message.
+ */
+export const ChatServiceMessagePostedSchema: GenMessage<ChatServiceMessagePosted> = /*@__PURE__*/
+  messageDesc(file_impulse_events_chat_events, 12);
+
+/**
  * @generated from message impulse.events.chats.MemberPts
  */
 export type MemberPts = Message<"impulse.events.chats.MemberPts"> & {
@@ -567,7 +731,7 @@ export type MemberPts = Message<"impulse.events.chats.MemberPts"> & {
  * Use `create(MemberPtsSchema)` to create a new message.
  */
 export const MemberPtsSchema: GenMessage<MemberPts> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 12);
+  messageDesc(file_impulse_events_chat_events, 13);
 
 /**
  * Emitted by EditBannedCommand on partial-rights edits (no role flip), and by
@@ -610,5 +774,5 @@ export type BannedRightsChanged = Message<"impulse.events.chats.BannedRightsChan
  * Use `create(BannedRightsChangedSchema)` to create a new message.
  */
 export const BannedRightsChangedSchema: GenMessage<BannedRightsChanged> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 13);
+  messageDesc(file_impulse_events_chat_events, 14);
 
