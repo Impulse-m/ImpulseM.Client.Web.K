@@ -15,6 +15,7 @@ import {readThreadMemory} from '@lib/debug/memoryStats';
 import {getMemoryWriterStats} from '@lib/files/memoryWriter';
 import toggleStorages from '@helpers/toggleStorages';
 import appTabsManager from '@appManagers/appTabsManager';
+import {setImpulseRealtimeTabs} from '@lib/impulse/realtime';
 import callbackify from '@helpers/callbackify';
 import Modes from '@config/modes';
 import {IS_WORKER} from '@helpers/context';
@@ -381,6 +382,8 @@ const autoLockControls = useAutoLock({
 
 appTabsManager.onTabStateChange = () => {
   const tabs = appTabsManager.getTabs();
+  // impulse: keep each account connection aligned with all tabs showing channel lanes.
+  setImpulseRealtimeTabs(tabs.map((tab) => tab.state));
   const areAllIdle = tabs.every((tab) => !!tab.state.idleStartTime);
 
   autoLockControls.setAreAllIdle(areAllIdle);

@@ -141,11 +141,23 @@ export class ApiManager extends ApiManagerMethods {
   }
 
   private startRealtimeBringUp(userId: UserId): void {
-    setRealtimeSink((updates) => {
+    // impulse: seed a subscribed channel from cached dialog pts before TooLong reaches its guard.
+    setRealtimeSink((updates, channelId) => {
+      let hasChannelTooLong = false;
+      for(const update of updates.updates ?? []) {
+        hasChannelTooLong ||= update._ === 'updateChannelTooLong';
+      }
+      if(channelId !== undefined && hasChannelTooLong) {
+        const pts = this.dialogsStorage.getDialogOnly(channelId.toPeerId(true))?.pts;
+        if(pts) {
+          this.apiUpdatesManager.addChannelState(channelId, pts);
+        }
+      }
+
       this.apiUpdatesManager.processUpdateMessage(updates);
     });
 
-    startImpulseRealtime(String(userId));
+    startImpulseRealtime(String(userId), this.getAccountNumber());
     this.reportImpulseConnected();
   }
 

@@ -302,6 +302,22 @@ export class AutonomousDialogList extends AutonomousDialogListBase<Dialog> {
       onListLengthChange: () => {
         scrollable.onSizeChange();
         this.appDialogsManager.onListLengthChange?.();
+      },
+      // impulse: publish only channel rows in the active virtualized dialog viewport.
+      onVisibleItemsChange: (visibleIds) => {
+        if(!this.isActive) return;
+
+        const visibleChannelIds: ChatId[] = [];
+        for(const peerId of visibleIds) {
+          if(typeof peerId !== 'number' || !peerId.isAnyChat()) continue;
+
+          const chat = apiManagerProxy.getChat(peerId.toChatId());
+          if(chat?._ === 'channel' && !chat.pFlags.left) {
+            visibleChannelIds.push(chat.id);
+          }
+        }
+
+        apiManagerProxy.updateTabState('visibleChannelIds', visibleChannelIds);
       }
     });
 

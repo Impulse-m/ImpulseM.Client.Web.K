@@ -167,6 +167,9 @@ export type NotificationBuildTaskPayload =
 
 export type TabState = {
   chatPeerIds: PeerId[],
+  // impulse: channel lanes shown by this tab, kept distinct from notification chat state.
+  openChannelId?: ChatId,
+  visibleChannelIds: ChatId[],
   idleStartTime: number,
   accountNumber: number,
   id: number
@@ -404,6 +407,7 @@ class ApiManagerProxy extends MTProtoMessagePort {
     this.tabState = {
       accountNumber: getCurrentAccount(),
       chatPeerIds: [],
+      visibleChannelIds: [],
       idleStartTime: 0,
       id: tabId
     };

@@ -23,7 +23,11 @@ import {Code, ConnectError, createClient} from '@connectrpc/connect';
 
 import {backendWsOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
+import type {TabState} from '@lib/apiManagerProxy';
 import {refreshImpulseSession, whenImpulseSessionReady} from './session';
+import {RealtimeSubscriptions} from './realtimeSubscriptions';
+import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
+import {getReconnectJitterMaxMs} from './realtimeDiscipline';
 import {protoToTL} from './grpc/adapter';
 import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 import {SyncService} from './grpc/gen/v1/internal/impulse/sync/sync_service_pb';
@@ -35,8 +39,11 @@ const CENTRIFUGO_WS = `${backendWsOrigin()}/connection/websocket`;
 const TOKEN_EXPIRED_CODE = 109;
 // Guards against a re-spin storm if module state is ever transiently reset.
 const SPIN_UP_COOLDOWN_MS = 30_000;
+// Production reconnects spread across 20 seconds; local development stays responsive.
+export const ReconnectJitterMaxMs = getReconnectJitterMaxMs(import.meta.env.DEV);
+const RECONNECT_JITTER_MIN_MS = 1;
 
-export type RealtimeUpdateSink = (updates: any) => void;
+export type RealtimeUpdateSink = (updates: any, channelId?: ChatId) => void;
 
 export type Envelope = {
   type?: number,
@@ -50,8 +57,12 @@ export type Envelope = {
 };
 
 let activeUserId: string | undefined;
+let activeAccountNumber: number | undefined;
 let connection: Centrifuge | undefined;
-let subscription: Subscription | undefined;
+let subscriptionSet: RealtimeSubscriptions | undefined;
+let openChannelId: ChatId | undefined;
+let latestTabStates: TabState[] = [];
+const subscriptions = new Map<string, Subscription>();
 let sink: RealtimeUpdateSink | undefined;
 let spinUpInProgress = false;
 const lastSpinUpAt = new Map<string, number>();
@@ -60,7 +71,7 @@ export function setRealtimeSink(fn: RealtimeUpdateSink): void {
   sink = fn;
 }
 
-export function startImpulseRealtime(userId: string | undefined): void {
+export function startImpulseRealtime(userId: string | undefined, accountNumber?: number): void {
   if(!userId) {
     stopImpulseRealtime();
     return;
@@ -81,6 +92,8 @@ export function startImpulseRealtime(userId: string | undefined): void {
 
   lastSpinUpAt.set(userId, Date.now());
   activeUserId = userId;
+  activeAccountNumber = accountNumber;
+  subscriptionSet = new RealtimeSubscriptions(userId);
   spinUpInProgress = true;
 
   spinUp(userId).catch((err: unknown) => {
@@ -92,15 +105,49 @@ export function startImpulseRealtime(userId: string | undefined): void {
 
 export function stopImpulseRealtime(): void {
   try {
-    subscription?.unsubscribe();
+    for(const subscription of subscriptions.values()) {
+      subscription.unsubscribe();
+    }
     connection?.disconnect();
   } catch(err) {
     logger.warn('Realtime teardown failed', undefined, err);
   }
 
-  subscription = undefined;
+  subscriptions.clear();
+  subscriptionSet = undefined;
+  openChannelId = undefined;
   connection = undefined;
   activeUserId = undefined;
+  activeAccountNumber = undefined;
+}
+
+export function setImpulseRealtimeTabs(states: TabState[]): void {
+  latestTabStates = states;
+  applyTabStates();
+}
+
+function applyTabStates(): void {
+  if(!subscriptionSet || activeAccountNumber === undefined) return;
+
+  const states = latestTabStates.filter((state) => state.accountNumber === activeAccountNumber);
+  let nextOpenChannelId: ChatId | undefined;
+  const visibleChannelIds: ChatId[] = [];
+  for(const state of states) {
+    visibleChannelIds.push(...state.visibleChannelIds);
+    if(state.openChannelId !== undefined) {
+      visibleChannelIds.push(state.openChannelId);
+      nextOpenChannelId = state.openChannelId;
+    }
+  }
+
+  if(openChannelId !== undefined && openChannelId !== nextOpenChannelId) {
+    applySubscriptionDiff(subscriptionSet.close(openChannelId));
+  }
+  if(nextOpenChannelId !== undefined) {
+    applySubscriptionDiff(subscriptionSet.open(nextOpenChannelId));
+  }
+  openChannelId = nextOpenChannelId;
+  applySubscriptionDiff(subscriptionSet.showDialogs(visibleChannelIds));
 }
 
 export async function fetchCentrifugoToken(): Promise<string> {
@@ -143,7 +190,10 @@ async function spinUp(userId: string): Promise<void> {
 
   const centrifuge = new Centrifuge(CENTRIFUGO_WS, {
     token,
-    getToken: () => fetchCentrifugoToken()
+    getToken: () => fetchCentrifugoToken(),
+    // Centrifuge 5 uses full-jitter exponential backoff inside these bounds.
+    minReconnectDelay: RECONNECT_JITTER_MIN_MS,
+    maxReconnectDelay: ReconnectJitterMaxMs
   });
 
   centrifuge.on('error', (ctx: any) => {
@@ -180,7 +230,20 @@ async function spinUp(userId: string): Promise<void> {
     logger.warn('Realtime disconnected', {channel, code: ctx?.code, reason: ctx?.reason});
   });
 
-  const sub = centrifuge.newSubscription(channel);
+  connection = centrifuge;
+  applyTabStates();
+  for(const selectedChannel of subscriptionSet?.getChannels() ?? [channel]) {
+    createSubscription(selectedChannel);
+  }
+
+  centrifuge.connect();
+  logger.info('Realtime spin-up requested', {channel});
+}
+
+function createSubscription(channel: string): void {
+  if(!connection || subscriptions.has(channel)) return;
+
+  const sub = connection.newSubscription(channel);
   sub.on('publication', (ctx: any) => {
     handleEnvelope(ctx?.data as Envelope, channel);
   });
@@ -207,12 +270,26 @@ async function spinUp(userId: string): Promise<void> {
     logger.warn('Realtime unsubscribed', {channel, code: ctx?.code, reason: ctx?.reason});
   });
 
-  connection = centrifuge;
-  subscription = sub;
-
+  subscriptions.set(channel, sub);
   sub.subscribe();
-  centrifuge.connect();
-  logger.info('Realtime spin-up requested', {channel});
+  logger.info('Realtime subscription requested', {channel});
+}
+
+function applySubscriptionDiff(diff: RealtimeSubscriptionDiff): void {
+  for(const channel of diff.unsubscribe) {
+    const subscription = subscriptions.get(channel);
+    if(!subscription) continue;
+
+    subscription.unsubscribe();
+    connection?.removeSubscription(subscription);
+    subscriptions.delete(channel);
+    logger.info('Realtime channel unsubscribe requested', {channel});
+  }
+
+  for(const channel of diff.subscribe) {
+    createSubscription(channel);
+    logger.info('Realtime channel subscribe requested', {channel});
+  }
 }
 
 function handleEnvelope(envelope: Envelope | undefined, channel: string): void {
@@ -277,7 +354,8 @@ function handleEnvelope(envelope: Envelope | undefined, channel: string): void {
   });
 
   try {
-    sink(updates);
+    const channelId = channel.startsWith('channel:') ? asNumber(channel.slice('channel:'.length)) : undefined;
+    sink(updates, channelId);
   } catch(err) {
     logger.warn('Realtime update dispatch failed', {type: envelope.type}, err);
   }

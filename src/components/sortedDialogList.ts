@@ -40,6 +40,8 @@ export default class SortedDialogList {
     log?: SortedDialogList['log'],
     indexKey: SortedDialogList['indexKey'],
     onListLengthChange?: SortedDialogList['onListLengthChange'],
+    // impulse: forward visible dialog ids to the realtime channel lane hook.
+    onVisibleItemsChange?: (ids: unknown[]) => void,
     virtualFilterId?: SortedDialogList['virtualFilterId'],
     monoforumParentPeerId?: SortedDialogList['monoforumParentPeerId'],
 
@@ -126,6 +128,7 @@ export default class SortedDialogList {
       itemSize: options.itemSize,
       noAvatar: options.noAvatar,
       onListLengthChange: options.onListLengthChange,
+      onVisibleItemsChange: options.onVisibleItemsChange,
       extraPaddingBottom: options.extraPaddingBottom
     });
 

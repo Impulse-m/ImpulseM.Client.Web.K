@@ -19,6 +19,7 @@ import tsNow from '@helpers/tsNow';
 import formatStarsAmount from '@appManagers/utils/payments/formatStarsAmount';
 import debounce from '@helpers/schedulers/debounce';
 import copy from '@helpers/object/copy';
+import {ConcurrentTaskQueue, MaxConcurrentChannelDifferences} from '@lib/impulse/realtimeDiscipline';
 
 type UpdatesState = {
   pendingPtsUpdates: (Update & {pts: number, pts_count: number})[],
@@ -51,6 +52,8 @@ class ApiUpdatesManager {
   private attached = false;
 
   private subscriptions: {[channelId: ChatId]: {count: number, interval?: number}} = {};
+  // impulse: every channel-difference caller shares the connection's two recovery slots.
+  private channelDifferenceQueue = new ConcurrentTaskQueue(MaxConcurrentChannelDifferences);
 
   constructor() {
     this._constructor(false);
@@ -380,6 +383,10 @@ class ApiUpdatesManager {
   }
 
   private getChannelDifference(channelId: ChatId): Promise<void> {
+    return this.channelDifferenceQueue.run(() => this.getChannelDifferenceInner(channelId));
+  }
+
+  private getChannelDifferenceInner(channelId: ChatId): Promise<void> {
     const channelState = this.getChannelState(channelId);
     const wasSyncing = channelState.syncLoading;
     if(!wasSyncing) {
@@ -437,7 +444,7 @@ class ApiUpdatesManager {
 
       if(differenceResult._ === 'updates.channelDifference' &&
         !differenceResult.pFlags.final) {
-        return this.getChannelDifference(channelId);
+        return this.getChannelDifferenceInner(channelId);
       } else {
         log('finished channel get diff');
       }

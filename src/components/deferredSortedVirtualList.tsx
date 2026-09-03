@@ -33,6 +33,8 @@ type CreateDeferredSortedVirtualListArgs<T> = {
   itemSize: LoadingDialogSkeletonSize,
   noAvatar?: boolean,
   onListLengthChange?: () => void,
+  // impulse: expose the virtualized viewport for realtime channel lane selection.
+  onVisibleItemsChange?: (ids: unknown[]) => void,
   extraPaddingBottom?: number
 };
 
@@ -331,6 +333,14 @@ export const createDeferredSortedVirtualList = <T, >(args: CreateDeferredSortedV
       checkShrink(visibleItems(), itemsLength());
     }, 0);
   };
+
+  createEffect(() => {
+    const visible = visibleItems();
+    const allItems = fullItems();
+    args.onVisibleItemsChange?.(
+      [...visible].map((idx) => allItems[idx]?.id).filter((id) => id !== undefined)
+    );
+  });
 
   createEffect(on(visibleItems, () => {
     if(shrinkTimeout !== undefined) {

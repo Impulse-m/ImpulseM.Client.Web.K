@@ -784,6 +784,10 @@ export class AppImManager extends EventListenerBase<{
       this.overrideHash(peerId);
 
       apiManagerProxy.updateTabState('chatPeerIds', this.chats.map((chat) => chat.peerId).filter(Boolean));
+
+      // impulse: prioritize the open channel's realtime lane without overloading chatPeerIds.
+      const peer = peerId?.isAnyChat() ? apiManagerProxy.getChat(peerId.toChatId()) : undefined;
+      apiManagerProxy.updateTabState('openChannelId', peer?._ === 'channel' && !peer.pFlags.left ? peer.id : undefined);
     });
 
     // stateStorage.get('chatPositions').then((c) => {
