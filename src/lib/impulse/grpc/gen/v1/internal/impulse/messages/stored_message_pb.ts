@@ -68,7 +68,7 @@ export type StoredMessage = Message<"impulse.messages.StoredMessage"> & {
   replyToId?: bigint | undefined;
 
   /**
-   * The forward header (core.impulsem.net/constructor/messageFwdHeader). Every field of it, because
+   * The forward header (core.telegram.org/constructor/messageFwdHeader). Every field of it, because
    * a forward rendered from half a header is a different message than the one that was stored.
    *
    * @generated from field: optional int64 fwd_from_id = 8;

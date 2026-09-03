@@ -615,7 +615,7 @@ export const DocumentAttributeImageSizeSchema: GenMessage<DocumentAttributeImage
   messageDesc(file_impulse_common_media, 12);
 
 /**
- * Mirrors v1.DocumentAttributeCustomEmoji (core.impulsem.net/constructor/documentAttributeCustomEmoji).
+ * Mirrors v1.DocumentAttributeCustomEmoji (core.telegram.org/constructor/documentAttributeCustomEmoji).
  * Captured verbatim from the client at upload time and reproduced on resend/hydration — same
  * "client is authoritative for its own declared attributes" rule as DocumentAttributeSticker.
  *
@@ -689,8 +689,8 @@ export const DocumentAttributeListSchema: GenMessage<DocumentAttributeList> = /*
 /**
  * Which InputStickerSet variant DocumentAttributeCustomEmoji.stickerset_* was captured from.
  * A custom emoji document a real user uploads only ever references a set by numeric id or by
- * short name (core.impulsem.net/constructor/inputStickerSetID,
- * core.impulsem.net/constructor/inputStickerSetShortName) — the other InputStickerSet variants
+ * short name (core.telegram.org/constructor/inputStickerSetID,
+ * core.telegram.org/constructor/inputStickerSetShortName) — the other InputStickerSet variants
  * (animatedEmoji, dice, ...) are Telegram's own well-known system sets, never a value a client
  * attaches to its own upload, so they collapse to EMPTY here rather than growing this enum.
  *

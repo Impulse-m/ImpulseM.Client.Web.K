@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/events/files_events.proto.
  */
 export const file_impulse_events_files_events: GenFile = /*@__PURE__*/
-  fileDesc("CiFpbXB1bHNlL2V2ZW50cy9maWxlc19ldmVudHMucHJvdG8SFGltcHVsc2UuZXZlbnRzLmZpbGVzIsUDCgpGaWxlc0V2ZW50Ei8KCGVudmVsb3BlGAEgASgLMh0uaW1wdWxzZS5ldmVudHMuRXZlbnRFbnZlbG9wZRJKChVwcm9maWxlX3Bob3RvX3VwZGF0ZWQYCiABKAsyKS5pbXB1bHNlLmV2ZW50cy5maWxlcy5Qcm9maWxlUGhvdG9VcGRhdGVkSAASOwoNZmlsZV91cGxvYWRlZBgLIAEoCzIiLmltcHVsc2UuZXZlbnRzLmZpbGVzLkZpbGVVcGxvYWRlZEgAEj0KDmZpbGVfcHJvY2Vzc2VkGA4gASgLMiMuaW1wdWxzZS5ldmVudHMuZmlsZXMuRmlsZVByb2Nlc3NlZEgAEkwKFmZpbGVfcHJvY2Vzc2luZ19mYWlsZWQYDyABKAsyKi5pbXB1bHNlLmV2ZW50cy5maWxlcy5GaWxlUHJvY2Vzc2luZ0ZhaWxlZEgAElkKHWNvbnRhY3RfcHJvZmlsZV9waG90b191cGRhdGVkGBAgASgLMjAuaW1wdWxzZS5ldmVudHMuZmlsZXMuQ29udGFjdFByb2ZpbGVQaG90b1VwZGF0ZWRIAEIJCgdwYXlsb2FkSgQIDBANSgQIDRAOIoECChpDb250YWN0UHJvZmlsZVBob3RvVXBkYXRlZBIVCg1vd25lcl91c2VyX2lkGAEgASgDEhcKD2NvbnRhY3RfdXNlcl9pZBgCIAEoAxIQCghwaG90b19pZBgDIAEoAxIVCg1waG90b19maWxlX2lkGAQgASgDEhkKEXBob3RvX2FjY2Vzc19oYXNoGAUgASgDEhwKFHBob3RvX3N0cmlwcGVkX3RodW1iGAYgASgMEhMKC3Bob3RvX2RjX2lkGAcgASgFEhIKCmNoYW5nZWRfYXQYCCABKAMSDwoHcmVtb3ZlZBgJIAEoCBIXCg9waG90b193aXJlX2Jsb2IYCiABKAwilwIKE1Byb2ZpbGVQaG90b1VwZGF0ZWQSDwoHdXNlcl9pZBgBIAEoAxIQCghwaG90b19pZBgCIAEoAxIVCg1waG90b19maWxlX2lkGAMgASgDEhkKEXBob3RvX2FjY2Vzc19oYXNoGAQgASgDEhwKFHBob3RvX3N0cmlwcGVkX3RodW1iGAUgASgMEhMKC3Bob3RvX2RjX2lkGAYgASgFEhkKEXBob3RvX2NoYW5nZV9kYXRlGAcgASgDEhEKCWhhc192aWRlbxgIIAEoCBIQCghmYWxsYmFjaxgJIAEoCBIfChd2aWRlb19lbW9qaV9tYXJrdXBfanNvbhgKIAEoCRIXCg9waG90b193aXJlX2Jsb2IYCyABKAwikgIKDEZpbGVVcGxvYWRlZBIPCgdmaWxlX2lkGAEgASgDEg4KBnMzX2tleRgCIAEoCRIRCgltaW1lX3R5cGUYAyABKAkSEAoIY2F0ZWdvcnkYBCABKAUSEgoKc2l6ZV9ieXRlcxgFIAEoAxIQCghvd25lcl9pZBgGIAEoAxIRCglzM19idWNrZXQYByABKAkSEwoLc2hhMjU2X2hhc2gYCCABKAwSFAoMaXNfZHVwbGljYXRlGAkgASgIEiUKHWRlZHVwbGljYXRlZF9mcm9tX2RvY3VtZW50X2lkGAogASgDEhsKE2NsaWVudF90aHVtYl9zM19rZXkYCyABKAkSFAoMaXNfcmVwcm9jZXNzGAwgASgIIoABCg1GaWxlUHJvY2Vzc2VkEg8KB2ZpbGVfaWQYASABKAMSHAoUcHJvY2Vzc2VkX2F0dHJpYnV0ZXMYAiABKAwSEgoKc2l6ZXNfanNvbhgDIAEoCRIWCg5zdHJpcHBlZF90aHVtYhgEIAEoDBIUCgxpc19yZXByb2Nlc3MYBSABKAgiTgoURmlsZVByb2Nlc3NpbmdGYWlsZWQSDwoHZmlsZV9pZBgBIAEoAxIOCgZyZWFzb24YAiABKAkSFQoNZXJyb3JfbWVzc2FnZRgDIAEoCSLjAQoQRGVkdXBPdXRib3hFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSDwoHZmlsZV9pZBgCIAEoAxIOCgZzaGEyNTYYAyABKAwSEgoKc2l6ZV9ieXRlcxgEIAEoAxIQCghvd25lcl9pZBgFIAEoAxIYCgtkb2N1bWVudF9pZBgGIAEoA0gAiAEBEgoKAm9wGAcgASgJEg4KBnMzX2tleRgIIAEoCRIRCglzM19idWNrZXQYCSABKAlCDgoMX2RvY3VtZW50X2lkQh+qAhxJbXB1bHNlTS5Qcm90b3MuRXZlbnRzLkZpbGVzYgZwcm90bzM", [file_impulse_events_events_common]);
+  fileDesc("CiFpbXB1bHNlL2V2ZW50cy9maWxlc19ldmVudHMucHJvdG8SFGltcHVsc2UuZXZlbnRzLmZpbGVzIsQCCgpGaWxlc0V2ZW50Ei8KCGVudmVsb3BlGAEgASgLMh0uaW1wdWxzZS5ldmVudHMuRXZlbnRFbnZlbG9wZRJKChVwcm9maWxlX3Bob3RvX3VwZGF0ZWQYCiABKAsyKS5pbXB1bHNlLmV2ZW50cy5maWxlcy5Qcm9maWxlUGhvdG9VcGRhdGVkSAASOwoNZmlsZV91cGxvYWRlZBgLIAEoCzIiLmltcHVsc2UuZXZlbnRzLmZpbGVzLkZpbGVVcGxvYWRlZEgAElkKHWNvbnRhY3RfcHJvZmlsZV9waG90b191cGRhdGVkGBAgASgLMjAuaW1wdWxzZS5ldmVudHMuZmlsZXMuQ29udGFjdFByb2ZpbGVQaG90b1VwZGF0ZWRIAEIJCgdwYXlsb2FkSgQIDBANSgQIDRAOSgQIDhAPSgQIDxAQIoECChpDb250YWN0UHJvZmlsZVBob3RvVXBkYXRlZBIVCg1vd25lcl91c2VyX2lkGAEgASgDEhcKD2NvbnRhY3RfdXNlcl9pZBgCIAEoAxIQCghwaG90b19pZBgDIAEoAxIVCg1waG90b19maWxlX2lkGAQgASgDEhkKEXBob3RvX2FjY2Vzc19oYXNoGAUgASgDEhwKFHBob3RvX3N0cmlwcGVkX3RodW1iGAYgASgMEhMKC3Bob3RvX2RjX2lkGAcgASgFEhIKCmNoYW5nZWRfYXQYCCABKAMSDwoHcmVtb3ZlZBgJIAEoCBIXCg9waG90b193aXJlX2Jsb2IYCiABKAwilwIKE1Byb2ZpbGVQaG90b1VwZGF0ZWQSDwoHdXNlcl9pZBgBIAEoAxIQCghwaG90b19pZBgCIAEoAxIVCg1waG90b19maWxlX2lkGAMgASgDEhkKEXBob3RvX2FjY2Vzc19oYXNoGAQgASgDEhwKFHBob3RvX3N0cmlwcGVkX3RodW1iGAUgASgMEhMKC3Bob3RvX2RjX2lkGAYgASgFEhkKEXBob3RvX2NoYW5nZV9kYXRlGAcgASgDEhEKCWhhc192aWRlbxgIIAEoCBIQCghmYWxsYmFjaxgJIAEoCBIfChd2aWRlb19lbW9qaV9tYXJrdXBfanNvbhgKIAEoCRIXCg9waG90b193aXJlX2Jsb2IYCyABKAwikgIKDEZpbGVVcGxvYWRlZBIPCgdmaWxlX2lkGAEgASgDEg4KBnMzX2tleRgCIAEoCRIRCgltaW1lX3R5cGUYAyABKAkSEAoIY2F0ZWdvcnkYBCABKAUSEgoKc2l6ZV9ieXRlcxgFIAEoAxIQCghvd25lcl9pZBgGIAEoAxIRCglzM19idWNrZXQYByABKAkSEwoLc2hhMjU2X2hhc2gYCCABKAwSFAoMaXNfZHVwbGljYXRlGAkgASgIEiUKHWRlZHVwbGljYXRlZF9mcm9tX2RvY3VtZW50X2lkGAogASgDEhsKE2NsaWVudF90aHVtYl9zM19rZXkYCyABKAkSFAoMaXNfcmVwcm9jZXNzGAwgASgIIuMBChBEZWR1cE91dGJveEV2ZW50Ei8KCGVudmVsb3BlGAEgASgLMh0uaW1wdWxzZS5ldmVudHMuRXZlbnRFbnZlbG9wZRIPCgdmaWxlX2lkGAIgASgDEg4KBnNoYTI1NhgDIAEoDBISCgpzaXplX2J5dGVzGAQgASgDEhAKCG93bmVyX2lkGAUgASgDEhgKC2RvY3VtZW50X2lkGAYgASgDSACIAQESCgoCb3AYByABKAkSDgoGczNfa2V5GAggASgJEhEKCXMzX2J1Y2tldBgJIAEoCUIOCgxfZG9jdW1lbnRfaWRCH6oCHEltcHVsc2VNLlByb3Rvcy5FdmVudHMuRmlsZXNiBnByb3RvMw", [file_impulse_events_events_common]);
 
 /**
  * @generated from message impulse.events.files.FilesEvent
@@ -38,18 +38,6 @@ export type FilesEvent = Message<"impulse.events.files.FilesEvent"> & {
      */
     value: FileUploaded;
     case: "fileUploaded";
-  } | {
-    /**
-     * @generated from field: impulse.events.files.FileProcessed file_processed = 14;
-     */
-    value: FileProcessed;
-    case: "fileProcessed";
-  } | {
-    /**
-     * @generated from field: impulse.events.files.FileProcessingFailed file_processing_failed = 15;
-     */
-    value: FileProcessingFailed;
-    case: "fileProcessingFailed";
   } | {
     /**
      * @generated from field: impulse.events.files.ContactProfilePhotoUpdated contact_profile_photo_updated = 16;
@@ -304,84 +292,6 @@ export const FileUploadedSchema: GenMessage<FileUploaded> = /*@__PURE__*/
   messageDesc(file_impulse_events_files_events, 3);
 
 /**
- * @generated from message impulse.events.files.FileProcessed
- */
-export type FileProcessed = Message<"impulse.events.files.FileProcessed"> & {
-  /**
-   * @generated from field: int64 file_id = 1;
-   */
-  fileId: bigint;
-
-  /**
-   * Serialized ProcessedAttributes proto bytes
-   *
-   * @generated from field: bytes processed_attributes = 2;
-   */
-  processedAttributes: Uint8Array;
-
-  /**
-   * JSON-encoded PhotoSize list; empty if no server-generated sizes
-   *
-   * @generated from field: string sizes_json = 3;
-   */
-  sizesJson: string;
-
-  /**
-   * Stripped thumbnail bytes; empty if none
-   *
-   * @generated from field: bytes stripped_thumb = 4;
-   */
-  strippedThumb: Uint8Array;
-
-  /**
-   * Carried through from the FileUploaded that caused this processing. A consumer that waits for a
-   * pending-media row to commit is covering a race on the FIRST delivery; a reprocess is not
-   * racing anything, and waiting for it costs the whole budget per file for nothing.
-   *
-   * @generated from field: bool is_reprocess = 5;
-   */
-  isReprocess: boolean;
-};
-
-/**
- * Describes the message impulse.events.files.FileProcessed.
- * Use `create(FileProcessedSchema)` to create a new message.
- */
-export const FileProcessedSchema: GenMessage<FileProcessed> = /*@__PURE__*/
-  messageDesc(file_impulse_events_files_events, 4);
-
-/**
- * @generated from message impulse.events.files.FileProcessingFailed
- */
-export type FileProcessingFailed = Message<"impulse.events.files.FileProcessingFailed"> & {
-  /**
-   * @generated from field: int64 file_id = 1;
-   */
-  fileId: bigint;
-
-  /**
-   * FailureReason enum string
-   *
-   * @generated from field: string reason = 2;
-   */
-  reason: string;
-
-  /**
-   * Diagnostic detail
-   *
-   * @generated from field: string error_message = 3;
-   */
-  errorMessage: string;
-};
-
-/**
- * Describes the message impulse.events.files.FileProcessingFailed.
- * Use `create(FileProcessingFailedSchema)` to create a new message.
- */
-export const FileProcessingFailedSchema: GenMessage<FileProcessingFailed> = /*@__PURE__*/
-  messageDesc(file_impulse_events_files_events, 5);
-
-/**
  * Relayed over impulse.files.dedup.outbox by OutboxPollerWorker<AppDbContext> -- the row
  * UploadDedupFinalizer used to write into dedup_pending_outbox, a table nothing ever consumed
  * (see docs/agent-reports/2026-08-09-dedup-subsystem-has-no-producer.md). One event per
@@ -450,5 +360,5 @@ export type DedupOutboxEvent = Message<"impulse.events.files.DedupOutboxEvent"> 
  * Use `create(DedupOutboxEventSchema)` to create a new message.
  */
 export const DedupOutboxEventSchema: GenMessage<DedupOutboxEvent> = /*@__PURE__*/
-  messageDesc(file_impulse_events_files_events, 6);
+  messageDesc(file_impulse_events_files_events, 4);
 

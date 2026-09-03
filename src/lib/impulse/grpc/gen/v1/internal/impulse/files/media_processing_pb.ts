@@ -2,15 +2,49 @@
 // @generated from file impulse/files/media_processing.proto (package impulse.files, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { ProcessedAttributesSchema } from "./processed_attributes_pb";
+import { file_impulse_files_processed_attributes } from "./processed_attributes_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file impulse/files/media_processing.proto.
  */
 export const file_impulse_files_media_processing: GenFile = /*@__PURE__*/
-  fileDesc("CiRpbXB1bHNlL2ZpbGVzL21lZGlhX3Byb2Nlc3NpbmcucHJvdG8SDWltcHVsc2UuZmlsZXMiWAoYRXh0cmFjdFZpZGVvRnJhbWVSZXF1ZXN0EhEKCXMzX2J1Y2tldBgBIAEoCRIOCgZzM19rZXkYAiABKAkSGQoRdGltZXN0YW1wX3NlY29uZHMYAyABKAEibgoZRXh0cmFjdFZpZGVvRnJhbWVSZXNwb25zZRIMCgRqcGVnGAEgASgMEhMKC3ZpZGVvX3dpZHRoGAIgASgFEhQKDHZpZGVvX2hlaWdodBgDIAEoBRIYChBkdXJhdGlvbl9zZWNvbmRzGAQgASgBMoABChZNZWRpYVByb2Nlc3NpbmdTZXJ2aWNlEmYKEUV4dHJhY3RWaWRlb0ZyYW1lEicuaW1wdWxzZS5maWxlcy5FeHRyYWN0VmlkZW9GcmFtZVJlcXVlc3QaKC5pbXB1bHNlLmZpbGVzLkV4dHJhY3RWaWRlb0ZyYW1lUmVzcG9uc2VCGKoCFUltcHVsc2VNLlByb3Rvcy5GaWxlc2IGcHJvdG8z");
+  fileDesc("CiRpbXB1bHNlL2ZpbGVzL21lZGlhX3Byb2Nlc3NpbmcucHJvdG8SDWltcHVsc2UuZmlsZXMijgEKIEV4dHJhY3REb2N1bWVudEF0dHJpYnV0ZXNSZXF1ZXN0EhEKCXMzX2J1Y2tldBgBIAEoCRIOCgZzM19rZXkYAiABKAkSEQoJbWltZV90eXBlGAMgASgJEjQKCm1lZGlhX2tpbmQYBCABKA4yIC5pbXB1bHNlLmZpbGVzLkRvY3VtZW50TWVkaWFLaW5kIlgKGEV4dHJhY3RWaWRlb0ZyYW1lUmVxdWVzdBIRCglzM19idWNrZXQYASABKAkSDgoGczNfa2V5GAIgASgJEhkKEXRpbWVzdGFtcF9zZWNvbmRzGAMgASgBIm4KGUV4dHJhY3RWaWRlb0ZyYW1lUmVzcG9uc2USDAoEanBlZxgBIAEoDBITCgt2aWRlb193aWR0aBgCIAEoBRIUCgx2aWRlb19oZWlnaHQYAyABKAUSGAoQZHVyYXRpb25fc2Vjb25kcxgEIAEoASr8AQoRRG9jdW1lbnRNZWRpYUtpbmQSIwofRE9DVU1FTlRfTUVESUFfS0lORF9VTlNQRUNJRklFRBAAEh0KGURPQ1VNRU5UX01FRElBX0tJTkRfVk9JQ0UQARIiCh5ET0NVTUVOVF9NRURJQV9LSU5EX1ZJREVPX05PVEUQAhIdChlET0NVTUVOVF9NRURJQV9LSU5EX01VU0lDEAMSHQoZRE9DVU1FTlRfTUVESUFfS0lORF9WSURFTxAEEh8KG0RPQ1VNRU5UX01FRElBX0tJTkRfU1RJQ0tFUhAFEiAKHERPQ1VNRU5UX01FRElBX0tJTkRfQU5JTUFURUQQBjLyAQoWTWVkaWFQcm9jZXNzaW5nU2VydmljZRJmChFFeHRyYWN0VmlkZW9GcmFtZRInLmltcHVsc2UuZmlsZXMuRXh0cmFjdFZpZGVvRnJhbWVSZXF1ZXN0GiguaW1wdWxzZS5maWxlcy5FeHRyYWN0VmlkZW9GcmFtZVJlc3BvbnNlEnAKGUV4dHJhY3REb2N1bWVudEF0dHJpYnV0ZXMSLy5pbXB1bHNlLmZpbGVzLkV4dHJhY3REb2N1bWVudEF0dHJpYnV0ZXNSZXF1ZXN0GiIuaW1wdWxzZS5maWxlcy5Qcm9jZXNzZWRBdHRyaWJ1dGVzQhiqAhVJbXB1bHNlTS5Qcm90b3MuRmlsZXNiBnByb3RvMw", [file_impulse_files_processed_attributes]);
+
+/**
+ * @generated from message impulse.files.ExtractDocumentAttributesRequest
+ */
+export type ExtractDocumentAttributesRequest = Message<"impulse.files.ExtractDocumentAttributesRequest"> & {
+  /**
+   * @generated from field: string s3_bucket = 1;
+   */
+  s3Bucket: string;
+
+  /**
+   * @generated from field: string s3_key = 2;
+   */
+  s3Key: string;
+
+  /**
+   * @generated from field: string mime_type = 3;
+   */
+  mimeType: string;
+
+  /**
+   * @generated from field: impulse.files.DocumentMediaKind media_kind = 4;
+   */
+  mediaKind: DocumentMediaKind;
+};
+
+/**
+ * Describes the message impulse.files.ExtractDocumentAttributesRequest.
+ * Use `create(ExtractDocumentAttributesRequestSchema)` to create a new message.
+ */
+export const ExtractDocumentAttributesRequestSchema: GenMessage<ExtractDocumentAttributesRequest> = /*@__PURE__*/
+  messageDesc(file_impulse_files_media_processing, 0);
 
 /**
  * @generated from message impulse.files.ExtractVideoFrameRequest
@@ -42,7 +76,7 @@ export type ExtractVideoFrameRequest = Message<"impulse.files.ExtractVideoFrameR
  * Use `create(ExtractVideoFrameRequestSchema)` to create a new message.
  */
 export const ExtractVideoFrameRequestSchema: GenMessage<ExtractVideoFrameRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_files_media_processing, 0);
+  messageDesc(file_impulse_files_media_processing, 1);
 
 /**
  * @generated from message impulse.files.ExtractVideoFrameResponse
@@ -77,7 +111,53 @@ export type ExtractVideoFrameResponse = Message<"impulse.files.ExtractVideoFrame
  * Use `create(ExtractVideoFrameResponseSchema)` to create a new message.
  */
 export const ExtractVideoFrameResponseSchema: GenMessage<ExtractVideoFrameResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_files_media_processing, 1);
+  messageDesc(file_impulse_files_media_processing, 2);
+
+/**
+ * @generated from enum impulse.files.DocumentMediaKind
+ */
+export enum DocumentMediaKind {
+  /**
+   * @generated from enum value: DOCUMENT_MEDIA_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: DOCUMENT_MEDIA_KIND_VOICE = 1;
+   */
+  VOICE = 1,
+
+  /**
+   * @generated from enum value: DOCUMENT_MEDIA_KIND_VIDEO_NOTE = 2;
+   */
+  VIDEO_NOTE = 2,
+
+  /**
+   * @generated from enum value: DOCUMENT_MEDIA_KIND_MUSIC = 3;
+   */
+  MUSIC = 3,
+
+  /**
+   * @generated from enum value: DOCUMENT_MEDIA_KIND_VIDEO = 4;
+   */
+  VIDEO = 4,
+
+  /**
+   * @generated from enum value: DOCUMENT_MEDIA_KIND_STICKER = 5;
+   */
+  STICKER = 5,
+
+  /**
+   * @generated from enum value: DOCUMENT_MEDIA_KIND_ANIMATED = 6;
+   */
+  ANIMATED = 6,
+}
+
+/**
+ * Describes the enum impulse.files.DocumentMediaKind.
+ */
+export const DocumentMediaKindSchema: GenEnum<DocumentMediaKind> = /*@__PURE__*/
+  enumDesc(file_impulse_files_media_processing, 0);
 
 /**
  * Synchronous media work that the Files service cannot perform in its own process.
@@ -110,6 +190,14 @@ export const MediaProcessingService: GenService<{
     methodKind: "unary";
     input: typeof ExtractVideoFrameRequestSchema;
     output: typeof ExtractVideoFrameResponseSchema;
+  },
+  /**
+   * @generated from rpc impulse.files.MediaProcessingService.ExtractDocumentAttributes
+   */
+  extractDocumentAttributes: {
+    methodKind: "unary";
+    input: typeof ExtractDocumentAttributesRequestSchema;
+    output: typeof ProcessedAttributesSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_impulse_files_media_processing, 0);
