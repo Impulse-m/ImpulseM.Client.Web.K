@@ -137,22 +137,7 @@ export const PollSettingsSectionContent = (props: {
         mediaStyle={getGradientStyle(1)}
         icon='poll_multiple_answers_filled'
         checked={context.store.allowMultipleAnswers}
-        onClick={() => {
-          // A quiz may not take several answers: messages.sendMedia refuses the pair outright with
-          // QUIZ_MULTIPLE_INVALID ("Quizzes can't have the multiple_choice flag set!"). The two
-          // switches therefore turn each other off rather than composing into a poll the server
-          // will never accept.
-          if(!context.store.allowMultipleAnswers) {
-            context.setStore({
-              allowMultipleAnswers: true,
-              hasCorrectAnswer: false
-            });
-          } else {
-            context.setStore({
-              allowMultipleAnswers: false
-            });
-          }
-        }}
+        onClick={handleSettingsFlag('allowMultipleAnswers')}
       />
       <Show when={!context.isBroadcast()}>
         <SettingsOption
@@ -183,18 +168,14 @@ export const PollSettingsSectionContent = (props: {
       />
       <SettingsOption
         title='NewPoll.SetCorrectAnswer'
-        subtitle='NewPoll.SetCorrectAnswerSubtitle'
+        subtitle={context.store.allowMultipleAnswers ? 'NewPoll.SetMultipleCorrectAnswerSubtitle' : 'NewPoll.SetCorrectAnswerSubtitle'}
         mediaStyle={getGradientStyle(5)}
         icon='checklist_done'
         checked={context.store.hasCorrectAnswer}
         onClick={() => {
           if(!context.store.hasCorrectAnswer) {
-            // allowMultipleAnswers defaults to true, so leaving it alone here shipped
-            // quiz + multiple_choice on the very first poll anyone made this way, and
-            // messages.sendMedia refused it with QUIZ_MULTIPLE_INVALID before it reached the chat.
             context.setStore({
               hasCorrectAnswer: true,
-              allowMultipleAnswers: false,
               allowAddingOptions: false,
               allowRevoting: false
             });

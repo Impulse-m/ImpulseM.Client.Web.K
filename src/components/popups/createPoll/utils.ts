@@ -93,15 +93,6 @@ export const getFinalPayload = (context: CreatePollContextValue): CreatePollPayl
     cloned.allowAddingOptions = false;
   }
 
-  // A quiz takes exactly one answer. messages.sendMedia refuses the pair outright --
-  // QUIZ_MULTIPLE_INVALID, "Quizzes can't have the multiple_choice flag set!" -- so a poll built
-  // with both flags never reaches the chat at all. The switches already turn each other off; this
-  // is the invariant held at the boundary that builds the payload, where no future UI state can
-  // get around it.
-  if(cloned.hasCorrectAnswer) {
-    cloned.allowMultipleAnswers = false;
-  }
-
   if(!cloned.durationLimited) {
     cloned.timeLimit = undefined;
   }
