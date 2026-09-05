@@ -47,7 +47,7 @@ export default function PasskeyLoginButton(props: {
     try {
       const userIds = await AccountController.getUserIds();
       const credential = await navigator.credentials.get({
-        publicKey: PublicKeyCredential.parseRequestOptionsFromJSON(JSON.parse(passkeyOptionJSON))
+        publicKey: PublicKeyCredential.parseRequestOptionsFromJSON(JSON.parse(passkeyOptionJSON).publicKey)
       });
       const inputPasskeyCredential = getInputPasskeyCredential(credential as PublicKeyCredential);
       const userHandle = (

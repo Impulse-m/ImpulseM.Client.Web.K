@@ -8,7 +8,7 @@ import showFeatureDetailsPopup from '@components/popups/featureDetails';
 
 export async function createPasskey() {
   const registrationOptions = await rootScope.managers.appAccountManager.initPasskeyRegistration();
-  const publicKeyCredentialCreationOptions = PublicKeyCredential.parseCreationOptionsFromJSON(JSON.parse(registrationOptions.options.data));
+  const publicKeyCredentialCreationOptions = PublicKeyCredential.parseCreationOptionsFromJSON(JSON.parse(registrationOptions.options.data).publicKey);
 
   // if(IS_BETA) {
   //   console.log(publicKeyCredentialCreationOptions);

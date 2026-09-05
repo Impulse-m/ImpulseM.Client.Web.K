@@ -165,8 +165,7 @@ function omitAbsentConditionalVectors(predicate: string, plain: Record<string, a
 // ── TL -> proto ────────────────────────────────────────────────────────────
 
 type ProtoConversionContext = {
-  method: string,
-  droppedLongs: number
+  method: string
 };
 
 export function buildProtoInit(
@@ -283,18 +282,13 @@ function convertFieldValue(raw: any, field: DescField, context?: ProtoConversion
     if(field.fieldKind === 'list' && field.listKind === 'scalar' && (
       field.scalar === ScalarType.INT64 || field.scalar === ScalarType.UINT64
     )) {
-      const values: bigint[] = [];
-      for(const item of raw) {
+      return raw.map((item, index) => {
         if(item === undefined || item === null) {
-          if(context) {
-            context.droppedLongs++;
-          }
-          continue;
+          throw new Error(`Invalid ${field.name} list element for ${context?.method ?? 'unknown method'} at index ${index}: ${item}`);
         }
 
-        values.push(BigInt(item));
-      }
-      return values;
+        return BigInt(item);
+      });
     }
 
     return raw;
@@ -529,14 +523,8 @@ export async function grpcInvoke(
   }
 
   const {service, method: descMethod} = mapping;
-  const conversionContext: ProtoConversionContext = {method, droppedLongs: 0};
+  const conversionContext: ProtoConversionContext = {method};
   const requestInit: Record<string, unknown> = buildProtoInit(params, descMethod.input, conversionContext);
-  if(conversionContext.droppedLongs) {
-    logger.warn('Dropped invalid Vector<long> elements', {
-      method: conversionContext.method,
-      dropped: conversionContext.droppedLongs
-    });
-  }
   const request = create(descMethod.input, requestInit);
   const client = getOrCreateClient(service);
   const methodFn = client[descMethod.localName];
