@@ -8,6 +8,7 @@ import type LottiePlayer from '@lib/lottie/lottiePlayer';
 import liteMode from '@helpers/liteMode';
 import {MOUNT_CLASS_TO} from '@config/debug';
 import {Middleware} from '@helpers/middleware';
+import {pinObjectURL} from '@helpers/objectUrl';
 
 export const onAnimationEnd = (element: HTMLElement, onAnimationEnd: () => void, timeout: number) => {
   const onEnd = () => {
@@ -37,8 +38,42 @@ export default function createStickerAppearance({container, thumbKey, middleware
   let underlay: HTMLElement; // current silhouette / preview image
   const previous: HTMLElement[] = []; // adopted prior-generation media, retired under the new layer
 
+  // A cached sticker preview is an <img> whose only source is a worker-owned blob: URL,
+  // and the worker's sticker-thumb LRU (64 URLs / 8 MB, thumbs.ts:33-34) evicts and then
+  // revokes it purely by age - it cannot see which previews are on screen. Once revoked,
+  // an attached <img> that has to repaint from its src shows the browser's broken-image
+  // placeholder (#315: the emoji panel's 38 search-strip group icons are the first
+  // previews rendered and the first evicted). So the pin follows the ATTACHED element,
+  // taken by whichever controller owns the container's layering and released the moment
+  // the element is retired or this controller is disposed. Pinning per attached element
+  // rather than for the wrapper's lifetime is what keeps the budget meaningful: a panel
+  // cell releases its preview as soon as the sticker canvas presents, and a preview no
+  // one ever rendered is never pinned, so the LRU still reclaims everything unattached.
+  // A dispose/adopt handover is covered by the registry's grace TTL, which outlives the
+  // gap between the outgoing controller releasing and the incoming one re-pinning.
+  const pins = new Map<HTMLElement, VoidFunction>();
+
+  const pinAttached = (element: HTMLElement) => {
+    if(element.tagName !== 'IMG' || pins.has(element)) return;
+    pins.set(element, pinObjectURL((element as HTMLImageElement).src));
+  };
+
+  const releasePin = (element: HTMLElement) => {
+    const unpin = pins.get(element);
+    if(!unpin) return;
+    pins.delete(element);
+    unpin();
+  };
+
+  const retire = (element: HTMLElement) => {
+    releasePin(element);
+    element.remove();
+  };
+
   middleware?.onClean(() => {
     disposed = true;
+    pins.forEach((unpin) => unpin());
+    pins.clear();
   });
 
   // adopt a reused container's leftovers: reuse a same-key thumb as the underlay, keep
@@ -48,6 +83,14 @@ export default function createStickerAppearance({container, thumbKey, middleware
     else if(!underlay && child.dataset.stickerThumb === thumbKey) underlay = child;
     else if(MEDIA_TAGS.has(child.tagName)) previous.push(child);
   }
+
+  // an adopted preview stays on screen under this controller, so its URL becomes ours to
+  // keep alive - the generation that pinned it is releasing its own pin right about now
+  if(underlay) {
+    pinAttached(underlay);
+  }
+
+  previous.forEach(pinAttached);
 
   const canBuildSilhouette = () => !disposed && !mediaArrived && !underlay && !previous.length;
   // previous media blocks a plain image insert (a re-wrapped reaction keeps its full-res
@@ -73,9 +116,16 @@ export default function createStickerAppearance({container, thumbKey, middleware
 
       image.classList.add('media-sticker', 'thumbnail');
       image.dataset.stickerThumb = thumbKey;
-      underlay ? underlay.replaceWith(image) : container.append(image);
+      if(underlay) {
+        releasePin(underlay);
+        underlay.replaceWith(image);
+      } else {
+        container.append(image);
+      }
+
       underlay = image;
-      previous.splice(0).forEach((el) => el.remove());
+      pinAttached(image);
+      previous.splice(0).forEach(retire);
       onApplied?.();
     }, () => onApplied?.());
   };
@@ -115,7 +165,7 @@ export default function createStickerAppearance({container, thumbKey, middleware
     await animation.ensurePresented();
     if(disposed) return;
 
-    lower.forEach((el) => el.remove());
+    lower.forEach(retire);
   };
 
   return {

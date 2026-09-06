@@ -4,6 +4,12 @@ vi.mock('@helpers/liteMode', () => ({
   default: {isAvailable: () => true}
 }));
 
+// * the controller pins the object URL under an attached preview image, so it reaches
+// * the worker through apiManagerProxy - which drags the whole app graph into jsdom
+vi.mock('@lib/apiManagerProxy', () => ({
+  default: {invokeVoid: vi.fn()}
+}));
+
 import type LottiePlayer from '@lib/lottie/lottiePlayer';
 import createStickerAppearance from '@components/wrappers/stickerAppearance';
 
