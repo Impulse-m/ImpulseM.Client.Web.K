@@ -1,4 +1,4 @@
-import {devStackTestCode, Persona} from './personas';
+import {loginCodeFor, Persona} from './personas';
 
 
 /*
@@ -78,14 +78,15 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
   if(!sentCode?.phone_code_hash) {
     throw new Error(
       `minimal RPC session: auth.sendCode returned no phone_code_hash (got ${JSON.stringify(sentCode?._)}) — ` +
-      'is the dev stack up with Auth__Registration__UseTestCode=true?'
+      `is the dev stack up, and is "${persona.phone}" still a number of canon's reserved test ` +
+      'block? The code is derived from the number itself (personas.ts), not configured.'
     );
   }
 
   let auth = await invoke('auth.signIn', {
     phone_number: persona.phone,
     phone_code_hash: sentCode.phone_code_hash,
-    phone_code: devStackTestCode
+    phone_code: loginCodeFor(persona)
   });
 
   if(auth?._ === 'auth.authorizationSignUpRequired') {

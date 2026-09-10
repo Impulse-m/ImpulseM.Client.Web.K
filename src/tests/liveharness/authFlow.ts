@@ -1,5 +1,5 @@
 import type {LiveStack} from './managerStack';
-import {devStackTestCode, Persona} from './personas';
+import {loginCodeFor, Persona} from './personas';
 
 
 /*
@@ -27,15 +27,16 @@ export async function signInHeadless(stack: LiveStack, persona: Persona): Promis
   if(!sentCode?.phone_code_hash) {
     throw new Error(
       `auth.sendCode returned no phone_code_hash (got ${JSON.stringify(sentCode?._)}) — ` +
-      'the live gateway did not run the scripted-code flow; is the dev stack up with ' +
-      'Auth__Registration__UseTestCode=true?'
+      `is the dev stack up, and is "${persona.phone}" still a number of canon's reserved test ` +
+      'block? Nothing is configured for this any more: the code is derived from the number itself ' +
+      '(personas.ts), and a number outside the block would take the real SMS delivery path.'
     );
   }
 
   let auth: any = await apiManager.invokeApi('auth.signIn', {
     phone_number: persona.phone,
     phone_code_hash: sentCode.phone_code_hash,
-    phone_code: devStackTestCode
+    phone_code: loginCodeFor(persona)
   });
 
   if(auth?._ === 'auth.authorizationSignUpRequired') {
