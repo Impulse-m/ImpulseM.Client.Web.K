@@ -29,7 +29,12 @@ describe('every invoked API method has a gRPC mapping', () => {
    * not just a name: an allowlist whose entries carry no reason becomes the place omissions go to
    * be forgotten, which is the failure this guard exists to prevent.
    */
-  const unimplementedNamespaces: Record<string, string> = {};
+  const unimplementedNamespaces: Record<string, string> = {
+    ephemeral: 'ImpulseM#453 -- our own namespace, not canon. protos/generated/ephemeral.proto ' +
+      'declares four rpcs and the backend implements none of them, so mapping it here would ' +
+      'trade NETWORKER_DISABLED for UNIMPLEMENTED without making an ephemeral message work. ' +
+      'Removed from this list by the slice that serves them.'
+  };
 
   function sourceFiles(root: string): string[] {
     const found: string[] = [];
@@ -42,11 +47,25 @@ describe('every invoked API method has a gRPC mapping', () => {
         found.push(...sourceFiles(path));
         continue;
       }
-      if(path.endsWith('.ts') && !path.endsWith('.test.ts')) {
+      if((path.endsWith('.ts') || path.endsWith('.tsx')) &&
+        !path.endsWith('.test.ts') &&
+        !path.endsWith('.test.tsx')) {
         found.push(path);
       }
     }
     return found;
+  }
+
+  /**
+   * Commented-out call sites are not calls. `stories.canApplyBoost` is the case that forced this:
+   * it sits behind `//` upstream and in this fork, and counting it would have put a method nobody
+   * invokes on the list, next to methods that are actually dying — which is how a guard's output
+   * stops being read.
+   */
+  function withoutComments(text: string): string {
+    return text
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/^[ \t]*\/\/.*$/gm, ' ');
   }
 
   it('leaves no invoked method to fall through to a transport nothing answers [OpenFinding:IMPULSE-187-GRPC]', () => {
@@ -60,12 +79,26 @@ describe('every invoked API method has a gRPC mapping', () => {
 
     // Only literal call sites. A name built at runtime cannot be checked here, and pretending
     // otherwise would make the count look better than the coverage is.
+    //
+    // EVERY invoke form, not just the positional one. This guard used to read `invokeApi('ns.m'`
+    // alone and was blind to the object form that invokeApiSingleProcess / invokeApiHashable /
+    // invokeApiCacheable take -- which is how communities.getJoinedCommunities went unmapped and
+    // took the whole group-manager tab down with NETWORKER_DISABLED while the guard's own list
+    // named eight of its siblings (ImpulseM#452). A guard that reads one of five call shapes
+    // reports on one fifth of the surface and says nothing about the rest.
+    const patterns = [
+      /invokeApi(?:Single|After)?\(\s*'([a-zA-Z]+\.[a-zA-Z]+)'/g,
+      /\bmethod:\s*'([a-zA-Z]+\.[a-zA-Z]+)'/g
+    ];
     const invoked = new Map<string, string>();
     for(const file of files) {
-      const text = readFileSync(file, 'utf8');
-      for(const match of text.matchAll(/invokeApi\(\s*'([a-zA-Z]+\.[a-zA-Z]+)'/g)) {
-        if(!invoked.has(match[1])) {
-          invoked.set(match[1], file);
+      const text = withoutComments(readFileSync(file, 'utf8'));
+      for(const pattern of patterns) {
+        pattern.lastIndex = 0;
+        for(const match of text.matchAll(pattern)) {
+          if(!invoked.has(match[1])) {
+            invoked.set(match[1], file);
+          }
         }
       }
     }

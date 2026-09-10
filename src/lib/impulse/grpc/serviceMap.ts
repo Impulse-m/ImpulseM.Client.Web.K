@@ -15,6 +15,7 @@ import {Auth} from './gen/auth_pb';
 import {Bots} from './gen/bots_pb';
 import {Channels} from './gen/channels_pb';
 import {Chatlists} from './gen/chatlists_pb';
+import {Communities} from './gen/communities_pb';
 import {Contacts} from './gen/contacts_pb';
 import {Folders} from './gen/folders_pb';
 import {Fragment} from './gen/fragment_pb';
@@ -42,6 +43,11 @@ const NAMESPACE_TO_SERVICE: Record<string, DescService> = {
   bots: Bots,
   channels: Channels,
   chatlists: Chatlists,
+  // Asked while opening a GROUP's manager, not only from a community screen: the edit-chat tab
+  // awaits communities.getJoinedCommunities as one leg of a Promise.all (editChat.tsx:80-86), so
+  // leaving the namespace out took the whole tab down with NETWORKER_DISABLED. Only
+  // getJoinedCommunities is served today; the rest answer UNIMPLEMENTED, which is an answer.
+  communities: Communities,
   contacts: Contacts,
   folders: Folders,
   fragment: Fragment,
