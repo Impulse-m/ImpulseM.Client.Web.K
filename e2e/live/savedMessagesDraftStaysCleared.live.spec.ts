@@ -18,6 +18,15 @@ import {expect, test} from './pair';
  * then decides to send. That is the consumption path, so this scenario drives the REAL client in a
  * REAL browser and reloads the page, which is the event both resurrections followed.
  *
+ * IT IS A RACE, AND THE SCENARIO IS SHAPED AROUND THAT. A single clear-and-reload reproduces it
+ * sometimes and not always: measured directly, one run came back 5 s after the reload with a NEW
+ * date and a recreated server row, and the next identical run stayed clean. That is also what the
+ * report describes -- the gaps between resurrections ran from 12 seconds to 28 minutes. So the
+ * cycle is repeated, which is what the CEO does over a working day, and the scenario fails on the
+ * FIRST cycle that resurrects rather than on the last. A one-shot version of this test would be
+ * intermittently red, and an intermittently red test is worse than none: it gets rerun until green
+ * and then believed.
+ *
  * The second scenario is the ordinary path, and it is not optional: a client that simply dropped
  * every draft on reload would pass the first scenario perfectly while being far more broken. One
  * scenario says a cleared draft stays cleared, the other says an uncleared one survives, and only
@@ -32,80 +41,96 @@ test.skip(!liveLane.enabled, liveLane.skipReason);
 const draftSettleBound = 20_000;
 
 /**
- * How long the composer is watched AFTER the reload has settled. Both timed resurrections landed
- * within 7 seconds of the reload's getDifference; this is comfortably past that, because the
- * assertion is that nothing comes back rather than that something arrives.
+ * How long the composer is watched after each reload. Every resurrection that could be timed
+ * landed within 7 seconds of the reload, so this is comfortably past that -- the assertion is that
+ * nothing comes back rather than that something arrives, and a window that is too short would read
+ * as health.
  */
-const resurrectWatchMs = 15_000;
+const resurrectWatchMs = 10_000;
+
+/**
+ * How many clear-and-reload cycles the scenario walks before it accepts that the draft stays
+ * cleared. Not a retry: each cycle is an independent chance for the race to land, and the scenario
+ * fails on the first one that does. Chosen so a run says something -- one cycle reproduced it on
+ * one attempt and not the next, so a single cycle would be a coin toss reported as a verdict.
+ */
+const clearAndReloadCycles = 5;
 
 
 test('a draft cleared in Saved Messages does not come back after a reload', async({pair}) => {
   const {sender} = pair;
-  const draft = `draft-${Date.now().toString(36)}`;
 
   await sender.openSavedMessages();
   const selfPeerId = await sender.ownPeerId();
+  const serverDraft = async() => textOfDraftFor(await sender.draftsOnServer(), selfPeerId);
 
-  await sender.typeIntoComposer(draft);
-  await expect
-    .poll(async() => textOfDraftFor(await sender.draftsOnServer(), selfPeerId), {
-      timeout: draftSettleBound,
-      message: 'the draft has to reach the server before clearing it can mean anything -- a run ' +
-        'where it never saved would otherwise read as a successful clear'
-    })
-    .toBe(draft);
+  for(let cycle = 1; cycle <= clearAndReloadCycles; ++cycle) {
+    const draft = `draft-${cycle}-${Date.now().toString(36)}`;
 
-  await sender.clearComposer();
-  await expect
-    .poll(async() => textOfDraftFor(await sender.draftsOnServer(), selfPeerId), {
-      timeout: draftSettleBound,
-      message: 'clearing the composer must reach the server as a cleared draft; if it never does, ' +
-        'the resurrect after reload is only the client reading back a draft that was never removed'
-    })
-    .toBe('');
+    // Retyped every cycle with a fresh marker, so a resurrection names the cycle that produced it
+    // and cannot be confused with a leftover of an earlier one.
+    await sender.typeIntoComposer(draft);
+    await expect
+      .poll(serverDraft, {
+        timeout: draftSettleBound,
+        message: `cycle ${cycle}: the draft has to reach the server before clearing it can mean ` +
+          'anything -- a cycle where it never saved would otherwise read as a successful clear'
+      })
+      .toBe(draft);
 
-  await sender.reloadAndReopenSavedMessages();
+    await sender.clearComposer();
+    await expect
+      .poll(serverDraft, {
+        timeout: draftSettleBound,
+        message: `cycle ${cycle}: clearing the composer must reach the server as a cleared draft; ` +
+          'if it never does, the resurrect after reload is only the client reading back a draft ' +
+          'that was never removed'
+      })
+      .toBe('');
 
-  // The reload is the event both timed resurrections followed, and the save that carries the draft
-  // back to the server is debounced -- so a single assertion taken right after the reload would be
-  // answered before the defect had a chance to complete. The whole window is watched, and BOTH
-  // halves are recorded before either is asserted: failing on the first sighting would report the
-  // composer and leave the server side unmeasured, which is the half that outlives the tab.
-  const start = Date.now();
-  const deadline = start + resurrectWatchMs;
-  let composerCameBackAfterMs: number | undefined;
-  let serverCameBackAfterMs: number | undefined;
-  for(;;) {
-    if(composerCameBackAfterMs === undefined && (await sender.composerText()) !== '') {
-      composerCameBackAfterMs = Date.now() - start;
+    await sender.reloadAndReopenSavedMessages();
+
+    // The save that carries the draft back to the server is debounced, so a single reading taken
+    // right after the reload would be answered before the defect had a chance to complete. The
+    // whole window is watched, and BOTH halves are recorded before either is asserted: stopping at
+    // the first sighting would report the composer and leave the server side unmeasured, which is
+    // the half that outlives the tab.
+    const start = Date.now();
+    const deadline = start + resurrectWatchMs;
+    let composerCameBackAfterMs: number | undefined;
+    let serverCameBackAfterMs: number | undefined;
+    for(;;) {
+      if(composerCameBackAfterMs === undefined && (await sender.composerText()) !== '') {
+        composerCameBackAfterMs = Date.now() - start;
+      }
+
+      if(serverCameBackAfterMs === undefined && (await serverDraft()) !== '') {
+        serverCameBackAfterMs = Date.now() - start;
+      }
+
+      if(Date.now() >= deadline) {
+        break;
+      }
+
+      await sender.page.waitForTimeout(1_000);
     }
 
-    if(serverCameBackAfterMs === undefined
-      && textOfDraftFor(await sender.draftsOnServer(), selfPeerId) !== '') {
-      serverCameBackAfterMs = Date.now() - start;
-    }
+    expect(
+      composerCameBackAfterMs,
+      `cycle ${cycle} of ${clearAndReloadCycles}: the composer must still be empty after the ` +
+        'reload, and this reports how many ms after it the text reappeared. A draft that comes ' +
+        'back here is the reported defect -- the text is restored from state the client kept ' +
+        'across the reload, of a draft the server had already removed at the assertion above (#440)'
+    ).toBeUndefined();
 
-    if(Date.now() >= deadline) {
-      break;
-    }
-
-    await sender.page.waitForTimeout(1_000);
+    expect(
+      serverCameBackAfterMs,
+      `cycle ${cycle} of ${clearAndReloadCycles}: and the server must still hold no draft for ` +
+        'Saved Messages. This is the half that outlives the tab -- the row is recreated by the ' +
+        'client saving the restored text back, so the draft is waiting again on the next cold ' +
+        'start, on this device and every other one (#440)'
+    ).toBeUndefined();
   }
-
-  expect(
-    composerCameBackAfterMs,
-    'the composer must still be empty after the reload, and this reports how many ms after it the ' +
-      'text reappeared. A draft that comes back here is the reported defect: the text is restored ' +
-      'from state the client kept across the reload, of a draft the server had already removed ' +
-      'at the assertion above (#440)'
-  ).toBeUndefined();
-
-  expect(
-    serverCameBackAfterMs,
-    'and the server must still hold no draft for Saved Messages. This is the half that outlives ' +
-      'the tab: the row is recreated by the client saving the restored text back, so the draft is ' +
-      'waiting again on the next cold start, on this device and every other one (#440)'
-  ).toBeUndefined();
 });
 
 
