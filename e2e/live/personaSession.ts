@@ -3,7 +3,7 @@ import {join} from 'path';
 
 import {Browser, BrowserContext, chromium, Page, expect} from '@playwright/test';
 
-import {devStackTestCode, Persona} from '../../src/tests/liveharness/personas';
+import {loginCodeFor, Persona} from '../../src/tests/liveharness/personas';
 import {ConsoleCleanInvariant} from './invariants';
 import {captureMediaDiagnostics, describePlaybackFailure, installMediaDiagnostics, MediaElementState} from './mediaPlayback';
 
@@ -191,11 +191,14 @@ export class PersonaSession {
 
     await this.page.getByRole('button', {name: 'Next', exact: true}).click();
 
-    // The dev stack answers auth.sendCode with the scripted code (see liveharness/personas.ts).
+    // The code is DERIVED from the persona's own number rather than configured: canon's reserved
+    // test block always answers with the DC digit repeated (api/auth.md:1003-1005). See
+    // liveharness/personas.ts — this lane went dark once because that moved on the backend and the
+    // harness kept typing the old fixed constant, which reads as "Invalid code" on the card.
     const codeInput = this.page.locator('input[autocomplete="one-time-code"]');
     await codeInput.waitFor({state: 'visible', timeout: 60_000});
     await codeInput.click();
-    await this.page.keyboard.type(devStackTestCode, {delay: 60});
+    await this.page.keyboard.type(loginCodeFor(this.persona), {delay: 60});
 
     // Ephemeral personas are unique per run, so the flow deterministically lands on the
     // sign-up card (auth.authorizationSignUpRequired).
@@ -269,6 +272,86 @@ export class PersonaSession {
     await this.page.reload({waitUntil: 'domcontentloaded'});
     await this.waitForImReady();
     await this.openDialogWithPhone(phone);
+  }
+
+
+  /**
+   * Saved Messages — the degenerate peer shape where the peer id and the owner id are the same
+   * value, and the dialog the resurrecting draft was reported in (#440).
+   */
+  public async openSavedMessages(): Promise<void> {
+    await this.page.evaluate(async() => {
+      const w = window as any;
+      await w.appImManager.setInnerPeer({peerId: w.rootScope.myId});
+    });
+
+    await this.messageInput().waitFor({state: 'visible', timeout: 30_000});
+  }
+
+
+  public async reloadAndReopenSavedMessages(): Promise<void> {
+    await this.page.reload({waitUntil: 'domcontentloaded'});
+    await this.waitForImReady();
+    await this.openSavedMessages();
+  }
+
+
+  /**
+   * Types into the composer and leaves the text sitting there, which is what makes it a draft.
+   * The save is debounced (2500 ms, components/chat/input.ts), so a caller that needs the draft
+   * to exist server-side must wait for the server to say so rather than for the keystroke.
+   */
+  public async typeIntoComposer(text: string): Promise<void> {
+    await this.messageInput().click();
+    await this.page.keyboard.type(text, {delay: 10});
+  }
+
+
+  /**
+   * Clears the composer the way a user does — select-all then delete — rather than by calling a
+   * manager. The reported defect is about what the real input path leaves behind, so a
+   * programmatic clear would skip the very code under test.
+   */
+  public async clearComposer(): Promise<void> {
+    await this.messageInput().click();
+    await this.page.keyboard.press('Control+A');
+    await this.page.keyboard.press('Backspace');
+  }
+
+
+  public async composerText(): Promise<string> {
+    return (await this.messageInput().innerText()).trim();
+  }
+
+
+  /**
+   * Every draft the SERVER holds, read through the page's own apiManager — the same lane the
+   * user is on. Reading the client's cached draft map instead would answer a different question:
+   * the whole point is whether the two agree.
+   *
+   * messages.getAllDrafts answers as a vector of updateDraftMessage, and canon spells "no draft"
+   * as the draftMessageEmpty variant rather than as a draftMessage with an empty string
+   * (api/drafts.md), so an entry that is not a draftMessage reads here as empty text.
+   */
+  public async draftsOnServer(): Promise<{peerId: string, text: string}[]> {
+    return this.page.evaluate(async() => {
+      const w = window as any;
+      const updates = await w.rootScope.managers.apiManager.invokeApi('messages.getAllDrafts');
+
+      return (updates?.updates ?? [])
+        .filter((update: any) => update?._ === 'updateDraftMessage')
+        .map((update: any) => ({
+          peerId: String(
+            update?.peer?.user_id ?? update?.peer?.chat_id ?? update?.peer?.channel_id ?? ''
+          ),
+          text: update?.draft?._ === 'draftMessage' ? String(update.draft.message ?? '') : ''
+        }));
+    });
+  }
+
+
+  public async ownPeerId(): Promise<string> {
+    return this.page.evaluate(() => String((window as any).rootScope.myId));
   }
 
 
@@ -664,8 +747,19 @@ export class PersonaSession {
   }
 
 
+  /**
+   * The composer of the ACTIVE chat, not merely the first one in the document.
+   *
+   * The client keeps a chat per open tab, each with its own composer, and the inactive ones stay in
+   * the DOM. A scenario that opens a second dialog therefore has two composers, and `.first()`
+   * resolved to whichever came first in document order — visible, but overlaid by the active chat,
+   * so every click was intercepted and retried until the scenario timed out with no hint that it
+   * was typing into the wrong chat. Scoping to `.active` names the one the user is looking at.
+   */
   private messageInput() {
-    return this.page.locator('.input-message-input[contenteditable="true"]:not(.input-field-input-fake)').first();
+    return this.page
+      .locator('.chat.tabs-tab.active .input-message-input[contenteditable="true"]:not(.input-field-input-fake)')
+      .first();
   }
 
 
