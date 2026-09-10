@@ -100,10 +100,11 @@ describe('a test asserting the session gate error must say which one it means', 
 
   it('cannot tell them apart by name and code', async() => {
     // Deliberately never started: this is the shape every consumer sees when after() was bypassed,
-    // and the shape impulseSessionGate.test.ts accidentally asserted against.
+    // and the shape impulseSessionGate.test.ts accidentally asserted against. Account number is
+    // arbitrary -- no slot's restore has run, so every slot's gate is in the same un-started state.
     const {whenImpulseSessionReady} = await import('@lib/impulse/session');
 
-    const bypass = await whenImpulseSessionReady().then(
+    const bypass = await whenImpulseSessionReady(1).then(
       () => ({name: 'gate opened', code: 'gate opened', message: 'gate opened'}),
       (error: any) => ({name: error?.name, code: error?.code, message: error?.message})
     );

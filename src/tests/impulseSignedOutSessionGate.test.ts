@@ -129,7 +129,9 @@ describe('Impulse session gate for a signed-out client', () => {
 
     await Promise.all(everySlot().map((accountNumber) => restoreImpulseSession(accountNumber)));
 
-    const outcome = await whenImpulseSessionReady().then(
+    // Slot 1 is the one carrying SIGNED_OUT_ACCOUNT above; each slot now has its
+    // own gate, so it is the only one whose outcome this test can mean.
+    const outcome = await whenImpulseSessionReady(1).then(
       () => 'gate opened',
       (error: Error) => `gate rejected: ${error?.message}`
     );
@@ -155,7 +157,8 @@ describe('Impulse session gate for a signed-out client', () => {
 
     await Promise.all(everySlot().map((accountNumber) => restoreImpulseSession(accountNumber)));
 
-    const outcome = await grpcInvoke('langpack.getLangPack', {langPack: 'web', langCode: 'en'}).then(
+    // Issued on behalf of slot 1, the signed-out account above.
+    const outcome = await grpcInvoke('langpack.getLangPack', {langPack: 'web', langCode: 'en'}, 1).then(
       () => 'served',
       (error: any) => `blocked: ${error?.message ?? error?.type ?? String(error)}`
     );
@@ -173,7 +176,9 @@ describe('Impulse session gate for a signed-out client', () => {
 
     await Promise.all(everySlot().map((accountNumber) => restoreImpulseSession(accountNumber)));
 
-    const outcome = await whenImpulseSessionReady().then(
+    // Every slot's AccountController.get() call rejects identically here, so
+    // any one slot's gate demonstrates the guard; slot 1 stands for all four.
+    const outcome = await whenImpulseSessionReady(1).then(
       () => ({name: 'gate opened', code: 'gate opened', message: 'gate opened'}),
       (error: any) => ({name: error?.name, code: error?.code, message: error?.message})
     );

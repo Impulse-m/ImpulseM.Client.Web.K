@@ -24,6 +24,7 @@ import {Code, ConnectError, createClient} from '@connectrpc/connect';
 import {backendWsOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
 import type {TabState} from '@lib/apiManagerProxy';
+import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {refreshImpulseSession, whenImpulseSessionReady} from './session';
 import {RealtimeSubscriptions} from './realtimeSubscriptions';
 import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
@@ -31,7 +32,7 @@ import {getReconnectJitterMaxMs} from './realtimeDiscipline';
 import {protoToTL} from './grpc/adapter';
 import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 import {SyncService} from './grpc/gen/v1/internal/impulse/sync/sync_service_pb';
-import {grpcTransport, requireGrpcSessionToken} from './grpc/transport';
+import {getGrpcTransport, requireGrpcSessionToken} from './grpc/transport';
 
 const logger = getLogger('impulse-realtime');
 
@@ -57,7 +58,7 @@ export type Envelope = {
 };
 
 let activeUserId: string | undefined;
-let activeAccountNumber: number | undefined;
+let activeAccountNumber: ActiveAccountNumber | undefined;
 let connection: Centrifuge | undefined;
 let subscriptionSet: RealtimeSubscriptions | undefined;
 let openChannelId: ChatId | undefined;
@@ -71,9 +72,18 @@ export function setRealtimeSink(fn: RealtimeUpdateSink): void {
   sink = fn;
 }
 
-export function startImpulseRealtime(userId: string | undefined, accountNumber?: number): void {
+export function startImpulseRealtime(userId: string | undefined, accountNumber: ActiveAccountNumber | undefined): void {
   if(!userId) {
     stopImpulseRealtime();
+    return;
+  }
+
+  // Every downstream call (the token mint, the transport it travels on) is
+  // account-scoped now -- see grpc/transport.ts. There is no account-less
+  // identity to fall back to, so refuse rather than spin up a connection nobody
+  // can authenticate.
+  if(accountNumber === undefined) {
+    logger.warn('Realtime spin-up requested with no account number', {userId});
     return;
   }
 
@@ -96,7 +106,7 @@ export function startImpulseRealtime(userId: string | undefined, accountNumber?:
   subscriptionSet = new RealtimeSubscriptions(userId);
   spinUpInProgress = true;
 
-  spinUp(userId).catch((err: unknown) => {
+  spinUp(userId, accountNumber).catch((err: unknown) => {
     logger.warn('Realtime spin-up failed', {userId}, err);
   }).finally(() => {
     spinUpInProgress = false;
@@ -150,18 +160,18 @@ function applyTabStates(): void {
   applySubscriptionDiff(subscriptionSet.showDialogs(visibleChannelIds));
 }
 
-export async function fetchCentrifugoToken(): Promise<string> {
-  await whenImpulseSessionReady();
-  requireGrpcSessionToken();
+export async function fetchCentrifugoToken(accountNumber: ActiveAccountNumber): Promise<string> {
+  await whenImpulseSessionReady(accountNumber);
+  requireGrpcSessionToken(accountNumber);
 
-  const client = createClient(SyncService, grpcTransport);
+  const client = createClient(SyncService, getGrpcTransport(accountNumber));
 
   // This call goes straight through the generated client, so it never passes the
   // 401-retry in grpcInvoke -- on a restored-but-expired session it just failed
   // with AUTH_KEY_UNREGISTERED and the push channel stayed down for the whole
   // tab. Renew and try once more, the same way every other call does.
   const response = await client.getCentrifugoToken({}).catch(async(err: unknown) => {
-    if(!isUnauthenticated(err) || !await refreshImpulseSession()) {
+    if(!isUnauthenticated(err) || !await refreshImpulseSession(accountNumber)) {
       throw err;
     }
 
@@ -180,8 +190,8 @@ function isUnauthenticated(err: unknown): boolean {
   return ConnectError.from(err).code === Code.Unauthenticated;
 }
 
-async function spinUp(userId: string): Promise<void> {
-  const token = await fetchCentrifugoToken();
+async function spinUp(userId: string, accountNumber: ActiveAccountNumber): Promise<void> {
+  const token = await fetchCentrifugoToken(accountNumber);
 
   // The userId may have changed while the token was in flight.
   if(activeUserId !== userId) {
@@ -190,7 +200,7 @@ async function spinUp(userId: string): Promise<void> {
 
   const centrifuge = new Centrifuge(CENTRIFUGO_WS, {
     token,
-    getToken: () => fetchCentrifugoToken(),
+    getToken: () => fetchCentrifugoToken(accountNumber),
     // Centrifuge 5 uses full-jitter exponential backoff inside these bounds.
     minReconnectDelay: RECONNECT_JITTER_MIN_MS,
     maxReconnectDelay: ReconnectJitterMaxMs

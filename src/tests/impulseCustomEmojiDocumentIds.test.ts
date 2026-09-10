@@ -46,7 +46,7 @@ describe('custom emoji document ids at the gRPC boundary', () => {
 
     await expect(grpcInvoke('messages.getCustomEmojiDocuments', {
       document_id: ['341952722011750787', undefined, 2578]
-    })).rejects.toThrow('Invalid document_id list element for messages.getCustomEmojiDocuments at index 1: undefined');
+    }, 1)).rejects.toThrow('Invalid document_id list element for messages.getCustomEmojiDocuments at index 1: undefined');
 
     expect(transportCall, 'a request that would desync the positional answer must never reach the transport').not.toHaveBeenCalled();
   });
@@ -57,7 +57,7 @@ describe('custom emoji document ids at the gRPC boundary', () => {
 
     await expect(grpcInvoke('messages.getCustomEmojiDocuments', {
       document_id: ['341952722011750787', 2578]
-    })).resolves.toEqual([]);
+    }, 1)).resolves.toEqual([]);
 
     expect(transportCall).toHaveBeenCalledTimes(1);
     expect(transportCall.mock.calls[0][0].documentId).toEqual([

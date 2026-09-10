@@ -56,7 +56,7 @@ describe('Impulse session gate', () => {
     const send = vi.fn();
 
     const restore = restoreImpulseSession(1);
-    const request = whenImpulseSessionReady().then(() => send(getGrpcSessionToken()));
+    const request = whenImpulseSessionReady(1).then(() => send(getGrpcSessionToken(1)));
     await vi.advanceTimersByTimeAsync(3_001);
 
     expect(send).not.toHaveBeenCalled();
@@ -81,7 +81,7 @@ describe('Impulse session gate', () => {
     // DEV bypass instead of to the path being named.
     await restoreImpulseSession(1);
 
-    const outcome = await whenImpulseSessionReady().then(
+    const outcome = await whenImpulseSessionReady(1).then(
       () => ({name: 'gate opened', code: 'gate opened', message: 'gate opened'}),
       (error: any) => ({name: error?.name, code: error?.code, message: error?.message})
     );

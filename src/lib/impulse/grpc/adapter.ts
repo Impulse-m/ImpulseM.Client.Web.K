@@ -27,20 +27,30 @@ import {Code, ConnectError, createClient} from '@connectrpc/connect';
 import Schema from '@lib/mtproto/schema';
 import {formatJSONValue} from '@lib/mtproto/tl_utils';
 import {getLogger} from '@lib/impulseLogger';
+import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {captureImpulseSessionToken, refreshImpulseSession, whenImpulseSessionReady} from '../session';
 import {getServiceAndMethod} from './serviceMap';
-import {grpcTransport} from './transport';
+import {getGrpcTransport} from './transport';
 
 const logger = getLogger('grpc-adapter');
 
 type GrpcClientMethod = (...args: any[]) => any;
 
-const clientCache = new Map<string, Record<string, GrpcClientMethod>>();
+// Keyed by account first: each slot's clients are bound to that slot's own
+// transport (getGrpcTransport), so the same service cached for account 1 can
+// never be handed back to a call made on behalf of account 2.
+const clientCacheByAccount = new Map<ActiveAccountNumber, Map<string, Record<string, GrpcClientMethod>>>();
 
-function getOrCreateClient(service: DescService): Record<string, GrpcClientMethod> {
+function getOrCreateClient(service: DescService, accountNumber: ActiveAccountNumber): Record<string, GrpcClientMethod> {
+  let clientCache = clientCacheByAccount.get(accountNumber);
+  if(!clientCache) {
+    clientCache = new Map<string, Record<string, GrpcClientMethod>>();
+    clientCacheByAccount.set(accountNumber, clientCache);
+  }
+
   let cached = clientCache.get(service.typeName);
   if(!cached) {
-    cached = createClient(service, grpcTransport) as any;
+    cached = createClient(service, getGrpcTransport(accountNumber)) as any;
     clientCache.set(service.typeName, cached);
   }
 
@@ -514,6 +524,7 @@ export function isGrpcAvailable(method: string): boolean {
 export async function grpcInvoke(
   method: string,
   params: any = {},
+  accountNumber: ActiveAccountNumber,
   abortSignal?: AbortSignal,
   isRetry = false
 ): Promise<any> {
@@ -526,7 +537,7 @@ export async function grpcInvoke(
   const conversionContext: ProtoConversionContext = {method};
   const requestInit: Record<string, unknown> = buildProtoInit(params, descMethod.input, conversionContext);
   const request = create(descMethod.input, requestInit);
-  const client = getOrCreateClient(service);
+  const client = getOrCreateClient(service, accountNumber);
   const methodFn = client[descMethod.localName];
   if(typeof methodFn !== 'function') {
     throw {type: 'GRPC_METHOD_MISSING', message: `${descMethod.localName} absent on client`, code: 501} as ApiError;
@@ -536,7 +547,7 @@ export async function grpcInvoke(
   // the boot sequence fires its first wave in the same tick as the restore, and
   // that wave used to travel unauthenticated. Already settled after boot, so this
   // costs a microtask.
-  await whenImpulseSessionReady();
+  await whenImpulseSessionReady(accountNumber);
 
   try {
     const response = await methodFn.call(client, request, {signal: abortSignal});
@@ -544,7 +555,7 @@ export async function grpcInvoke(
     if(method === 'help.getAppConfig' && result?._ === 'help.appConfig') {
       result.config = formatJSONValue(result.config);
     }
-    await captureImpulseSessionToken(result);
+    await captureImpulseSessionToken(accountNumber, result);
     return result;
   } catch(err) {
     const apiError = toApiError(err);
@@ -552,9 +563,9 @@ export async function grpcInvoke(
     // The access token expires after AccessTokenExpiryMinutes and every call then
     // comes back AUTH_KEY_UNREGISTERED. Renew once with the refresh token and
     // replay, rather than dropping a signed-in user onto the login screen.
-    if(apiError.type === 'AUTH_KEY_UNREGISTERED' && !isRetry && await refreshImpulseSession()) {
-      logger.info('Retrying after session refresh', {method});
-      return grpcInvoke(method, params, abortSignal, true);
+    if(apiError.type === 'AUTH_KEY_UNREGISTERED' && !isRetry && await refreshImpulseSession(accountNumber)) {
+      logger.info('Retrying after session refresh', {method, accountNumber});
+      return grpcInvoke(method, params, accountNumber, abortSignal, true);
     }
 
     logger.debug('gRPC invocation failed', {

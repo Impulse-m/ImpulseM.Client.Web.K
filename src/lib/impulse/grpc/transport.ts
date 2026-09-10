@@ -7,20 +7,28 @@
  * cleared on logout.
  *
  * This module is loaded in every context that issues RPCs (main thread and the
- * mtproto worker), each with its own module instance — so the setters below
- * must be called per context.
+ * mtproto worker), each with its own module instance -- but within one context a
+ * single SharedWorker hosts all four account slots side by side (createManagers
+ * builds one full manager set per slot; see appManagersManager.ts), so credentials
+ * here are keyed by account number rather than held in one "current" pair. Each
+ * slot gets its own gRPC-web transport, carrying an interceptor that only ever
+ * reads that slot's own credentials (see getGrpcTransport below) -- so there is no
+ * shared mutable cell an unrelated account's request could read (#436: a single
+ * pair of module-level `currentUserId`/`currentSessionToken` variables meant
+ * whichever account last wrote them owned every request from every account in the
+ * tab). A caller that does not know which account it is acting for cannot supply
+ * one and get a plausible-looking answer anyway -- every function below requires
+ * the account number as an explicit parameter.
  */
 
-import type {Interceptor} from '@connectrpc/connect';
+import type {Interceptor, Transport} from '@connectrpc/connect';
 import {createGrpcWebTransport} from '@connectrpc/connect-web';
 
 import {backendHttpOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
+import type {ActiveAccountNumber} from '@lib/accounts/types';
 
 const logger = getLogger('grpc-transport');
-
-let currentUserId: string | undefined;
-let currentSessionToken: string | undefined;
 
 /*
  * The QR-login exporter ticket.
@@ -37,34 +45,54 @@ let currentSessionToken: string | undefined;
  * auth.importLoginToken first — someone who photographed the code holds the token but
  * not the ticket.
  *
- * Kept in memory only. It belongs to this tab's login attempt the way an auth key
- * belongs to a connection; a reload legitimately starts a new QR code.
+ * Kept in memory only, per account slot like every other credential in this file: a
+ * tab exports a QR code for the specific slot it is signing in, and that slot's ticket
+ * belongs to its login attempt the way an auth key belongs to a connection -- a reload
+ * legitimately starts a new QR code.
  */
 const QR_EXPORTER_TICKET_HEADER = 'x-impulse-qr-exporter-ticket';
-let currentQrExporterTicket: string | undefined;
 
-export function setGrpcUserId(userId: string | undefined): void {
-  currentUserId = userId;
+type AccountCredentials = {
+  userId: string | undefined,
+  sessionToken: string | undefined,
+  qrExporterTicket: string | undefined
+};
+
+const credentialsByAccount = new Map<ActiveAccountNumber, AccountCredentials>();
+
+function credentialsFor(accountNumber: ActiveAccountNumber): AccountCredentials {
+  let credentials = credentialsByAccount.get(accountNumber);
+  if(!credentials) {
+    credentials = {userId: undefined, sessionToken: undefined, qrExporterTicket: undefined};
+    credentialsByAccount.set(accountNumber, credentials);
+  }
+
+  return credentials;
 }
 
-export function getGrpcUserId(): string | undefined {
-  return currentUserId;
+export function setGrpcUserId(accountNumber: ActiveAccountNumber, userId: string | undefined): void {
+  credentialsFor(accountNumber).userId = userId;
 }
 
-export function setGrpcSessionToken(token: string | undefined): void {
-  currentSessionToken = token;
+export function getGrpcUserId(accountNumber: ActiveAccountNumber): string | undefined {
+  return credentialsFor(accountNumber).userId;
 }
 
-export function getGrpcSessionToken(): string | undefined {
-  return currentSessionToken;
+export function setGrpcSessionToken(accountNumber: ActiveAccountNumber, token: string | undefined): void {
+  credentialsFor(accountNumber).sessionToken = token;
 }
 
-export function requireGrpcSessionToken(): string {
-  if(!currentSessionToken) {
+export function getGrpcSessionToken(accountNumber: ActiveAccountNumber): string | undefined {
+  return credentialsFor(accountNumber).sessionToken;
+}
+
+export function requireGrpcSessionToken(accountNumber: ActiveAccountNumber): string {
+  const token = credentialsFor(accountNumber).sessionToken;
+  if(!token) {
     throw new Error('Impulse session is not ready');
   }
 
-  return currentSessionToken;
+  return token;
 }
 
 /**
@@ -73,49 +101,72 @@ export function requireGrpcSessionToken(): string {
  * either way, and which frame carries it is a transport detail this client should not
  * depend on.
  */
-function captureQrExporterTicket(response: {header?: Headers, trailer?: Headers}): void {
+function captureQrExporterTicket(accountNumber: ActiveAccountNumber, response: {header?: Headers, trailer?: Headers}): void {
   const issued = response.trailer?.get(QR_EXPORTER_TICKET_HEADER) ??
     response.header?.get(QR_EXPORTER_TICKET_HEADER);
 
   if(issued) {
-    currentQrExporterTicket = issued;
+    credentialsFor(accountNumber).qrExporterTicket = issued;
   }
 }
 
-const authInterceptor: Interceptor = (next) => async(req) => {
-  if(currentUserId) {
-    req.header.set('user-id', currentUserId);
-  }
+function createAuthInterceptor(accountNumber: ActiveAccountNumber): Interceptor {
+  return (next) => async(req) => {
+    const credentials = credentialsFor(accountNumber);
+    if(credentials.userId) {
+      req.header.set('user-id', credentials.userId);
+    }
 
-  if(currentSessionToken) {
-    req.header.set('authorization', `Bearer ${currentSessionToken}`);
-  }
+    if(credentials.sessionToken) {
+      req.header.set('authorization', `Bearer ${credentials.sessionToken}`);
+    }
 
-  if(currentQrExporterTicket) {
-    req.header.set(QR_EXPORTER_TICKET_HEADER, currentQrExporterTicket);
-  }
+    if(credentials.qrExporterTicket) {
+      req.header.set(QR_EXPORTER_TICKET_HEADER, credentials.qrExporterTicket);
+    }
 
-  const startedAt = performance.now();
-  try {
-    const response = await next(req);
-    captureQrExporterTicket(response);
-    logger.debug('gRPC request completed', {
-      service: req.service.typeName,
-      method: req.method.name,
-      durationMs: Math.round(performance.now() - startedAt)
+    const startedAt = performance.now();
+    try {
+      const response = await next(req);
+      captureQrExporterTicket(accountNumber, response);
+      logger.debug('gRPC request completed', {
+        account: accountNumber,
+        service: req.service.typeName,
+        method: req.method.name,
+        durationMs: Math.round(performance.now() - startedAt)
+      });
+      return response;
+    } catch(err) {
+      logger.debug('gRPC request failed', {
+        account: accountNumber,
+        service: req.service.typeName,
+        method: req.method.name,
+        durationMs: Math.round(performance.now() - startedAt)
+      }, err);
+      throw err;
+    }
+  };
+}
+
+const transportByAccount = new Map<ActiveAccountNumber, Transport>();
+
+/**
+ * One gRPC-web transport per account slot. Each carries its own auth interceptor,
+ * closed over that slot's account number -- so it only ever stamps that slot's own
+ * credentials, no matter which other account slots exist in this same worker.
+ * gRPC-web has no persistent connection (every call is a plain `fetch`, see
+ * createGrpcWebTransport), so holding one of these per slot costs a small object,
+ * not a socket.
+ */
+export function getGrpcTransport(accountNumber: ActiveAccountNumber): Transport {
+  let transport = transportByAccount.get(accountNumber);
+  if(!transport) {
+    transport = createGrpcWebTransport({
+      baseUrl: backendHttpOrigin(),
+      interceptors: [createAuthInterceptor(accountNumber)]
     });
-    return response;
-  } catch(err) {
-    logger.debug('gRPC request failed', {
-      service: req.service.typeName,
-      method: req.method.name,
-      durationMs: Math.round(performance.now() - startedAt)
-    }, err);
-    throw err;
+    transportByAccount.set(accountNumber, transport);
   }
-};
 
-export const grpcTransport = createGrpcWebTransport({
-  baseUrl: backendHttpOrigin(),
-  interceptors: [authInterceptor]
-});
+  return transport;
+}

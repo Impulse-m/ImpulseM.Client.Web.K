@@ -36,10 +36,11 @@ import {WireInvariants} from './invariants';
  * not see the booted stack. Graph-bound helpers every scenario needs are handed back on the
  * stack object instead.
  *
- * Session-gate note: whenImpulseSessionReady() (src/lib/impulse/session.ts) opens only after
- * ALL FOUR account slots report in. The real worker boots managers for every slot; this stack
- * instantiates managers for slot 1 only, so the three empty slots report in directly through
- * the same restoreImpulseSession — same module, same semantics.
+ * Session-gate note: whenImpulseSessionReady(accountNumber) (src/lib/impulse/session.ts) is one
+ * gate per account slot (#436) — slot 1's gate opens once slot 1's own restoreImpulseSession(1)
+ * has run, which createManagers already triggers through ApiManager.after() below. This stack
+ * only instantiates managers for slot 1, and does not need to touch slots 2-4 at all: their
+ * gates are simply never asked.
  *
  * Run:  IMPULSE_LIVE_GATEWAY=http://localhost:5200 npx vitest run src/tests/liveharness
  * (endpoint discipline documented in ./liveGate.ts).
@@ -139,14 +140,6 @@ export async function bootLiveManagerStack(gatewayOrigin: string, options?: Boot
   const {AppStoragesManager} = await import('@appManagers/appStoragesManager');
   const appStoragesManager = new AppStoragesManager(1, stateManager.resetStoragesPromise);
   await appStoragesManager.loadStorages();
-
-  // Empty account slots report in (see the session-gate note in the header).
-  const {restoreImpulseSession} = await import('@lib/impulse/session');
-  await Promise.all([
-    restoreImpulseSession(2),
-    restoreImpulseSession(3),
-    restoreImpulseSession(4)
-  ]);
 
   // Wire invariants observe from the PROTOTYPE so the boot storm createManagers fires is
   // covered too, with the serialize proof running the same adapter stages of this graph.

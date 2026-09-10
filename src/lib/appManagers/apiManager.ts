@@ -6,7 +6,7 @@
  */
 
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
-import {applyImpulseUserId, clearImpulseSession, restoreImpulseSession, setImpulseAccount} from '@lib/impulse/session';
+import {applyImpulseUserId, clearImpulseSession, restoreImpulseSession} from '@lib/impulse/session';
 import {setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
@@ -342,8 +342,7 @@ export class ApiManager extends ApiManagerMethods {
 
     this.rootScope.dispatchEvent('user_auth', userAuth);
 
-    await setImpulseAccount(this.getAccountNumber());
-    applyImpulseUserId((userAuth as UserAuth).id as unknown as string);
+    applyImpulseUserId(this.getAccountNumber(), (userAuth as UserAuth).id as unknown as string);
     this.startRealtimeBringUp((userAuth as UserAuth).id);
 
     if(!userAuth.dcID) {
@@ -387,7 +386,7 @@ export class ApiManager extends ApiManagerMethods {
     // Drop the push channel and the gateway credentials first: a socket left
     // open under the old identity would keep delivering that account's updates.
     stopImpulseRealtime();
-    clearImpulseSession();
+    clearImpulseSession(this.getAccountNumber());
 
     const totalAccounts = await AccountController.getTotalAccounts();
     const accountNumber = this.getAccountNumber();
@@ -793,7 +792,7 @@ export class ApiManager extends ApiManagerMethods {
       // deferred.resolve/reject read `this`, so they must be called on the deferred
       // rather than passed as bare references — an unbound resolve throws inside the
       // promise chain and the deferred never settles.
-      grpcInvoke(method, params).then(
+      grpcInvoke(method, params, this.getAccountNumber()).then(
         (result) => deferred.resolve(result),
         (error: ApiError) => {
           rejectPromise(error).then(

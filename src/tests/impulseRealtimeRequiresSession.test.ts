@@ -65,9 +65,10 @@ describe('Impulse realtime authentication', () => {
     const {setGrpcSessionToken} = await import('@lib/impulse/grpc/transport');
 
     await Promise.all(everySlot().map((accountNumber) => restoreImpulseSession(accountNumber)));
-    setGrpcSessionToken(undefined);
+    setGrpcSessionToken(1, undefined);
 
-    const outcome = await fetchCentrifugoToken().then(
+    // Requested on behalf of slot 1, which every slot above left empty.
+    const outcome = await fetchCentrifugoToken(1).then(
       () => 'token requested',
       (error: any) => `refused: ${error?.message}`
     );
