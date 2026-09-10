@@ -28,7 +28,7 @@ import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {refreshImpulseSession, whenImpulseSessionReady} from './session';
 import {RealtimeSubscriptions} from './realtimeSubscriptions';
 import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
-import {getReconnectJitterMaxMs} from './realtimeDiscipline';
+import {getReconnectJitterMaxMs, ReconnectFloorMs} from './realtimeDiscipline';
 import {protoToTL} from './grpc/adapter';
 import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 import {SyncService} from './grpc/gen/v1/internal/impulse/sync/sync_service_pb';
@@ -40,9 +40,14 @@ const CENTRIFUGO_WS = `${backendWsOrigin()}/connection/websocket`;
 const TOKEN_EXPIRED_CODE = 109;
 // Guards against a re-spin storm if module state is ever transiently reset.
 const SPIN_UP_COOLDOWN_MS = 30_000;
-// Production reconnects spread across 20 seconds; local development stays responsive.
+// The exponential CAP on a reconnect delay, not a spread window -- the comment that used to
+// stand here said "reconnects spread across 20 seconds" and nothing spread anything.
+// Development keeps a much lower cap so a local reconnect stays responsive.
 export const ReconnectJitterMaxMs = getReconnectJitterMaxMs(import.meta.env.DEV);
-const RECONNECT_JITTER_MIN_MS = 1;
+// The FLOOR, and it is the number that decides a herd. The SDK grows its random range from
+// the floor, so the ladder starts wherever this does; at the 1 ms it used to hold, every
+// socket the server hung up on came back inside 2 ms (#445).
+export const ReconnectJitterMinMs = ReconnectFloorMs;
 
 export type RealtimeUpdateSink = (updates: any, channelId?: ChatId) => void;
 
@@ -201,8 +206,12 @@ async function spinUp(userId: string, accountNumber: ActiveAccountNumber): Promi
   const centrifuge = new Centrifuge(CENTRIFUGO_WS, {
     token,
     getToken: () => fetchCentrifugoToken(accountNumber),
-    // Centrifuge 5 uses full-jitter exponential backoff inside these bounds.
-    minReconnectDelay: RECONNECT_JITTER_MIN_MS,
+    // Centrifuge 5's ladder is min(max, min + randInt(0, min(max, min * 2^attempt))) --
+    // reproduced and asserted in realtimeDiscipline.sdkReconnectDelay. It is NOT full jitter:
+    // the random range grows from the floor rather than covering the window, and
+    // _connectResponse resets the attempt counter, so a socket that was healthy when the
+    // server hung up on it always re-enters at attempt 0.
+    minReconnectDelay: ReconnectJitterMinMs,
     maxReconnectDelay: ReconnectJitterMaxMs
   });
 
