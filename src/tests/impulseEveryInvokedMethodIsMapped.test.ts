@@ -165,7 +165,13 @@ describe('every invoked API method has a gRPC mapping', () => {
     }
 
     for(const file of files) {
-      const text = withoutComments(readFileSync(file, 'utf8'));
+      // TL constructor discriminators are written `_: 'ns.name'` and share the exact shape of a
+      // method name, in the same namespaces -- 'messages.transcribedAudio', 'updates.difference',
+      // 'payments.paymentReceipt'. A `_:` property is never an invocation, so they come out before
+      // anything below reads a literal. Without this the identifier sweep reports them as unmapped
+      // methods the moment its span crosses an object literal.
+      const text = withoutComments(readFileSync(file, 'utf8'))
+        .replace(/\b_:\s*'[a-zA-Z]+\.[a-zA-Z0-9]+'/g, ' ');
       for(const pattern of patterns) {
         pattern.lastIndex = 0;
         for(const match of text.matchAll(pattern)) {
@@ -182,14 +188,27 @@ describe('every invoked API method has a gRPC mapping', () => {
         }
       }
 
-      // An invoke whose argument is a bare identifier: read that identifier's own declaration.
-      // `const method = isPollVote ? 'messages.readPollVotes' : ...;` is the shape, and the names
-      // it can produce are all written down in it.
+      // An invoke whose argument is a bare identifier: read every statement in the file that
+      // declares, annotates or assigns that identifier. Three shapes appear here and all three
+      // write the names down:
+      //
+      //   const method = isPollVote ? 'messages.readPollVotes' : ...;   -- declaration
+      //   let method: 'messages.getHistory' | 'messages.searchGlobal';  -- union annotation
+      //   method = 'messages.searchGlobal';                             -- later assignment
+      //
+      // The annotation form is why this is not just a `const` sweep. appMessagesManager's search
+      // path uses exactly it, which is how messages.searchGlobal stayed invisible while global
+      // search was under investigation -- the case ImpulseM#15 named. Note the annotation on its
+      // own would be caught by the `method:` pattern above, but only its FIRST union member: one
+      // capture per match, so the other five would still be missing.
       for(const match of text.matchAll(/invokeApi(?:Single|After)?\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*,/g)) {
-        const declaration = new RegExp(`\\bconst\\s+${match[1]}\\s*=([^;]*);`, 'g');
-        for(const declared of text.matchAll(declaration)) {
+        // The span stops at a brace as well as at the semicolon: a declaration, an annotation and
+        // an assignment of a method name all fit on a line or two and contain none, while an
+        // object literal would otherwise swallow every discriminator inside it.
+        const boundTo = new RegExp(`\\b${match[1]}\\s*(?::|=)([^;{}]*)[;{]`, 'g');
+        for(const bound of text.matchAll(boundTo)) {
           methodLiteral.lastIndex = 0;
-          for(const literal of declared[1].matchAll(methodLiteral)) {
+          for(const literal of bound[1].matchAll(methodLiteral)) {
             record(literal[1], file);
           }
         }
@@ -247,6 +266,10 @@ describe('every invoked API method has a gRPC mapping', () => {
       'upload.saveBigFilePart': 'assembled into a const by apiFileManager, never written at a call site',
       'contacts.unblock': 'the far branch of a ternary inside the method argument ' +
         '(appUsersManager.toggleBlock)',
+      'messages.searchGlobal': 'a member of a union ANNOTATION on a let, assigned later by name ' +
+        '(appMessagesManager search path) -- the case ImpulseM#15 named as the one that got away',
+      'channels.searchPosts': 'the last member of that same union annotation, so it also proves ' +
+        'the sweep reads past the first literal in the statement',
       'channels.toggleAutotranslation': 'interpolated as `channels.${what}` ' +
         '(appChatsManager.toggleSomething), registered in interpolatedMethodNames'
     };
