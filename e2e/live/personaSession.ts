@@ -140,7 +140,16 @@ export class PersonaSession {
   }
 
 
-  public async signUpThroughUi(): Promise<void> {
+  /**
+   * Phone and code, through the real cards — the half every authorization shares.
+   *
+   * Split out of signUpThroughUi when a second DEVICE on an EXISTING account became reproducible
+   * (#319): the two flows are identical up to the code and diverge only afterwards, where a new
+   * number gets the name card and a known one lands straight in the app. Sharing the half that is
+   * genuinely shared keeps the country auto-fill defence, which is load-bearing and was written
+   * against a real corruption, in ONE place.
+   */
+  private async enterPhoneAndCodeThroughUi(): Promise<void> {
     await this.page.goto('/', {waitUntil: 'domcontentloaded'});
 
     // A virgin desktop boot lands on the QR card (state.ts: authState defaults to
@@ -199,6 +208,15 @@ export class PersonaSession {
     await codeInput.waitFor({state: 'visible', timeout: 60_000});
     await codeInput.click();
     await this.page.keyboard.type(loginCodeFor(this.persona), {delay: 60});
+  }
+
+
+  /**
+   * A NEW number: the code is followed by the name card, which only an account that does not
+   * exist is shown (auth.authorizationSignUpRequired).
+   */
+  public async signUpThroughUi(): Promise<void> {
+    await this.enterPhoneAndCodeThroughUi();
 
     // Ephemeral personas are unique per run, so the flow deterministically lands on the
     // sign-up card (auth.authorizationSignUpRequired).
@@ -212,6 +230,42 @@ export class PersonaSession {
     await this.page.keyboard.type(this.persona.lastName, {delay: 20});
 
     await this.page.getByRole('button', {name: 'Start Messaging', exact: true}).click();
+
+    await this.waitForImReady();
+  }
+
+
+  /**
+   * A SECOND DEVICE on an account that already exists: the same phone and code, and then the app
+   * directly — no name card, because auth.signIn answers an authorization rather than
+   * authorizationSignUpRequired.
+   *
+   * <p>The name card appearing here is not a UI detail to absorb; it means the account was not
+   * found and this browser is about to register a SECOND account under the same number's
+   * neighbourhood. A scenario that let that through would then compare two accounts and call the
+   * result multi-device. So it is asserted against rather than waited past.</p>
+   */
+  public async signInThroughUi(): Promise<void> {
+    await this.enterPhoneAndCodeThroughUi();
+
+    const nameCard = this.page.locator('.input-field-input[contenteditable="true"]:not(.input-field-input-fake)').first();
+    const ready = this.page.waitForFunction(() => {
+      const w = window as any;
+      return !document.body.classList.contains('has-auth-pages') && !!w.appImManager && !!w.rootScope?.managers;
+    }, undefined, {timeout: 180_000});
+
+    const outcome = await Promise.race([
+      ready.then(() => 'signed-in' as const),
+      nameCard.waitFor({state: 'visible', timeout: 180_000}).then(() => 'sign-up-card' as const)
+    ]);
+
+    expect(
+      outcome,
+      'signInThroughUi was asked to open a SECOND device on an existing account, and the client ' +
+      'was shown the sign-up name card instead — which means auth.signIn answered ' +
+      'authorizationSignUpRequired and this number has no account. Continuing would register a ' +
+      'new one and every multi-device assertion afterwards would be comparing two accounts'
+    ).toBe('signed-in');
 
     await this.waitForImReady();
   }
@@ -659,6 +713,27 @@ export class PersonaSession {
   }
 
 
+  /**
+   * A bubble carrying `text` that has SETTLED, whichever direction it is.
+   *
+   * waitForIncomingText cannot serve Saved Messages or a second device's view of the account's own
+   * send: both render as outgoing, and its selector excludes them by design. `:not(.is-sending)` is
+   * kept, because a bubble still showing its clock is not "it appeared" — it is the other half of
+   * #510.
+   */
+  public async waitForSettledText(text: string, timeoutMs = 60_000): Promise<void> {
+    await this.page.waitForFunction((needle) => {
+      const container: HTMLElement | undefined = (window as any).appImManager?.chat?.bubbles?.container;
+      if(!container) {
+        return false;
+      }
+
+      return Array.from(container.querySelectorAll('.bubble[data-mid]:not(.is-sending)'))
+        .some((bubble) => bubble.textContent.includes(needle));
+    }, text, {timeout: timeoutMs});
+  }
+
+
   public async waitForIncomingText(text: string): Promise<void> {
     await this.page.waitForFunction((needle) => {
       const container: HTMLElement | undefined = (window as any).appImManager?.chat?.bubbles?.container;
@@ -703,6 +778,37 @@ export class PersonaSession {
    * Public for the warm-cache flow: after restartBrowserProfile the SPEC verifies storage
    * survival on the fresh page first and only then awaits app readiness through this.
    */
+  /**
+   * What this page's realtime layer believes about itself, as one line for a failure message.
+   *
+   * Reads the fork's own handles rather than the network: connection status is what the client
+   * ACTS on, and a socket that is open while the client thinks it is not is the #100 shape.
+   */
+  public async describeRealtimeState(): Promise<string> {
+    return await this.page.evaluate(() => {
+      const w = window as any;
+      const statuses = w.rootScope?.connectionStatus ?? {};
+      const keys = Object.keys(statuses);
+      return JSON.stringify({
+        hasAppImManager: !!w.appImManager,
+        hasManagers: !!w.rootScope?.managers,
+        myId: String(w.rootScope?.myId ?? ''),
+        connectionStatusKeys: keys,
+        connectionStatuses: keys.map((key) => `${key}=${JSON.stringify(statuses[key])}`),
+        sentEvents: (w.__impulseSentEvents ?? []).length,
+        // The half the console never states: does this device hold a socket, and did anything
+        // ever arrive on it.
+        sockets: (w.__impulseWire?.sockets ?? []).map((socket: any) => ({
+          url: socket.url,
+          opened: socket.opened,
+          frames: socket.frames,
+          closed: socket.closed
+        }))
+      });
+    }).catch((error) => `<unreadable: ${String(error)}>`);
+  }
+
+
   public async waitForImReady(): Promise<void> {
     await this.page.waitForFunction(() => {
       const w = window as any;
@@ -728,6 +834,40 @@ export class PersonaSession {
         });
       });
     });
+  }
+
+
+  /**
+   * Every console entry of the whole run that mentions the update pipeline, however old.
+   *
+   * The time-windowed trail is the wrong instrument for #319: the lines that decide it — a pts
+   * hole, a refused update, a realtime envelope — are rare and can land well before the window,
+   * while the window itself fills with rendering chatter. This filters instead of slicing.
+   */
+  public formatUpdatePipelineTrail(): string {
+    const needles = [
+      'pts hole',
+      'not enough data',
+      'processUpdate',
+      'processUpdateMessage',
+      'getDifference',
+      'handleEnvelope',
+      'realtime',
+      'Realtime',
+      'centrifug',
+      'Centrifug',
+      'updateNewMessage',
+      'sink'
+    ];
+    const matched = this.consoleTrail
+      .filter((entry) => needles.some((needle) => entry.text.includes(needle)))
+      .slice(-60);
+    if(matched.length === 0) {
+      return '  <the update pipeline logged NOTHING in this page for the whole run — no envelope, ' +
+        'no processUpdate, no gap, no difference>';
+    }
+
+    return matched.map((entry) => `  [${entry.kind}] ${entry.text.slice(0, 300)}`).join('\n');
   }
 
 
@@ -782,6 +922,42 @@ export class PersonaSession {
     });
     page.on('pageerror', (error) => {
       push('pageerror', `${error.message}\n${error.stack ?? ''}`);
+    });
+
+    // The realtime wire, recorded from INSIDE the page and before any of its scripts run.
+    // #319 turns on one fact no console line states: whether this device holds a websocket to
+    // Centrifugo at all, and whether anything ever arrived on it. A device that is silent because
+    // it has no socket and a device that is silent because it drops what arrives are different
+    // defects, and the console cannot tell them apart.
+    await page.addInitScript(() => {
+      const w = window as any;
+      if(w.__impulseWire) {
+        return;
+      }
+
+      w.__impulseWire = {sockets: [] as any[]};
+      const NativeWebSocket = w.WebSocket;
+      w.WebSocket = function(url: string, protocols?: any) {
+        const record = {url: String(url), opened: false, frames: 0, closed: null as any, at: Date.now()};
+        w.__impulseWire.sockets.push(record);
+        const socket = protocols === undefined
+          ? new NativeWebSocket(url)
+          : new NativeWebSocket(url, protocols);
+        socket.addEventListener('open', () => {
+          record.opened = true;
+        });
+        socket.addEventListener('message', () => {
+          record.frames += 1;
+        });
+        socket.addEventListener('close', (event: any) => {
+          record.closed = {code: event?.code, reason: event?.reason};
+        });
+        return socket;
+      } as any;
+      w.WebSocket.prototype = NativeWebSocket.prototype;
+      for(const key of ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']) {
+        w.WebSocket[key] = NativeWebSocket[key];
+      }
     });
 
     await installMediaDiagnostics(page);
