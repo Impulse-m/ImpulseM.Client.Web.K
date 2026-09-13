@@ -65,6 +65,15 @@ export class PersonaSession {
    * no user runs. Use it to see, never to prove — and record which mode a finding came from.</p>
    */
   private inProcessWorker = false;
+
+  /**
+   * True when signUpThroughUi found the number already registered and signed in instead.
+   *
+   * Surfaced rather than absorbed: a run where this is true exercised a REUSED account, which may
+   * carry another run's dialogs and read state, and a scenario that asserts about what an account
+   * contains must say so rather than quietly measure somebody else's leftovers (#509).
+   */
+  public reusedExistingAccount = false;
   public page: Page;
   public readonly consoleClean: ConsoleCleanInvariant;
   public readonly consoleTrail: ConsoleTrailEntry[] = [];
@@ -231,10 +240,34 @@ export class PersonaSession {
   public async signUpThroughUi(): Promise<void> {
     await this.enterPhoneAndCodeThroughUi();
 
-    // Ephemeral personas are unique per run, so the flow deterministically lands on the
-    // sign-up card (auth.authorizationSignUpRequired).
+    // The name card is EXPECTED but not guaranteed, and the difference cost a wrong verdict. An
+    // ephemeral persona is unique within a run, not across runs: the reserved block's allocator
+    // wraps, so a number this run believes is new can already carry an account from an earlier one
+    // (#509). auth.signIn then answers an authorization instead of authorizationSignUpRequired,
+    // no name card is ever shown, and waiting for it times out INSIDE the fixture — which reads as
+    // the scenario failing when nothing has been measured yet.
+    //
+    // So both outcomes are accepted here and the account ends up signed in either way. What is NOT
+    // accepted is silence: a scenario that cannot tell which happened is one whose flakes get
+    // attributed to whatever it was testing, and that is exactly how #319's fix looked
+    // intermittent when a third of its reds were this.
     const nameInput = this.page.locator('.input-field-input[contenteditable="true"]:not(.input-field-input-fake)').first();
-    await nameInput.waitFor({state: 'visible', timeout: 60_000});
+    const ready = this.page.waitForFunction(() => {
+      const w = window as any;
+      return !document.body.classList.contains('has-auth-pages') && !!w.appImManager && !!w.rootScope?.managers;
+    }, undefined, {timeout: 180_000});
+
+    const outcome = await Promise.race([
+      nameInput.waitFor({state: 'visible', timeout: 180_000}).then(() => 'sign-up-card' as const),
+      ready.then(() => 'already-registered' as const)
+    ]);
+
+    if(outcome === 'already-registered') {
+      this.reusedExistingAccount = true;
+      await this.waitForImReady();
+      return;
+    }
+
     await nameInput.click();
     await this.page.keyboard.type(this.persona.firstName, {delay: 20});
 
@@ -847,6 +880,41 @@ export class PersonaSession {
         });
       });
     });
+  }
+
+
+  /**
+   * What this page's MANAGERS hold for the open chat, independent of what the DOM shows.
+   *
+   * "The message never arrived" and "the message arrived and the chat did not draw it" are
+   * different defects with different owners, and a bubble assertion alone cannot tell them apart.
+   * This asks the storage the bubbles are rendered from.
+   */
+  public async describeStoredHistory(needle: string): Promise<string> {
+    return await this.page.evaluate(async(text) => {
+      const w = window as any;
+      const peerId = w.appImManager?.chat?.peerId;
+      if(peerId === undefined) {
+        return '<no chat open>';
+      }
+
+      try {
+        const history = await w.rootScope.managers.appMessagesManager.getHistory({peerId, limit: 30});
+        const messages: any[] = history?.history?.slice?.(0, 30) ?? [];
+        const resolved = await Promise.all(messages.map((mid: any) =>
+          w.rootScope.managers.appMessagesManager.getMessageByPeer(peerId, mid)
+        ));
+        const bodies = resolved.map((message: any) => String(message?.message ?? '')).filter(Boolean);
+        return JSON.stringify({
+          peerId: String(peerId),
+          count: bodies.length,
+          holdsTheMessage: bodies.some((body) => body.includes(text)),
+          bodies: bodies.slice(0, 10)
+        });
+      } catch(error) {
+        return `<getHistory threw: ${String(error)}>`;
+      }
+    }, needle).catch((error) => `<unreadable: ${String(error)}>`);
   }
 
 

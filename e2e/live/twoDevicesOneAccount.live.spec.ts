@@ -104,6 +104,7 @@ test('#319 a message written to Saved Messages on one device appears on the acco
     // The watcher's own console is where this is explained, and a bare timeout throws it away. The
     // two candidate mechanisms leave different traces: publications arriving and being dropped, or
     // no subscription on user:<id> at all.
+    const stored = await watcher.describeStoredHistory(marker);
     const watcherRealtime = await watcher.describeRealtimeState();
     // The WRITER's state is the control for the observer itself. tweb owns its connection from a
     // worker, and an init script runs only in the page — so "the watcher has no Centrifugo socket"
@@ -112,7 +113,7 @@ test('#319 a message written to Saved Messages on one device appears on the acco
     throw new Error(
       `The account's other device never showed "${marker}" within ${appearanceTimeoutMs} ms, while ` +
       'the writing device settled it — the server has the message and the second device was never ' +
-      `told (#319).\n\nWATCHER REALTIME STATE: ${watcherRealtime}\n\nWRITER REALTIME STATE ` +
+      `told (#319).\n\nWATCHER STORED HISTORY (managers, not DOM): ${stored}\n\nWATCHER REALTIME STATE: ${watcherRealtime}\n\nWRITER REALTIME STATE ` +
       `(control, this device works): ${writerRealtime}\n\nWATCHER UPDATE PIPELINE TRAIL:\n` +
       `${watcher.formatUpdatePipelineTrail()}\n\nWRITER UPDATE PIPELINE TRAIL (control):\n` +
       `${writer.formatUpdatePipelineTrail()}\n\nOriginal: ${String(error)}`
