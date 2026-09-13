@@ -1,5 +1,6 @@
 import {vi} from 'vitest';
 
+import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {WireInvariants} from './invariants';
 
 
@@ -38,9 +39,12 @@ import {WireInvariants} from './invariants';
  *
  * Session-gate note: whenImpulseSessionReady(accountNumber) (src/lib/impulse/session.ts) is one
  * gate per account slot (#436) — slot 1's gate opens once slot 1's own restoreImpulseSession(1)
- * has run, which createManagers already triggers through ApiManager.after() below. This stack
- * only instantiates managers for slot 1, and does not need to touch slots 2-4 at all: their
- * gates are simply never asked.
+ * has run, which createManagers already triggers through ApiManager.after() below. The
+ * single-slot bootLiveManagerStack only instantiates managers for slot 1, and does not need to
+ * touch slots 2-4 at all: their gates are simply never asked. bootLiveMultiAccountStack (below)
+ * instantiates SEVERAL slots side by side in ONE module graph — which is exactly what the real
+ * SharedWorker does (createManagers builds one manager set per slot), and what #436 made safe by
+ * keying every credential, gate and transport by account number.
  *
  * Run:  IMPULSE_LIVE_GATEWAY=http://localhost:5200 npx vitest run src/tests/liveharness
  * (endpoint discipline documented in ./liveGate.ts).
@@ -56,6 +60,13 @@ export type BootOptions = {
   afterEnvInstalled?: () => void
 };
 
+export type LiveHelpers = {
+  makeMediaSize(width: number, height: number): any,
+  getServerMessageId(messageId: number): number,
+  accountController: any,
+  appConfig: {id: number, hash: string}
+};
+
 export type LiveStack = {
   managers: any,
   accountNumber: 1,
@@ -63,17 +74,34 @@ export type LiveStack = {
   /** The userId loadState found persisted at boot — undefined on a first (pre-auth) boot. */
   userIdAtBoot: UserId | undefined,
   /** Graph-bound helpers (see the RULE above). */
-  helpers: {
-    makeMediaSize(width: number, height: number): any,
-    getServerMessageId(messageId: number): number,
-    accountController: any,
-    appConfig: {id: number, hash: string}
-  },
+  helpers: LiveHelpers,
+  dispose(): Promise<void>
+};
+
+/** One account slot inside a bootLiveMultiAccountStack — the same handle signInHeadless drives. */
+export type LiveAccountSlot = {
+  accountNumber: ActiveAccountNumber,
+  managers: any,
+  userIdAtBoot: UserId | undefined,
+  helpers: LiveHelpers
+};
+
+export type MultiAccountLiveStack = {
+  /** One WebSocket-prototype observer covers every slot's socket — it is graph-wide, not per slot. */
+  wire: WireInvariants,
+  slots: Map<ActiveAccountNumber, LiveAccountSlot>,
+  helpers: LiveHelpers,
+  slot(accountNumber: ActiveAccountNumber): LiveAccountSlot,
   dispose(): Promise<void>
 };
 
 
-export async function bootLiveManagerStack(gatewayOrigin: string, options?: BootOptions): Promise<LiveStack> {
+/**
+ * The once-per-graph half of the boot contract: reset the module graph, install the node env
+ * (and the caller's wire hook), replay the main-thread reload-state pipeline. Returns the raw
+ * per-account state map loadState produced, ready to hand a slot at a time to buildManagerSlot.
+ */
+async function installBootPrelude(gatewayOrigin: string, options?: BootOptions): Promise<any> {
   // A boot IS a page load: fresh module graph over the same persisted client state.
   vi.resetModules();
 
@@ -99,12 +127,24 @@ export async function bootLiveManagerStack(gatewayOrigin: string, options?: Boot
 
   // ---- main-thread half of the boot contract: the real reload-state pipeline ----
   const loadStateForAllAccountsOnce = (await import('@appManagers/utils/state/loadState')).default;
-  const states = await loadStateForAllAccountsOnce();
-  const loaded = states[1];
+  return loadStateForAllAccountsOnce();
+}
 
-  // ---- worker half: the 'state' handler of src/lib/mainWorker/index.worker.ts, verbatim ----
+
+/**
+ * The per-slot half of the boot contract: the 'state' handler of
+ * src/lib/mainWorker/index.worker.ts (replicated verbatim) followed by createManagers, for ONE
+ * account slot. Called once per slot; several slots share ONE module graph, exactly as the real
+ * SharedWorker hosts all four account slots at once.
+ */
+async function buildManagerSlot(
+  states: any,
+  accountNumber: ActiveAccountNumber
+): Promise<{managers: any, userIdAtBoot: UserId | undefined}> {
+  const loaded = states[accountNumber];
+
   const AppStateManager = (await import('@appManagers/appStateManager')).default;
-  const stateManager = new AppStateManager(1);
+  const stateManager = new AppStateManager(accountNumber);
   stateManager.userId = loaded.userId;
   stateManager.newVersion = loaded.newVersion;
   stateManager.oldVersion = loaded.oldVersion;
@@ -138,9 +178,18 @@ export async function bootLiveManagerStack(gatewayOrigin: string, options?: Boot
   });
 
   const {AppStoragesManager} = await import('@appManagers/appStoragesManager');
-  const appStoragesManager = new AppStoragesManager(1, stateManager.resetStoragesPromise);
+  const appStoragesManager = new AppStoragesManager(accountNumber, stateManager.resetStoragesPromise);
   await appStoragesManager.loadStorages();
 
+  const createManagers = (await import('@appManagers/createManagers')).default;
+  const managers = await createManagers(appStoragesManager, stateManager, accountNumber, loaded.userId);
+
+  return {managers, userIdAtBoot: loaded.userId || undefined};
+}
+
+
+/** Attaches the wire invariants to the shared ApiManager prototype and loads the graph-bound helpers. */
+async function loadWireAndHelpers(): Promise<{wire: WireInvariants, helpers: LiveHelpers}> {
   // Wire invariants observe from the PROTOTYPE so the boot storm createManagers fires is
   // covered too, with the serialize proof running the same adapter stages of this graph.
   const wire = new WireInvariants();
@@ -152,26 +201,86 @@ export async function bootLiveManagerStack(gatewayOrigin: string, options?: Boot
     buildProtoInit: adapter.buildProtoInit
   });
 
-  const createManagers = (await import('@appManagers/createManagers')).default;
-  const managers = await createManagers(appStoragesManager, stateManager, 1, loaded.userId);
-
   const {makeMediaSize} = await import('@helpers/mediaSize');
   const getServerMessageId = (await import('@appManagers/utils/messageId/getServerMessageId')).default;
   const accountController = (await import('@lib/accounts/accountController')).default;
   const appConfig = (await import('@config/app')).default;
 
+  return {wire, helpers: {makeMediaSize, getServerMessageId, accountController, appConfig}};
+}
+
+
+export async function bootLiveManagerStack(gatewayOrigin: string, options?: BootOptions): Promise<LiveStack> {
+  const states = await installBootPrelude(gatewayOrigin, options);
+  const {wire, helpers} = await loadWireAndHelpers();
+  const {managers, userIdAtBoot} = await buildManagerSlot(states, 1);
+
   return {
     managers,
     accountNumber: 1,
     wire,
-    userIdAtBoot: loaded.userId || undefined,
-    helpers: {makeMediaSize, getServerMessageId, accountController, appConfig},
+    userIdAtBoot,
+    helpers,
     dispose: async() => {
       try {
         const realtime = await import('@lib/impulse/realtime');
-        realtime.stopImpulseRealtime?.();
+        realtime.stopImpulseRealtime?.(1);
       } catch{
         // The realtime module may never have connected on a pre-auth stack; nothing to stop.
+      }
+    }
+  };
+}
+
+
+/**
+ * Boots MULTIPLE account slots inside ONE module graph — the harness form of the real
+ * SharedWorker, which hosts all four slots at once. Every slot gets its own AppStateManager,
+ * AppStoragesManager and full manager set (via buildManagerSlot), over the same fake-indexeddb
+ * that the real client's slots share; #436 keyed credentials, the session gate and the gRPC
+ * transport by account number, so the slots do not collide.
+ *
+ * The single WireInvariants and the caller's RealtimeWireObserver are graph-wide: one observer
+ * sees the sockets of every slot, so a per-account assertion filters by channel, not by observer.
+ */
+export async function bootLiveMultiAccountStack(
+  gatewayOrigin: string,
+  accountNumbers: ActiveAccountNumber[],
+  options?: BootOptions
+): Promise<MultiAccountLiveStack> {
+  const states = await installBootPrelude(gatewayOrigin, options);
+  const {wire, helpers} = await loadWireAndHelpers();
+
+  const slots = new Map<ActiveAccountNumber, LiveAccountSlot>();
+  // Sequential on purpose: buildManagerSlot's createManagers runs each slot's ApiManager.after(),
+  // and building them one at a time keeps the boot deterministic and mirrors the single-slot path.
+  for(const accountNumber of accountNumbers) {
+    const {managers, userIdAtBoot} = await buildManagerSlot(states, accountNumber);
+    slots.set(accountNumber, {accountNumber, managers, userIdAtBoot, helpers});
+  }
+
+  return {
+    wire,
+    slots,
+    helpers,
+    slot(accountNumber: ActiveAccountNumber): LiveAccountSlot {
+      const found = slots.get(accountNumber);
+      if(!found) {
+        throw new Error(`bootLiveMultiAccountStack: slot ${accountNumber} was not booted`);
+      }
+
+      return found;
+    },
+    dispose: async() => {
+      try {
+        const realtime = await import('@lib/impulse/realtime');
+        // Every booted slot's socket, not one — the whole point of this stack is that each slot
+        // owns its own connection now.
+        for(const accountNumber of slots.keys()) {
+          realtime.stopImpulseRealtime?.(accountNumber);
+        }
+      } catch{
+        // The realtime module may never have connected; nothing to stop.
       }
     }
   };

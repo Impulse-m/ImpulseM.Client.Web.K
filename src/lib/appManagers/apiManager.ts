@@ -141,8 +141,14 @@ export class ApiManager extends ApiManagerMethods {
   }
 
   private startRealtimeBringUp(userId: UserId): void {
+    // This slot's own account number, threaded into every realtime call. The realtime lane is
+    // per-account now (#436 moved credentials/session/transport per account; the connection
+    // lifecycle was the last singleton) -- so the sink this slot registers, and the socket it
+    // opens, belong to THIS slot and never touch another account's.
+    const accountNumber = this.getAccountNumber();
+
     // impulse: seed a subscribed channel from cached dialog pts before TooLong reaches its guard.
-    setRealtimeSink((updates, channelId) => {
+    setRealtimeSink(accountNumber, (updates, channelId) => {
       let hasChannelTooLong = false;
       for(const update of updates.updates ?? []) {
         hasChannelTooLong ||= update._ === 'updateChannelTooLong';
@@ -157,7 +163,7 @@ export class ApiManager extends ApiManagerMethods {
       this.apiUpdatesManager.processUpdateMessage(updates);
     });
 
-    startImpulseRealtime(String(userId), this.getAccountNumber());
+    startImpulseRealtime(String(userId), accountNumber);
     this.reportImpulseConnected();
   }
 
@@ -385,7 +391,10 @@ export class ApiManager extends ApiManagerMethods {
 
     // Drop the push channel and the gateway credentials first: a socket left
     // open under the old identity would keep delivering that account's updates.
-    stopImpulseRealtime();
+    // Stop ONLY this slot's socket -- logging out account A must leave account
+    // B's realtime alive (#436); tearing down the singleton here is exactly the
+    // cross-account bug this change removes.
+    stopImpulseRealtime(this.getAccountNumber());
     clearImpulseSession(this.getAccountNumber());
 
     const totalAccounts = await AccountController.getTotalAccounts();

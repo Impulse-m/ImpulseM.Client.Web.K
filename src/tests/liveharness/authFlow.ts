@@ -1,5 +1,14 @@
-import type {LiveStack} from './managerStack';
+import type {LiveAccountSlot, LiveStack} from './managerStack';
 import {loginCodeFor, Persona} from './personas';
+
+
+/**
+ * The minimum surface signInHeadless drives — a whole single-slot LiveStack or one
+ * LiveAccountSlot of a bootLiveMultiAccountStack both satisfy it, so a two-account scenario signs
+ * each slot in through the same real auth path (each slot's own apiManager, so setUserAuth persists
+ * to that slot and brings up that slot's own realtime socket).
+ */
+export type SignInTarget = Pick<LiveStack, 'managers' | 'helpers'> | LiveAccountSlot;
 
 
 /*
@@ -13,7 +22,7 @@ import {loginCodeFor, Persona} from './personas';
  * canonical Telegram success variant — so an ephemeral persona registers via auth.signUp on
  * first contact and signs in on every later one.
  */
-export async function signInHeadless(stack: LiveStack, persona: Persona): Promise<{userId: UserId}> {
+export async function signInHeadless(stack: SignInTarget, persona: Persona): Promise<{userId: UserId}> {
   const apiManager = stack.managers.apiManager;
   const app = stack.helpers.appConfig;
 
