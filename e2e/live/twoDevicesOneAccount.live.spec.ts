@@ -121,4 +121,35 @@ test('#319 a message written to Saved Messages on one device appears on the acco
 });
 
 
+
+test('#319 a message arriving from someone else appears on BOTH devices of the account', async({account, browser}, testInfo) => {
+  const {writer, watcher} = account;
+
+  // A real third party, not a self-send: the CEO named both halves — "когда мне кто-то пишет, я не
+  // вижу, как это сообщение появляется на всех устройствах". The outbound half travels in a
+  // container that also carries updateMessageID; this one does not, so it is a different shape and
+  // cannot be assumed from the other's green.
+  const outsider = await PersonaSession.open(browser, ephemeralPersona(`outsider-${testInfo.testId}`));
+
+  try {
+    await outsider.signUpThroughUi();
+    await outsider.openDialogWithPhone(writer.persona.phone);
+
+    // Both devices of the account sit in the conversation before anything is sent, and neither is
+    // navigated again.
+    await writer.openDialogWithPhone(outsider.persona.phone);
+    await watcher.openDialogWithPhone(outsider.persona.phone);
+
+    const marker = `inbound-two-devices-${Date.now()}`;
+    await outsider.sendTextThroughUi(marker);
+
+    // Both, not either: an account's inbound stream is owed to every authorized session of it, and
+    // asserting only one would pass over exactly half of what was reported.
+    await writer.waitForSettledText(marker, appearanceTimeoutMs);
+    await watcher.waitForSettledText(marker, appearanceTimeoutMs);
+  } finally {
+    await outsider.close();
+  }
+});
+
 test.describe.configure({timeout: signInTimeoutMs + appearanceTimeoutMs + 120_000});
