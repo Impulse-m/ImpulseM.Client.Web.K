@@ -63,27 +63,61 @@ export type Envelope = {
   oversize?: boolean
 };
 
-let activeUserId: string | undefined;
-let activeAccountNumber: ActiveAccountNumber | undefined;
-let connection: Centrifuge | undefined;
-let subscriptionSet: RealtimeSubscriptions | undefined;
-let openChannelId: ChatId | undefined;
-let latestTabStates: TabState[] = [];
-const subscriptions = new Map<string, Subscription>();
-let sink: RealtimeUpdateSink | undefined;
-let spinUpInProgress = false;
-const lastSpinUpAt = new Map<string, number>();
+/*
+ * One live realtime connection per account slot.
+ *
+ * The connection LIFECYCLE was the last piece of per-account state left as a SharedWorker-wide
+ * singleton after #436 moved credentials, the session gate and the gRPC transport to per-account
+ * maps (grpc/transport.ts credentialsByAccount, session.ts gatesByAccount). A single SharedWorker
+ * hosts all four account slots side by side (createManagers builds one manager set per slot), and
+ * the Centrifugo token is already minted per account (fetchCentrifugoToken(accountNumber) below) --
+ * so keeping ONE `connection`/`activeUserId` cell meant bringing up account B tore down account A's
+ * socket, leaving only one account with a live `user:{id}` subscription while the other went silent.
+ *
+ * Each slot now owns its own record here, and every function reads only the slot it was handed --
+ * so there is deliberately no module-level "current account" (mirrors the module comment at
+ * grpc/transport.ts:17-19). `connectionFor(accountNumber)` is the exact analogue of
+ * transport.ts's `credentialsFor(accountNumber)`.
+ */
+type RealtimeConnection = {
+  activeUserId: string | undefined,
+  connection: Centrifuge | undefined,
+  subscriptionSet: RealtimeSubscriptions | undefined,
+  openChannelId: ChatId | undefined,
+  latestTabStates: TabState[],
+  subscriptions: Map<string, Subscription>,
+  sink: RealtimeUpdateSink | undefined,
+  spinUpInProgress: boolean,
+  lastSpinUpAt: number | undefined
+};
 
-export function setRealtimeSink(fn: RealtimeUpdateSink): void {
-  sink = fn;
+const connectionsByAccount = new Map<ActiveAccountNumber, RealtimeConnection>();
+
+function connectionFor(accountNumber: ActiveAccountNumber): RealtimeConnection {
+  let record = connectionsByAccount.get(accountNumber);
+  if(!record) {
+    record = {
+      activeUserId: undefined,
+      connection: undefined,
+      subscriptionSet: undefined,
+      openChannelId: undefined,
+      latestTabStates: [],
+      subscriptions: new Map<string, Subscription>(),
+      sink: undefined,
+      spinUpInProgress: false,
+      lastSpinUpAt: undefined
+    };
+    connectionsByAccount.set(accountNumber, record);
+  }
+
+  return record;
+}
+
+export function setRealtimeSink(accountNumber: ActiveAccountNumber, fn: RealtimeUpdateSink): void {
+  connectionFor(accountNumber).sink = fn;
 }
 
 export function startImpulseRealtime(userId: string | undefined, accountNumber: ActiveAccountNumber | undefined): void {
-  if(!userId) {
-    stopImpulseRealtime();
-    return;
-  }
-
   // Every downstream call (the token mint, the transport it travels on) is
   // account-scoped now -- see grpc/transport.ts. There is no account-less
   // identity to fall back to, so refuse rather than spin up a connection nobody
@@ -93,62 +127,89 @@ export function startImpulseRealtime(userId: string | undefined, accountNumber: 
     return;
   }
 
-  if(activeUserId === userId && (connection || spinUpInProgress)) {
+  if(!userId) {
+    stopImpulseRealtime(accountNumber);
     return;
   }
 
-  const previous = lastSpinUpAt.get(userId);
-  if(previous !== undefined && Date.now() - previous < SPIN_UP_COOLDOWN_MS && connection) {
+  const record = connectionFor(accountNumber);
+
+  // Already live (or spinning up) for THIS slot's user -- nothing to do. Scoped to the slot:
+  // another account being live must never short-circuit this one (#436).
+  if(record.activeUserId === userId && (record.connection || record.spinUpInProgress)) {
     return;
   }
 
-  if(activeUserId && activeUserId !== userId) {
-    stopImpulseRealtime();
+  // Per-slot cooldown against a re-spin storm, keyed by this slot's own last attempt rather than
+  // a shared userId map -- two accounts spinning up close together are two independent attempts.
+  if(record.lastSpinUpAt !== undefined && Date.now() - record.lastSpinUpAt < SPIN_UP_COOLDOWN_MS && record.connection) {
+    return;
   }
 
-  lastSpinUpAt.set(userId, Date.now());
-  activeUserId = userId;
-  activeAccountNumber = accountNumber;
-  subscriptionSet = new RealtimeSubscriptions(userId);
-  spinUpInProgress = true;
+  // A DIFFERENT user on the SAME slot (a sign-out/sign-in within this slot) tears down this slot's
+  // own socket before opening the new one. This only ever touches its own slot -- deleting the old
+  // singleton `activeUserId !== userId -> stopImpulseRealtime()` branch is the whole fix for the
+  // cross-account teardown: bringing up account B must leave account A's socket alone (#436).
+  if(record.activeUserId && record.activeUserId !== userId) {
+    stopImpulseRealtime(accountNumber);
+  }
 
-  spinUp(userId, accountNumber).catch((err: unknown) => {
+  record.lastSpinUpAt = Date.now();
+  record.activeUserId = userId;
+  record.subscriptionSet = new RealtimeSubscriptions(userId);
+  record.spinUpInProgress = true;
+
+  spinUp(accountNumber, userId).catch((err: unknown) => {
     logger.warn('Realtime spin-up failed', {userId}, err);
   }).finally(() => {
-    spinUpInProgress = false;
+    connectionFor(accountNumber).spinUpInProgress = false;
   });
 }
 
-export function stopImpulseRealtime(): void {
-  try {
-    for(const subscription of subscriptions.values()) {
-      subscription.unsubscribe();
-    }
-    connection?.disconnect();
-  } catch(err) {
-    logger.warn('Realtime teardown failed', undefined, err);
+export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
+  const record = connectionsByAccount.get(accountNumber);
+  if(!record) {
+    return;
   }
 
-  subscriptions.clear();
-  subscriptionSet = undefined;
-  openChannelId = undefined;
-  connection = undefined;
-  activeUserId = undefined;
-  activeAccountNumber = undefined;
+  try {
+    for(const subscription of record.subscriptions.values()) {
+      subscription.unsubscribe();
+    }
+    record.connection?.disconnect();
+  } catch(err) {
+    logger.warn('Realtime teardown failed', {accountNumber}, err);
+  }
+
+  record.subscriptions.clear();
+  record.subscriptionSet = undefined;
+  record.openChannelId = undefined;
+  record.connection = undefined;
+  record.activeUserId = undefined;
+  // sink and latestTabStates deliberately survive teardown: apiManager re-arms the sink on the
+  // next bring-up (startRealtimeBringUp), and a reconnect for the same slot should keep the tab
+  // lanes it already knew -- exactly as the singleton did before it went per-account.
 }
 
 export function setImpulseRealtimeTabs(states: TabState[]): void {
-  latestTabStates = states;
-  applyTabStates();
+  // The tab feed carries EVERY tab across EVERY account (index.worker.ts onTabStateChange), and
+  // each tab names its own account. File each tab under its own account's connection and refresh
+  // only the slots that actually hold a live socket -- no single "active" account decides which
+  // tab is heard any more (#436; this replaces the old filter-to-activeAccountNumber at :148).
+  for(const [accountNumber, record] of connectionsByAccount) {
+    record.latestTabStates = states.filter((state) => state.accountNumber === accountNumber);
+    applyTabStates(accountNumber);
+  }
 }
 
-function applyTabStates(): void {
-  if(!subscriptionSet || activeAccountNumber === undefined) return;
+function applyTabStates(accountNumber: ActiveAccountNumber): void {
+  const record = connectionFor(accountNumber);
+  if(!record.subscriptionSet) return;
 
-  const states = latestTabStates.filter((state) => state.accountNumber === activeAccountNumber);
+  // record.latestTabStates already holds only this slot's tabs (setImpulseRealtimeTabs filed them).
   let nextOpenChannelId: ChatId | undefined;
   const visibleChannelIds: ChatId[] = [];
-  for(const state of states) {
+  for(const state of record.latestTabStates) {
     visibleChannelIds.push(...state.visibleChannelIds);
     if(state.openChannelId !== undefined) {
       visibleChannelIds.push(state.openChannelId);
@@ -156,14 +217,14 @@ function applyTabStates(): void {
     }
   }
 
-  if(openChannelId !== undefined && openChannelId !== nextOpenChannelId) {
-    applySubscriptionDiff(subscriptionSet.close(openChannelId));
+  if(record.openChannelId !== undefined && record.openChannelId !== nextOpenChannelId) {
+    applySubscriptionDiff(accountNumber, record.subscriptionSet.close(record.openChannelId));
   }
   if(nextOpenChannelId !== undefined) {
-    applySubscriptionDiff(subscriptionSet.open(nextOpenChannelId));
+    applySubscriptionDiff(accountNumber, record.subscriptionSet.open(nextOpenChannelId));
   }
-  openChannelId = nextOpenChannelId;
-  applySubscriptionDiff(subscriptionSet.showDialogs(visibleChannelIds));
+  record.openChannelId = nextOpenChannelId;
+  applySubscriptionDiff(accountNumber, record.subscriptionSet.showDialogs(visibleChannelIds));
 }
 
 export async function fetchCentrifugoToken(accountNumber: ActiveAccountNumber): Promise<string> {
@@ -196,11 +257,12 @@ function isUnauthenticated(err: unknown): boolean {
   return ConnectError.from(err).code === Code.Unauthenticated;
 }
 
-async function spinUp(userId: string, accountNumber: ActiveAccountNumber): Promise<void> {
+async function spinUp(accountNumber: ActiveAccountNumber, userId: string): Promise<void> {
   const token = await fetchCentrifugoToken(accountNumber);
 
-  // The userId may have changed while the token was in flight.
-  if(activeUserId !== userId) {
+  const record = connectionFor(accountNumber);
+  // This slot's user may have changed while the token was in flight.
+  if(record.activeUserId !== userId) {
     return;
   }
 
@@ -250,22 +312,23 @@ async function spinUp(userId: string, accountNumber: ActiveAccountNumber): Promi
     logger.warn('Realtime disconnected', {channel, code: ctx?.code, reason: ctx?.reason});
   });
 
-  connection = centrifuge;
-  applyTabStates();
-  for(const selectedChannel of subscriptionSet?.getChannels() ?? [channel]) {
-    createSubscription(selectedChannel);
+  record.connection = centrifuge;
+  applyTabStates(accountNumber);
+  for(const selectedChannel of record.subscriptionSet?.getChannels() ?? [channel]) {
+    createSubscription(accountNumber, selectedChannel);
   }
 
   centrifuge.connect();
   logger.info('Realtime spin-up requested', {channel});
 }
 
-function createSubscription(channel: string): void {
-  if(!connection || subscriptions.has(channel)) return;
+function createSubscription(accountNumber: ActiveAccountNumber, channel: string): void {
+  const record = connectionFor(accountNumber);
+  if(!record.connection || record.subscriptions.has(channel)) return;
 
-  const sub = connection.newSubscription(channel);
+  const sub = record.connection.newSubscription(channel);
   sub.on('publication', (ctx: any) => {
-    handleEnvelope(ctx?.data as Envelope, channel);
+    handleEnvelope(accountNumber, ctx?.data as Envelope, channel);
   });
   sub.on('error', (ctx: any) => {
     logger.warn('Centrifugo subscription error', {channel, code: ctx?.error?.code});
@@ -290,29 +353,31 @@ function createSubscription(channel: string): void {
     logger.warn('Realtime unsubscribed', {channel, code: ctx?.code, reason: ctx?.reason});
   });
 
-  subscriptions.set(channel, sub);
+  record.subscriptions.set(channel, sub);
   sub.subscribe();
   logger.info('Realtime subscription requested', {channel});
 }
 
-function applySubscriptionDiff(diff: RealtimeSubscriptionDiff): void {
+function applySubscriptionDiff(accountNumber: ActiveAccountNumber, diff: RealtimeSubscriptionDiff): void {
+  const record = connectionFor(accountNumber);
   for(const channel of diff.unsubscribe) {
-    const subscription = subscriptions.get(channel);
+    const subscription = record.subscriptions.get(channel);
     if(!subscription) continue;
 
     subscription.unsubscribe();
-    connection?.removeSubscription(subscription);
-    subscriptions.delete(channel);
+    record.connection?.removeSubscription(subscription);
+    record.subscriptions.delete(channel);
     logger.info('Realtime channel unsubscribe requested', {channel});
   }
 
   for(const channel of diff.subscribe) {
-    createSubscription(channel);
+    createSubscription(accountNumber, channel);
     logger.info('Realtime channel subscribe requested', {channel});
   }
 }
 
-function handleEnvelope(envelope: Envelope | undefined, channel: string): void {
+function handleEnvelope(accountNumber: ActiveAccountNumber, envelope: Envelope | undefined, channel: string): void {
+  const sink = connectionFor(accountNumber).sink;
   if(!envelope || !sink) {
     return;
   }

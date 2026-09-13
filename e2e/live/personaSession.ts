@@ -3,6 +3,7 @@ import {join} from 'path';
 
 import {Browser, BrowserContext, chromium, Page, expect} from '@playwright/test';
 
+import type {ActiveAccountNumber} from '../../src/lib/accounts/types';
 import {loginCodeFor, Persona} from '../../src/tests/liveharness/personas';
 import {ConsoleCleanInvariant} from './invariants';
 import {captureMediaDiagnostics, describePlaybackFailure, installMediaDiagnostics, MediaElementState} from './mediaPlayback';
@@ -67,6 +68,15 @@ export class PersonaSession {
   private inProcessWorker = false;
 
   /**
+   * Which account SLOT this tab drives. tweb binds a tab to one account through the `account` URL
+   * query param (getCurrentAccountFromURL, cached for the page's life), so a second account in the
+   * SAME browser is a second TAB opened at `?account=2`. The SharedWorker is shared across the
+   * context's tabs, which is precisely the surface the CEO's multi-account realtime report lives on:
+   * the two tabs share one realtime module, and bringing up slot 2 must not silence slot 1.
+   */
+  private accountNumber: ActiveAccountNumber = 1;
+
+  /**
    * True when signUpThroughUi found the number already registered and signed in instead.
    *
    * Surfaced rather than absorbed: a run where this is true exercised a REUSED account, which may
@@ -126,6 +136,30 @@ export class PersonaSession {
 
 
   /**
+   * A SECOND account in the SAME browser: a new tab in the existing session's context, bound to
+   * `accountNumber` through the `account` URL param. The two tabs share one BrowserContext and
+   * therefore one SharedWorker — the exact setup behind the CEO's report of two accounts in one
+   * browser where realtime breaks for one of them. The returned session drives its own slot; the
+   * caller signs it up/in as usual. It rides the base session's context, so tear it down with
+   * closePageOnly() and let the base session's close() dispose the shared context.
+   */
+  public static async openAdditionalAccount(
+    base: PersonaSession,
+    persona: Persona,
+    accountNumber: ActiveAccountNumber,
+    options: {inProcessWorker?: boolean} = {}
+  ): Promise<PersonaSession> {
+    const page = await base.context.newPage();
+    const consoleClean = await ConsoleCleanInvariant.attach(page, persona.firstName);
+    const session = new PersonaSession(persona, base.context, page, consoleClean);
+    session.inProcessWorker = options.inProcessWorker === true;
+    session.accountNumber = accountNumber;
+    await session.wireDiagnostics(page);
+    return session;
+  }
+
+
+  /**
    * Warm-cache variant (issue #108): the persona lives in an on-disk chromium profile
    * (userDataDir), so its IndexedDB, localStorage, caches and service worker survive not just
    * a page reload but a FULL browser restart (restartBrowserProfile) — the state the CEO's
@@ -172,7 +206,18 @@ export class PersonaSession {
    * against a real corruption, in ONE place.
    */
   private async enterPhoneAndCodeThroughUi(): Promise<void> {
-    await this.page.goto(this.inProcessWorker ? '/?noWorker=1' : '/', {waitUntil: 'domcontentloaded'});
+    // The `account` query param selects the slot before boot — getCurrentAccount reads it from the
+    // URL and caches it, so an empty slot 2 lands on its own login screen. Slot 1 keeps the bare
+    // '/' so every existing single-account scenario navigates to exactly the URL it did before.
+    const params = new URLSearchParams();
+    if(this.inProcessWorker) {
+      params.set('noWorker', '1');
+    }
+    if(this.accountNumber !== 1) {
+      params.set('account', String(this.accountNumber));
+    }
+    const query = params.toString();
+    await this.page.goto(query ? `/?${query}` : '/', {waitUntil: 'domcontentloaded'});
 
     // A virgin desktop boot lands on the QR card (state.ts: authState defaults to
     // authStateSignQr when !IS_MOBILE); the real UI escape hatch is its
@@ -817,6 +862,15 @@ export class PersonaSession {
 
   public async close(): Promise<void> {
     await this.context.close();
+  }
+
+
+  /**
+   * Closes only this tab's page, leaving the shared BrowserContext open — for a session created
+   * with openAdditionalAccount, whose context belongs to the base session.
+   */
+  public async closePageOnly(): Promise<void> {
+    await this.page.close();
   }
 
 
