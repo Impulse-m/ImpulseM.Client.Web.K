@@ -47,8 +47,12 @@ const test = base.extend<{account: {writer: PersonaSession, watcher: PersonaSess
 
     // Two isolated contexts of ONE persona: two devices, in the only sense the server and the
     // browser can tell apart.
-    const writer = await PersonaSession.open(browser, persona);
-    const watcher = await PersonaSession.open(browser, persona);
+    // IMPULSE_TWO_DEVICES_IN_PROCESS=1 runs both devices with ?noWorker=1, which puts the update
+    // pipeline in the page where its console is readable. Diagnostic only — it changes the mode, so
+    // a verdict taken under it says which mode it came from.
+    const inProcessWorker = process.env.IMPULSE_TWO_DEVICES_IN_PROCESS === '1';
+    const writer = await PersonaSession.open(browser, persona, {inProcessWorker});
+    const watcher = await PersonaSession.open(browser, persona, {inProcessWorker});
 
     try {
       // Sequential on purpose. The account has to EXIST before the second device can sign into it,

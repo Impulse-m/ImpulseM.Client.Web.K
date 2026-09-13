@@ -17,6 +17,7 @@
  * `v1.Update`.
  */
 
+import Schema, {MTProtoConstructor} from '@lib/mtproto/schema';
 import {Centrifuge, type Subscription} from 'centrifuge';
 import {fromBinary} from '@bufbuild/protobuf';
 import {Code, ConnectError, createClient} from '@connectrpc/connect';
@@ -389,19 +390,63 @@ export function decodeRealtimeEnvelope(envelope: Envelope): any | undefined {
   return protoToTL(fromBinary(UpdatesSchema, bytes), UpdatesSchema);
 }
 
+/**
+ * The field names each update constructor actually declares, from the TL schema, memoised.
+ *
+ * The schema is the only authority here that cannot rot: a hand-written list of pts-bearing
+ * constructors would drift the moment the layer moves, and the drift would be silent.
+ */
+const declaredFieldsByPredicate = new Map<string, Set<string>>();
+
+function declaresField(predicate: string | undefined, field: string): boolean {
+  if(!predicate) {
+    return false;
+  }
+
+  let declared = declaredFieldsByPredicate.get(predicate);
+  if(!declared) {
+    const constructor = (Schema.API.constructors as MTProtoConstructor[])
+      .find((entry) => entry.predicate === predicate);
+    declared = new Set((constructor?.params ?? []).map((param) => param.name));
+    declaredFieldsByPredicate.set(predicate, declared);
+  }
+
+  return declared.has(field);
+}
+
+
+/**
+ * Restores the sequence fields the envelope repeats out of band — ONLY onto updates whose own
+ * constructor declares them.
+ *
+ * The guard is the whole point and its absence was issue #319. This used to stamp the envelope's
+ * pts/pts_count onto every update in the container, and `updateMessageID#4e90bfd6 id:int
+ * random_id:long = Update` declares neither (constructor/updateMessageID.md). The account's own
+ * outgoing message travels in a container that carries BOTH updateMessageID and updateNewMessage
+ * with one shared pts, so on every other device of that account the fabricated pair on the
+ * updateMessageID advanced local pts first, and apiUpdatesManager then read the real
+ * updateNewMessage as `pts <= curState.pts` and logged "duplicate update" — dropping it.
+ *
+ * Measured in e2e/live/twoDevicesOneAccount.live.spec.ts: the watcher's pipeline showed
+ * `process 2 {_: updateMessageID, ..., pts: 3, pts_count: 1}` immediately followed by
+ * `process 3 {_: updateNewMessage, ..., pts: 3}` and `duplicate update`. One account, two devices,
+ * and the second one silently threw away every message the first one sent.
+ */
 function applyMetadata(update: any, envelope: Envelope): void {
+  const predicate: string | undefined = update?._;
+
   const pts = asNumber(envelope.pts);
-  if(pts !== undefined && update.pts === undefined) {
+  if(pts !== undefined && update.pts === undefined && declaresField(predicate, 'pts')) {
     update.pts = pts;
   }
 
   const ptsCount = asNumber(envelope.ptsCount ?? envelope.pts_count);
-  if(ptsCount !== undefined && update.pts_count === undefined) {
+  if(ptsCount !== undefined && update.pts_count === undefined && declaresField(predicate, 'pts_count')) {
     update.pts_count = ptsCount;
   }
 
   const qts = asNumber(envelope.qts);
-  if(qts !== undefined && update.qts === undefined) {
+  if(qts !== undefined && update.qts === undefined && declaresField(predicate, 'qts')) {
     update.qts = qts;
   }
 }

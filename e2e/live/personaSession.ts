@@ -53,6 +53,18 @@ export function roundNoteFixtures(): {webmBase64: string, posterBase64: string} 
 
 export class PersonaSession {
   public readonly persona: Persona;
+
+  /**
+   * DIAGNOSTIC ONLY. `?noWorker=1` (Modes.noWorker, config/modes.ts:37) loops both ends of a
+   * MessageChannel into the page's own realm, so the mtproto worker module runs in the MAIN
+   * THREAD. The update pipeline is then visible to `page.on('console')`, which it is not
+   * otherwise: tweb owns it from a SharedWorker (apiManagerProxy.ts:1047) that neither an init
+   * script nor the page console reaches.
+   *
+   * <p>It CHANGES the environment, so a scenario that asserts under it is asserting about a mode
+   * no user runs. Use it to see, never to prove — and record which mode a finding came from.</p>
+   */
+  private inProcessWorker = false;
   public page: Page;
   public readonly consoleClean: ConsoleCleanInvariant;
   public readonly consoleTrail: ConsoleTrailEntry[] = [];
@@ -90,7 +102,7 @@ export class PersonaSession {
   public static async open(
     browser: Browser,
     persona: Persona,
-    options: {blockServiceWorkers?: boolean} = {}
+    options: {blockServiceWorkers?: boolean, inProcessWorker?: boolean} = {}
   ): Promise<PersonaSession> {
     const context = await browser.newContext(
       options.blockServiceWorkers ? {serviceWorkers: 'block'} : {}
@@ -98,6 +110,7 @@ export class PersonaSession {
     const page = await context.newPage();
     const consoleClean = await ConsoleCleanInvariant.attach(page, persona.firstName);
     const session = new PersonaSession(persona, context, page, consoleClean);
+    session.inProcessWorker = options.inProcessWorker === true;
     await session.wireDiagnostics(page);
     return session;
   }
@@ -150,7 +163,7 @@ export class PersonaSession {
    * against a real corruption, in ONE place.
    */
   private async enterPhoneAndCodeThroughUi(): Promise<void> {
-    await this.page.goto('/', {waitUntil: 'domcontentloaded'});
+    await this.page.goto(this.inProcessWorker ? '/?noWorker=1' : '/', {waitUntil: 'domcontentloaded'});
 
     // A virgin desktop boot lands on the QR card (state.ts: authState defaults to
     // authStateSignQr when !IS_MOBILE); the real UI escape hatch is its
