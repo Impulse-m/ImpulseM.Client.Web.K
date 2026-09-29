@@ -34,12 +34,24 @@
 
   &-menu {
     flex: 0 0 auto;
+    margin-inline-start: .375rem;
   }
 
   &-button {
     margin-block: .5rem;
     height: 3rem;
     text-transform: uppercase;
+  }
+
+  // Two actions under the link share the row evenly.
+  &-buttons {
+    display: flex;
+    gap: .5rem;
+
+    > .invite-link-button {
+      flex: 1 1 0;
+      min-width: 0;
+    }
   }
 
   &-subtitle {

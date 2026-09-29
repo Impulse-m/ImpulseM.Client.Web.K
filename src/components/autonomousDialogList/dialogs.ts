@@ -22,7 +22,7 @@ import {
 import IS_GROUP_CALL_SUPPORTED from '@environment/groupCallSupport';
 import namedPromises from '@helpers/namedPromises';
 import noop from '@helpers/noop';
-import {Chat} from '@layer';
+import {Chat, Message} from '@layer';
 import apiManagerProxy from '@lib/apiManagerProxy';
 import {AppDialogsManager, DialogDom} from '@lib/appDialogsManager';
 import rootScope from '@lib/rootScope';
@@ -165,6 +165,49 @@ export class AutonomousDialogList extends AutonomousDialogListBase<Dialog> {
       this.updateDialog(dialog);
     });
 
+    // Desktop repaints the chat-list row on every streamed revision
+    // (HistoryStreamedDrafts::update -> HistoryItem::invalidateChatListEntry), so the row
+    // previews the text as it arrives. A streamed draft never becomes the dialog's
+    // top_message here, so pass it explicitly; passing nothing falls back to the real last
+    // message, which is what the row must show again once the draft is gone.
+    const setStreamedMessagePreview = async(peerId: PeerId, message?: Message.message) => {
+      if(!this.isActive) {
+        return;
+      }
+
+      const dialog = await this.managers.appMessagesManager.getDialogOnly(peerId);
+      if(!dialog || !this.isActive) {
+        return;
+      }
+
+      const dialogElement = this.getDialogElement(this.getDialogKey(dialog));
+      if(!dialogElement) {
+        return;
+      }
+
+      this.appDialogsManager.setLastMessageN({
+        dialog,
+        dialogElement,
+        lastMessage: message,
+        setUnread: true
+      });
+    };
+
+    this.listenerSetter.add(rootScope)('streamed_message_update', ({draft, message}) => {
+      setStreamedMessagePreview(draft.peerId, message);
+    });
+
+    // 'remove' has nothing else behind it — without this the row would keep previewing a
+    // draft that has expired. 'finalize' is followed by the ordinary new-message pipeline,
+    // but refreshing here too costs nothing and closes the gap until it runs.
+    this.listenerSetter.add(rootScope)('streamed_message_remove', ({draft}) => {
+      setStreamedMessagePreview(draft.peerId);
+    });
+
+    this.listenerSetter.add(rootScope)('streamed_message_finalize', ({draft}) => {
+      setStreamedMessagePreview(draft.peerId);
+    });
+
     this.listenerSetter.add(rootScope)('dialogs_multiupdate', (dialogs) => {
       if(!this.isActive) {
         return;
@@ -176,7 +219,7 @@ export class AutonomousDialogList extends AutonomousDialogListBase<Dialog> {
         }
 
         this.updateDialog(dialog);
-        this.appDialogsManager.processContact?.(peerId.toPeerId());
+        this.appDialogsManager.processContact(peerId.toPeerId());
       }
     });
 
@@ -195,7 +238,7 @@ export class AutonomousDialogList extends AutonomousDialogListBase<Dialog> {
       } else {
         this.deleteDialogByKey(key);
       }
-      this.appDialogsManager.processContact?.(dialog.peerId);
+      this.appDialogsManager.processContact(dialog.peerId);
     });
 
     this.listenerSetter.add(rootScope)('dialog_unread', ({dialog}) => {
@@ -225,7 +268,7 @@ export class AutonomousDialogList extends AutonomousDialogListBase<Dialog> {
         this.updateDialog(dialog);
       }
 
-      this.appDialogsManager.processContact?.(peerId);
+      this.appDialogsManager.processContact(peerId);
     });
 
     this.listenerSetter.add(rootScope)('filter_update', async(filter) => {
@@ -327,6 +370,10 @@ export class AutonomousDialogList extends AutonomousDialogListBase<Dialog> {
     this.setIndexKey(indexKey);
     this.bindScrollable();
     this.setupCommunityProjection();
+
+    // a press on a chat row opens the chat, so the pinned block is dragged only in the mode where it
+    // does not - the one the rows are selected in (Android reorders its pins there too)
+    this.attachPinnedReorder(() => this.appDialogsManager.selection.isSelecting);
 
     // list.classList.add('hide');
     // scrollable.container.style.backgroundColor = '#' + (Math.random() * (16 ** 6 - 1) | 0).toString(16);
@@ -732,7 +779,7 @@ export class AutonomousDialogList extends AutonomousDialogListBase<Dialog> {
     super.onScrolledBottom();
 
     if(this.hasReachedTheEnd) {
-      this.appDialogsManager.loadContacts?.();
+      this.appDialogsManager.loadContacts();
     }
   }
 

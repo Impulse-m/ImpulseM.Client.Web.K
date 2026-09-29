@@ -182,6 +182,7 @@
 		&.record-video .btn-send-icon-record-video,
 		&.edit .btn-send-icon-edit,
 		&.schedule .btn-send-icon-schedule,
+    &.stop .btn-send-icon-stop,
     &.forward .btn-send-icon-forward {
 			visibility: visible !important;
       animation: grow-icon .4s forwards ease-in-out !important;
@@ -310,6 +311,16 @@
   cursor: default;
   white-space: normal;
   line-height: 1.25rem;
+}
+
+.ephemeral-context-revert {
+  display: flex;
+  flex-direction: column;
+
+  &-about {
+    font-size: var(--font-size-12);
+    line-height: var(--line-height-12);
+  }
 }
 
 @keyframes chat-input-ai-editor-button-star-animation {
@@ -646,6 +657,14 @@
       --ripple-color: var(--light-danger-color);
     }
   }
+}
+
+// the welcome messages limit in the composer's place: a line of text, not a button
+.chat-input-welcome-limit {
+  display: flex;
+  align-items: center;
+  color: var(--secondary-text-color);
+  font-weight: var(--font-weight-normal);
 }
 
 .selection-wrapper,
@@ -1093,6 +1112,14 @@
   font-size: var(--messages-text-size);
   line-height: var(--line-height);
 
+  // The viewport no longer pins `maximum-scale` (WCAG 1.4.4 needs pinch-zoom),
+  // so iOS Safari is free to zoom the page whenever a field below 16px takes
+  // focus — and Settings lets the message text size go down to 12. Floor the
+  // composer only; bubbles keep the size the user picked.
+  html.is-ios & {
+    font-size: max(var(--messages-text-size), 16px);
+  }
+
   pre {
     display: inline;
     margin: 0;
@@ -1422,7 +1449,7 @@
   position: absolute;
 	background-color: var(--surface-color) !important;
 	border-radius: 50%;
-	color: var(--secondary-text-color);
+	color: var(--primary-text-color);
 	font-size: 1.5rem;
 	display: flex;
 	align-items: center;

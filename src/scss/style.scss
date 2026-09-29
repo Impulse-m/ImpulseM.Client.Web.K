@@ -29,11 +29,11 @@
 @use "partials/chatBotCommands";
 @use "partials/voiceRecordingPanel";
 @use "partials/videoRecordingPanel";
-@use "partials/crop";
 @use "partials/sidebar";
 @use "partials/profile";
 @use "partials/slider";
 @use "partials/leftSidebar";
+@use "partials/settingsSearch";
 @use "partials/rightSidebar";
 @use "partials/searchGroup";
 @use "partials/searchSuper";
@@ -82,7 +82,6 @@
 @use "partials/audio";
 
 @use "partials/popups/popup";
-@use "partials/popups/editAvatar";
 @use "partials/popups/mediaAttacher";
 @use "partials/popups/createContact";
 @use "partials/popups/peer";
@@ -126,3 +125,5 @@
 @use "partials/pages/chats";
 
 @use "partials/passcodeLockScreen";
+
+@use "partials/accessibility";

@@ -12,7 +12,7 @@ import {getFormattedDateEntityByElement, MarkdownType} from '@helpers/dom/getRic
 import getVisibleRect from '@helpers/dom/getVisibleRect';
 import clamp from '@helpers/number/clamp';
 import matchUrl from '@lib/richTextProcessor/matchUrl';
-import matchUrlProtocol from '@lib/richTextProcessor/matchUrlProtocol';
+import {normalizeUrlProtocol} from '@lib/richTextProcessor/matchUrlProtocol';
 import getMarkupInSelection from '@helpers/dom/getMarkupInSelection';
 import {applyMarkdown} from '@helpers/dom/markdown';
 import findUpClassName from '@helpers/dom/findUpClassName';
@@ -71,7 +71,7 @@ export default class MarkupTooltip {
       'strikethrough',
       'monospace',
       'spoiler',
-      'quote',
+      ['quote', 'blockquote'],
       ['date', 'calendar'],
       'link'
     ];
@@ -250,8 +250,8 @@ export default class MarkupTooltip {
     cancelEvent(e);
     this.resetSelection();
     let url = this.linkInput.value;
-    if(url && !matchUrlProtocol(url)) {
-      url = 'https://' + url;
+    if(url) {
+      url = normalizeUrlProtocol(url);
     }
     applyMarkdown({input: this.input, type: 'link', href: url});
     setTimeout(() => {

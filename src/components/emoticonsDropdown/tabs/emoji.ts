@@ -39,6 +39,7 @@ import apiManagerProxy from '@lib/apiManagerProxy';
 import findUpAsChild from '@helpers/dom/findUpAsChild';
 import {onCleanup} from 'solid-js';
 import StickersTabCategory, {EmoticonsTabStyles} from '@components/emoticonsDropdown/category';
+import Tabs from '@components/tabs';
 import EmoticonsTabC from '@components/emoticonsDropdown/tab';
 import flatten from '@helpers/array/flatten';
 import SuperStickerRenderer from '@components/emoticonsDropdown/tabs/SuperStickerRenderer';
@@ -67,6 +68,7 @@ export function appendEmoji(_emoji: AppEmoji, unify = false) {
     const customEmojiElement = CustomEmojiElement.create(_emoji.docId);
     const spanEmoji = document.createElement('span');
     spanEmoji.classList.add('super-emoji', 'super-emoji-custom');
+    spanEmoji.dataset.emoji = _emoji.emoji || '';
     spanEmoji.append(customEmojiElement);
     return spanEmoji;
   }
@@ -77,6 +79,7 @@ export function appendEmoji(_emoji: AppEmoji, unify = false) {
   let {emoji} = _emoji;
   const spanEmoji = document.createElement('span');
   spanEmoji.classList.add('super-emoji', 'super-emoji-regular');
+  spanEmoji.dataset.emoji = emoji;
 
   let el: DocumentFragment;
   if(unify && !IS_EMOJI_SUPPORTED) {
@@ -489,11 +492,7 @@ export default class EmojiTab extends EmoticonsTabC<EmojiTabCategory, {emojis: A
 
     if(!this.isStandalone && this.menu) {
       const x = this.menuInnerScroll = new ScrollableX(undefined);
-      x.container.classList.add('menu-horizontal-inner-scroll');
-
-      innerScrollWrapper = document.createElement('div');
-      innerScrollWrapper.classList.add('menu-horizontal-inner');
-      innerScrollWrapper.append(x.container);
+      innerScrollWrapper = Tabs.MenuInner({scroll: x.container}) as HTMLElement;
     }
 
     let preparedMap: ReturnType<typeof prepare>;

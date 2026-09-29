@@ -7,8 +7,7 @@ import ListenerSetter from '@helpers/listenerSetter';
 import ButtonMenu, {ButtonMenuItemOptions} from '@components/buttonMenu';
 import ButtonIcon from '@components/buttonIcon';
 import PeerTitle from '@components/peerTitle';
-import PopupElement from '@components/popups';
-import PopupReactedList from '@components/popups/reactedList';
+import showReactedListPopup from '@components/popups/reactedList';
 import ReactionsElement from '@components/chat/reactions';
 import ReactionElement from '@components/chat/reaction';
 import {formatFullSentTime} from '@helpers/date';
@@ -152,7 +151,7 @@ export default async function createReactionContextMenu({
       text: 'ShowAllReactions',
       separator: !!buttons.length,
       onClick: () => {
-        PopupElement.createPopup(PopupReactedList, message as Message.message, reaction);
+        showReactedListPopup(message as Message.message, reaction);
       }
     });
   }
@@ -213,7 +212,6 @@ export default async function createReactionContextMenu({
 
   const element = await ButtonMenu({buttons, listenerSetter});
   element.classList.add('contextmenu', 'reaction-context-menu');
-  element.setAttribute('role', 'menu');
 
   if(resolveReactionPackButton) {
     void reactionPackPromise.then((reactionPack) => {
@@ -243,9 +241,9 @@ export default async function createReactionContextMenu({
         stack: chat.appImManager.getStackFromElement(reactionElement)
       });
     };
-    listenerSetter.add(button.element)('click', openPeer);
     button.element.tabIndex = 0;
-    button.element.setAttribute('role', 'menuitem');
+    button.element.setAttribute('role', 'button');
+    listenerSetter.add(button.element)('click', openPeer);
     listenerSetter.add(button.element)('keydown', (e: KeyboardEvent) => {
       if(e.target === button.element && (e.key === 'Enter' || e.key === ' ')) {
         openPeer(e);

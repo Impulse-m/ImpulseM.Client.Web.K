@@ -16,6 +16,7 @@ import topicAvatar from '@components/topicAvatar';
 import {wrapCustomEmojiAwaited} from '@components/wrappers/customEmoji';
 import getPeerTitle from '@components/wrappers/getPeerTitle';
 import wrapJoinVoiceChatAnchor from '@components/wrappers/joinVoiceChatAnchor';
+import {getConferenceCallLangKey, getConferenceCallState} from '@lib/calls/helpers/conferenceCallAction';
 import {WrapMessageActionTextOptions} from '@components/wrappers/messageActionTextNew';
 import wrapMessageForReply, {WrapMessageForReplyOptions} from '@components/wrappers/messageForReply';
 import wrapPeerTitle from '@components/wrappers/peerTitle';
@@ -285,27 +286,16 @@ export default async function wrapMessageActionTextNewUnsafe(options: WrapMessag
       }
 
       case 'messageActionConferenceCall': {
-        // tdesktop renders this as a media bubble (MediaCall) with state
-        // Invitation / Active / Missed / Hangup. We render service text +
-        // a Join anchor while the call is still joinable. The Join anchor
-        // resolves the conference via inputGroupCallInviteMessage(msg_id).
-        const isMissed = !!action.pFlags.missed;
-        const hasDuration = action.duration !== undefined;
-        const isJoinable = !isMissed && !hasDuration;
-        const isOut = !!message.pFlags.out;
-
-        if(isMissed) {
-          langPackKey = 'Chat.Service.ConferenceCall.Missed';
-          args = [];
-        } else if(hasDuration) {
-          langPackKey = 'Chat.Service.ConferenceCall.Ended';
-          args = [wrapCallDuration(action.duration, plain)];
-        } else {
-          langPackKey = isOut ?
-            'Chat.Service.ConferenceCall.Outgoing' :
-            'Chat.Service.ConferenceCall.Incoming';
-          args = [noLinks || !isJoinable ? '' : wrapJoinVoiceChatAnchor(message as any)];
-        }
+        // Same title tdesktop's `MediaCall::Text` produces for the call bubble
+        // (rendered by `wrapCallBubble`) — here it serves the plain-text uses:
+        // chat list previews, replies, notifications, and the fallback for
+        // browsers that render the action as a service message because they
+        // cannot join a group call at all.
+        langPackKey = getConferenceCallLangKey(
+          getConferenceCallState(action),
+          !!message.pFlags.out
+        );
+        args = [];
         break;
       }
 
@@ -1003,6 +993,40 @@ export default async function wrapMessageActionTextNewUnsafe(options: WrapMessag
       case 'messageActionManagedBotCreated': {
         langPackKey = 'CreateBot.BotWasCreated';
         args = [getNameDivHTML(action.bot_id.toPeerId(), plain)];
+        break;
+      }
+      // layer 229: someone joined this group through a community it belongs to. Rendered like
+      // tdesktop's `lng_action_user_joined_via_community` — the joiner plus a link to the
+      // community, falling back to the community-less wording when the chat is not known yet.
+      case 'messageActionChatJoinedViaCommunity': {
+        const communityId = action.community_id &&
+          action.community_id !== '0' &&
+          action.community_id !== 0 ?
+          action.community_id.toChatId() :
+          undefined;
+        const community = communityId ?
+          apiManagerProxy.getChat(communityId) :
+          undefined;
+        const communityTitle = getCommunityServiceTitle(community);
+
+        args = [getNameDivHTML(message.fromId, plain)];
+
+        if(communityTitle) {
+          langPackKey = 'Chat.Service.JoinedViaCommunity';
+
+          if(plain) {
+            args.push(communityTitle);
+          } else if(noLinks) {
+            const bold = document.createElement('b');
+            bold.textContent = communityTitle;
+            args.push(bold);
+          } else {
+            args.push(getNameDivHTML(communityId.toPeerId(true), plain));
+          }
+        } else {
+          langPackKey = 'Chat.Service.JoinedViaCommunity.Unknown';
+        }
+
         break;
       }
       case 'messageActionChangeCommunity': {

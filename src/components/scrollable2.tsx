@@ -32,7 +32,9 @@ export type ScrollableContextValue = {
   container: HTMLDivElement,
   onSizeChange: () => void,
   setScrollPositionSilently: (value: number) => void,
-  checkForTriggers: () => void
+  checkForTriggers: () => void,
+  isScrolledToStart: boolean,
+  isScrolledToEnd: boolean
 };
 
 export const ScrollableContext = createContext<ScrollableContextValue>();
@@ -43,10 +45,17 @@ export default function Scrollable(props: {
   thumbRef?: (el: HTMLDivElement) => void,
   contextRef?: (ctx: ScrollableContextValue) => void,
   class?: string,
+  tabIndex?: number,
   classList?: JSX.HTMLAttributes<HTMLDivElement>['classList'],
   style?: JSX.CSSProperties,
   axis?: 'x' | 'y',
   withBorders?: 'both' | 'top' | 'bottom' | 'manual',
+  /**
+   * Keep `isScrolledToStart` / `isScrolledToEnd` up to date without drawing the borders.
+   * `withBorders` implies it; this is for a consumer that only reads the state off the context
+   * (a floating popup header, say) and doesn't want a border on the scrollable itself.
+   */
+  trackEnds?: boolean,
   onScrolledTop?: () => void,
   onScrolledBottom?: () => void,
   onScroll?: () => void,
@@ -216,7 +225,10 @@ export default function Scrollable(props: {
     }, {capture: true, passive: false, once: true});
   };
 
-  const onScrollCallbacks = createMemo(() => [props.onScroll, props.withBorders && checkEnds].filter(Boolean));
+  const onScrollCallbacks = createMemo(() => [
+    props.onScroll,
+    (props.withBorders || props.trackEnds) && checkEnds
+  ].filter(Boolean));
 
   const onThumbMouseMove = (e: MouseEvent) => {
     cancelEvent(e);
@@ -260,11 +272,30 @@ export default function Scrollable(props: {
     }
   };
 
+  const tracksEnds = () => !!(props.withBorders || props.trackEnds);
+
+  // which end the content sits at costs a layout read, so it is kept only where it is drawn
+  const checkEndsIfTracked = () => {
+    if(tracksEnds()) {
+      checkEnds();
+    }
+  };
+
   const onSizeChange = () => {
+    checkEndsIfTracked();
+
     if(!IS_OVERLAY_SCROLL_SUPPORTED() && thumbRef) {
       onScroll();
     }
   };
+
+  /**
+   * Which end the content sits at cannot be known before it is laid out — and whether it
+   * matters at all can turn true after mount, since a footer registers itself with the popup
+   * only once the whole body has rendered. Content that grows later says so through
+   * `onSizeChange`.
+   */
+  createEffect(checkEndsIfTracked);
 
   const value: ScrollableContextValue = {
     get scrollPosition() {
@@ -285,7 +316,13 @@ export default function Scrollable(props: {
     },
     onSizeChange,
     setScrollPositionSilently,
-    checkForTriggers
+    checkForTriggers,
+    get isScrolledToStart() {
+      return isScrolledToStart();
+    },
+    get isScrolledToEnd() {
+      return isScrolledToEnd();
+    }
   };
 
   if(props.contextRef) {
@@ -305,6 +342,7 @@ export default function Scrollable(props: {
   let ref: HTMLDivElement, thumbRef: HTMLDivElement;
   return (
     <div
+      tabIndex={props.tabIndex}
       ref={(_ref) => {
         ref = _ref;
         (props.ref as any)?.(_ref);

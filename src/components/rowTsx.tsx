@@ -2,8 +2,10 @@ import {
   children,
   createEffect,
   createRenderEffect,
+  createSignal,
   JSX,
   onCleanup,
+  onMount,
   Ref,
   Show,
   splitProps,
@@ -18,6 +20,8 @@ import {hasMouseMovedSinceDown} from '@helpers/dom/clickEvent';
 import ListenerSetter from '@helpers/listenerSetter';
 import {getRowIconBackgroundImage} from '@helpers/rowIconBackground';
 import {attachHotClassName} from '@helpers/solid/classname';
+import buttonKeyDown from '@helpers/solid/buttonKeyDown';
+import labelControl from '@helpers/dom/labelControl';
 import {
   RADIO_FIELD_RIGHT_CLASS,
   ROW_CHECKBOX_FIELD_CLASS,
@@ -110,11 +114,55 @@ const Row = (props: {children: JSX.Element} & Partial<{
   };
 
   const {store} = value;
+  const [hasNestedControl, setHasNestedControl] = createSignal(false);
+  let containerElement: HTMLElement;
 
   const isCheckbox = () => !!(
     store.checkboxField || store.checkboxFieldToggle || store.radioField || store.radioFieldRight
   );
   const isClickable = () => !!(props.clickable || isCheckbox() || props.contextMenu);
+  const inferredButton = () => isClickable() && !isCheckbox() && !props.as && !hasNestedControl();
+  const role = () => props.role || (inferredButton() ? 'button' : undefined);
+
+  const setupAccessibility = () => {
+    if(!isClickable()) return;
+    let primaryTarget: HTMLElement;
+    const clearPrimaryTarget = () => {
+      if(!primaryTarget) return;
+      primaryTarget.removeEventListener('keydown', buttonKeyDown);
+      primaryTarget.removeAttribute('role');
+      primaryTarget.removeAttribute('tabindex');
+      primaryTarget.removeAttribute('aria-disabled');
+      primaryTarget = undefined;
+    };
+    const update = () => {
+      const title = containerElement.querySelector<HTMLElement>('.row-title');
+      containerElement.querySelectorAll<HTMLElement>('input[type="checkbox"], input[type="radio"]').forEach((control) => labelControl(control, title));
+      const nested = Array.from(containerElement.querySelectorAll<HTMLElement>(
+        'button, a[href], input, select, textarea, [contenteditable="true"], [role="button"], [tabindex]'
+      )).filter((element) => element !== primaryTarget);
+      setHasNestedControl(!!nested.length);
+      // A row with a separate trailing action needs a separate primary target,
+      // rather than an interactive ancestor or a mouse-only title.
+      const needsPrimaryTarget = !props.as && !props.role && !isCheckbox() && nested.length &&
+        title && !nested.some((element) => title.contains(element) || element.matches('input, select, textarea, [contenteditable="true"]'));
+      if(!needsPrimaryTarget || primaryTarget !== title) clearPrimaryTarget();
+      if(needsPrimaryTarget) {
+        primaryTarget = title;
+        primaryTarget.setAttribute('role', 'button');
+        primaryTarget.tabIndex = props.disabled ? -1 : 0;
+        primaryTarget.setAttribute('aria-disabled', String(!!props.disabled));
+        primaryTarget.addEventListener('keydown', buttonKeyDown);
+      }
+    };
+    createRenderEffect(update);
+    const observer = new MutationObserver(update);
+    observer.observe(containerElement, {childList: true, subtree: true});
+    onCleanup(() => {
+      observer.disconnect();
+      clearPrimaryTarget();
+    });
+  };
   const haveRipple = () => !!(!props.noRipple && isClickable());
   const havePadding = () => !!(
     props.havePadding ||
@@ -131,6 +179,7 @@ const Row = (props: {children: JSX.Element} & Partial<{
 
   let openContextMenu: ReturnType<typeof createContextMenu>['open'];
   const ref = (container: HTMLElement) => {
+    containerElement = container;
     const listenerSetter = new ListenerSetter();
 
     if(props.contextMenu) {
@@ -167,6 +216,7 @@ const Row = (props: {children: JSX.Element} & Partial<{
     }
   });
   const onClick: JSX.EventHandlerUnion<HTMLElement, MouseEvent> = (event) => {
+    if(props.disabled || props['aria-disabled']) return;
     const clickable = props.clickable;
     if(typeof(clickable) === 'function') {
       if(!hasMouseMovedSinceDown(event)) {
@@ -178,12 +228,12 @@ const Row = (props: {children: JSX.Element} & Partial<{
     openContextMenu?.(event);
   };
 
-  return (
+  const element = (
     <RippleElement
       ref={rowRef}
       component={props.as === 'a' ? 'a' : (props.as === 'label' || isCheckbox() ? 'label' : 'div')}
-      role={props.role}
-      tabIndex={props.tabIndex}
+      role={role()}
+      tabIndex={props.tabIndex ?? (role() === 'button' ? props.disabled ? -1 : 0 : undefined)}
       aria-checked={props['aria-checked']}
       classList={{
         'row': true,
@@ -202,14 +252,7 @@ const Row = (props: {children: JSX.Element} & Partial<{
       onClick={typeof(props.clickable) === 'function' || props.contextMenu ? onClick : undefined}
       aria-label={props['aria-label']}
       style={props.style}
-      onKeyDown={!props['on:keydown'] && props.tabIndex !== undefined && props.clickable ? (event: KeyboardEvent) => {
-        if(event.key !== 'Enter' && event.key !== ' ') {
-          return;
-        }
-
-        event.preventDefault();
-        (event.currentTarget as HTMLElement).click();
-      } : undefined}
+      onKeyDown={!props['on:keydown'] && !isCheckbox() && isClickable() ? buttonKeyDown : undefined}
       on:keydown={props['on:keydown']}
       noRipple={!haveRipple()}
     >
@@ -226,6 +269,8 @@ const Row = (props: {children: JSX.Element} & Partial<{
       {store.media}
     </RippleElement>
   );
+  onMount(setupAccessibility);
+  return element;
 };
 
 Row.RowPart = (props: {
@@ -333,12 +378,14 @@ Row.Title = (props: {
 
 Row.Midtitle = (props: {
   children?: JSX.Element,
+  midtitleRight?: JSX.Element,
   ref?: Ref<HTMLDivElement>
 }) => {
   return useContext(RowContext).register('midtitle', (
     <Row.Row
       class="midtitle"
       left={props.children}
+      right={props.midtitleRight}
       leftRef={props.ref}
     />
   ));
@@ -365,7 +412,8 @@ Row.Subtitle = (props: {
 
 Row.Icon = (props: {
   icon: Icon,
-  class?: string
+  class?: string,
+  noBackground?: boolean
 }) => {
   return useContext(RowContext).register('icon', (
     <span
@@ -374,7 +422,7 @@ Row.Icon = (props: {
         'row-icon-colored',
         props.class
       )}
-      style={{
+      style={!props.noBackground && {
         'background-image': getRowIconBackgroundImage(props.icon)
       }}
     >
@@ -400,9 +448,14 @@ Row.RightContent = (inProps: JSX.HTMLAttributes<HTMLDivElement> | ExternalRowEle
     );
   }
 
-  const [props, restProps] = splitProps(inProps, ['class']);
+  const [props, restProps] = splitProps(inProps, ['class', 'children']);
+  const resolved = children(() => props.children);
+  // an empty right column still claims its grid track and the gap before it, so when there is
+  // nothing to put there the row is left without one
   return context.register('rightContent', (
-    <div class={classNames('row-right', props.class)} {...restProps} />
+    <Show when={!!resolved()}>
+      <div class={classNames('row-right', props.class)} {...restProps}>{resolved()}</div>
+    </Show>
   ));
 };
 

@@ -13,7 +13,8 @@ import {PreloaderTsx} from '@components/putPreloader';
 import {PAYMENT_REJECTED} from '@components/chat/paidMessagesInterceptor';
 import {i18n, LangPackKey} from '@lib/langPack';
 import rootScope from '@lib/rootScope';
-import {BotInlineResult, DocumentAttribute} from '@layer';
+import {BotInlineResult} from '@layer';
+import getAudioTitles from '@appManagers/utils/docs/getAudioTitles';
 import {MyDocument} from '@appManagers/appDocsManager';
 import getDocumentInput from '@appManagers/utils/docs/getDocumentInput';
 import {attachClickEvent} from '@helpers/dom/clickEvent';
@@ -39,10 +40,10 @@ type Track = {
 };
 
 function trackSearchText(doc: MyDocument | undefined, fallbackTitle?: string, fallbackPerformer?: string) {
-  const audioAttr = doc?.attributes?.find((a) => a._ === 'documentAttributeAudio') as DocumentAttribute.documentAttributeAudio | undefined;
+  const titles = getAudioTitles(doc);
   return [
-    audioAttr?.title || doc?.file_name || fallbackTitle,
-    audioAttr?.performer || fallbackPerformer
+    titles?.title || fallbackTitle,
+    titles?.performer || fallbackPerformer
   ].filter(Boolean).join(' ').toLowerCase();
 }
 
@@ -217,7 +218,7 @@ export default function showMusicSearchPopup(options: MusicSearchPopupOptions): 
 
     const TrackSection = (props: {name: LangPackKey, tracks: Track[]}) => (
       <Show when={props.tracks.length}>
-        <Section name={props.name} noDelimiter noShadow>
+        <Section name={props.name}>
           <For each={props.tracks}>
             {(track) => <TrackRow track={track} />}
           </For>

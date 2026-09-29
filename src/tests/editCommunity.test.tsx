@@ -217,8 +217,8 @@ vi.mock('@lib/appImManager', () => ({
 
 vi.mock('@lib/apiManagerProxy', () => ({
   default: {
-    getChat: () => mocks.peer,
-    getPeer: () => mocks.peer
+    getPeer: () => mocks.peer,
+    getChat: () => mocks.peer
   }
 }));
 
@@ -297,8 +297,8 @@ describe('EditCommunity', () => {
           delete: mocks.deleteCommunity,
           editPhoto: mocks.editPhoto,
           editTitle: mocks.editTitle,
-          isChannel: () => true,
-          joinChannel: mocks.joinChannel
+          joinChannel: mocks.joinChannel,
+          isChannel: vi.fn().mockResolvedValue(true)
         },
         appCommunitiesManager: {
           editDefaultBannedRightsMode: mocks.editDefaultBannedRightsMode,

@@ -10,6 +10,10 @@ import type {TransportType} from '@lib/mtproto/dcConfigurator';
 const Modes = {
   test: location.search.indexOf('test=1') > 0/*  || true */,
   debug: location.search.indexOf('debug=1') > 0,
+  // Preview-only QA override: exercise the non-contact link gate even when
+  // the server does not expose report_spam / block_contact for the peer.
+  forceHideNonContactLinks: !!import.meta.env.VITE_PREVIEW &&
+    location.search.indexOf('forceHideNonContactLinks=1') > 0,
   http: false,
   ssl: true, // location.search.indexOf('ssl=1') > 0 || location.protocol === 'https:' && location.search.indexOf('ssl=0') === -1,
   asServiceWorker: !!import.meta.env.VITE_MTPROTO_SW,
@@ -36,7 +40,11 @@ const Modes = {
   // by `bash scripts/start-preview.sh --no-worker`.
   noWorker: location.search.indexOf('noWorker=1') > 0 || !!import.meta.env.VITE_NO_WORKER,
   multipleTransports: !!(import.meta.env.VITE_MTPROTO_AUTO && import.meta.env.VITE_MTPROTO_HAS_HTTP && import.meta.env.VITE_MTPROTO_HAS_WS) && location.search.indexOf('noMultipleTransports=1') === -1,
-  noPfs: true || location.search.indexOf('noPfs=1') > 0
+  // Perfect Forward Secrecy: every networker talks over a temporary auth key
+  // bound to the stored permanent one (auth.bindTempAuthKey), replaced once it
+  // expires or the server forgets it. Off by default; ?pfs=1 turns it on (the
+  // worker sees it too — makeWorkerURL forwards query params).
+  pfs: location.search.indexOf('pfs=1') > 0
 };
 
 if(import.meta.env.VITE_MTPROTO_HAS_HTTP) {

@@ -335,6 +335,10 @@
       width: calc(100% / 3);
       opacity: 0;
 
+      &:focus-visible {
+        opacity: 1;
+      }
+
       @include animation-level(2) {
         transition: opacity .2s ease-in-out;
       }
@@ -480,6 +484,10 @@
       .profile-avatars-gradient,
       .profile-avatars-arrow {
         opacity: 0 !important;
+      }
+
+      .profile-avatars-arrow {
+        visibility: hidden;
       }
 
       .profile-avatars-gradient {
@@ -722,6 +730,12 @@
     .show-when {
       margin-inline-start: .25rem;
       cursor: pointer;
+      pointer-events: all;
+    }
+
+    // the subtitle lives inside the avatars header, which is pointer-events:
+    // none — opt the topic's forum button back in, like .show-when above
+    .topic-name-button {
       pointer-events: all;
     }
   }

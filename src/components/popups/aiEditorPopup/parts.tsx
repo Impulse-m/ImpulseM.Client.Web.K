@@ -103,7 +103,7 @@ export const Result = (props: {
   useDiffText?: boolean;
   composeMessageWithAiArgs?: ComposeMessageWithAiArgs;
 }) => {
-  const {rootScope, toastNew, wrapRichText, PopupPremium} = useHotReloadGuard();
+  const {rootScope, toastNew, wrapRichText, showPremiumPopup} = useHotReloadGuard();
   const {resultTextSignal: [, setResultText]} = useAiEditorPopupContext();
   const popupContext = usePopupContext();
 
@@ -210,6 +210,7 @@ export const Result = (props: {
             <Match when={textToRender()} keyed>
               {(text) => (
                 <Scrollable
+                  tabIndex={0}
                   ref={scrollableRef}
                   contextRef={(value) => void (scrollableContextRef = value)}
                   relative
@@ -233,7 +234,7 @@ export const Result = (props: {
                     args={[
                       anchorCallback(() => {
                         popupContext?.hide();
-                        new PopupPremium().show();
+                        showPremiumPopup();
                       })
                     ]}
                   />

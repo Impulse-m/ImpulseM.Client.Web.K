@@ -4,9 +4,11 @@ import type {MyDocument} from '@appManagers/appDocsManager';
 import type {State} from '@config/state';
 import type {AnyDialog} from '@lib/storages/dialogs';
 import type {CustomEmojiRendererElement} from '@customEmoji/renderer';
-import PopupElement from '@components/popups';
 import PopupElementTsx from '@components/popups/indexTsx';
 import DialogsContextMenu from '@components/dialogsContextMenu';
+import DialogsSelection from '@components/dialogsSelection';
+import {PINNED_DIALOG_CLASS_NAME} from '@components/dialogsPinnedReorder';
+import type {DialogsSelectionBase} from '@components/dialogsSelectionBase';
 import DotRenderer from '@components/dotRenderer';
 import {horizontalMenuObjArgs} from '@components/horizontalMenu';
 import Scrollable from '@components/scrollable';
@@ -22,6 +24,7 @@ import {MyDraftMessage} from '@appManagers/appDraftsManager';
 import {MOUNT_CLASS_TO} from '@config/debug';
 import PeerTitle, {changeTitleEmojiColor} from '@components/peerTitle';
 import I18n, {FormatterArguments, i18n, LangPackKey, _i18n} from '@lib/langPack';
+import findUpClassName from '@helpers/dom/findUpClassName';
 import findUpTag from '@helpers/dom/findUpTag';
 import lottieLoader from '@lib/lottie/lottieLoader';
 import wrapPhoto from '@components/wrappers/photo';
@@ -34,10 +37,9 @@ import highlightText, {TextHighlight} from '@helpers/dom/textHighlight';
 import ConnectionStatusComponent from '@components/connectionStatus';
 import {renderImageFromUrlPromise} from '@helpers/dom/renderImageFromUrl';
 import {fastRafPromise} from '@helpers/schedulers';
-import SortedUserList from '@components/sortedUserList';
 import IS_TOUCH_SUPPORTED from '@environment/touchSupport';
 import handleTabSwipe from '@helpers/dom/handleTabSwipe';
-import windowSize from '@helpers/windowSize';
+import {ChatlistContacts, createChatlistContacts} from '@components/sidebarLeft/chatlistContacts';
 import isInDOM from '@helpers/dom/isInDOM';
 import {setSendingStatus} from '@components/sendingStatus';
 import {SortedElementBase} from '@helpers/sortedList';
@@ -63,6 +65,7 @@ import middlewarePromise from '@helpers/middlewarePromise';
 import appDownloadManager from '@lib/appDownloadManager';
 import groupCallsController from '@lib/calls/groupCallsController';
 import callsController from '@lib/calls/callsController';
+import conferenceInvitesController from '@lib/calls/conferenceInvitesController';
 import cancelEvent from '@helpers/dom/cancelEvent';
 import noop from '@helpers/noop';
 import pause from '@helpers/schedulers/pause';
@@ -71,8 +74,7 @@ import filterAsync from '@helpers/array/filterAsync';
 import indexOfAndSplice from '@helpers/array/indexOfAndSplice';
 import {getMiddleware, MiddlewareHelper} from '@helpers/middleware';
 import getDialogMentionBadgeState from '@helpers/dialogMentionBadgeState';
-import {attachRowController, RowMediaSizeType, type RowTsxController} from '@components/rowTsxController'
-import SettingSection from '@components/settingSection';
+import {attachRowController, createRowSortableIcon, RowMediaSizeType, type RowTsxController} from '@components/rowTsxController'
 import getMessageThreadId from '@appManagers/utils/messages/getMessageThreadId';
 import formatNumber from '@helpers/number/formatNumber';
 import AppSharedMediaTab from '@components/sidebarRight/tabs/sharedMediaTab';
@@ -81,7 +83,7 @@ import shake from '@helpers/dom/shake';
 import getServerMessageId from '@appManagers/utils/messageId/getServerMessageId';
 import {AppChatFoldersTab} from '@components/solidJsTabs/tabs';
 import eachTimeout from '@helpers/eachTimeout';
-import PopupSharedFolderInvite from '@components/popups/sharedFolderInvite';
+import showSharedFolderInvitePopup from '@components/popups/sharedFolderInvite';
 import showChatPreviewPopup, {chatPreviewAnchorFromDialogRow} from '@components/popups/chatPreview';
 import showLimitPopup from '@components/popups/limit';
 import StoriesList from '@components/stories/list';
@@ -120,7 +122,7 @@ import FoldersTabs from '@components/foldersTabs';
 import clamp from '@helpers/number/clamp';
 import confirmationPopup from '@components/confirmationPopup';
 import ListenerSetter from '@helpers/listenerSetter';
-import type PopupPeer from '@components/popups/peer';
+import type {PopupPeerHandle} from '@components/popups/peer';
 import {toastNew} from '@components/toast';
 import {
   renderChatlistTopNotification,
@@ -130,6 +132,8 @@ import {
 
 export const DIALOG_LIST_ELEMENT_TAG = 'A';
 const DIALOG_LOAD_COUNT = 20;
+// below this many dialogs the sidebar looks empty, so contacts are offered under the chat list
+const MIN_DIALOGS_WITHOUT_CONTACTS = 10;
 
 export function findDialogListElement(target: EventTarget) {
   return findUpTag(target, DIALOG_LIST_ELEMENT_TAG);
@@ -143,6 +147,8 @@ export type DialogDom = {
   statusSpan: HTMLSpanElement,
   lastTimeSpan: HTMLSpanElement,
   pinnedBadge?: HTMLElement,
+  /** the grip a pinned row is dragged by while its list can be reordered */
+  sortableIcon?: HTMLElement,
   unreadBadge?: HTMLElement,
   unreadAvatarBadge?: HTMLElement,
   callIcon?: ReturnType<typeof groupCallActiveIcon>,
@@ -532,6 +538,13 @@ export class DialogElement {
     this.dom.subtitleEl.append(badge);
   }
 
+  /** The grip a pinned row is dragged by, shown only while its list can be reordered */
+  public createSortableIcon() {
+    if(this.dom.sortableIcon) return;
+    const icon = this.dom.sortableIcon = createRowSortableIcon();
+    this.dom.listEl.append(icon);
+  }
+
   public createUnreadBadge() {
     if(this.dom.unreadBadge) return;
     const badge = this.dom.unreadBadge = document.createElement('div');
@@ -584,7 +597,15 @@ export class DialogElement {
       reactionsBadge: !!this.dom.reactionsBadge,
       pollVotesBadge: !!this.dom.pollVotesBadge
     };
-    if(options.pinned) this.createPinnedBadge();
+    // * the pinned rows of a list form the block that can be reordered within itself, and
+    // * `Sortable` reads that block off the DOM - see attachPinnedDialogsReorder
+    this.dom.listEl.classList.toggle(PINNED_DIALOG_CLASS_NAME, !!options.pinned);
+
+    if(options.pinned) {
+      this.createPinnedBadge();
+      this.createSortableIcon();
+    }
+
     if(options.unread) this.createUnreadBadge();
     if(options.unreadAvatar) this.createUnreadAvatarBadge();
     if(options.mentions) this.createMentionsBadge();
@@ -733,8 +754,33 @@ const TEST_TOP_NOTIFICATION = true ? undefined : (): ChatlistsChatlistUpdates =>
 });
 
 
+/**
+ * Which selection governs which chat list. The main list and the archive share one (the chats of
+ * whichever folder is on screen); an open forum tab has its own, for its topics - so a row is asked
+ * about through the list it is in rather than through one selection everybody knows.
+ */
+const SELECTION_BY_LIST: WeakMap<HTMLElement, DialogsSelectionBase> = new WeakMap();
+
 export class AppDialogsManager {
   public chatsContainer = document.getElementById('chatlist-container') as HTMLDivElement;
+
+  /** Selecting several chats at once and acting on all of them, from the list that is on screen */
+  public selection = new DialogsSelection({
+    managers: rootScope.managers,
+    // * the bar stands in for the header of whichever sidebar tab the list on screen lives in -
+    // * the main one, the archive - so it is taken from that list rather than looked up by name
+    getHeader: () => {
+      const tab = findUpClassName(this.xd?.sortedList?.list, 'sidebar-slider-item') ||
+        appSidebarLeft.sidebarEl.querySelector('.item-main');
+      return tab?.querySelector('.sidebar-header');
+    },
+    getFilterId: () => this.filterId,
+    getSortedList: () => this.xd?.sortedList,
+    getDialogKey: (element) => this.xd?.getDialogKeyFromElement(element),
+    isListNarrow: () => this.isChatListNarrow(),
+    // the archive is a tab of its own beside the main one, so the drag is listened for over both
+    listContainer: this.chatsContainer?.closest<HTMLElement>('.sidebar-slider')
+  });
 
   private log = logger('DIALOGS', LogTypes.Log | LogTypes.Error | LogTypes.Warn | LogTypes.Debug);
 
@@ -754,8 +800,7 @@ export class AppDialogsManager {
 
   private lastActiveElements: Set<HTMLElement> = new Set();
 
-  public loadContacts: () => void;
-  public processContact: (peerId: PeerId) => void;
+  private contactsPlaceholder: ChatlistContacts;
 
   private initedListeners = false;
 
@@ -932,13 +977,14 @@ export class AppDialogsManager {
       lottieLoader.loadLottieWorkers();
     }, 200);
 
-    PopupElement.MANAGERS = PopupElementTsx.MANAGERS = rootScope.managers = managers;
+    PopupElementTsx.MANAGERS = rootScope.managers = managers;
     appDownloadManager.construct(managers);
     appDownloadManager.showPollCancelConfirmation = (randomId: string) => this.showPollCancelConfirmation(randomId);
     appSidebarLeft.construct(managers);
     appSidebarRight.construct(managers);
     groupCallsController.construct(managers);
     callsController.construct(managers);
+    conferenceInvitesController.construct(managers);
     appImManager.construct(managers);
     if(IS_LIVE_STREAM_SUPPORTED) rtmpCallsController.construct(managers);
     new ConnectionStatusComponent().construct(managers, this.chatsContainer, appSidebarLeft.inputSearch);
@@ -1073,7 +1119,35 @@ export class AppDialogsManager {
     return this.xd.sortedList.list;
   }
 
+  /**
+   * Whether the chat list is down to its avatars - a forum tab is open over it, or the sidebar is
+   * collapsed. The rows then carry their unread count on the avatar, and cannot be selected: they
+   * could not be told apart, nor open the lane a selected row makes for its checkbox.
+   */
+  public isChatListNarrow() {
+    return !!this.forumTab || appSidebarLeft.isCollapsed();
+  }
+
+  /** Ends a selection of chats that the list has narrowed under (see `isChatListNarrow`) */
+  public onChatListNarrowChange() {
+    if(this.selection.isSelecting && this.isChatListNarrow()) {
+      this.selection.cancelSelection();
+    }
+  }
+
+  /** The selection a row belongs to, or nothing when its list has none (a picker, a panel) */
+  public getSelectionForRow(row: HTMLElement) {
+    const list = row?.parentElement;
+    return list ? SELECTION_BY_LIST.get(list) : undefined;
+  }
+
   public setFilterId(filterId: number) {
+    // * the selection belongs to the list it was made in, and every action it offers is about that
+    // * list (pinning, archiving), so it does not survive a move to another one
+    if(filterId !== this.filterId) {
+      this.selection.cancelSelection();
+    }
+
     this.filterId = filterId;
   }
 
@@ -1098,7 +1172,7 @@ export class AppDialogsManager {
     });
 
     rootScope.addEventListener('contacts_update', (userId) => {
-      this.processContact?.(userId.toPeerId());
+      this.processContact(userId.toPeerId());
     });
 
     appImManager.addEventListener('peer_changed', ({peerId, threadId, monoforumThreadId, isForum}) => {
@@ -1415,7 +1489,7 @@ export class AppDialogsManager {
       onClick: async() => {
         const data = filterRendered.topNotificationData;
         if(data._ === 'chatlistUpdates') {
-          PopupElement.createPopup(PopupSharedFolderInvite, {
+          showSharedFolderInvitePopup({
             chatlistInvite: {
               ...data.chatlistUpdates,
               already_peers: [],
@@ -1693,14 +1767,22 @@ export class AppDialogsManager {
   }
 
   private removeContactsPlaceholder() {
-    const chatList = this.chatList;
-    const parts = chatList.parentElement.parentElement;
-    const bottom = chatList.parentElement.nextElementSibling as HTMLElement;
+    const parts = this.chatList.parentElement.parentElement;
     parts.classList.remove('with-contacts');
-    bottom.replaceChildren();
-    this.loadContacts = undefined;
-    this.processContact = undefined;
+    this.contactsPlaceholder.element.remove();
+    this.contactsPlaceholder.destroy();
+    this.contactsPlaceholder = undefined;
   }
+
+  /** The chat list scrolled to its end — render the next page of contacts, if they are shown. */
+  public loadContacts = () => {
+    this.contactsPlaceholder?.loadMore();
+  };
+
+  /** A dialog for this peer appeared or went away — the contacts below the chat list follow. */
+  public processContact = (peerId: PeerId) => {
+    this.contactsPlaceholder?.processContact(peerId);
+  };
 
   private _onListLengthChange = () => {
     this.checkIfPlaceholderNeeded();
@@ -1708,100 +1790,28 @@ export class AppDialogsManager {
     if(this.filterId !== FOLDER_ID_ALL) return;
 
     // return;
-    const chatList = this.chatList;
     const count = this.xd?.sortedList.itemsLength() || 0;
 
-    const parts = chatList.parentElement.parentElement;
-    const bottom = chatList.parentElement.nextElementSibling as HTMLElement;
-    const hasContacts = !!bottom.childElementCount;
-
-    if(count >= 10) {
-      if(hasContacts) {
+    if(count >= MIN_DIALOGS_WITHOUT_CONTACTS) {
+      if(this.contactsPlaceholder) {
         this.removeContactsPlaceholder();
       }
 
       return;
-    } else if(hasContacts) return;
+    } else if(this.contactsPlaceholder) return;
 
+    const chatList = this.chatList;
+    const parts = chatList.parentElement.parentElement;
+    const bottom = chatList.parentElement.nextElementSibling as HTMLElement;
     parts.classList.add('with-contacts');
 
-    const section = new SettingSection({
-      name: 'Contacts',
-      noDelimiter: true,
-      fakeGradientDelimiter: true
+    this.contactsPlaceholder = createChatlistContacts({
+      managers: this.managers,
+      onLengthChange: () => this.updateContactsLength(true),
+      attachToList: (list) => this.setListClickListener({list})
     });
 
-    section.container.classList.add('sidebar-left-contacts-section', 'hide');
-
-    this.managers.appUsersManager.getContactsPeerIds(undefined, undefined, 'online').then((contacts) => {
-      let ready = false;
-      const onListLengthChange = () => {
-        if(ready) {
-          section.container.classList.toggle('hide', !sortedUserList.list.childElementCount);
-        }
-
-        this.updateContactsLength(true);
-      };
-
-      const sortedUserList = new SortedUserList({
-        avatarSize: 'abitbigger',
-        createChatListOptions: {
-          dialogSize: 48,
-          new: true
-        },
-        autonomous: false,
-        onListLengthChange,
-        managers: this.managers,
-        middleware: undefined
-      });
-
-      this.loadContacts = () => {
-        const pageCount = windowSize.height / 60 | 0;
-        const promise = filterAsync(contacts.splice(0, pageCount), this.verifyPeerIdForContacts);
-
-        promise.then((arr) => {
-          arr.forEach((peerId) => {
-            sortedUserList.add(peerId);
-          });
-        });
-
-        if(!contacts.length) {
-          this.loadContacts = undefined;
-        }
-      };
-
-      this.loadContacts();
-
-      this.processContact = async(peerId) => {
-        if(peerId.isAnyChat()) {
-          return;
-        }
-
-        const good = await this.verifyPeerIdForContacts(peerId);
-        const added = sortedUserList.has(peerId);
-        if(!added && good) sortedUserList.add(peerId);
-        else if(added && !good) sortedUserList.delete(peerId);
-      };
-
-      const list = sortedUserList.list;
-      list.classList.add('chatlist-new');
-      this.setListClickListener({list});
-      section.content.append(list);
-
-      ready = true;
-      onListLengthChange();
-    });
-
-    bottom.append(section.container);
-  };
-
-  private verifyPeerIdForContacts = async(peerId: PeerId) => {
-    const [isContact, dialog] = await Promise.all([
-      this.managers.appPeersManager.isContact(peerId),
-      this.managers.appMessagesManager.getDialogOnly(peerId)
-    ]);
-
-    return isContact && !dialog;
+    bottom.append(this.contactsPlaceholder.element);
   };
 
   public onSomeDrawerToggle?: () => void;
@@ -1829,6 +1839,7 @@ export class AppDialogsManager {
     if(hideTab === this.forumTab) {
       this.forumTab = newTab;
       this.onSomeDrawerToggle?.();
+      this.onChatListNarrowChange();
     }
 
     if(newTab) {
@@ -2064,15 +2075,20 @@ export class AppDialogsManager {
     withContext = false,
     withArchiveContext = false,
     autonomous = false,
-    openInner = false
+    openInner = false,
+    selection = this.selection
   }: {
     list: HTMLElement,
     onFound?: (target: HTMLElement) => void | boolean,
     withContext?: boolean,
     withArchiveContext?: boolean,
     autonomous?: boolean,
-    openInner?: boolean
+    openInner?: boolean,
+    /** what selecting a row of THIS list means - a forum tab selects its topics, not chats */
+    selection?: DialogsSelectionBase
   }) {
+    SELECTION_BY_LIST.set(list, selection);
+
     let lastActiveListElement: HTMLElement;
 
     const setPeerFunc = (openInner ? appImManager.setInnerPeer : appImManager.setPeer).bind(appImManager);
@@ -2106,15 +2122,13 @@ export class AppDialogsManager {
     };
 
     list.dataset.autonomous = '' + +autonomous;
-    list.addEventListener('mousedown', (e) => {
-      if(
-        e.button !== 0 ||
-        setWillOpenStory(e) ||
-        isDialogListAction(e.target)
-      ) {
-        return;
-      }
 
+    // * While chats are being selected a press on a row can also be the start of a reorder of the
+    // * pinned block (attachPinnedDialogsReorder), and a drag must not toggle the row it moves - so
+    // * in that mode, and only there, the press is acted upon when it ends. The click that ends a
+    // * real drag is swallowed by `Sortable`, which is what keeps the selection as it was.
+    let pendingPress: () => void;
+    const onPress = (e: MouseEvent) => {
       this.log('dialogs click list');
       const target = e.target as HTMLElement;
 
@@ -2143,6 +2157,11 @@ export class AppDialogsManager {
         threadId: threadId,
         highlight: searchQuery ? {type: 'search', query: searchQuery} : undefined
       });
+
+      if(selection.isSelecting && selection.canSelect(elem)) {
+        selection.toggleByElement(elem);
+        return;
+      }
 
       const isSponsored = elem.dataset.sponsored === 'true';
       if(isSponsored) {
@@ -2262,6 +2281,27 @@ export class AppDialogsManager {
       }
 
       openChat();
+    };
+    list.addEventListener('mousedown', (e) => {
+      pendingPress = undefined;
+      if(
+        e.button !== 0 ||
+        setWillOpenStory(e) ||
+        isDialogListAction(e.target)
+      ) {
+        return;
+      }
+
+      // * `AppSelection` listens for the press itself - it is what turns a drag from here into a
+      // * selection of the rows it crosses - so this only holds the row's own toggle back until the
+      // * press ends, or the drag would toggle the row it started on
+      const selectable = selection.isSelecting && findDialogListElement(e.target);
+      if(selectable && selection.canSelect(selectable)) {
+        pendingPress = () => onPress(e);
+        return;
+      }
+
+      onPress(e);
     }, {capture: true});
 
     // cancel link click
@@ -2271,9 +2311,22 @@ export class AppDialogsManager {
         return;
       }
 
+      // Native links activate with a click alone from a keyboard or assistive
+      // technology. Pointer activation already ran on mousedown — and so did the
+      // guard that lives in that listener rather than in `onPress`, so the story
+      // check has to be repeated here. `e.button` is 0 for a keyboard click and
+      // `isDialogListAction` is already ruled out above.
+      if(e.detail === 0 && !setWillOpenStory(e)) {
+        onPress(e);
+      }
+
       if(e.button === 0) {
         cancelEvent(e);
       }
+
+      const press = pendingPress;
+      pendingPress = undefined;
+      press?.();
 
       if(!willOpenStory || isOpeningStoriesDisabled()) return;
 
@@ -2301,6 +2354,9 @@ export class AppDialogsManager {
     ignoreClick?: boolean
   } = {}) {
     const list = document.createElement('ul');
+    // Legacy layout host: its direct children are native links, not li elements.
+    // Keep those links exposed without announcing an invalid list structure.
+    list.setAttribute('role', 'presentation');
     list.classList.add('chatlist'/* ,
       'chatlist-avatar-' + (options.avatarSize || 54) *//* , 'chatlist-' + (options.size || 72) */);
 
@@ -2716,7 +2772,7 @@ export class AppDialogsManager {
       !isTopic &&
       !isMonoforumThread &&
       !isAllChats &&
-      (!!this.forumTab || appSidebarLeft.isCollapsed()) &&
+      this.isChatListNarrow() &&
       isDialogUnread;
     // * `unreadCount` counts the unread topics for a forum, so the mention state
     // * must be derived from it too — not from `dialog.unread_count`
@@ -2968,7 +3024,7 @@ export class AppDialogsManager {
 
   private showPollCancelConfirmation(randomId: string) {
     const listenerSetter = new ListenerSetter;
-    let popup: PopupPeer;
+    let popup: PopupPeerHandle;
 
     const onSent = () => {
       toastNew({
@@ -2989,7 +3045,7 @@ export class AppDialogsManager {
       button: {
         langKey: 'CancelPollConfirm.Button'
       },
-      onPopup: (p) => {
+      onPopup: (p: PopupPeerHandle) => {
         popup = p;
       }
     }).then(() => {

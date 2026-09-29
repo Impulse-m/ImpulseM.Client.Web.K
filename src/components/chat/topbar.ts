@@ -9,7 +9,7 @@ import ButtonMenuToggle from '@components/buttonMenuToggle';
 import createChatPinnedMessage, {ChatPinnedMessageController} from '@components/chat/pinnedMessage';
 import getPinnedMessagesKey from '@appManagers/utils/messages/getPinnedMessagesKey';
 import ListenerSetter from '@helpers/listenerSetter';
-import PopupDeleteDialog from '@components/popups/deleteDialog';
+import showDeleteDialogPopup from '@components/popups/deleteDialog';
 import {showPeerReport} from '@components/popups/reportAd';
 import appNavigationController from '@components/appNavigationController';
 import {LEFT_COLUMN_ACTIVE_CLASSNAME} from '@components/sidebarLeft';
@@ -23,12 +23,12 @@ import {toastNew} from '@components/toast';
 import replaceContent from '@helpers/dom/replaceContent';
 import {ChatFull, Chat as MTChat, GroupCall, Dialog, InputGroupCall, User, UserFull} from '@layer';
 import {showSharingPickerPopup} from '@components/popups/pickUser';
-import PopupPeer, {PopupPeerCheckboxOptions} from '@components/popups/peer';
+import showPeerPopup, {PopupPeerCheckboxOptions} from '@components/popups/peer';
 import {AppEditBotTab, AppEditContactTab} from '@components/solidJsTabs/tabs';
 import IS_GROUP_CALL_SUPPORTED from '@environment/groupCallSupport';
 import IS_CALL_SUPPORTED from '@environment/callSupport';
 import {CallType} from '@lib/calls/types';
-import PopupMute from '@components/popups/mute';
+import showMutePopup from '@components/popups/mute';
 import {AppManagers} from '@lib/managers';
 import hasRights from '@appManagers/utils/chats/hasRights';
 import wrapPeerTitle from '@components/wrappers/peerTitle';
@@ -37,10 +37,12 @@ import apiManagerProxy from '@lib/apiManagerProxy';
 import {makeMediaSize} from '@helpers/mediaSize';
 import {FOLDER_ID_ALL} from '@appManagers/constants';
 import formatNumber from '@helpers/number/formatNumber';
-import PopupElement from '@components/popups';
 import {modifyAckedPromise} from '@helpers/modifyAckedResult';
 import callbackify from '@helpers/callbackify';
 import confirmationPopup from '@components/confirmationPopup';
+import noop from '@helpers/noop';
+import clearHistoryWithConfirmation from '@components/clearHistory';
+import canClearHistory from '@appManagers/utils/chats/canClearHistory';
 import IS_LIVE_STREAM_SUPPORTED from '@environment/liveStreamSupport';
 import {avatarNew, findUpAvatar} from '@components/avatarNew';
 import {Middleware, MiddlewareHelper, getMiddleware} from '@helpers/middleware';
@@ -48,8 +50,8 @@ import setBadgeContent from '@helpers/setBadgeContent';
 import createBadge from '@helpers/createBadge';
 import AppStatisticsTab from '@components/sidebarRight/tabs/statistics';
 import {ChatType} from './chatType';
-import {RtmpStartStreamPopup} from '@components/rtmp/adminPopup';
-import PopupSendGift from '@components/popups/sendGift';
+import {showRtmpStartStreamPopup} from '@components/rtmp/adminPopup';
+import showSendGiftPopup from '@components/popups/sendGift';
 import PaidMessagesInterceptor, {PAYMENT_REJECTED} from '@components/chat/paidMessagesInterceptor';
 import {openRemoveFeePopup} from '@components/chat/removeFee';
 import {createTopbarPlates, TopbarPlates} from '@components/chat/topbarPlates';
@@ -70,7 +72,7 @@ import {getCachedFullPeer} from '@stores/fullPeers';
 import Icon from '@components/icon';
 import {getDefaultOptions} from '@components/sidebarLeft/tabs/autoDeleteMessages/options';
 import {createAutoDeleteIcon} from '@components/autoDeleteIcon';
-import PopupPremium from '@components/popups/premium';
+import showPremiumPopup from '@components/popups/premium';
 import showNoForwardsPopup from '@components/popups/noForwards';
 import showAddBotToChat from '@components/popups/addBotToChat';
 import openBoosts from '@components/openBoosts';
@@ -99,6 +101,8 @@ export default class ChatTopbar {
   private btnMore: HTMLElement;
 
   private autoDeleteBtnMenuOptions: ButtonMenuItemOptionsVerifiable;
+  /** The chat's own Delete, whose text depends on what the chat is (Delete Group, Leave Channel…). */
+  private deleteChatBtnMenuOptions: ButtonMenuItemOptionsVerifiable;
 
   public plates: TopbarPlates;
   public pinnedMessage: ChatPinnedMessageController;
@@ -136,7 +140,7 @@ export default class ChatTopbar {
     // own hide() via `chat.onPreviewClose`, and the folder back-unread badge is irrelevant
     // here (there's no folder navigation behind a floating preview).
     const backIcon = this.chat.isPreview ? 'close' : 'left';
-    this.btnBack = ButtonIcon(`${backIcon} sidebar-close-button`, {noRipple: true});
+    this.btnBack = ButtonIcon(`${backIcon} sidebar-close-button`, {noRipple: true, ariaLabel: 'Close'});
     if(!this.chat.isPreview) {
       this.btnBackBadge = createBadge('span', 20, 'primary');
       this.btnBackBadge.classList.add('back-unread-badge');
@@ -184,6 +188,7 @@ export default class ChatTopbar {
 
     if(this.menuButtons.length) {
       this.btnMore = ButtonMenuToggle({
+        buttonOptions: {ariaLabel: 'MultiAccount.More'},
         listenerSetter: this.listenerSetter,
         direction: 'bottom-left',
         buttons: this.menuButtons,
@@ -196,7 +201,7 @@ export default class ChatTopbar {
           this.autoDeleteBtnMenuOptions.iconElement = createAutoDeleteIcon(period);
         },
         onOpen: async(e, element) => {
-          const deleteButton = this.menuButtons[this.menuButtons.length - 1];
+          const deleteButton = this.deleteChatBtnMenuOptions;
           if(deleteButton?.element) {
             const deleteButtonText = await this.managers.appPeersManager.getDeleteButtonText(this.chat.monoforumThreadId || this.peerId);
             deleteButton.element.lastChild.replaceWith(i18n(deleteButtonText));
@@ -426,6 +431,20 @@ export default class ChatTopbar {
     return !!peer && (peer._ === 'chat' || peer._ === 'channel') && !peer.pFlags.creator;
   };
 
+  private verifyIfCanClearHistory = async() => {
+    if(
+      this.chat.type !== ChatType.Chat ||
+      this.chat.threadId ||
+      this.chat.monoforumThreadId ||
+      this.chat.isMonoforum
+    ) {
+      return false;
+    }
+
+    return canClearHistory(this.chat.peer) &&
+      !!(await this.managers.appMessagesManager.getDialogOnly(this.peerId));
+  }
+
   private verifyIfCanDeleteChat = async() => {
     if(this.chat.isMonoforum) {
       const chat = this.chat.peer;
@@ -623,7 +642,7 @@ export default class ChatTopbar {
             if(preparedPaymentResult) return void send();
 
             return new Promise((resolve, reject) => {
-              PopupElement.createPopup(PopupPeer, '', {
+              showPeerPopup('', {
                 titleLangKey: 'SendMessageTitle',
                 descriptionLangKey: 'SendContactToGroupText',
                 descriptionLangArgs: [new PeerTitle({peerId, dialog: true}).element],
@@ -640,9 +659,8 @@ export default class ChatTopbar {
                   },
                   isCancel: true
                 }],
-                peerId,
-                overlayClosable: true
-              }).show();
+                peerId
+              });
             });
           }
         });
@@ -651,7 +669,7 @@ export default class ChatTopbar {
     }, {
       icon: 'gift',
       text: 'Chat.Menu.SendGift',
-      onClick: () => PopupElement.createPopup(PopupSendGift, {peerId: this.peerId}),
+      onClick: () => showSendGiftPopup({peerId: this.peerId}),
       verify: async() => (
         this.chat.isChannel || (this.chat.peerId.isUser() && !this.chat.isBot && (await this.managers.appUsersManager.isRegularUser(this.peerId)))
       ) && !(this.chat.type === ChatType.Logs)
@@ -742,7 +760,7 @@ export default class ChatTopbar {
       text: 'DisableSharing',
       onClick: () => {
         if(!rootScope.premium) {
-          PopupPremium.show({feature: 'pm_noforwards'});
+          showPremiumPopup({feature: 'pm_noforwards'});
           return;
         }
 
@@ -827,12 +845,18 @@ export default class ChatTopbar {
       },
       verify: this.verifyIfCanReportChat
     }, {
+      icon: 'message_crossed',
+      text: 'ClearHistory',
+      onClick: () => {
+        clearHistoryWithConfirmation({peerId: this.peerId, managers: this.managers});
+      },
+      verify: this.verifyIfCanClearHistory
+    }, {
       icon: 'delete',
       danger: true,
       text: 'Delete',
       onClick: () => {
-        PopupElement.createPopup(
-          PopupDeleteDialog,
+        showDeleteDialogPopup(
           this.chat.monoforumThreadId || this.peerId,
           undefined,
           undefined,
@@ -842,13 +866,36 @@ export default class ChatTopbar {
       },
       verify: this.verifyIfCanDeleteChat
     }];
+    this.deleteChatBtnMenuOptions = this.menuButtons[this.menuButtons.length - 1];
 
-    this.btnSearch = ButtonIcon('search');
+    // the welcome messages section has one thing to offer: clearing them all (desktop's menu)
+    this.menuButtons.forEach((button) => {
+      const verify = button.verify;
+      button.verify = () => this.chat.type !== ChatType.Welcome && (verify ? verify() : true);
+    });
+    this.menuButtons.push({
+      icon: 'delete',
+      danger: true,
+      text: 'WelcomeMessages.DeleteAll',
+      onClick: () => {
+        const peerId = this.peerId;
+        confirmationPopup({
+          descriptionLangKey: 'WelcomeMessages.DeleteAllSure',
+          button: {langKey: 'Delete', isDanger: true}
+        }).then(() => {
+          this.managers.appMessagesManager.deleteAllWelcomeMessages(peerId);
+        }, noop);
+      },
+      verify: async() => this.chat.type === ChatType.Welcome &&
+        !!(await this.managers.appMessagesManager.getWelcomeMessagesCount(this.peerId))
+    });
+
+    this.btnSearch = ButtonIcon('search', {ariaLabel: 'Search'});
     this.attachClickEvent(this.btnSearch, (e) => {
       this.chat.initSearch();
     }, true);
 
-    this.btnLogFilters = ButtonIcon('filter');
+    this.btnLogFilters = ButtonIcon('filter', {ariaLabel: 'AdminRecentActionsFilters.ByType'});
     this.attachClickEvent(this.btnLogFilters, () => {
       this.onFilterActionsClick();
     });
@@ -951,9 +998,9 @@ export default class ChatTopbar {
   };
 
   private onFilterActionsClick = wrapAsyncClickHandler(async() => {
-    const {default: LogFiltersPopup} = await import('./logFiltersPopup');
+    const {default: showLogFiltersPopup} = await import('./logFiltersPopup');
 
-    new LogFiltersPopup({
+    showLogFiltersPopup({
       channelId: this.peerId.toChatId(),
       isBroadcast: this.chat.isBroadcast,
       committedFilters: this.chat.bubbles.committedLogsFilters,
@@ -961,8 +1008,20 @@ export default class ChatTopbar {
       onFinish: ({committedFilters}) => {
         this.chat.bubbles.setLogFilters(committedFilters);
       }
-    }).show();
+    });
   })
+
+  /**
+   * The welcome section's menu holds one action, "Delete All": the button is there while there is
+   * something to delete. `load` asks the server on opening (shared with the list's own request).
+   */
+  private async updateWelcomeMoreButton(load?: boolean) {
+    const {peerId, btnMore} = this;
+    if(this.chat.type !== ChatType.Welcome || !btnMore) return;
+    const count = await this.managers.appMessagesManager.getWelcomeMessagesCount(peerId, load);
+    if(this.peerId !== peerId || this.chat.type !== ChatType.Welcome) return;
+    btnMore.classList.toggle('hide', !count);
+  }
 
   private get peerId() {
     return this.chat.peerId;
@@ -977,9 +1036,10 @@ export default class ChatTopbar {
     // produced a throwaway plate (rendered, listened, then destroyed on the
     // first peer change) whose `isStatic` was decided before the chat had a type.
 
-    this.btnCall = ButtonIcon('phone');
-    this.btnGroupCall = ButtonIcon('videochat');
+    this.btnCall = ButtonIcon('phone', {ariaLabel: 'Call'});
+    this.btnGroupCall = ButtonIcon('videochat', {ariaLabel: 'PeerInfo.Action.VoiceChat'});
     this.btnGroupCallMenu = ButtonMenuToggle({
+      buttonOptions: {ariaLabel: 'PeerInfo.Action.VoiceChat'},
       listenerSetter: this.listenerSetter,
       direction: 'bottom-left',
       buttons: [{
@@ -990,7 +1050,7 @@ export default class ChatTopbar {
         icon: 'link',
         text: 'Rtmp.Topbar.StreamWith',
         onClick: () => {
-          PopupElement.createPopup(RtmpStartStreamPopup, {peerId: this.peerId}).show();
+          showRtmpStartStreamPopup({peerId: this.peerId});
         },
         verify: () => IS_LIVE_STREAM_SUPPORTED
       }],
@@ -998,6 +1058,14 @@ export default class ChatTopbar {
     });
     this.attachClickEvent(this.btnCall, this.onCallClick.bind(this, 'voice'));
     this.attachClickEvent(this.btnGroupCall, this.onJoinGroupCallClick);
+
+    this.listenerSetter.add(rootScope)('welcome_message_new', (message) => {
+      if(message.peerId === this.peerId) void this.updateWelcomeMoreButton();
+    });
+
+    this.listenerSetter.add(rootScope)('welcome_messages_delete', ({peerId}) => {
+      if(peerId === this.peerId) void this.updateWelcomeMoreButton();
+    });
 
     this.listenerSetter.add(rootScope)('folder_unread', (folder) => {
       if(!this.btnBackBadge || folder.id !== FOLDER_ID_ALL) {
@@ -1150,7 +1218,7 @@ export default class ChatTopbar {
   };
 
   private onMuteClick = () => {
-    PopupElement.createPopup(PopupMute, this.peerId);
+    showMutePopup(this.peerId);
   };
 
   private onUnmuteClick = () => {
@@ -1384,7 +1452,7 @@ export default class ChatTopbar {
     }
 
     return () => {
-      const canHaveSomeButtons = !(this.chat.type === ChatType.Pinned || this.chat.type === ChatType.Scheduled || this.chat.type === ChatType.Static || this.chat.type === ChatType.Logs);
+      const canHaveSomeButtons = !(this.chat.type === ChatType.Pinned || this.chat.type === ChatType.Scheduled || this.chat.type === ChatType.Welcome || this.chat.type === ChatType.Static || this.chat.type === ChatType.Logs);
       const canHaveSearch = canHaveSomeButtons || this.chat.type === ChatType.Logs;
 
       if(this.btnSearch) {
@@ -1420,6 +1488,10 @@ export default class ChatTopbar {
 
       if(this.btnMore) {
         this.btnMore.classList.toggle('hide', !canHaveMore);
+      }
+
+      if(this.chat.type === ChatType.Welcome) {
+        void this.updateWelcomeMoreButton(true);
       }
 
       this.revealPreparedPinnedMessage();
@@ -1513,6 +1585,8 @@ export default class ChatTopbar {
       }
     } else if(this.chat.type === ChatType.Scheduled) {
       titleEl = i18n(peerId === rootScope.myId ? 'Reminders' : 'ScheduledMessages');
+    } else if(this.chat.type === ChatType.Welcome) {
+      titleEl = i18n('WelcomeMessages.Title');
     } else if(this.chat.type === ChatType.Discussion) {
       const el = this.messagesCounter({
         middleware,

@@ -6,7 +6,7 @@ import Section from '@components/section';
 import wrapEmojiText from '@lib/richTextProcessor/wrapEmojiText';
 import {TransitionGroup} from '@helpers/solid/transitionGroup';
 import TransitionSlider from '@components/transition';
-import {i18n, LangPackKey} from '@lib/langPack';
+import I18n, {i18n, LangPackKey} from '@lib/langPack';
 import {toastNew} from '@components/toast';
 import Icon from '@components/icon';
 import rootScope from '@lib/rootScope';
@@ -17,7 +17,6 @@ import createMiddleware from '@helpers/solid/createMiddleware';
 import Button from '@components/buttonTsx';
 import classNames from '@helpers/string/classNames';
 import Row from '@components/rowTsx';
-import Scrollable from '@components/scrollable2';
 
 const STICKER_EMOJI = '👮‍♀️';
 
@@ -154,6 +153,7 @@ export default function showReportAdPopup(
           placeholder: result.pFlags.optional ? 'Report2CommentOptional' : 'Report2Comment',
           required: !result.pFlags.optional
         });
+        inputField.input.setAttribute('aria-label', I18n.format('ReportHint', true));
 
         [maxHeight, setMaxHeight] = createSignal<number>();
       } else {
@@ -314,11 +314,11 @@ export default function showReportAdPopup(
           />
           <PopupElement.Title>{title}</PopupElement.Title>
         </PopupElement.Header>
-        <PopupElement.Body>
-          <Scrollable>
+        <PopupElement.Scrollable>
+          <PopupElement.Body>
             {body}
-          </Scrollable>
-        </PopupElement.Body>
+          </PopupElement.Body>
+        </PopupElement.Scrollable>
       </>
     );
   }

@@ -6,6 +6,7 @@ import getLinkedCommunityId from '@appManagers/utils/communities/getLinkedCommun
 import numberThousandSplitter from '@helpers/number/numberThousandSplitter';
 import {useChat, usePeer} from '@stores/peers';
 import {BusinessWorkHours, Chat, ChatFull, GeoPoint, HelpTimezonesList, Photo, StoryItem, Document, MessageMedia, Timezone, User, UserFull, UserStatus} from '@layer';
+import getAudioTitles from '@appManagers/utils/docs/getAudioTitles';
 import {useFullPeer} from '@stores/fullPeers';
 import {useHotReloadGuard} from '@lib/solidjs/hotReloadGuard';
 import createMiddleware from '@helpers/solid/createMiddleware';
@@ -37,6 +38,7 @@ import {HIDDEN_PEER_ID} from '@appManagers/constants';
 import {rgbIntToHex} from '@helpers/color';
 import type {MyStarGift} from '@appManagers/appGiftsManager';
 import {attachClickEvent} from '@helpers/dom/clickEvent';
+import attachClickEventRef from '@helpers/solid/attachClickEventRef';
 import ListenerSetter from '@helpers/listenerSetter';
 import {resolveFirst} from '@solid-primitives/refs';
 import differenceInYears from '@helpers/date/differenceInYears';
@@ -47,8 +49,7 @@ import {StoriesSegments} from '@components/avatarNew';
 import {MyDocument} from '../lib/appManagers/appDocsManager';
 import wrapEmojiText, {EmojiTextTsx} from '@lib/richTextProcessor/wrapEmojiText';
 import {wrapSolidComponent} from '../helpers/solid/wrapSolidComponent';
-import PopupStarGiftInfo from './popups/starGiftInfo';
-import PopupElement from './popups';
+import showStarGiftInfoPopup from './popups/starGiftInfo';
 import {openSavedMusicTab} from '@components/savedMusicActions';
 import ripple from '@components/ripple';
 import {keepMe} from '@helpers/keepMe';
@@ -102,18 +103,14 @@ function getUsernamesAlso(usernames: string[]) {
 }
 
 function getStatusHiddenShow(peerId: PeerId) {
-  const {i18n, PopupElement, PopupToggleReadDate} = useHotReloadGuard();
+  const {i18n, showToggleReadDatePopup} = useHotReloadGuard();
   return (
     <span
       class="show-when"
-      onClick={(e) => {
+      ref={attachClickEventRef((e) => {
         cancelEvent(e);
-        PopupElement.createPopup(
-          PopupToggleReadDate,
-          peerId,
-          'lastSeen'
-        );
-      }}
+        showToggleReadDatePopup(peerId, 'lastSeen');
+      })}
     >
       {i18n('StatusHiddenShow')}
     </span>
@@ -320,13 +317,13 @@ PeerProfile.SubtitleRating = () => {
     <Show when={starsRating()}>
       <div
         class="profile-subtitle-rating"
-        onClick={(e) => {
+        ref={attachClickEventRef((e) => {
           cancelEvent(e);
           showStarsRatingPopup({
             user: context.peer as User.user,
             userFull: context.fullPeer as UserFull
           });
-        }}
+        })}
       >
         {wrapStarsRatingLevel(starsRating().level)}
       </div>
@@ -336,7 +333,7 @@ PeerProfile.SubtitleRating = () => {
 
 PeerProfile.SubtitleStatus = () => {
   const context = useContext(PeerProfileContext);
-  const {rootScope, appImManager, wrapTopicNameButton} = useHotReloadGuard();
+  const {rootScope, appDialogsManager, appImManager, wrapTopicNameButton} = useHotReloadGuard();
   const needWhen = createMemo(() => {
     const user = (context.peer as User.user);
     return !!(user.status as UserStatus.userStatusRecently)?.pFlags?.by_me;
@@ -365,8 +362,10 @@ PeerProfile.SubtitleStatus = () => {
             middleware
           }
         }).then(({element}) => {
-          attachClickEvent(element, (e) => {
-            appImManager.setPeer({peerId});
+          attachClickEvent(element, () => {
+            // the subtitle under a topic's title is its forum — open the topics
+            // tab, like the anchor this button replaced used to
+            appDialogsManager.toggleForumTabByPeerId(peerId, true, true);
           }, {listenerSetter});
           return element;
         });
@@ -468,7 +467,7 @@ PeerProfile.PinnedGifts = () => {
       }).then((r) => r.render);
       attachClickEvent(div, (e) => {
         cancelEvent(e)
-        PopupElement.createPopup(PopupStarGiftInfo, {gift})
+        showStarGiftInfoPopup({gift})
       })
       return div;
     });
@@ -612,30 +611,29 @@ PeerProfile.PinnedMusic = () => {
   };
 
   const music = createMemo(() => context.hasSavedMusic ? (context.fullPeer as UserFull).saved_music as MyDocument : undefined);
-  const audioAttr = createMemo(() => music()?.attributes.find((it) => it._ === 'documentAttributeAudio'));
-  const filenameAttr = createMemo(() => music()?.attributes.find((it) => it._ === 'documentAttributeFilename'));
+  const titles = createMemo(() => getAudioTitles(music()));
 
   return (
     <div class="profile-music-container">
-      <div class="profile-music" on:click={{capture: true, handleEvent: openSavedMusic}} use:ripple>
+      <div class="profile-music" ref={attachClickEventRef(openSavedMusic)} use:ripple>
         <div class="profile-music-inner">
           <IconTsx icon="note_filled" class="profile-music-icon" />
           {/* `EmojiTextTsx` rather than a bare `wrapEmojiText`: that returns a fragment, and a
             reactive expression handing Solid a fragment with a sibling beside it — the dash below —
             appends the new value next to the old one instead of replacing it, so the row read as two
             track names run together the moment the top track changed */}
-          <Show when={audioAttr()?.performer}>
+          <Show when={titles()?.performer}>
             {(performer) => (
               <span class="profile-music-performer text-overflow-no-wrap">
                 <EmojiTextTsx text={performer()} />
               </span>
             )}
           </Show>
-          <span class={`profile-music-title text-overflow-no-wrap ${audioAttr()?.performer ? '' : 'only-title'}`}>
-            <Show when={audioAttr()?.performer}>
+          <span class={`profile-music-title text-overflow-no-wrap ${titles()?.performer ? '' : 'only-title'}`}>
+            <Show when={titles()?.performer}>
               &nbsp;-&nbsp;
             </Show>
-            <EmojiTextTsx text={audioAttr()?.title || filenameAttr()?.file_name || ''} />
+            <EmojiTextTsx text={titles()?.title || ''} />
           </span>
           <IconTsx icon="next" />
         </div>
@@ -747,14 +745,18 @@ PeerProfile.Username = () => {
 
 PeerProfile.QrButton = () => {
   const context = useContext(PeerProfileContext);
-  const {showMyQrCodePopup, rootScope} = useHotReloadGuard();
+  const {I18n, showMyQrCodePopup, rootScope} = useHotReloadGuard();
   return (
     <Show when={context.peerId !== rootScope.myId}>
       <Row.RightContent>
-        <Button.Icon icon="qr" onClick={(e) => {
-          cancelEvent(e);
-          showMyQrCodePopup(context.peerId);
-        }} />
+        <Button.Icon
+          icon="qr"
+          aria-label={I18n.format('QRCode.Show', true)}
+          onClick={(e) => {
+            cancelEvent(e);
+            showMyQrCodePopup(context.peerId);
+          }}
+        />
       </Row.RightContent>
     </Show>
   );
@@ -762,7 +764,7 @@ PeerProfile.QrButton = () => {
 
 PeerProfile.Birthday = () => {
   const context = useContext(PeerProfileContext);
-  const {I18n, i18n, wrapEmojiText, rootScope, PopupElement, PopupSendGift, showBirthdayPopup, saveMyBirthday, toastNew} = useHotReloadGuard();
+  const {I18n, i18n, wrapEmojiText, rootScope, showSendGiftPopup, showBirthdayPopup, saveMyBirthday, toastNew} = useHotReloadGuard();
   const birthday = createMemo(() => (context.fullPeer as UserFull.userFull)?.birthday);
   const isToday = createMemo(() => {
     const birthday$ = birthday();
@@ -812,7 +814,7 @@ PeerProfile.Birthday = () => {
     }
 
     if(isToday()) {
-      return () => PopupElement.createPopup(PopupSendGift, {
+      return () => showSendGiftPopup({
         peerId: context.peerId,
         birthday: true
       });
@@ -908,7 +910,7 @@ PeerProfile.Location = () => {
 
 PeerProfile.Bio = () => {
   const context = useContext(PeerProfileContext);
-  const {i18n, PopupPremium, HotReloadGuard, I18n, wrapRichText, toast} = useHotReloadGuard();
+  const {i18n, showPremiumPopup, HotReloadGuard, I18n, wrapRichText, toast} = useHotReloadGuard();
   const appConfig = useAppConfig();
   const peerTranslation = usePeerTranslation(context.peerId);
 
@@ -954,7 +956,7 @@ PeerProfile.Bio = () => {
             text: 'TranslateMessage',
             onClick: async() => {
               if(!peerTranslation.canTranslate(true)) {
-                PopupPremium.show({feature: 'translations'});
+                showPremiumPopup({feature: 'translations'});
               } else {
                 const {openTranslatePopup} = await import('@components/popups/translate');
                 openTranslatePopup({
@@ -1464,8 +1466,7 @@ PeerProfile.StoryPreviews = (props: {
             'width': `${dims().totalSvgSize}px`,
             'height': `${dims().totalSvgSize}px`
           }}
-          on:mousedown={cancelEvent}
-          on:click={onCircleClick}
+          ref={attachClickEventRef(onCircleClick)}
         >
           {storiesCircle()}
           <div

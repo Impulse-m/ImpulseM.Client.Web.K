@@ -13,6 +13,7 @@ import wrapEmojiText from '@lib/richTextProcessor/wrapEmojiText';
 import attachStickerViewerListeners from '@components/stickerViewer';
 import wrapSticker from '@components/wrappers/sticker';
 import {getStickerSetInputById, getStickerSetInputByStickerSet} from '@lib/appManagers/utils/stickers/getStickerSetInput';
+import isStickerSetAdded from '@lib/appManagers/utils/stickers/isStickerSetAdded';
 import {useSuperTab} from '@components/solidJsTabs/superTabProvider';
 import {useHotReloadGuard} from '@lib/solidjs/hotReloadGuard';
 
@@ -44,9 +45,10 @@ const Stickers: Component = () => {
 
     const button = document.createElement('button');
     button.classList.add('btn-primary', 'btn-color-primary', 'sticker-set-button');
-    button.append(i18n(set.installed_date ? 'Stickers.SearchAdded' : 'Stickers.SearchAdd'));
+    const added = isStickerSetAdded(set);
+    button.append(i18n(added ? 'Stickers.SearchAdded' : 'Stickers.SearchAdd'));
 
-    if(set.installed_date) {
+    if(added) {
       button.classList.add('gray');
     }
 
@@ -165,7 +167,9 @@ const Stickers: Component = () => {
 
     attachClickEvent(setsDiv, (e) => {
       const sticker = findUpClassName(e.target, 'sticker-set-sticker');
-      if(sticker) {
+      // With no chat to send to — the tab opened from the empty column's Stickers tip — a sticker
+      // falls through to its own set below, which opens the pack.
+      if(sticker && appImManager.chat.peerId) {
         const docId = sticker.dataset.docId;
         appImManager.chat.input.sendMessageWithDocument({document: docId, target: sticker});
         return;
@@ -189,8 +193,9 @@ const Stickers: Component = () => {
           tab.managers.appStickersManager.toggleStickerSet(full.set).then((changed) => {
             if(changed) {
               button.textContent = '';
-              button.append(i18n(full.set.installed_date ? 'Stickers.SearchAdded' : 'Stickers.SearchAdd'));
-              button.classList.toggle('gray', !!full.set.installed_date);
+              const added = isStickerSetAdded(full.set);
+              button.append(i18n(added ? 'Stickers.SearchAdded' : 'Stickers.SearchAdd'));
+              button.classList.toggle('gray', added);
             }
           }).finally(() => {
             button.removeAttribute('disabled');
@@ -203,7 +208,14 @@ const Stickers: Component = () => {
       }
     }, {listenerSetter: tab.listenerSetter});
 
-    appSidebarRight.toggleSidebar(true).then(() => {
+    // The tab is opened from the emoticons panel into the right sidebar, and from the empty
+    // column's Stickers tip into the left one — where there is no sidebar to reveal, and where
+    // revealing the right one would just show an empty column.
+    const revealed = tab.slider === appSidebarRight ?
+      appSidebarRight.toggleSidebar(true) :
+      Promise.resolve();
+
+    revealed.then(() => {
       renderFeatured();
     });
   });

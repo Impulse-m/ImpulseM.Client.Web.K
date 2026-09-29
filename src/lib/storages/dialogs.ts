@@ -12,7 +12,7 @@ import tsNow from '@helpers/tsNow';
 import SearchIndex from '@lib/searchIndex';
 import {SliceEnd} from '@helpers/slicedArray';
 import {MyDialogFilter} from '@lib/storages/filters';
-import {CAN_HIDE_TOPIC, FOLDER_ID_ALL, FOLDER_ID_ARCHIVE, NULL_PEER_ID, REAL_FOLDERS, REAL_FOLDER_ID, TEST_NO_SAVED} from '@appManagers/constants';
+import {CAN_HIDE_TOPIC, CHANNEL_CUTOFF_RETRY_LIMIT, FOLDER_ID_ALL, FOLDER_ID_ARCHIVE, NULL_PEER_ID, REAL_FOLDERS, REAL_FOLDER_ID, TEST_NO_SAVED} from '@appManagers/constants';
 import {MaybePromise, Modify, NoneToVoidFunction} from '@types';
 import ctx from '@environment/ctx';
 import AppStorage from '@lib/storage';
@@ -402,6 +402,16 @@ export default class DialogsStorage extends AppManager {
     this.getPinnedOrders(folderId).length = 0;
   }
 
+  /**
+   * The pins of one list in visual order, topmost first, whichever kind of list it is - a real
+   * folder, a chat folder, a forum or the Saved Messages sublists. A chat folder carries its own
+   * pins; the real folders' local filters share the very array kept here.
+   */
+  public getPinnedOrderForFilter(filterId: number) {
+    const filter = this.filtersStorage.getFilter(filterId);
+    return ((filter ? filter.pinnedPeerIds : this.getPinnedOrders(filterId)) || []).slice();
+  }
+
   public getPinnedOrders(folderId: number) {
     let orders = this.pinnedOrders[folderId];
     if(!orders && this.isVirtualFilter(folderId)) {
@@ -695,7 +705,7 @@ export default class DialogsStorage extends AppManager {
   65536
   */
   public generateDialogIndex(date?: number, isPinned?: boolean) {
-    date ??= tsNow(true) + this.timeManager.getServerTimeOffset();
+    date ??= this.timeManager.getServerTime();
     return (date * 0x10000) + (isPinned ? 0 : (++this.dialogsNum & 0xFFFF));
   }
 
@@ -2036,6 +2046,10 @@ export default class DialogsStorage extends AppManager {
     return forumTopics;
   }
 
+  public getForumTopicsCacheIfExists(peerId: PeerId) {
+    return this.forumTopics.get(peerId);
+  }
+
   public getForumTopicById(peerId: PeerId, topicId?: number): Promise<ForumTopic> {
     if(!this.appPeersManager.isForum(peerId) && !this.appPeersManager.isBotforum(peerId)) {
       return Promise.reject(makeError('CHANNEL_FORUM_MISSING'));
@@ -2090,47 +2104,68 @@ export default class DialogsStorage extends AppManager {
 
       const topicsFolder = this.getFolder(peerId);
 
-      return Promise.all([
-        this.apiManager.invokeApi('messages.getForumTopicsByID', {
-          peer: this.appPeersManager.getInputPeerById(peerId),
-          topics: ids
-        }),
-        topicsFolder.count === null && this.apiManager.invokeApi('messages.getForumTopics', {
-          peer: this.appPeersManager.getInputPeerById(peerId),
-          offset_date: 0,
-          offset_id: 0,
-          limit: 1,
-          offset_topic: 0
-        })
-      ]).then(([messagesForumTopics, allMessagesForumTopicsResult]) => {
-        if(this.getForumTopicsCache(peerId) !== cache) {
-          resolveLeft(() => false);
+      const request = async() => {
+        for(let attempt = 0; ; ++attempt) {
+          const cutoffGeneration = this.appMessagesManager.getChannelAvailableMinIdGeneration(peerId);
+          const cutoffChanged = () => attempt < CHANNEL_CUTOFF_RETRY_LIMIT &&
+            cutoffGeneration !== this.appMessagesManager.getChannelAvailableMinIdGeneration(peerId);
+          const result = await Promise.all([
+            this.apiManager.invokeApi('messages.getForumTopicsByID', {
+              peer: this.appPeersManager.getInputPeerById(peerId),
+              topics: ids
+            }),
+            topicsFolder.count === null && this.apiManager.invokeApi('messages.getForumTopics', {
+              peer: this.appPeersManager.getInputPeerById(peerId),
+              offset_date: 0,
+              offset_id: 0,
+              limit: 1,
+              offset_topic: 0
+            })
+          ]);
+          if(this.getForumTopicsCache(peerId) !== cache) {
+            resolveLeft(() => false);
+            return;
+          }
+          if(cutoffChanged()) {
+            continue;
+          }
+
+          const [messagesForumTopics, allMessagesForumTopicsResult] = result;
+          if(this.getForumTopicsCache(peerId) !== cache) {
+            resolveLeft(() => false);
+            return;
+          }
+          if(cutoffChanged()) {
+            continue;
+          }
+
+          // capture the topics the server EXPLICITLY reported as deleted before applyDialogs filters
+          // `forumTopicDeleted` out (ids here are raw server ids)
+          const deletedServerIds = new Set<number>(
+            (messagesForumTopics.topics || [])
+            .filter((topic) => topic._ === 'forumTopicDeleted')
+            .map((topic) => topic.id)
+          );
+
+          this.applyDialogs(messagesForumTopics, peerId);
+
+          if(typeof allMessagesForumTopicsResult?.count === 'number') {
+            topicsFolder.count = allMessagesForumTopicsResult.count;
+          }
+
+          messagesForumTopics.topics.forEach((forumTopic) => {
+            if(isForumTopic(forumTopic as ForumTopic)) {
+              promises[forumTopic.id]?.resolve(forumTopic as ForumTopic);
+              delete promises[forumTopic.id];
+            }
+          });
+
+          resolveLeft((encodedTopicId) => deletedServerIds.has(getServerMessageId(encodedTopicId)));
           return;
         }
+      };
 
-        // capture the topics the server EXPLICITLY reported as deleted before applyDialogs filters
-        // `forumTopicDeleted` out (ids here are raw server ids)
-        const deletedServerIds = new Set<number>(
-          (messagesForumTopics.topics || [])
-          .filter((topic) => topic._ === 'forumTopicDeleted')
-          .map((topic) => topic.id)
-        );
-
-        this.applyDialogs(messagesForumTopics, peerId);
-
-        if(typeof allMessagesForumTopicsResult?.count === 'number') {
-          topicsFolder.count = allMessagesForumTopicsResult.count;
-        }
-
-        messagesForumTopics.topics.forEach((forumTopic) => {
-          if(isForumTopic(forumTopic as ForumTopic)) {
-            promises[forumTopic.id]?.resolve(forumTopic as ForumTopic);
-            delete promises[forumTopic.id];
-          }
-        });
-
-        resolveLeft((encodedTopicId) => deletedServerIds.has(getServerMessageId(encodedTopicId)));
-      }, (error) => {
+      return request().catch((error) => {
         this.log.error('getForumTopicsByID failed, not marking topics deleted', peerId, ids, error);
         resolveLeft(() => false);
       }).then(() => {
@@ -2374,6 +2409,9 @@ export default class DialogsStorage extends AppManager {
         this.appMessagesManager.scheduleHandleNewDialogs(dialog.peerId, dialog);
       }
     }
+
+    // the Community rows of the main list take their places from its pins
+    this.appCommunitiesManager.handlePinnedDialogsOrder(folderId as REAL_FOLDER_ID);
   }
 
   // only 0 and 1 folders
@@ -2471,22 +2509,43 @@ export default class DialogsStorage extends AppManager {
         return [];
       });
       this.handleDialogsPinned(folderId, order);
-      this.appCommunitiesManager.handlePinnedDialogsOrder(folderId as REAL_FOLDER_ID);
     } else {
       type S = Modify<MessagesSavedDialogs.messagesSavedDialogs, {dialogs: Array<SavedDialog>}>;
-      let promise: Promise<MessagesPeerDialogs | S>;
+      let promise: Promise<{
+        result: MessagesPeerDialogs | S,
+        cutoffGeneration?: string | number
+      }>;
       if(isSaved) {
-        promise = this.apiManager.invokeApi('messages.getPinnedSavedDialogs') as Promise<S>;
+        promise = (this.apiManager.invokeApi('messages.getPinnedSavedDialogs') as Promise<S>)
+        .then((result) => ({result}));
       } else {
-        promise = this.apiManager.invokeApi('messages.getPinnedDialogs', {
-          folder_id: folderId
-        });
+        promise = (async() => {
+          for(let attempt = 0; ; ++attempt) {
+            const cutoffGeneration = this.appMessagesManager.getChannelAvailableMinIdGeneration();
+            const result = await this.apiManager.invokeApi('messages.getPinnedDialogs', {
+              folder_id: folderId
+            });
+            if(
+              cutoffGeneration === this.appMessagesManager.getChannelAvailableMinIdGeneration() ||
+              attempt >= CHANNEL_CUTOFF_RETRY_LIMIT
+            ) {
+              return {result, cutoffGeneration};
+            }
+          }
+        })();
       }
 
       const communityPinStateTokens = isSaved ?
         undefined :
         this.appCommunitiesManager.captureCommunityPinState();
-      promise.then((_result) => {
+      promise.then(({result: _result, cutoffGeneration}) => {
+        if(
+          cutoffGeneration !== undefined &&
+          cutoffGeneration !== this.appMessagesManager.getChannelAvailableMinIdGeneration()
+        ) {
+          this.onUpdatePinnedDialogs(update);
+          return;
+        }
         // * for test reordering and rendering
         // dialogsResult.dialogs.reverse();
 
@@ -2535,7 +2594,6 @@ export default class DialogsStorage extends AppManager {
         this.applyDialogs(result);
 
         this.handleDialogsPinned(folderId, order);
-        this.appCommunitiesManager.handlePinnedDialogsOrder(folderId as REAL_FOLDER_ID);
       });
     }
   };
@@ -2555,15 +2613,24 @@ export default class DialogsStorage extends AppManager {
     } else {
       const limit = await this.apiManager.getLimit('topicPin', true);
 
-      const promise = this.apiManager.invokeApi('messages.getForumTopics', {
-        peer: this.appPeersManager.getInputPeerById(peerId),
-        limit,
-        offset_date: 0,
-        offset_id: 0,
-        offset_topic: 0
-      });
-
-      const result = await this.processTopics(peerId, promise);
+      let result: MessagesForumTopics;
+      for(let attempt = 0; ; ++attempt) {
+        const cutoffGeneration = this.appMessagesManager.getChannelAvailableMinIdGeneration(peerId);
+        result = await this.apiManager.invokeApi('messages.getForumTopics', {
+          peer: this.appPeersManager.getInputPeerById(peerId),
+          limit,
+          offset_date: 0,
+          offset_id: 0,
+          offset_topic: 0
+        });
+        if(
+          cutoffGeneration === this.appMessagesManager.getChannelAvailableMinIdGeneration(peerId) ||
+          attempt >= CHANNEL_CUTOFF_RETRY_LIMIT
+        ) {
+          break;
+        }
+      }
+      this.processTopics(peerId, result);
 
       const topics = result.topics as ForumTopic[];
       const pinned = topics.filter((topic) => topic.pFlags.pinned);

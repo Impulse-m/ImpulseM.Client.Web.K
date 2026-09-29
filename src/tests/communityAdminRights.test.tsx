@@ -114,7 +114,8 @@ vi.mock('@lib/apiManagerProxy', () => ({
 
 vi.mock('@lib/langPack', () => ({
   default: {
-    getIsRTL: () => false
+    getIsRTL: () => false,
+    format: (key: string) => key
   },
   i18n: (key: string) => document.createTextNode(key),
   i18n_: (options: {element: HTMLElement, key: string}) => {
@@ -180,7 +181,9 @@ describe('community admin rights shared tab', () => {
       addCleanup: () => () => true
     };
     const middleware = {
-      onDestroy: vi.fn()
+      onDestroy: vi.fn(),
+      // the sections are mounted through wrapSolidComponent, which parks its dispose here
+      onClean: vi.fn()
     };
     const participant = {
       _: 'channelParticipantAdmin',

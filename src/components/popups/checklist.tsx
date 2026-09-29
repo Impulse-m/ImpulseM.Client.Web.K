@@ -17,7 +17,7 @@ import ListenerSetter from '@helpers/listenerSetter';
 import {I18nTsx} from '@helpers/solid/i18n';
 import classNames from '@helpers/string/classNames';
 import {InputMedia, Message, MessageMedia, TodoItem} from '@layer';
-import {i18n, LangPackKey} from '@lib/langPack';
+import I18n, {i18n, LangPackKey} from '@lib/langPack';
 import {wrapEmojiTextWithEntities} from '@lib/richTextProcessor/wrapEmojiText';
 
 import css from '@components/popups/checklist.module.scss';
@@ -75,6 +75,7 @@ export default function showChecklistPopup(options: ChecklistPopupOptions): void
         name: 'title',
         canBeEdited: !appending
       });
+      _titleInput.input.setAttribute('aria-label', I18n.format('NewChecklist.TitlePlaceholder', true));
 
       const updateConfirmButton = () => {
         const ok = (() => {
@@ -105,6 +106,7 @@ export default function showChecklistPopup(options: ChecklistPopupOptions): void
           maxLength: itemLengthMax,
           canBeEdited: !(existing && appending)
         });
+        field.input.setAttribute('aria-label', I18n.format('NewChecklist.TaskPlaceholder', true));
         if(existing) {
           field.setValueSilently(wrapEmojiTextWithEntities(existing.title), true);
         }
@@ -263,7 +265,7 @@ export default function showChecklistPopup(options: ChecklistPopupOptions): void
         </PopupElement.Header>
         <PopupElement.Scrollable>
           <Show when={titleInput()}>
-            <Section class={css.titleSection} noShadow noDelimiter>
+            <Section noShadow noDelimiter>
               {titleInput().container}
             </Section>
             <Section name="Checklist">
@@ -281,6 +283,7 @@ export default function showChecklistPopup(options: ChecklistPopupOptions): void
                       <ButtonIconTsx
                         class={css.itemRemoveButton}
                         icon="close"
+                        aria-label={I18n.format('Delete', true)}
                         onClick={() => removeItem?.(item.id)}
                       />
                     )}
@@ -289,7 +292,7 @@ export default function showChecklistPopup(options: ChecklistPopupOptions): void
               </For>
               <Show when={items().length < maxItems()}>
                 <Button
-                  class={`btn-transparent ${css.addTaskButton}`}
+                  class={`btn-primary btn-transparent ${css.addTaskButton}`}
                   icon="add"
                   onClick={() => addItem?.()}
                   text="ChecklistAddTask"

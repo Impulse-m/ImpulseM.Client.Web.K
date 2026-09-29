@@ -19,9 +19,6 @@ import PopupElement from '@components/popups/indexTsx';
 import wrapPeerTitle from '@components/wrappers/peerTitle';
 import {toastNew} from '@components/toast';
 import {attachClickEvent} from '@helpers/dom/clickEvent';
-import {getHeavyAnimationPromise} from '@hooks/useHeavyAnimationCheck';
-import placeCaretAtEnd from '@helpers/dom/placeCaretAtEnd';
-import shake from '@helpers/dom/shake';
 import {purchaseUsernameCaption} from '@components/sidebarLeft/tabs/purchaseUsernameCaption';
 import {ConnectedBot, User, UserFull} from '@layer';
 import {trackAvatarUpload} from '@stores/avatarUpload';
@@ -33,12 +30,8 @@ export type EditProfileTabPayload = {
   bioMaxLength: MaybePromise<number>,
   user: MaybePromise<User.user>,
   userFull: MaybePromise<UserFull.userFull>,
-  connectedBot: MaybePromise<ConnectedBot.connectedBot | undefined>,
-  focusOn?: string
+  connectedBot: MaybePromise<ConnectedBot.connectedBot | undefined>
 };
-
-const FOCUS_KEYS = ['first-name', 'last-name', 'username', 'bio'] as const;
-type FocusKey = typeof FOCUS_KEYS[number];
 
 const EditProfileTab = () => {
   const [tab] = useSuperTab<AppEditProfileTabType>();
@@ -57,7 +50,7 @@ const EditProfileTab = () => {
 
   return (
     <Show when={data()}>
-      <EditProfileForm data={data()} connectedBot={payload.connectedBot} focusOn={payload.focusOn} />
+      <EditProfileForm data={data()} connectedBot={payload.connectedBot} />
     </Show>
   );
 };
@@ -72,8 +65,7 @@ type FormData = {
 
 const EditProfileForm = (props: {
   data: FormData,
-  connectedBot: MaybePromise<ConnectedBot.connectedBot | undefined>,
-  focusOn?: string
+  connectedBot: MaybePromise<ConnectedBot.connectedBot | undefined>
 }) => {
   const [tab] = useSuperTab<AppEditProfileTabType>();
   const {user, userFull, bioMaxLength} = props.data;
@@ -298,25 +290,6 @@ const EditProfileForm = (props: {
     bioInputField.setOriginalValue(userFull.about, true);
     usernameInputField.setOriginalValue(getPeerEditableUsername(user), true);
     editPeer.handleChange();
-
-    const focusOn = props.focusOn as FocusKey | 'set-photo' | undefined;
-    if(!focusOn) return;
-
-    getHeavyAnimationPromise().then(() => {
-      const focusMap: Record<FocusKey, InputField | undefined> = {
-        'first-name': firstNameInputField,
-        'last-name': lastNameInputField,
-        'username': usernameInputField,
-        'bio': bioInputField
-      };
-
-      const target = focusMap[focusOn as FocusKey];
-      if(target) {
-        placeCaretAtEnd(target.input);
-      } else if(focusOn === 'set-photo') {
-        shake(editPeer.avatarElem.node);
-      }
-    });
   });
 
   return (

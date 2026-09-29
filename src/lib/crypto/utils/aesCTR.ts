@@ -55,6 +55,13 @@ export default class CTR {
     return arrayBuffer;
   }
 
+  // * concatenate with the helper, NOT with `Uint8Array.prototype.concat` from
+  // * `@lib/polyfill`: the queue is drained by a fire-and-forget `release()`, so an
+  // * `_update` can outlive every caller awaiting it, and the polyfill only patches
+  // * whichever `Uint8Array` was the global one when it was imported. Under vitest's
+  // * jsdom environment that is fatal — the patch lands on jsdom's `Uint8Array`,
+  // * teardown puts Node's unpatched one back, and a leftover chunk then dies on an
+  // * unhandled `.concat is not a function`.
   private async _update(data: Uint8Array) {
     let toEncrypt = data;
     let head: Uint8Array/* , tail: Uint8Array */;

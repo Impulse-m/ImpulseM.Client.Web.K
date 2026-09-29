@@ -1,17 +1,16 @@
-import {onCleanup, onMount} from 'solid-js';
+import {JSX, createSignal, onCleanup, onMount} from 'solid-js';
 
 import Button from '@components/buttonTsx';
 import CodeInputFieldCompat from '@components/codeInputField';
-import {wrapEmailPattern} from '@components/popups/emailSetup';
+import {wrapEmailPattern} from '@components/emailVerification';
 import MediaHeader from '@components/mediaHeader';
-import focusWhenConnected from '@helpers/dom/focusWhenConnected';
-import replaceContent from '@helpers/dom/replaceContent';
+import focusWhenSettled from '@helpers/dom/focusWhenSettled';
 import mediaSizes from '@helpers/mediaSizes';
 import {i18n} from '@lib/langPack';
 
 import AuthCard from '@/pages/AuthCard';
+import AuthCardError from '@/pages/AuthCardError';
 import {CardSpec, useAuthFlow} from '@/pages/authFlow';
-import styles from '@/pages/authFlow.module.scss';
 
 if(import.meta.hot) import.meta.hot.accept();
 
@@ -29,14 +28,14 @@ export default function EmailRecoverCard(props: {spec: Spec}) {
 
   /* ---------- inputs ---------- */
 
-  const codeInputErrorLabel = document.createElement('div');
-  codeInputErrorLabel.classList.add(styles.errorLabel);
+  const [errorContent, setErrorContent] = createSignal<JSX.Element>();
 
   const codeInputField = new CodeInputFieldCompat({
     length: 6,
+    label: 'AccDescr.EmailCode',
     onChange: () => {
       codeInputField.error = false;
-      replaceContent(codeInputErrorLabel, '');
+      setErrorContent(undefined);
     },
     onFill: (code) => {
       managers.passwordManager.confirmPasswordResetEmail(code).then(() => {
@@ -46,10 +45,10 @@ export default function EmailRecoverCard(props: {spec: Spec}) {
         codeInputField.value = '';
 
         if(err.type === 'CODE_INVALID') {
-          replaceContent(codeInputErrorLabel, i18n('PHONE_CODE_INVALID'));
+          setErrorContent(i18n('PHONE_CODE_INVALID'));
         } else {
           console.log('error', err);
-          replaceContent(codeInputErrorLabel, i18n('Error.AnError'));
+          setErrorContent(i18n('Error.AnError'));
         }
       });
     }
@@ -59,7 +58,7 @@ export default function EmailRecoverCard(props: {spec: Spec}) {
 
   let cancelFocus: (() => void) | undefined;
   onMount(() => {
-    cancelFocus = focusWhenConnected(codeInputField.input);
+    cancelFocus = focusWhenSettled(codeInputField.input);
   });
 
   onCleanup(() => {
@@ -69,11 +68,10 @@ export default function EmailRecoverCard(props: {spec: Spec}) {
 
   return (
     <AuthCard
-      class={styles.pageEmailRecover}
       header={
         <MediaHeader>
           <MediaHeader.Sticker name="Mailbox" size={stickerSize}/>
-          <MediaHeader.Title>{i18n('Login.ResetPassword.Title')}</MediaHeader.Title>
+          <MediaHeader.Title tag="h1">{i18n('Login.ResetPassword.Title')}</MediaHeader.Title>
           <MediaHeader.Subtitle>
             {i18n('Login.ResetPassword.Subtitle', [wrapEmailPattern(props.spec.payload.email_pattern)])}
           </MediaHeader.Subtitle>
@@ -81,7 +79,7 @@ export default function EmailRecoverCard(props: {spec: Spec}) {
       }
     >
       {codeInputField.container}
-      {codeInputErrorLabel}
+      <AuthCardError content={errorContent()} describes={codeInputField.input} />
       <Button
         class="btn-primary btn-secondary btn-primary-transparent primary"
         onClick={() => navigate({name: 'password'})}

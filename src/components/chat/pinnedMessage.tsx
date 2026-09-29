@@ -1,5 +1,5 @@
 import type ChatTopbar from '@components/chat/topbar';
-import PopupPinMessage from '@components/popups/unpinMessage';
+import showPinMessagePopup from '@components/popups/unpinMessage';
 import PinnedMessageBorder from '@components/chat/pinnedMessageBorder';
 import {wrapReplyDivAndCaption} from '@components/chat/replyContainer';
 import rootScope from '@lib/rootScope';
@@ -14,7 +14,6 @@ import debounce from '@helpers/schedulers/debounce';
 import throttle from '@helpers/schedulers/throttle';
 import {AppManagers} from '@lib/managers';
 import {logger} from '@lib/logger';
-import PopupElement from '@components/popups';
 import {AnimatedSuper} from '@components/animatedSuper';
 import {AnimatedCounter} from '@components/animatedCounter';
 import {isMessageSensitive} from '@appManagers/utils/messages/isMessageRestricted';
@@ -24,7 +23,7 @@ import {getMiddleware, MiddlewareHelper} from '@helpers/middleware';
 import {getKeyboardButtonHandler} from '@components/wrappers/keyboardButton';
 import getTextWidth from '@helpers/canvas/getTextWidth';
 import {FontFullBold} from '@config/font';
-import {KeyboardButton, Message} from '@layer';
+import {KeyboardInlineButton, Message} from '@layer';
 import TopbarPlate, {createTopbarPlate, TopbarPlateController} from '@components/chat/topbarPlate';
 import {createSignal, JSX} from 'solid-js';
 import classNames from '@helpers/string/classNames';
@@ -176,6 +175,7 @@ export default function createChatPinnedMessage(
   // ────────────────────────────────────────────────────────────────────────
 
   const menu = ButtonMenuToggle({
+    buttonOptions: {ariaLabel: 'MultiAccount.More'},
     direction: 'bottom-right',
     buttons: [{
       icon: 'pinlist',
@@ -188,14 +188,14 @@ export default function createChatPinnedMessage(
       icon: 'unpin',
       text: 'UnpinMessage',
       onClick: () => {
-        PopupElement.createPopup(PopupPinMessage, chat.peerId, pinnedMid, true, undefined, chat.threadId);
+        showPinMessagePopup(chat.peerId, pinnedMid, true, undefined, chat.threadId);
       },
       verify: () => managers.appPeersManager.canPinMessage(chat.peerId)
     }, {
       icon: 'eyecross',
       text: 'Popup.Unpin.HideTitle',
       onClick: () => {
-        PopupElement.createPopup(PopupPinMessage, chat.peerId, 0, true, undefined, chat.threadId);
+        showPinMessagePopup(chat.peerId, 0, true, undefined, chat.threadId);
       },
       verify: async() => !(await managers.appPeersManager.canPinMessage(chat.peerId))
     }],
@@ -204,12 +204,11 @@ export default function createChatPinnedMessage(
   });
   menu.classList.add('pinned-message-menu');
 
-  const btnUnpin = ButtonIcon('close pinned-message-unpin');
+  const btnUnpin = ButtonIcon('close pinned-message-unpin', {ariaLabel: 'UnpinMessage'});
   attachClickEvent(btnUnpin, async(e) => {
     cancelEvent(e);
     const canPin = await managers.appPeersManager.canPinMessage(chat.peerId);
-    PopupElement.createPopup(
-      PopupPinMessage,
+    showPinMessagePopup(
       chat.peerId,
       canPin ? pinnedMid : 0,
       true,
@@ -658,7 +657,7 @@ export default function createChatPinnedMessage(
     setIsMany(count > 1);
   }
 
-  function getSingleInlineButton(message?: Message.message): KeyboardButton | undefined {
+  function getSingleInlineButton(message?: Message.message): KeyboardInlineButton | undefined {
     const replyMarkup = message?.reply_markup;
     if(replyMarkup?._ !== 'replyInlineMarkup') return;
     const rows = replyMarkup.rows;
@@ -683,7 +682,7 @@ export default function createChatPinnedMessage(
     // preview type produces an action here. Labelled `PinnedJoinCall`.
     const media = message?.media;
     const webPage = media?._ === 'messageMediaWebPage' ? media.webpage : undefined;
-    const onCallClick = webPage && getWebPageActionOnClick(webPage, ['telegram_call']);
+    const onCallClick = webPage && getWebPageActionOnClick(webPage, ['telegram_call'], message.fromId);
 
     if(onCallClick) {
       buttonText = I18n.format('PinnedJoinCall', true);

@@ -11,7 +11,7 @@ import usePremium from '@stores/premium';
 import ButtonMenuToggle from '@components/buttonMenuToggle';
 import Icon from '@components/icon';
 import showPickUserPopup from '@components/popups/pickUser';
-import PopupPremium from '@components/popups/premium';
+import showPremiumPopup from '@components/popups/premium';
 import RowTsx from '@components/rowTsx';
 import {wrapSolidComponent} from '@helpers/solid/wrapSolidComponent';
 import Chat from '@components/chat/chat';
@@ -131,6 +131,7 @@ function TranslationPlateBody(props: {
   const listenerSetter = new ListenerSetter();
   const menu = ButtonMenuToggle({
     direction: 'bottom-left',
+    buttonOptions: {ariaLabel: 'MultiAccount.More'},
     buttons: [{
       icon: 'premium_translate',
       text: 'Chat.Translate.Menu.To',
@@ -171,7 +172,7 @@ function TranslationPlateBody(props: {
         onClick={() => {
           const translation = peerTranslation();
           if(!translation.canTranslate()) {
-            PopupPremium.show({feature: 'translations'});
+            showPremiumPopup({feature: 'translations'});
             return;
           }
           translation.toggle(!translation.enabled());

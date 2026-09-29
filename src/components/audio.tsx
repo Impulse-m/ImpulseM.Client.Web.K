@@ -1,7 +1,9 @@
 import type {MyDocument} from '@appManagers/appDocsManager';
 import ProgressivePreloader from '@components/preloader';
 import appMediaPlaybackController, {MediaItem, MediaListLoaderFactory, MediaSearchContext} from '@components/appMediaPlaybackController';
-import {DocumentAttribute, Message} from '@layer';
+import {Message} from '@layer';
+import getAudioAttribute from '@appManagers/utils/docs/getAudioAttribute';
+import getAudioTitles from '@appManagers/utils/docs/getAudioTitles';
 import mediaSizes from '@helpers/mediaSizes';
 import {IS_SAFARI} from '@environment/userAgent';
 import rootScope from '@lib/rootScope';
@@ -12,7 +14,7 @@ import deferredPromise, {CancellablePromise} from '@helpers/cancellablePromise';
 import ListenerSetter, {Listener} from '@helpers/listenerSetter';
 import noop from '@helpers/noop';
 import findUpClassName from '@helpers/dom/findUpClassName';
-import {joinElementsWith} from '@lib/langPack';
+import I18n, {joinElementsWith} from '@lib/langPack';
 import {MiddleEllipsisElement} from '@components/middleEllipsis';
 import {formatFullSentTime} from '@helpers/date';
 import throttleWithRaf from '@helpers/schedulers/throttleWithRaf';
@@ -215,9 +217,11 @@ function AudioRow(props: {
       }}
     >
       {/* The play button IS the row's media: same 48x48 slot every other Row puts an avatar in. */}
-      <Row.Media size="big" class="audio-toggle" ref={props.ref}>
-        <div class="audio-play-icon" ref={props.playIconRef} />
-      </Row.Media>
+      <Row.Media size="big" element={(
+        <button type="button" class="audio-toggle" ref={props.ref} aria-label={I18n.format('Play', true)}>
+          <div class="audio-play-icon" ref={props.playIconRef} aria-hidden="true" />
+        </button>
+      ) as HTMLElement} />
       {/* Row.Title / Row.Subtitle read RowContext, so their JSX has to be evaluated inside Row —
         hence a factory rather than ready-made nodes. */}
       {props.content()}
@@ -234,7 +238,7 @@ async function wrapVoiceMessage(ctx: AudioRowContext): Promise<WrappedAudio> {
     setState('isOut', true);
   }
 
-  let waveform = (doc.attributes.find((attribute) => attribute._ === 'documentAttributeAudio') as DocumentAttribute.documentAttributeAudio)?.waveform || new Uint8Array([]);
+  let waveform = getAudioAttribute(doc)?.waveform || new Uint8Array([]);
   waveform = decodeWaveform(waveform.slice(0, 63));
 
   const {svg, container: svgContainer, availW} = createWaveformBars(waveform, doc.duration);
@@ -384,10 +388,10 @@ async function wrapAudio(ctx: AudioRowContext): Promise<WrappedAudio> {
   const descriptionEl = document.createElement('div');
   descriptionEl.classList.add('audio-description');
 
-  const audioAttribute = doc.attributes?.find((attr) => attr._ === 'documentAttributeAudio') as DocumentAttribute.documentAttributeAudio;
+  const titles = getAudioTitles(doc);
 
   // the performer rides in the title next to the track name, so the description is what is left
-  const performer = !isVoice && audioAttribute?.performer;
+  const performer = !isVoice && titles?.performer;
 
   // the duration sits in front of the description, so the description opens with a separator
   if(!isVoice) {
@@ -410,7 +414,7 @@ async function wrapAudio(ctx: AudioRowContext): Promise<WrappedAudio> {
   if(isVoice) {
     middleEllipsisEl.append(await wrapSenderToPeer(message));
   } else {
-    setInnerHTML(middleEllipsisEl, wrapEmojiText(audioAttribute?.title ?? doc.file_name));
+    setInnerHTML(middleEllipsisEl, wrapEmojiText(titles?.title));
   }
 
   const sentTime = options.showSender && wrapSentTime(message);
@@ -677,6 +681,7 @@ export default async function createAudioElement(options: AudioElementOptions): 
   const syncPlayState = (animate?: boolean) => {
     const playing = !!el.audio && !el.audio.paused;
     toggle.classList.toggle('playing', playing);
+    toggle.setAttribute('aria-label', I18n.format(playing ? 'Pause' : 'Play', true));
     setPlayIcon(playing, animate);
   };
 

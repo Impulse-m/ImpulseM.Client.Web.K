@@ -18,6 +18,24 @@
   transition: background-color var(--chatlist-badge-transition-in), transform var(--chatlist-badge-transition-in);
 }
 
+// * where the selection's checkbox sits at the start of a row, and how far the row's contents move
+// * past it: the checkbox, then the same gap the peer picker leaves after its own. A row can move
+// * them further (`--select-lane-shift`), and the slide into the lane follows whatever it is.
+$select-checkbox-inset: .75rem;
+$select-lane-shift: var(--select-lane-shift, #{1.5rem + .625rem});
+
+// what the row's contents come from when the lane opens under them, and go back to when it closes
+@each $name, $direction in (
+  slide-from-checkbox-lane: -1,
+  slide-to-checkbox-lane: 1
+) {
+  @keyframes #{$name} {
+    from {
+      transform: translateX(calc(#{$select-lane-shift} * #{$direction} * var(--reflect)));
+    }
+  }
+}
+
 @mixin dialog-badge-transition-animating-backwards() {
   transition: background-color var(--chatlist-badge-transition-out), transform var(--chatlist-badge-transition-out), opacity var(--chatlist-badge-transition-out);
 }
@@ -104,6 +122,123 @@ ul.chatlist {
       // --background: var(--light-secondary-text-color);
       --background: var(--light-filled-secondary-text-color);
     }
+
+    // * the main list's avatar is the larger one, and stands a little further off the checkbox
+    &.chatlist-chat-bigger {
+      --select-lane-shift: #{1.5rem + .625rem + .25rem};
+    }
+
+    // * a row being selected (`DialogsSelectionBase`) wears its checkbox at its start, in a lane it
+    // * opens for it, and it looks like the peer picker's too - so a selected row is marked by the
+    // * checkbox alone. Only this checkbox: the picker's rows are `chatlist-chat` as well, and style
+    // * their own (`_selector.scss`)
+    .dialog-select-checkbox {
+      position: absolute;
+      z-index: 2;
+      margin: 0;
+      inset-inline-start: $select-checkbox-inset;
+      top: 50%;
+      transform: translateY(-50%);
+      // the row under it is the click target; the checkbox only shows what the selection holds
+      pointer-events: none;
+
+      // the fill of a checked one covers the ring, as in the picker
+      .checkbox-box-border {
+        z-index: unset;
+      }
+    }
+
+    // * the lane opens at once, with no transition on the margins: laying the row out again on every
+    // * frame is what that would cost, and a row carries custom emoji - their renderer measures what
+    // * it draws, so the whole list crawls. The contents catch up with a transform instead (below),
+    // * which is composited and costs no layout. It also leaves the row's own `transition` alone -
+    // * that one belongs to the reorder, which slides the rows by transform.
+    &.has-select-checkbox:not(.is-leaving-selection) {
+      .dialog-title,
+      .dialog-subtitle {
+        margin-inline-start: $select-lane-shift;
+      }
+
+      // `.row-media` pins its margins, as the picker's own `.row-selection-media` has it too
+      .dialog-avatar {
+        margin-inline-start: $select-lane-shift !important;
+      }
+    }
+
+    // * The checkbox is put on the row when the mode starts and taken off when it ends, so its
+    // * appearance is an animation rather than a transition - there is no earlier state to move
+    // * from. It plays off the mark the LIST wears while the mode is turning on or off, so a row
+    // * that merely scrolls into view meanwhile comes up with the checkbox already there.
+    // * `DialogsSelectionBase` holds the app's own animations back while this runs.
+    .is-selection-animating & .dialog-select-checkbox {
+      @include animation-level(2) {
+        animation: fade-in-opacity var(--transition-standard-in) forwards;
+      }
+    }
+
+    // * the row keeps the checkbox until it has faded out (`DialogsSelectionBase` takes it off at
+    // * the end), so the mode leaves the way it came
+    .is-selection-animating &.is-leaving-selection .dialog-select-checkbox {
+      @include animation-level(2) {
+        animation: fade-in-backwards-opacity var(--transition-standard-in) forwards;
+      }
+    }
+
+    // * The contents catch up with the lane off the same mark: a row that merely scrolls into view
+    // * while the mode is already on has nothing to catch up with, its lane is simply there. Two
+    // * animations rather than one with the shift in a variable: a row leaving the mode before it is
+    // * done coming into it has to start over from where it is, and only a new name restarts one
+    .is-selection-animating &.has-select-checkbox {
+      --checkbox-lane-animation: slide-from-checkbox-lane;
+
+      &.is-leaving-selection {
+        --checkbox-lane-animation: slide-to-checkbox-lane;
+      }
+
+      @include animation-level(2) {
+        .dialog-avatar,
+        .dialog-title,
+        .dialog-subtitle {
+          animation: var(--checkbox-lane-animation) var(--transition-standard-in);
+        }
+      }
+    }
+
+    // * while the list can be reordered (see REORDERABLE_LIST_CLASS_NAME) its pinned rows say so:
+    // * the grip takes the place of the time and the badges, as it does on the Android cell that
+    // * can be dragged. `.row-sortable-icon` is the same grip every other sortable row wears.
+    // * The two are faded rather than taken out, so the title keeps the width it had.
+    .is-reorderable &.is-pinned {
+      .row-sortable-icon {
+        opacity: 1;
+      }
+
+      .dialog-title-details,
+      .dialog-subtitle-badge {
+        opacity: 0;
+      }
+    }
+
+    // * this one is deliberately no narrower than the row: `.dialog-subtitle-badge` carries its own
+    // * transition while it animates (`dialog-badge-transition`), and that rule wins only while
+    // * this one weighs the same - qualifying this with `.is-pinned` would outweigh it and take
+    // * the badge's own appearance away
+    .row-sortable-icon,
+    .dialog-title-details,
+    .dialog-subtitle-badge {
+      @include animation-level(2) {
+        transition: opacity var(--transition-standard-in);
+      }
+    }
+
+    // * the pinned block is reordered by dragging one of its rows (attachPinnedDialogsReorder):
+    // * the dragged row is lifted above the rest, the ones making way for it slide
+    &.is-dragging {
+      --background: var(--surface-color);
+      z-index: 2;
+    }
+
+    @include sortable-item-transition();
 
     &.is-muted {
       body:not(.animation-level-0) & {
@@ -446,9 +581,12 @@ ul.chatlist {
     // flex: 1 1 auto;
     max-height: 36.375rem;
 
+    .sidebar-left-section-container {
+      padding-bottom: 0;
+    }
+
     .sidebar-left-section {
       padding-bottom: 0;
-      margin-bottom: 0 !important;
 
       /* &-name {
         padding-top: 1rem !important;

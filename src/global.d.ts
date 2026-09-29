@@ -144,17 +144,17 @@ declare global {
     'video/mp4' | 'image/webp' | 'audio/mpeg' | 'audio/ogg' | 'application/octet-stream' |
     'application/x-tgsticker' | 'video/webm' | 'image/svg+xml' | 'image/png' | 'application/json' |
     'application/x-tgwallpattern' | 'audio/wav' | 'image/avif' | 'image/jxl' | 'image/bmp' |
-    'application/x-mpegurl' | 'application/x-tgstoryboard' | 'application/x-tgstoryboardmap';
+    'image/heic' | 'application/x-mpegurl' | 'application/x-tgstoryboard' | 'application/x-tgstoryboardmap';
 
   type MTFileExtension = 'mov' | 'gif' | 'pdf' | 'jpg' | 'jpeg' | 'wav' |
     'tgv' | 'tgs' | 'svg' | 'mp4' | 'webm' | 'webp' | 'mp3' | 'ogg' | 'json' |
-    'png' | 'avif' | 'jxl' | 'bmp';
+    'png' | 'avif' | 'jxl' | 'bmp' | 'heic' | 'heif';
 
   type ApiFileManagerError = 'DOWNLOAD_CANCELED' | 'UPLOAD_CANCELED' | 'FILE_TOO_BIG' | 'REFERENCE_IS_NOT_REFRESHED';
   type StorageError = 'STORAGE_OFFLINE' | 'NO_ENTRY_FOUND' | 'IDB_CREATE_TIMEOUT';
   type ReferenceError = 'NO_NEW_CONTEXT' | 'NO_CONTEXT';
-  type NetworkerError = 'NETWORK_BAD_RESPONSE' | 'NETWORK_BAD_REQUEST';
-  type FiltersError = 'PINNED_DIALOGS_TOO_MUCH';
+  type NetworkerError = 'NETWORK_BAD_RESPONSE' | 'NETWORK_BAD_REQUEST' | 'BIND_FAILED';
+  type FiltersError = 'PINNED_DIALOGS_TOO_MUCH' | 'PINNED_DIALOGS_CHANGED';
   type LottieError = 'FRAME_OUT_OF_RANGE' | 'ITEM_DESTROYED' | 'FILE_INVALID';
 
   type LocalFileError = ApiFileManagerError | ReferenceError | StorageError;
@@ -207,6 +207,8 @@ declare global {
     | 'CHANNEL_ALREADY_LINKED'
     | 'COMMUNITY_REQUEST_CREATED'
     | 'COMMUNITY_PEERS_TOO_MUCH'
+    | 'USER_WAS_KICKED'
+    | 'FRESH_CHANGE_AUTHORIZATION_FORBIDDEN'
     ;
 
   type ErrorType = LocalErrorType | ServerErrorType;

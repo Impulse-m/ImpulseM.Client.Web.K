@@ -15,7 +15,8 @@ import copy from '@helpers/object/copy';
 import deepEqual from '@helpers/object/deepEqual';
 import filterAsync from '@helpers/array/filterAsync';
 import {attachClickEvent} from '@helpers/dom/clickEvent';
-import SettingSection from '@components/settingSection';
+import Section, {appendSectionContent} from '@components/section';
+import {unwrapSolidElement} from '@helpers/solid/wrapSolidComponent';
 import {DialogFilter, ExportedChatlistInvite} from '@layer';
 import rootScope from '@lib/rootScope';
 import {useAppSettings} from '@stores/appSettings';
@@ -74,7 +75,7 @@ const EditFolder: Component = () => {
   };
 
   const toggleExcludedPeers = () => {
-    excludePeerIds.container.classList.toggle('hide', filter?._ === 'dialogFilterChatlist');
+    excludePeerIds.classList.toggle('hide', filter?._ === 'dialogFilterChatlist');
   };
 
   const onCreateOpen = () => {
@@ -189,10 +190,10 @@ const EditFolder: Component = () => {
         if(_tempId !== tempId) return;
 
         return () => {
-          section.generateContentElement().append(ul);
+          appendSectionContent(section).append(ul);
 
           if(showMore && peers.length) {
-            const content = section.generateContentElement();
+            const content = appendSectionContent(section);
             content.append(showMore);
           }
         };
@@ -270,7 +271,7 @@ const EditFolder: Component = () => {
   tempId = 0;
   showMoreClicked = {};
 
-  const confirmBtn = ButtonIcon('check btn-confirm hide blue');
+  const confirmBtn = ButtonIcon('check btn-confirm hide blue', {ariaLabel: 'Save'});
   let deleting = false;
   const deleteFolderButton: ButtonMenuItemOptions = {
     icon: 'delete',
@@ -291,6 +292,7 @@ const EditFolder: Component = () => {
   const menuBtn = ButtonMenuToggle({
     listenerSetter: tab.listenerSetter,
     direction: 'bottom-left',
+    buttonOptions: {ariaLabel: 'MultiAccount.More'},
     buttons: [deleteFolderButton]
   });
   menuBtn.classList.add('hide');
@@ -299,10 +301,6 @@ const EditFolder: Component = () => {
 
   const [appSettings] = useAppSettings();
   const hasFoldersSidebar = appSettings.tabsInSidebar;
-  const inputSection = new SettingSection({
-    caption: hasFoldersSidebar ? 'EditFolder.EmojiAsIconTip' : undefined
-  });
-
   const nameInputField = new EditFolderInput;
   nameInputField.HotReloadGuard = HotReloadGuard;
   nameInputField.classList.add('input-wrapper');
@@ -314,7 +312,15 @@ const EditFolder: Component = () => {
     }
   });
 
-  inputSection.content.append(nameInputField);
+  // `unwrapSolidElement`, not a bare cast: the dev server wraps every component
+  // in a memo for hot reload, so `<Section/>` is a function there and an element
+  // in a production build. This code keeps the value and reaches into it with
+  // `querySelector`, so it needs the node either way.
+  const inputSection = unwrapSolidElement(
+    <Section caption={hasFoldersSidebar ? 'EditFolder.EmojiAsIconTip' : undefined}>
+      {nameInputField}
+    </Section>
+  ) as HTMLElement;
 
   const generateList = (
     className: string,
@@ -323,15 +329,17 @@ const EditFolder: Component = () => {
     to: any,
     captionKey?: LangPackKey
   ) => {
-    const section = new SettingSection({
-      name: h2Text,
-      caption: captionKey,
-      noDelimiter: true
-    });
+    const section = unwrapSolidElement(
+      <Section
+        class={`folder-list ${className}`}
+        name={h2Text}
+        caption={captionKey}
+        noDelimiter
+      />
+    ) as HTMLElement;
 
-    section.container.classList.add('folder-list', className);
-
-    const categories = section.generateContentElement();
+    // the buttons get a content element of their own — `.folder-categories` is queried by class
+    const categories = appendSectionContent(section);
     categories.classList.add('folder-categories');
 
     buttons.forEach((o, idx) => {
@@ -406,16 +414,16 @@ const EditFolder: Component = () => {
   tab.scrollable.append(
     stickerContainer,
     caption,
-    inputSection.container,
-    includePeerIds.container,
-    excludePeerIds.container,
-    inviteLinks.container
+    inputSection,
+    includePeerIds,
+    excludePeerIds,
+    inviteLinks
   );
 
   toggleExcludedPeers();
-  const includedFlagsContainer = includePeerIds.container.querySelector('.folder-categories');
-  const excludedFlagsContainer = excludePeerIds.container.querySelector('.folder-categories');
-  const inviteLinksCreate = inviteLinks.container.querySelector('.btn') as HTMLElement;
+  const includedFlagsContainer = includePeerIds.querySelector('.folder-categories');
+  const excludedFlagsContainer = excludePeerIds.querySelector('.folder-categories');
+  const inviteLinksCreate = inviteLinks.querySelector('.btn') as HTMLElement;
 
   attachClickEvent(includedFlagsContainer.querySelector('.btn') as HTMLElement, () => {
     tab.slider.createTab(AppIncludedChatsTab).open({filter, type: 'included', onSetFilter: (f) => setFilter(f, false)});
@@ -541,7 +549,7 @@ const EditFolder: Component = () => {
     }).then((chatlistInvites) => {
       const CLASS_NAME = 'usernames';
 
-      const content = inviteLinks.generateContentElement();
+      const content = appendSectionContent(inviteLinks);
       const map: Map<HTMLElement, ExportedChatlistInvite> = new Map();
       type InviteRow = {
         container: HTMLElement,

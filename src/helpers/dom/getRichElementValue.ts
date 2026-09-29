@@ -6,7 +6,7 @@
  */
 
 import {MessageEntity} from '@layer';
-import matchUrlProtocol from '@lib/richTextProcessor/matchUrlProtocol';
+import {normalizeUrlProtocol} from '@lib/richTextProcessor/matchUrlProtocol';
 import {BOM_REG_EXP} from '@helpers/string/bom';
 import {ENTITY_ELEMENT_MAP} from '@lib/richTextProcessor/wrapRichText';
 
@@ -204,10 +204,7 @@ function checkElementForEntity(
             throw 1;
           }
 
-          let url2Before = value;
-          if(!matchUrlProtocol(url2Before)) {
-            url2Before = 'https://' + url2Before;
-          }
+          const url2Before = normalizeUrlProtocol(value);
 
           let url2: URL;
           let url2String: string;
@@ -232,11 +229,19 @@ function checkElementForEntity(
         entity.length += value.length;
       }
     } else if(tag.entityName === 'messageEntityMentionName') {
+      // `data-follow` also arrives with pasted HTML, so it is untrusted: only a
+      // numeric user id becomes an entity — a missing one used to throw here and
+      // any other value reached `getUserInput` as NaN, i.e. as `inputUserSelf`.
+      const follow = (closest as HTMLElement).dataset.follow;
+      if(!/^\d+$/.test(follow) || !+follow) {
+        continue;
+      }
+
       (currentEntities[tag.entityName] ||= pushEntity(entities, {
         _: tag.entityName,
         offset: offset.offset,
         length: 0,
-        user_id: (closest as HTMLElement).dataset.follow.toUserId()
+        user_id: follow.toUserId()
       })).length += value.length;
     } else if(tag.entityName === 'messageEntityBlockquote') {
       (currentEntities[tag.entityName] ||= pushEntity(entities, {

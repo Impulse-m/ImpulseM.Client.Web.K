@@ -1,6 +1,8 @@
 import {IconTsx} from '@components/iconTsx';
 import styles from '@components/sidebarRight/tabs/adminRecentActions/logEntry.module.scss';
 import {formatDate} from '@helpers/date';
+import I18n from '@lib/langPack';
+import {Dynamic} from 'solid-js/web';
 import {HeightTransition} from '@helpers/solid/heightTransition';
 import {createSignal, JSX, Show} from 'solid-js';
 
@@ -23,18 +25,32 @@ export const LogEntry = (props: LogEntryProps) => {
   const [hasRunningAnimations, setHasRunningAnimations] = createSignal(false);
 
   return (
-    <div class={styles.Container} onClick={(e) => {
-      if(e.target.closest('.interactable')) return;
-      !hasRunningAnimations() && props.onExpandedChange?.(!props.expanded);
-    }}>
+    <div
+      class={styles.Container}
+      onClick={(e) => {
+        if(e.target.closest('.interactable')) return;
+        !hasRunningAnimations() && props.onExpandedChange?.(!props.expanded);
+      }}
+    >
       <div class={styles.Header}>
-        <div class={styles.Icon}><IconTsx icon={props.icon} /></div>
+        <Dynamic
+          component={props.onExpandedChange ? 'button' : 'div'}
+          type={props.onExpandedChange ? 'button' : undefined}
+          class={styles.Icon}
+          aria-label={props.onExpandedChange ? I18n.format('AccDescr.LogEntryDetails', true) : undefined}
+          aria-expanded={props.onExpandedChange ? !!props.expanded : undefined}
+        ><IconTsx icon={props.icon} /></Dynamic>
         <div class={styles.Group}>
           <div class={styles.PeerTitle}>
-            <div class={`${styles.PeerTitleText} interactable`} onClick={props.onPeerTitleClick}>
+            <Dynamic
+              component={props.onPeerTitleClick ? 'button' : 'div'}
+              type={props.onPeerTitleClick ? 'button' : undefined}
+              class={`${styles.PeerTitleText} interactable`}
+              onClick={props.onPeerTitleClick}
+            >
               <div class={styles.PeerTitleTextClickArea} />
               {props.peerTitle}
-            </div>
+            </Dynamic>
           </div>
           <HeightTransition onRunningAnimations={value => setHasRunningAnimations(!!value)}>
             <Show when={!props.expanded}>
@@ -52,9 +68,7 @@ export const LogEntry = (props: LogEntryProps) => {
         <Show when={props.expanded}>
           <div class={styles.ExpandableContentWrapper}>
             <div class={styles.ExpandableContent}>
-              <div class={styles.ExpandableContentTitle} classList={{
-                [styles.offset]: props.offsetTitle
-              }}>
+              <div class={styles.ExpandableContentTitle}>
                 {props.message}
               </div>
               <Show when={props.expandableContent}>

@@ -14,6 +14,7 @@ import {ColoredBrushType} from '@components/mediaEditor/context';
 import {FontKey} from '@components/mediaEditor/types';
 import type {BotConnectionReview} from '@appManagers/appBusinessManager';
 import type {UnconfirmedAuthorization} from '@appManagers/appAccountManager';
+import type {ContactsSortMode} from '@appManagers/utils/users/sortContacts';
 
 // Factory tinted ("Dark") collapses onto the first base-color preset (blue) so the accent picker
 // can omit a separate "default" swatch — resetting to factory now reaches the same state the user
@@ -58,6 +59,9 @@ export type AutoDownloadPeerTypeSettings = {
 export type StateSettings = {
   messagesTextSize: number,
   distanceUnit: 'kilometers' | 'miles',
+  // Only written once the reader flips a story's weather widget; until then the unit follows the
+  // locale, so there is nothing to store and no settings row to show (same as tdesktop).
+  temperatureUnit?: 'celsius' | 'fahrenheit',
   sendShortcut: 'enter' | 'ctrlEnter',
   animationsEnabled?: boolean, // ! DEPRECATED
   autoDownload: {
@@ -93,6 +97,7 @@ export type StateSettings = {
   background?: Background, // ! DEPRECATED
   themes: AppTheme[],
   theme: AppTheme['name'],
+  increaseContrast: boolean,
   // Last explicitly-picked theme variant on each side. The burger-menu Dark-Mode toggle uses
   // these so toggling away and back returns to the same variant (e.g. tinted ↔ classic ↔ tinted)
   // instead of always flipping to the legacy night/classic pair. Updated in themeController on
@@ -100,6 +105,12 @@ export type StateSettings = {
   lastThemeNames: {
     dark: Extract<AppTheme['name'], 'night' | 'tinted'>,
     light: Extract<AppTheme['name'], 'day' | 'light'>
+  },
+  // Empty-column tip cards (@components/chatTips): which tip is showing, and whether the deck is
+  // collapsed to the "select a chat" pill. macOS keeps the same collapse in FastSettings.emptyTips.
+  chatTips: {
+    index: number,
+    hidden: boolean
   },
   notifications: {
     sound: boolean,
@@ -117,6 +128,8 @@ export type StateSettings = {
   savedAsForum: boolean,
   notifyAllAccounts: boolean,
   tabsInSidebar: boolean,
+  /** Ids of the settings-search results picked last, most recent first. */
+  settingsSearchRecent: string[],
   seenTooltips: {
     storySound: boolean,
     noForwards: boolean,
@@ -183,6 +196,9 @@ export type StateSettings = {
   // clicking the button itself (when input is empty), matches the per-client
   // toggle in tdesktop / iOS / Android.
   recordingMediaType: 'voice' | 'video',
+  // The order the contacts tab lists them in, kept between visits the way Android and iOS keep it
+  // (tdesktop opens its contacts by last seen every time)
+  contactsSortMode: ContactsSortMode,
   // My QR-code popup: remembers the user's last picked chat-theme + brightness
   // so reopens land back where they left off. `nightMode` falls back to the
   // global theme's brightness when unset; `selectedThemeId` empty = the
@@ -228,6 +244,8 @@ export type State = {
     }
   },
   recentSearch: PeerId[],
+  /** Peers whose chat was left behind — closed outright, or switched away from. Newest first. */
+  recentlyClosedChats: PeerId[],
   version: typeof STATE_VERSION,
   build: typeof BUILD,
   authState: AuthState,
@@ -251,6 +269,8 @@ export type State = {
   },
   accountContentSettings: CacheSomething<AccountContentSettings>,
   unconfirmedAuthorizations: UnconfirmedAuthorization[],
+  /** When the session this client runs on was created — see FRESH_AUTHORIZATION_PERIOD */
+  currentAuthorizationDate: number,
 
 
   // playbackParams?: StateSettings['playbackParams'], // ! MIGRATED TO SETTINGS
@@ -484,9 +504,14 @@ export const SETTINGS_INIT: StateSettings = {
     makeDefaultAppTheme('light')
   ],
   theme: 'system',
+  increaseContrast: false,
   lastThemeNames: {
     dark: 'night',
     light: 'day'
+  },
+  chatTips: {
+    index: 0,
+    hidden: false
   },
   notifications: {
     sound: false,
@@ -521,6 +546,7 @@ export const SETTINGS_INIT: StateSettings = {
   savedAsForum: false,
   notifyAllAccounts: true,
   tabsInSidebar: false,
+  settingsSearchRecent: [],
   playbackParams: {
     volume: 1,
     boost: 0,
@@ -573,6 +599,7 @@ export const SETTINGS_INIT: StateSettings = {
     noiseSuppression: true
   },
   recordingMediaType: 'voice',
+  contactsSortMode: 'online',
   qrCode: {
     selectedThemeId: ''
   }
@@ -595,6 +622,7 @@ export const STATE_INIT: State = {
   emojiVariants: {},
   topPeersCache: {},
   recentSearch: [],
+  recentlyClosedChats: [],
   version: STATE_VERSION,
   build: BUILD,
   authState: {
@@ -612,7 +640,8 @@ export const STATE_INIT: State = {
   birthdayContactsDismissedDayKey: undefined,
   dontShowPaidMessageWarningFor: [],
   accountContentSettings: {} as any,
-  unconfirmedAuthorizations: []
+  unconfirmedAuthorizations: [],
+  currentAuthorizationDate: 0
 };
 
 export const COMMON_STATE_INIT: CommonState = {

@@ -47,6 +47,30 @@
     pointer-events: none;
   }
 
+  // * while chats are being selected the sidebar wears a header of its own (DialogsSelection):
+  // * a `sidebar-header` like any other, laid over the usual one and faded in, so nothing in that
+  // * one has to know about the selection
+  .chatlist-selection-header {
+    position: absolute;
+    top: 0;
+    inset-inline: 0;
+    z-index: 4;
+    background-color: var(--surface-color);
+    opacity: 0;
+    pointer-events: none;
+
+    @include animation-level(2) {
+      transition: opacity .2s ease-in-out;
+    }
+
+    // * `forwards` is what `SetTransition` flips at once in either direction - the class of the
+    // * state itself is only taken off once the fade it started has run out
+    &.is-visible.forwards {
+      opacity: 1;
+      pointer-events: all;
+    }
+  }
+
   .main-search-sidebar-header {
     transition: background-color var(--transition-standard-in), opacity var(--transition-standard-in);
     opacity: 1;
@@ -304,7 +328,9 @@
     position: absolute;
     top: 0;
     inset-inline: 0;
-    z-index: 2;
+    // above anything the list itself lifts (a row being dragged, the checkbox of a selected one):
+    // the list scrolls under this panel, so nothing in it belongs on top
+    z-index: 3;
     // Children (pending suggestion, gradient, folder tabs) flow naturally — adding a panel above
     // the tabs just stacks instead of overlapping.
   }
@@ -480,6 +506,7 @@
       } */
       &:not(.is-hidden) {
         transform: translateZ(0);
+        visibility: visible;
       }
     }
 
@@ -1066,6 +1093,24 @@
         .grid-item-media {
           transform: scale(.91);
           overflow: hidden; // clip the canvas to the rounded corner
+        }
+      }
+
+      // The tile is a `role="button"` and does take the global focus ring, but
+      // its media child is positioned and paints over an outline, so nothing of
+      // it is ever seen. This overlay already sits above that child to draw the
+      // selection border — reuse it, so the corner radii and the stacking are
+      // the ones the grid already has, and add a line just inside it. The line
+      // is what separates "focused" from "selected", and it reads against any
+      // wallpaper because it is drawn in the surface colour rather than in
+      // another tint of the border's own.
+      &:focus-visible {
+        outline: none;
+
+        &:after {
+          opacity: 1;
+          border-color: var(--focus-ring-color);
+          box-shadow: inset 0 0 0 var(--focus-ring-width) var(--surface-color);
         }
       }
 

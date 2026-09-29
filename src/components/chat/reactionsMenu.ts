@@ -1,4 +1,6 @@
 import type {PeerAvailableReactions} from '@appManagers/appReactionsManager';
+import Button from '@components/button';
+import {attachPickerGrid} from '@helpers/dom/attachListNavigation';
 import IS_TOUCH_SUPPORTED from '@environment/touchSupport';
 import {IS_MOBILE, IS_SAFARI} from '@environment/userAgent';
 import filterUnique from '@helpers/array/filterUnique';
@@ -28,7 +30,7 @@ import EmojiTab from '@components/emoticonsDropdown/tabs/emoji';
 import wrapSticker from '@components/wrappers/sticker';
 import {i18n} from '@lib/langPack';
 import anchorCallback from '@helpers/dom/anchorCallback';
-import PopupPremium from '@components/popups/premium';
+import showPremiumPopup from '@components/popups/premium';
 import contextMenuController from '@helpers/contextMenuController';
 import callbackify from '@helpers/callbackify';
 import partition from '@helpers/array/partition';
@@ -118,7 +120,7 @@ export class ChatReactionsMenu {
         [
           anchorCallback(() => {
             contextMenuController.close();
-            PopupPremium.show({feature: 'saved_tags'});
+            showPremiumPopup({feature: 'saved_tags'});
           })
         ]
       );
@@ -128,6 +130,11 @@ export class ChatReactionsMenu {
 
     const reactionsContainer = this.container = document.createElement('div');
     reactionsContainer.classList.add(REACTIONS_CLASS_NAME/* , 'btn-menu-transition' */);
+    this.middlewareHelper.get().onDestroy(attachPickerGrid(
+      reactionsContainer,
+      `.${REACTION_CLASS_NAME}`,
+      (element) => element.getAttribute('aria-label')
+    ));
 
     // const shadow = document.createElement('div');
     // shadow.classList.add('inner-shadow');
@@ -182,7 +189,7 @@ export class ChatReactionsMenu {
     }
 
     if(hasMore && !this.noMoreButton) {
-      const moreButton = ButtonIcon(`${this.openSide === 'bottom' ? 'down' : 'up'} ${REACTIONS_CLASS_NAME}-more`, {noRipple: true});
+      const moreButton = ButtonIcon(`${this.openSide === 'bottom' ? 'down' : 'up'} ${REACTIONS_CLASS_NAME}-more`, {noRipple: true, ariaLabel: 'MultiAccount.More'});
       this.container.append(moreButton);
       attachClickEvent(
         moreButton,
@@ -206,21 +213,14 @@ export class ChatReactionsMenu {
       this.availableReactions = availableReactions;
       this.freeCustomEmoji = new Set(
         this.availableReactions
-        // select_animation is a canon-REQUIRED field of availableReaction, but our backend does
-        // not yet serve reaction animation documents (tracked server-side), so it can be undefined.
-        // Guard it -- a missing one must not throw and take the whole context menu down with it.
-        .map((availableReaction) => availableReaction.select_animation?.id)
+        .map((availableReaction) => availableReaction.select_animation.id)
         .concat(reactions.map((reaction) => this.reactionToDocId(reaction)))
-        .filter((id): id is NonNullable<typeof id> => id !== undefined)
       );
     }
 
     const renderPromises = reactions.slice(0, REACTIONS_MAX_LENGTH).map((reaction) => {
       const availableReaction = reaction._ === 'reactionEmoji' ? availableReactions.find((_reaction) => _reaction.reaction === reaction.emoticon) : undefined;
-      // Isolate a single reaction's render failure -- with the backend not yet serving reaction
-      // animation documents (#31), a reaction can lack the doc it needs, and that must not reject
-      // the whole render and take the context menu down with it.
-      return this.renderReaction(reaction, availableReaction).catch(() => {});
+      return this.renderReaction(reaction, availableReaction);
     });
 
     return this.render(renderPromises, reactions.length > REACTIONS_MAX_LENGTH);
@@ -338,10 +338,7 @@ export class ChatReactionsMenu {
     let docId = (reaction as Reaction.reactionCustomEmoji).document_id;
     if(!docId) {
       const availableReaction = this.availableReactions.find((_reaction) => _reaction.reaction === (reaction as Reaction.reactionEmoji).emoticon);
-      // Backend does not yet serve reaction animation documents (#31), so select_animation can be
-      // undefined -- avoid the throw that took the whole context menu down. A missing doc id just
-      // renders no sticker for that reaction until the server fix lands.
-      docId = availableReaction?.select_animation?.id!;
+      docId = availableReaction.select_animation.id;
     }
 
     return docId;
@@ -531,10 +528,16 @@ export class ChatReactionsMenu {
       warmUpReactionEffect(availableReaction);
     }
 
-    const reactionDiv = document.createElement('div');
-    reactionDiv.classList.add(REACTION_CLASS_NAME);
+    const reactionDiv = Button(REACTION_CLASS_NAME, {
+      noRipple: true,
+      ariaLabel: reaction._ === 'reactionPaid' ? 'StarsReactionTitle' : 'Reactions'
+    });
+    if(availableReaction?.title || reaction._ === 'reactionEmoji') {
+      reactionDiv.setAttribute('aria-label', availableReaction?.title || (reaction as Reaction.reactionEmoji).emoticon);
+    }
 
     const scaleContainer = document.createElement('div');
+    scaleContainer.setAttribute('aria-hidden', 'true');
     scaleContainer.classList.add(REACTION_CLASS_NAME + '-scale');
 
     const appearWrapper = document.createElement('div');
@@ -610,14 +613,12 @@ export class ChatReactionsMenu {
       });
 
       loadPromises.push(promise);
-    } else if(!canUseAnimations || !availableReaction || !availableReaction.select_animation) {
-      // Backend does not yet serve reaction animation documents (#31): with no appear/select
-      // animation the animated branch below would deref undefined and crash the whole context
-      // menu. Fall back to the static path so the menu still opens.
+    } else if(!canUseAnimations || !availableReaction) {
       delete options.needFadeIn;
       delete options.withThumb;
 
       const wrap = () => {
+        if(doc?.stickerEmojiRaw) reactionDiv.setAttribute('aria-label', doc.stickerEmojiRaw);
         wrapSticker({
           doc,
           div: appearWrapper,

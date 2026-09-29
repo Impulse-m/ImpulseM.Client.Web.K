@@ -31,11 +31,11 @@ pnpm install
 pnpm start          # Dev server on :8080
 pnpm build          # Production build → dist/
 pnpm test           # Run tests (Vitest)
-pnpm lint           # oxlint on src/ (config: .oxlintrc.json)
+pnpm lint           # oxlint on the whole repo (config: .oxlintrc.json)
 pnpm lint:fix       # Same, with auto-fix
 ```
 
-Debug query params: `?test=1` (test DCs), `?debug=1` (verbose logging), `?noSharedWorker=1` (disable shared worker).
+Debug query params: `?test=1` (test DCs), `?debug=1` (verbose logging), `?noSharedWorker=1` (disable shared worker), `?pfs=1` (Perfect Forward Secrecy — temporary auth keys, `src/lib/mtproto/tempAuthKeys.ts`; off by default).
 
 ### Preview
 
@@ -44,6 +44,61 @@ plain `vite`) — it mints a fresh per-preview auth + picks a free port. Flags a
 details: see the script header. `.claude/launch.json` wires it into Claude
 Code's preview pane; other agents run the script directly and open the printed
 URL with their own browser tooling.
+
+### Popup sandbox
+
+Every popup, opened by click with mock data and **no ImpulseM traffic**. Two ways in:
+
+- `?popups=1` on any dev/preview build (`.claude/launch.json` has a
+  `tweb-popups` server for it — a plain vite server is enough, no auth needed).
+  `src/index.ts` hands over before the session is restored, so nothing but the
+  sandbox ever runs.
+- `showPopupSandbox()` from the console of a running app, signed in or not. The
+  panel opens over the app and closing it (×) puts the real managers back. The
+  fixture peers/messages are merged into the mirrors key by key rather than
+  replacing them, so a live session's own cache survives.
+
+Signed in, the panel offers a second data source — **My data** — which builds the
+stories out of the session's own dialogs, messages and gifts instead of the
+fixtures, and runs them against the real managers. Writes are held back by a
+name heuristic that fails closed (`liveManagers.ts`): only `get`/`is`/`has`/`can`
+… reach the real manager, everything else resolves to `undefined` and is listed
+in the panel. **Let popups write** removes that guard, and then a confirm button
+does the real thing — deletes, leaves, pays. Stories with no live equivalent (a
+payment form, a gift code) are marked `fixtureOnly` and stay on fixtures.
+
+Either way every `rootScope.managers` call is answered from
+`src/components/popupSandbox/`.
+
+- A **story** is one popup in one state — arguments plus the manager answers it
+  needs. They live in `src/components/popupSandbox/stories/`; add a file there
+  and import it from that folder's `index.ts`. Import the popup module *inside*
+  `open()`, never at the top (the popup graph has import cycles).
+- A story asks `open(ctx)` for a peer by KIND (`ctx.peer('channel')`), a message
+  (`ctx.message()`), a chat (`ctx.chat()`) or a gift — never for a fixture by
+  name. That indirection is what lets the same story render from fixtures or from
+  a real account; a story that reaches into `fixtures.ts` directly cannot go live.
+- Anything a story does not answer resolves to `undefined` and is listed under
+  "Unanswered manager calls" in the panel — that list is the to-do for making a
+  half-rendered popup complete.
+- The panel's theme select switches between `system` and every shipped theme
+  (`day` / `night` / `light` / `tinted`) and survives a reload — the mock
+  managers discard settings writes, so it is kept in `localStorage` instead.
+- Going through 200+ stories takes more than one sitting, so each row has a
+  checkbox for "I have looked at this one" and the list can be sliced by it —
+  **All / Unchecked / Checked**, counted within whatever the search box is
+  showing. Both the marks and the chosen slice live in `localStorage`
+  (`checkedStories.ts`), so the reload an edit triggers does not restart the pass.
+- `window.popupSandbox` (`ready` / `show` / `hide` / `list` / `open` /
+  `closePopups` / `calls` / `unhandled`) drives the same registry from a script;
+  `calls` and `unhandled` follow the active data source.
+  `pnpm test:popups` runs `e2e/popupSandbox.spec.ts`, which opens every story in
+  headless Chromium and fails on one that throws or never becomes visible.
+- `src/tests/popupSandboxCoverage.test.ts` fails when a module under
+  `components/popups/` can open a popup and no story imports it, so a new popup
+  cannot land without one. It also fails when a story builds its popup out of a
+  fixture without being marked `fixtureOnly` — that mark is what keeps live mode
+  from quietly showing made-up data.
 
 ## Directory Structure
 
@@ -275,6 +330,27 @@ consciously:
 `highlightText()` from `@helpers/dom/textHighlight`** (options and modes are
 documented in the file; styles in `scss/partials/_textHighlight.scss`).
 
+### Settings tabs are indexed for search
+
+Settings has a search over every screen and row, and its index is **generated
+from the tabs themselves** (`src/scripts/generate_settings_search.js` →
+`src/lib/settingsSearch/generated.ts`, rebuilt by the Vite plugin on build and on
+every settings-tab edit). A new tab or row is picked up with no bookkeeping —
+*if* it follows the conventions the extractor reads. When adding to Settings,
+check the things it cannot guess:
+
+- **Declare the tab in `solidJsTabs/tabs.ts`** — `scaffoldSolidJSTab({title: 'LangKey', getComponentModule: () => import(...)})`. The export name becomes the section id and `title` its heading; a tab declared elsewhere, or without a title key, never appears in results.
+- **It has to be reachable.** The tree is built from the tab constructors an indexed tab references in a row that opens them (`makeSubTabConfig(icon, 'Key', Tab, tab)`, `addRow(..., () => createTab(Tab))`). A tab nothing opens is dropped.
+- **A tab that needs a payload needs an opener.** The search opens a section directly, passing the class's `getInitArgs` when it declares one; anything else `open()` requires goes in `SECTION_OPENERS` (`@lib/settingsSearch/openers.ts`), or the result opens an empty screen. A tab that only makes sense inside a flow (wizard steps, detail views) belongs in `NON_NAVIGABLE_SECTIONS` in the same file — it and everything under it leave the results.
+- **Rows come from the labels a tab renders**: `<Row.Title>{i18n('K')}</Row.Title>`, `<Section name="K">`, title-ish props and option lists, `ButtonMenuToggle` items. Titles computed at runtime, and labels that exist only in a row's context menu, are not indexed. Captions, notices and input labels are excluded by the generator's deny lists — extend those there instead of contorting a tab.
+
+Two things travel with a new setting:
+
+- **Synonyms are language-pack strings, never build-time text** — add `'<TitleKey>.SearchKeywords'` (comma-separated) to `lang.ts` so every language gets its own from the server.
+- **Deep links** live in `src/scripts/in/settings-links.csv`, the `tg://settings/...` table shared with the other clients. A link points at its control instead of performing the action, the way tdesktop does (`edit/log-out` opens the header menu and flashes the item); where another client's behaviour differs, follow that client. Paths the index cannot address are cases in `internalLinkProcessor`.
+
+`src/tests/settingsSearchIndex.test.ts` fails if the checked-in index is stale, holds anything but identifiers, or drops a link from the table — run it after touching a settings tab.
+
 ### Imports from `@layer`
 
 All MTProto types come from `@layer`:
@@ -315,6 +391,56 @@ import {Message, Chat, User, InputPeer} from '@layer';
   continuing work.** A compacted context or summary does not replace the
   canonical instructions in this file.
 
+## Accessibility (a11y) is part of every UI feature
+
+**Every new or changed interface must include accessibility in its design,
+implementation, and review.** Apply the requirements below to the affected flow
+before calling the feature complete.
+
+- **Start with native semantics.** Use buttons for actions, links for navigation,
+  and native form controls where possible. Preserve label/control associations;
+  never nest interactive controls. Expose names, values, errors, and states
+  (disabled, expanded, selected, checked, loading) through native attributes or
+  appropriate ARIA. Reuse visible labels and localized strings from `lang.ts`;
+  give icon-only controls meaningful names and hide decorative icons from AT.
+- **Preserve established presentation and behavior.** Reuse native caret and
+  existing field-focus styling instead of adding a second outline. Avoid blanket
+  restyling, tab stops on layout wrappers, and live regions around long content.
+  Opt into focusable reading/scrolling regions deliberately; keep contrast
+  enhancements behind the user's setting. Check that keyboard guards preserve
+  existing editor shortcuts as well as protecting other focused controls.
+- **Reuse the shared interaction layer.** Search for existing button, row, input,
+  menu, tab, navigation, and focus helpers before adding behavior. Extend those
+  helpers when needed. Do not copy Enter/Space handlers into individual controls
+  or implement separate business logic for keyboard activation. Native buttons
+  already handle keyboard activation; custom widgets should share their
+  navigation logic. Global shortcuts must respect focused controls and editors.
+- **Make every action usable with a keyboard.** Keep a logical focus order and
+  visible focus indicators. Follow the relevant widget's arrow/Home/End behavior
+  through shared helpers; avoid positive `tabindex`. Inactive or hidden panels
+  must not leave controls in the tab order or accessibility tree; use the
+  existing visibility/`inert` mechanism, not `aria-hidden` alone.
+- **Handle focus across the full lifecycle.** Dialogs need appropriate initial
+  focus, modal containment, and restoration on close. Menus and dismissible
+  overlays need consistent Escape behavior, including nested overlays and an
+  opener that has been removed. Reuse the existing overlay/focus lifecycle.
+  For UI that can move into Document PiP, use the owning/active document for
+  creation, listeners, focus, and cleanup; support moving back to the main tab.
+- **Preserve visual accessibility.** Check text, controls, and focus contrast in
+  the shipped themes, support zoom and narrow layouts, avoid color-only cues,
+  and respect reduced-motion preferences.
+- **Verify the affected flow in the browser preview.** Exercise opening,
+  changing, submitting/cancelling, and closing with Tab/Shift+Tab, Enter/Space,
+  arrows, and Escape as applicable; check focus restoration and pointer/touch
+  behavior too. Run the relevant existing accessibility checks and add focused
+  regression coverage for shared or complex interaction changes. Include
+  responsive/PiP states when the feature supports them.
+- **Report what was actually verified.** Distinguish automated checks (including
+  Axe), fixture tests, authenticated UI checks, and screen-reader testing.
+  Check screen-reader names, roles, states, and announcements for affected
+  custom interactions when available, and explicitly record untested cases.
+  Passing Axe or source review alone does not establish full accessibility.
+
 ## What NOT to Do
 
 (Style rules are in "Code Style"; the import-alias, `invokeApi`-from-UI, and
@@ -327,6 +453,7 @@ import {Message, Chat, User, InputPeer} from '@layer';
   commit (directly on master, no feature branch) unless told otherwise.
 - Do not add `oxlint-disable` (or legacy `eslint-disable`) comments without a reason
 - Never hand-edit or manually run `format-lang` to regenerate `src/scripts/out/langPack.strings` — it is auto-generated from `lang.ts`/`langSign.ts` by the Vite-wired lang watcher (`watch-lang.js`) on dev-server start, on every `lang.ts` change, and on build. Edit the lang `.ts` source only.
+- Never hand-edit `src/lib/settingsSearch/generated.ts` — it is the settings-search index, generated from the tabs (see "Settings tabs are indexed for search"). Change what the tabs render, or the extractor, and let it regenerate.
 - Do not import from `react` or use React patterns — this is Solid.js
 - Do not use heavy CSS selectors (deep descendant chains, universal `*`, expensive attribute matchers, `:not()` with complex arguments) — prefer a dedicated class on the target element
 - **Never add a blocking MTProto request on the chat-open path.** `ChatInput.finishPeerChange` (and any sibling `finishPeerChange` in the chat stack) awaits a `Promise.all` before unfreezing the input — every entry there is paid in chat-open latency. Do NOT add `appPrivacyManager.getGlobalPrivacySettings`, `appProfileManager.getProfile` for unrelated peers, fresh `account.*` fetches, or any new uncached round-trip into that batch. If a feature needs server data, either: (a) read it from a manager-side cache that's already kept warm (e.g. `apiManagerProxy.getAppConfig`, `getPrivacy` after preload, cached userFull), (b) fetch it lazily AFTER the chat renders and reconcile via an event (`peer_full_update`, `privacy_update`, custom dispatched event) + a `update*` helper, or (c) preload at app startup and gate via `rootScope.premium`-style cached flags. The same rule holds for `appImManager.setPeer` listeners and `setChatListeners` — keep them event-driven, never `await managers.*` for a per-peer hot-path render.
@@ -339,6 +466,47 @@ pnpm test src/tests/foo    # specific test file
 ```
 
 Vitest config: `threads: false`, `globals: true`, jsdom environment, setup in `src/tests/setup.ts`.
+
+Browser suites (Playwright):
+
+```bash
+pnpm test:popups   # every sandbox story opens and becomes visible
+pnpm test:a11y     # Axe matrix, keyboard interop, contrast, media editor, stories (~2 min)
+pnpm test:a11y:full  # the same, with the story sweep in all four themes (~4 min; always on CI)
+pnpm test:focus    # keyboard focus is VISIBLE — sandbox stories + the sign-in screens
+pnpm test:focus:app  # the same, for the signed-in client (needs PLAYWRIGHT_BASE_URL)
+pnpm test:a11y:app   # Axe past the login screen (needs PLAYWRIGHT_BASE_URL)
+```
+
+`test:a11y` runs against a plain unauthenticated server, so everything past the
+login screen is outside it — the chat list, a conversation, the profile sidebar,
+settings. `test:a11y:app` is that half, and it needs an authorized preview for
+the same reason `test:focus:app` does.
+
+`test:a11y` runs in parallel and sweeps every popup story with Axe in one theme
+(`day`): roles, names and keyboard wiring do not change with the theme, only
+colour does. `test:a11y:full` (`A11Y_ALL_THEMES=1`, implied on CI) sweeps all
+four — run it after touching colours or theme variables. `A11Y_THEMES=night,tinted`
+picks themes, `A11Y_STORIES=a,b` picks stories, `A11Y_WORKERS` / `A11Y_STORY_PARTS`
+tune the split, and `--project=chromium` drops the other engines (~70 s).
+Playwright suites run on `vite.e2e.config.ts` — the dev server without hot
+reload, so an edit made while a suite runs no longer reloads the page under it.
+
+`test:focus` answers a question the others cannot: not whether a control has a
+name and a role, but whether a person pressing Tab can *see* where they are. It
+photographs each control holding focus and again a moment after focus is
+dropped, and a pair of frames that do not differ is a control with no visible
+indicator. Reading computed styles instead does not work — a ring can live on a
+pseudo-element or a sibling, and an outline on an `opacity: 0` overlay is
+painted and invisible. Findings come with cropped before/after screenshots, so
+judge them by eye rather than trusting the heuristic. The signed-in half needs
+an authorized preview:
+
+```bash
+bash scripts/start-preview.sh --port 9105
+PLAYWRIGHT_BASE_URL=http://localhost:9105 pnpm test:focus:app
+PLAYWRIGHT_BASE_URL=http://localhost:9105 pnpm test:a11y:app
+```
 
 ## Agents & shared tooling
 

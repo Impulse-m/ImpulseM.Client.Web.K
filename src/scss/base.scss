@@ -4,6 +4,10 @@
 @font-face {
   font-family: 'Numbers Rounded';
   src: url('#{$fonts-path}/Numbers-Rounded.woff2') format('woff2');
+  // The single face answers the whole range on purpose: the digits are drawn at the same
+  // weight `--font-weight-bold` asks for, so `var(--font-rounded)` never gets a browser's
+  // faked bold on top of them. Same trick as Roboto's 600 alias in `fonts/_roboto.scss`.
+  font-weight: 100 900;
   unicode-range: U+0030-0039, U+002B, U+002D;
 }
 
@@ -795,6 +799,12 @@ b {
 }
 
 .avatar-edit {
+  // AvatarEdit's container is a <button>: undo the inline-block and the UA chrome it brings,
+  // or `margin: auto` stops centering it
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
   position: relative;
   border-radius: 50%;
   cursor: pointer;
@@ -802,6 +812,12 @@ b {
 
   &.is-forum {
     border-radius: var(--avatar-border-radius-forum);
+  }
+
+  // the placeholder avatar is positioned over the whole circle and hides the global ring, which is
+  // drawn inside the edge — draw it just outside instead
+  :root &:focus-visible {
+    outline-offset: var(--focus-ring-width);
   }
 
   &-canvas {
@@ -1794,7 +1810,7 @@ hr {
 
   &-right-button {
     min-width: 3.875rem;
-    height: 3rem;
+    height: 100%;
     border-radius: $border-radius-medium;
     display: flex;
     align-items: center;
@@ -2070,18 +2086,25 @@ hr {
   align-items: center;
   justify-content: center;
   position: relative;
-  opacity: .4;
-  gap: .5rem;
+  gap: .625rem;
   flex: 0 0 auto;
+  align-self: center;
+  width: 70%;
   padding: 0 .25rem;
+  // The label reads as part of the rule, not as body copy — the stripes take
+  // the same colour through `currentColor`.
+  color: var(--secondary-text-color);
+  margin-inline: auto;
 
   &-stripe {
     display: block;
-    height: .0625rem;
+    height: .5px;
+    // Tinted from the text around it rather than `--border-color`, which is
+    // darker than a popup's own background and leaves the line invisible.
     background-color: currentColor;
     flex: 1 1 auto;
     border-radius: 1px;
-    opacity: .5;
+    opacity: .2;
   }
 }
 

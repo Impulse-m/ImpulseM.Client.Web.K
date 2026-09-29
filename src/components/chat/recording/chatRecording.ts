@@ -26,10 +26,9 @@ import findUpClassName from '@helpers/dom/findUpClassName';
 import blurActiveElement from '@helpers/dom/blurActiveElement';
 import {attachClickEvent, simulateClickEvent} from '@helpers/dom/clickEvent';
 import {fastRaf} from '@helpers/schedulers';
-import PopupPeer from '@components/popups/peer';
+import showPeerPopup from '@components/popups/peer';
 import appMediaPlaybackController from '@components/appMediaPlaybackController';
 import toHHMMSS from '@helpers/string/toHHMMSS';
-import PopupElement from '@components/popups';
 import contextMenuController from '@helpers/contextMenuController';
 import {ChatRights} from '@appManagers/appChatsManager';
 import type {MessageSendingParams} from '@appManagers/appMessagesManager';
@@ -1026,7 +1025,7 @@ export default class ChatRecording {
       opusDecodeController.setKeepAlive(true);
 
       const showDiscardPopup = () => {
-        PopupElement.createPopup(PopupPeer, 'popup-cancel-record', {
+        showPeerPopup('popup-cancel-record', {
           titleLangKey: 'DiscardVoiceMessageTitle',
           descriptionLangKey: 'DiscardVoiceMessageDescription',
           buttons: [{
@@ -1038,7 +1037,7 @@ export default class ChatRecording {
             langKey: 'Continue',
             isCancel: true
           }]
-        }).show();
+        });
       };
 
       this.recordingOverlayListener = this.input.listenerSetter.add(getOverlayRoot())('mousedown', (e) => {
@@ -1167,7 +1166,7 @@ export default class ChatRecording {
     this.setupVideoWaveform();
 
     const showDiscardPopup = () => {
-      PopupElement.createPopup(PopupPeer, 'popup-cancel-record', {
+      showPeerPopup('popup-cancel-record', {
         titleLangKey: 'DiscardVoiceMessageTitle',
         descriptionLangKey: 'DiscardVoiceMessageDescription',
         buttons: [{
@@ -1179,7 +1178,7 @@ export default class ChatRecording {
           langKey: 'Continue',
           isCancel: true
         }]
-      }).show();
+      });
     };
 
     this.recordingOverlayListener = this.input.listenerSetter.add(getOverlayRoot())('mousedown', (e) => {

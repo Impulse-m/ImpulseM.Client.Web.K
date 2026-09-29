@@ -11,6 +11,9 @@
  * watch: an object still registered while its element is out of the DOM is one nothing will ever
  * come back for. On a healthy tab they stay near zero.
  *
+ * Everything marked (GPU) is canvas surface, which lives in the GPU process - counting it toward
+ * this process's footprint is wrong, and was a dead end worth signposting.
+ *
  * Reads everything off MOUNT_CLASS_TO rather than importing the registries, so this module stays a
  * leaf and cannot introduce an import cycle into the render path (see mountLogExport.ts for why that
  * matters here).
@@ -21,10 +24,14 @@ import {canvasBytes, formatBytes, ThreadMemoryStats, withMemoryStatsTimeout} fro
 
 type Counted = {total: number, detached: number};
 
-const describe = (counted: Counted, bytes?: number) => {
+// * Canvas pixels are NOT in this process: Chrome keeps canvas backing stores GPU-resident, and a
+// * painted 764x10500 canvas (30 MB of pixels) moves the renderer's footprint by nothing at all.
+// * The figures are still worth having - they say how much surface exists - but they must never be
+// * added to the process total, which is exactly the trap that sent an earlier hunt chasing canvases.
+const describe = (counted: Counted, canvasBytesTotal?: number) => {
   const attached = counted.total - counted.detached;
   return `${counted.total} total | ${attached} attached | ${counted.detached} detached` +
-    (bytes === undefined ? '' : ` | ${formatBytes(bytes)}`);
+    (canvasBytesTotal === undefined ? '' : ` | ${formatBytes(canvasBytesTotal)} of canvas (GPU)`);
 };
 
 // * One row per isolate. A pool answers per worker, so lottie/crypto show up several times.
@@ -79,9 +86,15 @@ function formatThreadRow(stats: ThreadMemoryStats) {
   return row;
 }
 
-export default async function memoryReport() {
+// * The console tables are for a human reading one snapshot; `metrics` is the same numbers in a
+// * shape something can chart over time (memoryWatch samples it). Collected here rather than
+// * re-derived by the caller so there is exactly one definition of what each figure counts.
+export type MemoryMetrics = Record<string, number>;
+
+export default async function memoryReport(options?: {quiet?: boolean}) {
   const ctx: any = MOUNT_CLASS_TO;
   const report: Record<string, any> = {};
+  const metrics: MemoryMetrics = {};
 
   // * Fire the round-trips first so the workers answer while this thread counts its own structures
   const threadPromises = collectThreadStats(ctx);
@@ -89,10 +102,16 @@ export default async function memoryReport() {
   const memory = (performance as any).memory;
   report.jsHeap = memory ? formatBytes(memory.usedJSHeapSize) : 'n/a';
   report.uptimeMinutes = Math.round(performance.now() / 60000);
+  if(memory) metrics.jsHeapBytes = memory.usedJSHeapSize;
+  metrics.uptimeMinutes = report.uptimeMinutes;
 
   const renderers: Counted = {total: 0, detached: 0};
   let rendererBytes = 0, rendererDetachedBytes = 0;
-  ctx.emojiRenderers?.forEach((renderer: any) => {
+  // * The registry holds WeakRefs so it cannot keep a dropped renderer alive; a ref that no longer
+  // * derefs is one already collected, which is exactly the healthy case and counts as nothing
+  ctx.emojiRenderers?.forEach((entry: any) => {
+    const renderer = entry?.deref ? entry.deref() : entry;
+    if(!renderer) return;
     ++renderers.total;
     const bytes = canvasBytes(renderer.canvas);
     rendererBytes += bytes;
@@ -102,7 +121,9 @@ export default async function memoryReport() {
     }
   });
   report.customEmojiRenderers = describe(renderers, rendererBytes);
-  report.customEmojiRenderersDetachedBytes = formatBytes(rendererDetachedBytes);
+  report.customEmojiRenderersDetachedCanvasGpu = formatBytes(rendererDetachedBytes);
+  metrics.customEmojiRenderers = renderers.total;
+  metrics.customEmojiRenderersDetached = renderers.detached;
 
   const items: Counted = {total: 0, detached: 0};
   const byGroup: Record<string, number> = {};
@@ -114,6 +135,8 @@ export default async function memoryReport() {
     byGroup[key] = (byGroup[key] || 0) + 1;
   });
   report.animationItems = describe(items);
+  metrics.animationItems = items.total;
+  metrics.animationItemsDetached = items.detached;
   // * Only the detached ones are broken down - a healthy tab leaves this empty
   report.detachedByGroup = byGroup;
 
@@ -137,6 +160,8 @@ export default async function memoryReport() {
     if(!attached) ++players.detached;
   }
   report.lottiePlayers = describe(players, playerBytes);
+  metrics.lottiePlayers = players.total;
+  metrics.lottiePlayersDetached = players.detached;
 
   let frames = 0, frameBytes = 0;
   ctx.framesCache?.cache?.forEach((entry: any) => {
@@ -145,11 +170,45 @@ export default async function memoryReport() {
     frames += (entry.frames?.size || 0) + (entry.framesNew?.size || 0);
   });
   report.lottieFrameCache = `${ctx.framesCache?.cache?.size || 0} caches | ${frames} frames | ${formatBytes(frameBytes)}`;
+  metrics.lottieFrameCaches = ctx.framesCache?.cache?.size || 0;
+  metrics.lottieFrames = frames;
+  metrics.lottieFrameBytes = frameBytes;
+
+  // * Both avatar registries point at avatars they must not own; a count that climbs while the tab
+  // * is idle means one of them started owning again (see avatarNew.tsx)
+  const countRefs = (registry: Map<string, Set<any>> | Set<any>) => {
+    let refs = 0, live = 0;
+    const countSet = (set: Set<any>) => set?.forEach((ref) => {
+      ++refs;
+      if(ref?.deref ? ref.deref() : ref) ++live;
+    });
+
+    if(registry instanceof Set) countSet(registry);
+    else registry?.forEach(countSet);
+    return {keys: registry instanceof Map ? registry.size : 0, refs, live};
+  };
+
+  const tracked = countRefs(ctx.avatarsMap);
+  const believed = countRefs(ctx.believeMe);
+  report.avatarsTracked = `${tracked.keys} keys | ${tracked.refs} refs | ${tracked.live} live`;
+  report.avatarsBelieved = `${believed.keys} keys | ${believed.refs} refs | ${believed.live} live`;
+  metrics.avatarsTrackedRefs = tracked.refs;
+  metrics.avatarsTrackedLive = tracked.live;
+  metrics.avatarsBelievedRefs = believed.refs;
+  metrics.avatarsBelievedLive = believed.live;
+
+  // * Scrollables subscribe to window resize and heavy animations through one shared, weak registry;
+  // * refs far above live means instances are being abandoned without their elements being collected
+  const scrollables = countRefs(ctx.listeningScrollables);
+  report.scrollables = `${scrollables.refs} refs | ${scrollables.live} live`;
+  metrics.scrollablesRefs = scrollables.refs;
+  metrics.scrollablesLive = scrollables.live;
 
   const canvases = document.querySelectorAll('canvas');
   let domCanvasBytes = 0;
   canvases.forEach((canvas) => domCanvasBytes += canvasBytes(canvas));
-  report.domCanvases = `${canvases.length} | ${formatBytes(domCanvasBytes)}`;
+  report.domCanvases = `${canvases.length} | ${formatBytes(domCanvasBytes)} of canvas (GPU)`;
+  metrics.domCanvases = canvases.length;
 
   // * The worker's data caches are mirrored here 1:1, so counting the mirror is the cheapest
   // * estimate of what the MTProto isolate is carrying - and no RPC is needed for it.
@@ -167,26 +226,44 @@ export default async function memoryReport() {
   report.chatStack = ctx.appImManager?.chats?.length ?? -1;
   report.downloads = Object.keys(ctx.appDownloadManager?.downloads || {}).length;
 
+  metrics.mirroredMessages = mirroredMessages;
+  metrics.mirroredPeers = report.mirroredPeers;
+  metrics.mirroredThumbs = report.mirroredThumbs;
+  metrics.domNodes = report.domNodes;
+  metrics.domVideos = report.domVideos;
+  metrics.chatStack = report.chatStack;
+  metrics.downloads = report.downloads;
+
   const threads = await Promise.all(threadPromises);
   const byThread: Record<string, any> = {};
   for(const stats of threads) {
     byThread[stats.thread] = formatThreadRow(stats);
+
+    // * one flat key per figure so a sample is charted without knowing which isolates answered
+    const prefix = stats.thread.replace(/[^a-z0-9]+/gi, '_');
+    if(stats.jsHeap !== undefined) metrics[prefix + '.jsHeapBytes'] = stats.jsHeap;
+    for(const key in stats.details) {
+      metrics[prefix + '.' + key] = stats.details[key];
+    }
   }
 
   report.otherIsolates = threads.length;
+  metrics.otherIsolates = threads.length;
 
-  console.table(report);
-  console.log(
-    '[memoryReport] other isolates in this process (SharedWorkers included). Their JS heaps are ' +
-    'unreadable from inside - compare the counts below against Chrome\'s per-process footprint:'
-  );
-  console.table(byThread);
-  if(Object.keys(byGroup).length) {
-    console.warn('[memoryReport] detached animation items by group:');
-    console.table(byGroup);
+  if(!options?.quiet) {
+    console.table(report);
+    console.log(
+      '[memoryReport] other isolates in this process (SharedWorkers included). Their JS heaps are ' +
+      'unreadable from inside - compare the counts below against Chrome\'s per-process footprint:'
+    );
+    console.table(byThread);
+    if(Object.keys(byGroup).length) {
+      console.warn('[memoryReport] detached animation items by group:');
+      console.table(byGroup);
+    }
   }
 
-  return {...report, threads: byThread};
+  return {...report, threads: byThread, metrics};
 }
 
 MOUNT_CLASS_TO && (MOUNT_CLASS_TO.memoryReport = memoryReport);

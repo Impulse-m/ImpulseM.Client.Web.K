@@ -167,10 +167,12 @@ export default async function wrapSticker({doc, div, middleware, loadStickerMidd
     if(videoRes.thumb) {
       if(videoRes.thumb.images.thumb) {
         videoRes.thumb.images.thumb.classList.add('media-sticker', 'thumbnail');
+        videoRes.thumb.images.thumb.setAttribute('alt', '');
       }
 
       if(videoRes.thumb.images.full) {
         videoRes.thumb.images.full.classList.add('media-sticker');
+        videoRes.thumb.images.full.setAttribute('alt', '');
       }
     }
 
@@ -390,7 +392,7 @@ export default async function wrapSticker({doc, div, middleware, loadStickerMidd
       };
 
       if(lazyLoadQueue && onlyThumb) {
-        lazyLoadQueue.push({div: div[0], load});
+        lazyLoadQueue.push({div: div[0], load, middleware});
         loadThumbPromise.resolve();
         return ret;
       } else {
@@ -549,6 +551,7 @@ export default async function wrapSticker({doc, div, middleware, loadStickerMidd
         }
 
         media.classList.add('media-sticker');
+        media.setAttribute('alt', '');
         return media;
       });
 
@@ -731,7 +734,7 @@ export default async function wrapSticker({doc, div, middleware, loadStickerMidd
   }
 
   const loadPromise: Promise<Awaited<ReturnType<typeof load>> | void> = lazyLoadQueue && (!downloaded || isAnimated) ?
-    (lazyLoadQueue.push({div: div[0], load}), Promise.resolve()) :
+    (lazyLoadQueue.push({div: div[0], load, middleware}), Promise.resolve()) :
     load();
 
   if(downloaded && (asStatic/*  || stickerType === 3 */)) {

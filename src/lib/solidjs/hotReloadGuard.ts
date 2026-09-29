@@ -1,86 +1,75 @@
-/*
- * Every import below exists only to be read back as `typeof X` in the context
- * type; the module itself calls nothing but createContext/useContext. Written as
- * value imports they were ~70 real runtime edges, and because apiManagerProxy
- * reaches this file, they wired every lib module to the whole component tree --
- * closing, among others, popups/peer -> ... -> chat/topbar -> popups/mute ->
- * popups/peer, which left PopupPeer in its temporal dead zone. The values are
- * supplied by hotReloadGuardProvider, which is where they belong.
- */
-
 import {createContext, useContext} from 'solid-js';
 
-import type {default as AppMediaViewer, onMediaCaptionClick} from '@components/mediaViewer';
-import type AppMediaViewerStatic from '@components/mediaViewer/static';
-import type {AutonomousMonoforumThreadList} from '@components/autonomousDialogList/monoforumThreads';
-import type {avatarNew, AvatarNewTsx, StoriesSegments} from '@components/avatarNew';
-import type BusinessHours from '@components/businessHours';
-import type {default as ButtonMenu, ButtonMenuSync} from '@components/buttonMenu';
-import type {ChatType} from '@components/chat/chatType';
-import type PaidMessagesInterceptor from '@components/chat/paidMessagesInterceptor';
-import type {pickLanguage} from '@components/chat/translation';
+import AppMediaViewer, {onMediaCaptionClick} from '@components/mediaViewer';
+import AppMediaViewerStatic from '@components/mediaViewer/static';
+import {AutonomousMonoforumThreadList} from '@components/autonomousDialogList/monoforumThreads';
+import {avatarNew, AvatarNewTsx, StoriesSegments} from '@components/avatarNew';
+import BusinessHours from '@components/businessHours';
+import ButtonMenu, {ButtonMenuSync} from '@components/buttonMenu';
+import {ChatType} from '@components/chat/chatType';
+import PaidMessagesInterceptor from '@components/chat/paidMessagesInterceptor';
+import {pickLanguage} from '@components/chat/translation';
 import type CommunityLinkSection from '@components/communities/communityLinkSection';
-import type confirmationPopup from '@components/confirmationPopup';
-import type {default as createEmojiDropdownButton, useEmojiDropdown} from '@components/emojiDropdownButton';
-import type {EmoticonsDropdown} from '@components/emoticonsDropdown';
-import type EmoticonsSearch from '@components/emoticonsDropdown/search';
-import type EmojiTab from '@components/emoticonsDropdown/tabs/emoji';
-import type {InputFieldTsx} from '@components/inputFieldTsx';
-import type PasswordMonkey from '@components/monkeys/password';
-import type PasswordInputField from '@components/passwordInputField';
-import type PeerProfileAvatars from '@components/peerProfileAvatars';
-import type {PeerTitleTsx} from '@components/peerTitleTsx';
-import type PopupElement from '@components/popups';
-import type {default as showBirthdayPopup, saveMyBirthday} from '@components/popups/birthday';
-import type {useStickersDropdown} from '@components/popups/createPoll/stickersDropdown';
-import type showLimitPopup from '@components/popups/limit';
-import type showMyQrCodePopup from '@components/popups/myQrCode';
-import type {showSharingPickerPopup} from '@components/popups/pickUser';
-import type PopupPremium from '@components/popups/premium';
-import type PopupSendGift from '@components/popups/sendGift';
-import type showStarsRatingPopup from '@components/popups/starsRating';
-import type PopupToggleReadDate from '@components/popups/toggleReadDate';
-import type {setQuizHint} from '@components/quizHint';
-import type Row from '@components/rowTsx';
-import type {AppSidebarLeft} from '@components/sidebarLeft';
-import type {AppSidebarRight} from '@components/sidebarRight';
-import type AppPollResultsTab from '@components/sidebarRight/tabs/pollResults';
-import type Slideshow from '@components/slideshow';
-import type {AppChatFoldersTab, AppEditFolderTab} from '@components/solidJsTabs/tabs';
-import type {StoriesProvider, useStories} from '@components/stories/store';
-import type {hideToast, toast, toastNew} from '@components/toast';
-import type {TranslatableMessageTsx} from '@components/translatableMessage';
-import type {wrapAdaptiveCustomEmoji} from '@components/wrappers/customEmojiSimple';
-import type DocumentTsx from '@components/wrappers/documentTsx';
-import type wrapFolderTitle from '@components/wrappers/folderTitle';
-import type wrapGeo from '@components/wrappers/geo';
-import type getPeerTitle from '@components/wrappers/getPeerTitle';
-import type {wrapTopicIcon} from '@components/wrappers/messageActionTextNewUnsafe';
-import type wrapPeerTitle from '@components/wrappers/peerTitle';
-import type wrapPhoto from '@components/wrappers/photo';
-import type PhotoTsx from '@components/wrappers/photoTsx';
-import type wrapReply from '@components/wrappers/reply';
-import type wrapSticker from '@components/wrappers/sticker';
-import type wrapStickerSetThumb from '@components/wrappers/stickerSetThumb';
-import type wrapTopicNameButton from '@components/wrappers/topicNameButton';
-import type VideoTsx from '@components/wrappers/videoTsx';
-import type {formatDate} from '@helpers/date';
-import type {getFileAndOpenEditor} from '@helpers/getFileAndOpenEditor';
-import type {ThemeController} from '@helpers/themeController';
-import type usePeerTranslation from '@hooks/usePeerTranslation';
-import type apiManagerProxy from '@lib/apiManagerProxy';
-import type {AppDialogsManager} from '@lib/appDialogsManager';
-import type {AppImManager} from '@lib/appImManager';
-import type {default as I18n, i18n, join} from '@lib/langPack';
-import type wrapEmojiText from '@lib/richTextProcessor/wrapEmojiText';
-import type wrapRichText from '@lib/richTextProcessor/wrapRichText';
-import type lottieLoader from '@lib/lottie/lottieLoader';
-import type {RootScope} from '@lib/rootScope';
-import type SolidJSHotReloadGuardProvider from '@lib/solidjs/hotReloadGuardProvider';
-import type uiNotificationsManager from '@lib/uiNotificationsManager';
-import type {useAppSettings} from '@stores/appSettings';
-import type {useAppConfig} from '@stores/appState';
-import type usePremium from '@stores/premium';
+import confirmationPopup from '@components/confirmationPopup';
+import {default as createEmojiDropdownButton, useEmojiDropdown} from '@components/emojiDropdownButton';
+import {EmoticonsDropdown} from '@components/emoticonsDropdown';
+import EmoticonsSearch from '@components/emoticonsDropdown/search';
+import EmojiTab from '@components/emoticonsDropdown/tabs/emoji';
+import {InputFieldTsx} from '@components/inputFieldTsx';
+import PasswordMonkey from '@components/monkeys/password';
+import PasswordInputField from '@components/passwordInputField';
+import PeerProfileAvatars from '@components/peerProfileAvatars';
+import {PeerTitleTsx} from '@components/peerTitleTsx';
+import showBirthdayPopup, {saveMyBirthday} from '@components/popups/birthday';
+import {useStickersDropdown} from '@components/popups/createPoll/stickersDropdown';
+import showLimitPopup from '@components/popups/limit';
+import showMyQrCodePopup from '@components/popups/myQrCode';
+import {showSharingPickerPopup} from '@components/popups/pickUser';
+import showPremiumPopup from '@components/popups/premium';
+import showSendGiftPopup from '@components/popups/sendGift';
+import showStarsRatingPopup from '@components/popups/starsRating';
+import showToggleReadDatePopup from '@components/popups/toggleReadDate';
+import {setQuizHint} from '@components/quizHint';
+import Row from '@components/rowTsx';
+import {AppSidebarLeft} from '@components/sidebarLeft';
+import {AppSidebarRight} from '@components/sidebarRight';
+import AppPollResultsTab from '@components/sidebarRight/tabs/pollResults';
+import Slideshow from '@components/slideshow';
+import {AppChatFoldersTab, AppEditFolderTab} from '@components/solidJsTabs/tabs';
+import {StoriesProvider, useStories} from '@components/stories/store';
+import {hideToast, toast, toastNew} from '@components/toast';
+import {TranslatableMessageTsx} from '@components/translatableMessage';
+import {wrapAdaptiveCustomEmoji} from '@components/wrappers/customEmojiSimple';
+import DocumentTsx from '@components/wrappers/documentTsx';
+import wrapFolderTitle from '@components/wrappers/folderTitle';
+import wrapGeo from '@components/wrappers/geo';
+import getPeerTitle from '@components/wrappers/getPeerTitle';
+import {wrapTopicIcon} from '@components/wrappers/messageActionTextNewUnsafe';
+import wrapPeerTitle from '@components/wrappers/peerTitle';
+import wrapPhoto from '@components/wrappers/photo';
+import PhotoTsx from '@components/wrappers/photoTsx';
+import wrapReply from '@components/wrappers/reply';
+import wrapSticker from '@components/wrappers/sticker';
+import wrapStickerSetThumb from '@components/wrappers/stickerSetThumb';
+import wrapTopicNameButton from '@components/wrappers/topicNameButton';
+import VideoTsx from '@components/wrappers/videoTsx';
+import {formatDate} from '@helpers/date';
+import {getFileAndOpenEditor} from '@helpers/getFileAndOpenEditor';
+import {ThemeController} from '@helpers/themeController';
+import usePeerTranslation from '@hooks/usePeerTranslation';
+import apiManagerProxy from '@lib/apiManagerProxy';
+import {AppDialogsManager} from '@lib/appDialogsManager';
+import {AppImManager} from '@lib/appImManager';
+import I18n, {i18n, join} from '@lib/langPack';
+import wrapEmojiText from '@lib/richTextProcessor/wrapEmojiText';
+import wrapRichText from '@lib/richTextProcessor/wrapRichText';
+import lottieLoader from '@lib/lottie/lottieLoader';
+import {RootScope} from '@lib/rootScope';
+import SolidJSHotReloadGuardProvider from '@lib/solidjs/hotReloadGuardProvider';
+import uiNotificationsManager from '@lib/uiNotificationsManager';
+import {useAppSettings} from '@stores/appSettings';
+import {useAppConfig} from '@stores/appState';
+import usePremium from '@stores/premium';
 
 
 export type SolidJSHotReloadGuardContextValue = {
@@ -100,7 +89,7 @@ export type SolidJSHotReloadGuardContextValue = {
   PasswordInputField: typeof PasswordInputField;
   InputFieldTsx: typeof InputFieldTsx;
   PasswordMonkey: typeof PasswordMonkey;
-  PopupPremium: typeof PopupPremium;
+  showPremiumPopup: typeof showPremiumPopup;
   EmoticonsDropdown: typeof EmoticonsDropdown;
   EmojiTab: typeof EmojiTab;
   appDialogsManager: AppDialogsManager;
@@ -109,8 +98,7 @@ export type SolidJSHotReloadGuardContextValue = {
   I18n: typeof I18n;
   i18n: typeof i18n;
   join: typeof join;
-  PopupElement: typeof PopupElement;
-  PopupToggleReadDate: typeof PopupToggleReadDate;
+  showToggleReadDatePopup: typeof showToggleReadDatePopup;
   wrapSticker: typeof wrapSticker;
   wrapTopicNameButton: typeof wrapTopicNameButton;
   wrapRichText: typeof wrapRichText;
@@ -129,7 +117,7 @@ export type SolidJSHotReloadGuardContextValue = {
   BusinessHours: typeof BusinessHours;
   avatarNew: typeof avatarNew;
   PeerTitleTsx: typeof PeerTitleTsx;
-  PopupSendGift: typeof PopupSendGift;
+  showSendGiftPopup: typeof showSendGiftPopup;
   showBirthdayPopup: typeof showBirthdayPopup;
   saveMyBirthday: typeof saveMyBirthday;
   showMyQrCodePopup: typeof showMyQrCodePopup;

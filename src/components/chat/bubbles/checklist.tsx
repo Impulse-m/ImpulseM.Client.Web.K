@@ -5,7 +5,6 @@ import {Message, MessageMedia, TodoCompletion} from '@layer'
 import wrapRichText from '@lib/richTextProcessor/wrapRichText';
 
 import styles from '@components/chat/bubbles/checklist.module.scss';
-import CheckboxFieldTsx from '@components/checkboxFieldTsx';
 import cancelEvent from '@helpers/dom/cancelEvent';
 import rootScope from '@lib/rootScope';
 import Chat from '@components/chat/chat';
@@ -14,11 +13,12 @@ import classNames from '@helpers/string/classNames';
 import {PeerTitleTsx} from '@components/peerTitleTsx';
 import {IconTsx} from '@components/iconTsx';
 import {wrapEmojiTextWithEntities} from '@lib/richTextProcessor/wrapEmojiText';
-import PopupPremium from '@components/popups/premium';
+import showPremiumPopup from '@components/popups/premium';
 import {toastNew} from '@components/toast';
 import wrapPeerTitle from '@components/wrappers/peerTitle';
 import {ConfettiContainer, ConfettiRef} from '@components/confetti';
 import getPeerId from '@appManagers/utils/peers/getPeerId';
+import buttonKeyDown from '@helpers/solid/buttonKeyDown';
 
 export function ChecklistBubble(props: {
   out: boolean
@@ -79,7 +79,7 @@ export function ChecklistBubble(props: {
     }
 
     if(!rootScope.premium) {
-      PopupPremium.show();
+      showPremiumPopup();
       return;
     }
 
@@ -118,13 +118,19 @@ export function ChecklistBubble(props: {
               <div
                 class={classNames(
                   styles.item,
-                  isReadonly ? styles.itemReadonly : styles.itemClickable,
+                  isReadonly && styles.itemReadonly,
                   completionsById()[item.id] && styles.itemCompleted
                 )}
+                role="checkbox"
+                aria-checked={Boolean(completionsById()[item.id])}
+                aria-label={item.title.text}
+                aria-readonly={isReadonly ? 'true' : undefined}
+                tabindex={isReadonly ? undefined : 0}
                 onClick={(evt) => {
                   cancelEvent(evt);
                   handleClick(item.id);
                 }}
+                onKeyDown={isReadonly ? undefined : buttonKeyDown}
                 data-checklist-item-id={item.id}
               >
                 {isReadonly ? (
@@ -137,9 +143,22 @@ export function ChecklistBubble(props: {
                   </div>
                 ) : (
                   <div class={styles.itemCheckbox}>
-                    <CheckboxFieldTsx
-                      checked={Boolean(completionsById()[item.id])}
-                    />
+                    <div
+                      class={classNames(
+                        'checkbox-field',
+                        'checkbox-without-caption',
+                        completionsById()[item.id] && styles.checkboxChecked
+                      )}
+                      aria-hidden="true"
+                    >
+                      <div class="checkbox-box">
+                        <div class="checkbox-box-border" />
+                        <div class="checkbox-box-background" />
+                        <svg class="checkbox-box-check" viewBox="0 0 24 24">
+                          <use href="#check" x="-1" />
+                        </svg>
+                      </div>
+                    </div>
                     <AvatarNewTsx
                       peerId={completedById()}
                       size={22}

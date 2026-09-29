@@ -8,10 +8,9 @@ import RowTsx from '@components/rowTsx';
 import {avatarNew, AvatarNew} from '@components/avatarNew';
 import LimitLine from '@components/limit';
 import {LoadableList, StatisticsOverviewItems, createLoadableList, MoreButton, makeAbsStats} from '@components/sidebarRight/tabs/statistics';
-import PopupBoostsViaGifts, {BoostsBadge} from '@components/popups/boostsViaGifts';
+import showBoostsViaGiftsPopup, {BoostsBadge} from '@components/popups/boostsViaGifts';
 import Button from '@components/button';
 import {attachClickEvent} from '@helpers/dom/clickEvent';
-import PopupElement from '@components/popups';
 import {InviteLink} from '@components/sidebarLeft/tabs/inviteLink';
 import {horizontalMenu} from '@components/horizontalMenu';
 import classNames from '@helpers/string/classNames';
@@ -21,13 +20,13 @@ import Icon from '@components/icon';
 import toggleDisability from '@helpers/dom/toggleDisability';
 import findUpClassName from '@helpers/dom/findUpClassName';
 import rootScope from '@lib/rootScope';
-import PopupGiftLink from '@components/popups/giftLink';
+import showGiftLinkPopup from '@components/popups/giftLink';
 import {toastNew} from '@components/toast';
 import indexOfAndSplice from '@helpers/array/indexOfAndSplice';
 import appImManager from '@lib/appImManager';
-import PopupPayment from '@components/popups/payment';
+import {createPaymentPopup} from '@components/popups/payment';
 import formatStarsAmount from '@appManagers/utils/payments/formatStarsAmount';
-import PopupBoost from '@components/popups/boost';
+import showBoostPopup from '@components/popups/boost';
 import Tabs from '@components/tabs';
 import {wrapSolidComponent} from '@helpers/solid/wrapSolidComponent';
 
@@ -117,12 +116,12 @@ export default class AppBoostsTab extends SliderSuperTabEventable {
 
     const boostsViaGiftsButton = Button('btn-primary btn-transparent primary', {icon: 'gift_premium_filled', text: 'BoostingGetBoostsViaGifts'});
     attachClickEvent(boostsViaGiftsButton, () => {
-      PopupElement.createPopup(PopupBoostsViaGifts, this.peerId);
+      showBoostsViaGiftsPopup(this.peerId);
     }, {listenerSetter: this.listenerSetter});
 
     const boostButton = Button('btn-primary btn-transparent primary', {icon: 'addboost', text: this.isBroadcast ? 'BoostChannel' : 'BoostGroup'});
     attachClickEvent(boostButton, () => {
-      PopupElement.createPopup(PopupBoost, this.peerId);
+      showBoostPopup(this.peerId);
     }, {listenerSetter: this.listenerSetter});
 
     const noBoostersHint = i18n('NoBoostersHint');
@@ -198,8 +197,7 @@ export default class AppBoostsTab extends SliderSuperTabEventable {
                   giveaway={prepaidGiveaway}
                   appConfig={appConfig}
                   clickable={() => {
-                    PopupElement.createPopup(
-                      PopupBoostsViaGifts,
+                    showBoostsViaGiftsPopup(
                       this.peerId,
                       prepaidGiveaway,
                       () => {
@@ -215,11 +213,13 @@ export default class AppBoostsTab extends SliderSuperTabEventable {
             }}</For>
           </Section>
         )}
-        <Section class="boosts-users-container">
+        <Tabs.MenuShell betweenSections>
           <Tabs.Menu ref={tabs} class="boosts-users-tabs">
             <MenuTab key="BoostingBoostsCount" count={boostsList().count} />
             {showGifts() && <MenuTab key="BoostingGiftsCount" count={giftsBoostsList().count} />}
           </Tabs.Menu>
+        </Tabs.MenuShell>
+        <Section class="boosts-users-container">
           <Tabs.Content ref={content} class="boosts-users-contents" onClick={async(e) => {
             const target = findUpClassName(e.target, 'row');
             const boost = this.targets.get(target);
@@ -228,7 +228,7 @@ export default class AppBoostsTab extends SliderSuperTabEventable {
             }
 
             if(boost.stars) {
-              PopupPayment.create({
+              createPaymentPopup({
                 noPaymentForm: true,
                 transaction: {
                   _: 'starsTransaction',
@@ -255,8 +255,7 @@ export default class AppBoostsTab extends SliderSuperTabEventable {
             if(peerId && !boost.pFlags.gift && !boost.pFlags.unclaimed && !boost.pFlags.giveaway) {
               appImManager.setInnerPeer({peerId: boost.user_id.toPeerId(false)});
             } else if(peerId && peerId !== rootScope.myId) {
-              PopupElement.createPopup(
-                PopupGiftLink,
+              showGiftLinkPopup(
                 slug,
                 undefined,
                 {
@@ -274,7 +273,7 @@ export default class AppBoostsTab extends SliderSuperTabEventable {
                 }
               );
             } else if(slug) {
-              PopupElement.createPopup(PopupGiftLink, slug);
+              showGiftLinkPopup(slug);
             } else {
               toastNew({langPackKey: 'BoostingRecipientWillBeSelected'});
             }

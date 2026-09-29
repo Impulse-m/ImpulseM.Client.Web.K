@@ -100,7 +100,9 @@ function buildRoundBubble(): {divRound: HTMLElement, canvas: HTMLCanvasElement} 
 /** One user tap: the browser delivers both, and exactly one of them must run the toggle. */
 function tap(element: Element): void {
   element.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true}));
-  element.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+  // detail 1: a click the pointer produces. detail 0 is what the keyboard and assistive tech
+  // produce, which attachClickEvent (touch build) deliberately handles as a second activation.
+  element.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, detail: 1}));
 }
 
 

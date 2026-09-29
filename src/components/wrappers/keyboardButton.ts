@@ -3,10 +3,11 @@ import cancelEvent from '@helpers/dom/cancelEvent';
 import findUpClassName from '@helpers/dom/findUpClassName';
 import htmlToDocumentFragment from '@helpers/dom/htmlToDocumentFragment';
 import toggleDisability from '@helpers/dom/toggleDisability';
-import {KeyboardButton, Message, ReplyMarkup, InlineQueryPeerType} from '@layer';
+import {KeyboardButton, KeyboardInlineButton, Message, ReplyMarkup, InlineQueryPeerType} from '@layer';
 import {i18n} from '@lib/langPack';
 import wrapRichText from '@lib/richTextProcessor/wrapRichText';
 import rootScope from '@lib/rootScope';
+import isEphemeralMessageId from '@appManagers/utils/messageId/isEphemeralMessageId';
 import Chat from '@components/chat/chat';
 import {showPickUser3Popup} from '@components/popups/pickUser';
 import selectRequestPeers from '@components/popups/requestPeer';
@@ -20,6 +21,8 @@ import confirmationPopup from '@components/confirmationPopup';
 import SolidJSHotReloadGuardProvider from '@lib/solidjs/hotReloadGuardProvider';
 import {wrapFormattedDuration} from './wrapDuration';
 import formatDuration from '@helpers/formatDuration';
+
+export type AnyKeyboardButton = KeyboardButton | KeyboardInlineButton;
 
 export type KeyboardButtonHandler = {
   text: DocumentFragment | HTMLElement,
@@ -39,7 +42,7 @@ export function getKeyboardButtonHandler({
   wrapOptions,
   className
 }: {
-  button: KeyboardButton,
+  button: AnyKeyboardButton,
   chat: Chat,
   message?: Message.message,
   replyMarkup?: ReplyMarkup,
@@ -61,14 +64,16 @@ export function getKeyboardButtonHandler({
   const messageMid = (replyMarkup as ReplyMarkup.replyKeyboardMarkup)?.mid || message?.mid;
   const botId = (replyMarkup as ReplyMarkup.replyKeyboardMarkup)?.fromId || message?.viaBotId || message?.fromId;
 
-  switch(button._) {
-    case 'keyboardButtonUrl': {
+  const buttonType = button.type;
+
+  switch(buttonType._) {
+    case 'inlineButtonTypeUrl': {
       const r = wrapRichText(' ', {
         entities: [{
           _: 'messageEntityTextUrl',
           length: 1,
           offset: 0,
-          url: button.url
+          url: buttonType.url
         }]
       });
 
@@ -88,21 +93,21 @@ export function getKeyboardButtonHandler({
       break;
     }
 
-    case 'keyboardButtonSwitchInline': {
+    case 'inlineButtonTypeSwitchInline': {
       classNamesArr.push('is-switch-inline');
       icon = 'forward_filled';
       onClick = (e) => {
         cancelEvent(e);
 
         let promise: Promise<PeerId>;
-        if(button.pFlags.same_peer) promise = Promise.resolve(peerId);
+        if(buttonType.pFlags.same_peer) promise = Promise.resolve(peerId);
         else promise = rootScope.managers.appInlineBotsManager.checkSwitchReturn(botId).then((peerId) => {
           if(peerId) {
             return peerId;
           }
 
           let types: ImpulseMChoosePeerType[];
-          if(button.peer_types) {
+          if(buttonType.peer_types) {
             const map: {[type in InlineQueryPeerType['_']]?: ImpulseMChoosePeerType} = {
               inlineQueryPeerTypePM: 'users',
               inlineQueryPeerTypeBotPM: 'bots',
@@ -111,7 +116,7 @@ export function getKeyboardButtonHandler({
               inlineQueryPeerTypeMegagroup: 'groups'
             };
 
-            types = button.peer_types.map((type) => map[type._]);
+            types = buttonType.peer_types.map((type) => map[type._]);
           }
 
           return showPickUser3Popup(types, ['send_inline']);
@@ -120,13 +125,13 @@ export function getKeyboardButtonHandler({
         promise.then(async(chosenPeerId) => {
           const threadId = peerId === chosenPeerId ? chat.threadId : undefined;
           await chat.appImManager.setInnerPeer({peerId: chosenPeerId, threadId});
-          rootScope.managers.appInlineBotsManager.switchInlineQuery(chosenPeerId, threadId, botId, button.query);
+          rootScope.managers.appInlineBotsManager.switchInlineQuery(chosenPeerId, threadId, botId, buttonType.query);
         });
       };
       break;
     }
 
-    case 'keyboardButtonBuy': {
+    case 'inlineButtonTypeBuy': {
       const mediaInvoice = messageMedia._ === 'messageMediaInvoice' ? messageMedia : undefined;
       if(mediaInvoice?.extended_media) {
         return;
@@ -143,10 +148,10 @@ export function getKeyboardButtonHandler({
       break;
     }
 
-    case 'keyboardButtonUrlAuth': {
+    case 'inlineButtonTypeUrlAuth': {
       classNamesArr.push('is-url-auth');
 
-      const {url, button_id} = button;
+      const {url, button_id} = buttonType;
 
       onClick = () => {
         const toggle = toggleDisability([buttonEl], true);
@@ -162,8 +167,8 @@ export function getKeyboardButtonHandler({
       break;
     }
 
-    case 'keyboardButtonSimpleWebView':
-    case 'keyboardButtonWebView': {
+    case 'buttonTypeSimpleWebView':
+    case 'inlineButtonTypeWebView': {
       classNamesArr.push('is-web-view');
       icon = 'webview';
 
@@ -171,8 +176,8 @@ export function getKeyboardButtonHandler({
         const toggle = toggleDisability([buttonEl], true);
         chat.openWebApp({
           botId,
-          url: button.url,
-          isSimpleWebView: button._ === 'keyboardButtonSimpleWebView',
+          url: buttonType.url,
+          isSimpleWebView: buttonType._ === 'buttonTypeSimpleWebView',
           buttonText: button.text
         }).finally(() => {
           toggle();
@@ -181,7 +186,7 @@ export function getKeyboardButtonHandler({
       break;
     }
 
-    case 'keyboardButtonRequestPhone': {
+    case 'buttonTypeRequestPhone': {
       classNamesArr.push('is-request-phone');
 
       onClick = () => {
@@ -190,9 +195,9 @@ export function getKeyboardButtonHandler({
       break;
     }
 
-    case 'keyboardButtonCallback': {
+    case 'inlineButtonTypeCallback': {
       onClick = () => {
-        rootScope.managers.appInlineBotsManager.callbackButtonClick(peerId, messageMid, button)
+        rootScope.managers.appInlineBotsManager.callbackButtonClick(peerId, messageMid, buttonType.data)
         .then((callbackAnswer) => {
           if(typeof callbackAnswer.message === 'string' && callbackAnswer.message.length) {
             if(callbackAnswer.pFlags.alert) {
@@ -212,7 +217,7 @@ export function getKeyboardButtonHandler({
       break;
     }
 
-    case 'keyboardButtonGame': {
+    case 'inlineButtonTypeGame': {
       classNamesArr.push('is-game');
       icon = 'play_filled';
 
@@ -232,9 +237,9 @@ export function getKeyboardButtonHandler({
       break;
     }
 
-    case 'keyboardButtonRequestPeer': {
+    case 'buttonTypeRequestPeer': {
       onClick = async() => {
-        const peerType = button.peer_type;
+        const peerType = buttonType.peer_type;
 
         if(peerType._ === 'requestPeerTypeCreateBot') {
           showCreateBotPopup({
@@ -269,7 +274,7 @@ export function getKeyboardButtonHandler({
 
                 await rootScope.managers.appMessagesManager.sendBotRequestedPeer(
                   peerId,
-                  button.button_id,
+                  buttonType.button_id,
                   [user.id.toPeerId()],
                   {mid: messageMid}
                 );
@@ -286,14 +291,14 @@ export function getKeyboardButtonHandler({
 
         let requestedPeerIds: PeerId[];
         try {
-          requestedPeerIds = await selectRequestPeers({button, requestingPeerId: peerId});
+          requestedPeerIds = await selectRequestPeers({button: buttonType, requestingPeerId: peerId});
         } catch{
           return;
         }
 
         rootScope.managers.appMessagesManager.sendBotRequestedPeer(
           peerId,
-          button.button_id,
+          buttonType.button_id,
           requestedPeerIds,
           {mid: messageMid}
         ).catch((err: ApiError) => {
@@ -308,21 +313,31 @@ export function getKeyboardButtonHandler({
       break;
     }
 
-    case 'keyboardButtonCopy': {
+    case 'inlineButtonTypeCopy': {
       icon = 'copy';
 
       onClick = () => {
-        copyTextToClipboard(button.copy_text);
+        copyTextToClipboard(buttonType.copy_text);
         toastNew({langPackKey: 'TextCopied'});
       };
       break;
     }
 
+    case 'inlineButtonTypeDisabled': {
+      classNamesArr.push('is-disabled');
+      break;
+    }
+
     default: {
       if(!message) {
+        // a keyboard an ephemeral message brought answers its bot privately: the press replies
+        // to that message, which makes the send an ephemeral reply (desktop replies to the
+        // keyboard's message in groups for the same reason)
+        const replyToEphemeral = isEphemeralMessageId(messageMid) ? {replyToMsgId: messageMid} : undefined;
         onClick = () => {
           rootScope.managers.appMessagesManager.sendText({
             ...chat.input?.getEphemeralSendingSnapshot(),
+            ...replyToEphemeral,
             peerId,
             text: button.text
           });
@@ -331,6 +346,13 @@ export function getKeyboardButtonHandler({
 
       break;
     }
+  }
+
+  // a welcome message is only a template until someone joins, and its id is no message's id: a
+  // link or a copy button still works, anything that would ask a bot about "this message" must
+  // not fire (desktop's `api_bot.cpp` guard)
+  if(message?.pFlags.welcome_template && buttonType._ !== 'inlineButtonTypeUrl' && buttonType._ !== 'inlineButtonTypeCopy') {
+    onClick = undefined;
   }
 
   let bg: 'success' | 'danger' | 'primary';
@@ -379,7 +401,7 @@ export function getKeyboardButtonHandler({
 }
 
 export default function wrapKeyboardButton(options: {
-  button: KeyboardButton,
+  button: AnyKeyboardButton,
   chat: Chat,
   message?: Message.message,
   replyMarkup?: ReplyMarkup,

@@ -244,4 +244,7 @@
 .topic-dialogs-override .chatlist-chat {
   min-height: 4rem;
   padding-inline-start: .75rem;
+  // * a topic row is a `chatlist-chat-bigger` too, but has no avatar to stand off the checkbox:
+  // * its lane is the plain one (`_chatlist.scss`)
+  --select-lane-shift: initial;
 }

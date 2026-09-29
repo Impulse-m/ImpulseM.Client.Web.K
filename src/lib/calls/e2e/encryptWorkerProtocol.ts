@@ -3,9 +3,11 @@
  *
  * The worker owns the E2eCall instance (and therefore the long-lived
  * Ed25519 private key + derived shared keys), so the main thread NEVER sees
- * raw key material. Requests are RPC-style with a numeric `id`; the worker
- * replies with `{kind: 'ok' | 'err', id, ...}`. Asynchronous state updates
- * use `{kind: 'event', event}` and are not tied to a request id.
+ * raw key material: the key is generated inside the worker (`createKey`) and
+ * only its public half ever crosses back. Requests are RPC-style with a
+ * numeric `id`; the worker replies with `{kind: 'ok' | 'err', id, ...}`.
+ * Asynchronous state updates use `{kind: 'event', event}` and are not tied to
+ * a request id.
  *
  * All Uint8Arrays and bigints traverse the postMessage boundary via
  * structured clone (no manual transferables) — keeps both sides simple at
@@ -19,25 +21,40 @@ import type {GroupParticipant, GroupState} from './tlTypes';
 // ===== Requests (main → worker) =====
 
 export type HostRequest =
+  // Generate the call's Ed25519 key inside the worker and retain it; the
+  // result is the public key the host advertises in its join payload. The
+  // block builders and `init` below sign with the retained key when they carry
+  // no `privateSeed` — the seed form exists for unit tests driving the worker
+  // with a known key, and is consumed (zeroed) on arrival.
+  | {kind: 'createKey'; id: number}
   | {kind: 'createZeroBlock'; id: number; args: {
-      privateSeed: Uint8Array;
+      privateSeed?: Uint8Array;
       groupState: GroupState;
     }}
   | {kind: 'createSelfAddBlock'; id: number; args: {
-      privateSeed: Uint8Array;
+      privateSeed?: Uint8Array;
       previousBlockServer: Uint8Array;
       self: GroupParticipant;
     }}
   | {kind: 'init'; id: number; args: {
       userId: bigint;
-      privateSeed: Uint8Array;
+      privateSeed?: Uint8Array;
       lastBlockServer: Uint8Array;
     }}
+  // Two-phase, seedless rejoin. prepareRejoinBlock signs a replacement
+  // self-add block with the worker's existing private key and retains the exact
+  // bytes. Once phone.joinGroupCall accepts them, commitRejoinBlock atomically
+  // re-anchors the live E2eCall without exposing or re-sending the seed.
+  | {kind: 'prepareRejoinBlock'; id: number; args: {
+      previousBlockServer: Uint8Array;
+      self: GroupParticipant;
+    }}
+  | {kind: 'commitRejoinBlock'; id: number}
   | {kind: 'applyBlock'; id: number; args: {
       serverBlock: Uint8Array;
     }}
-  | {kind: 'buildChangeStateBlock'; id: number; args: {
-      newGroupState: GroupState;
+  | {kind: 'buildRemoveParticipantsBlock'; id: number; args: {
+      userIds: bigint[];
     }}
   | {kind: 'pullOutbound'; id: number}
   | {kind: 'receiveInbound'; id: number; args: {
@@ -56,9 +73,6 @@ export type HostRequest =
       // under structured clone.
       entries: Array<[number, bigint]>;
     }}
-  // Debug-only: dump per-frame counters from the recv/send transforms so the
-  // host can verify the e2e pipeline is alive. Strip once J-2 is verified.
-  | {kind: 'getDebug'; id: number}
   | {kind: 'destroy'; id: number};
 
 // ===== Responses (worker → main) =====
@@ -76,6 +90,23 @@ export interface CallStatusSnapshot {
   failed: string | null;
 }
 
+export interface OutboundBroadcast {
+  bytes: Uint8Array;
+  // Verification height that produced these bytes. The host drops queued
+  // messages from older rounds as soon as a newer status arrives.
+  height: number;
+}
+
+export interface ReceiveInboundResult {
+  status: CallStatusSnapshot;
+  // `dropped` means the future-broadcast buffer did not retain this item (a
+  // far-future height, or a full buffer with nothing worth evicting). It is
+  // consumed either way: the host advances the subchain cursor and leaves a
+  // breadcrumb. Parking the cursor on such an item stalled every later
+  // verification round.
+  disposition: 'consumed' | 'dropped';
+}
+
 export type WorkerEvent =
   | {kind: 'status'; status: CallStatusSnapshot}
   | {kind: 'pendingOutbound'} // hint: call pullOutbound()
@@ -83,12 +114,13 @@ export type WorkerEvent =
   // Recv-transform breadcrumb. Emitted (deduped, at most once per ssrc+reason)
   // when an inbound frame can't be turned into plaintext: either its SSRC has
   // no user mapping (`unmapped` — the sender's audio/video SSRC never made it
-  // into setSsrcUsers, so the frame passes through still-encrypted → "seen but
-  // not heard") or decryption threw (`decryptErr` — usually a stale group key).
-  // Unlike the E2E_DEBUG counters this stays on in production so the failure
-  // leaves a trace in exported logs. `sustained` is set on the re-emit once the
-  // condition has persisted for many frames (not a transient at-join blip) —
-  // the host escalates that to a user-facing breadcrumb.
+  // into setSsrcUsers, so the frame is dropped → "seen but not heard") or
+  // decryption threw (`decryptErr` — usually a stale group key). Both cases drop
+  // the frame: the recv transform fails closed (see encryptWorker.ts).
+  // This stays on in production so the failure leaves a trace in exported
+  // logs. `sustained` is set on the re-emit once the condition has persisted
+  // for many frames (not a transient at-join blip) — the host escalates that
+  // to a user-facing breadcrumb.
   | {kind: 'recvDiag'; ssrc: number; reason: 'unmapped' | 'decryptErr'; message?: string; sustained?: boolean};
 
 export type HostResponse =
@@ -103,25 +135,21 @@ export type HostResponse =
 // type the awaited result correctly.
 
 export interface RequestResultMap {
+  createKey: Uint8Array; // 32-byte Ed25519 public key
   createZeroBlock: Uint8Array; // server-format block bytes
   createSelfAddBlock: Uint8Array;
   init: CallStatusSnapshot;
+  prepareRejoinBlock: Uint8Array;
+  commitRejoinBlock: CallStatusSnapshot;
   applyBlock: CallStatusSnapshot;
-  buildChangeStateBlock: Uint8Array;
-  pullOutbound: Uint8Array[]; // server-format broadcast bytes
-  receiveInbound: CallStatusSnapshot;
+  buildRemoveParticipantsBlock: {
+    block: Uint8Array;
+    removedUserIds: bigint[];
+  } | undefined;
+  pullOutbound: OutboundBroadcast[];
+  receiveInbound: ReceiveInboundResult;
   getStatus: CallStatusSnapshot;
   setSsrcUsers: void;
-  getDebug: {
-    recv: {seen: number; noMeta: number; noSsrc: number; unmapped: number; decryptOk: number; decryptErr: number; lastSsrc: number; lastErr: string};
-    send: {seen: number; ok: number; err: number; lastErr: string};
-    mapSize: number;
-    mapEntries: Array<[number, string]>;
-    rtcInstalledAt?: number;
-    rtcTransformEvents: number;
-    hasOnRtcTransform: boolean;
-    loops: Record<string, unknown>;
-  };
   destroy: void;
 }
 

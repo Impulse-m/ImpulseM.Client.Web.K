@@ -7,15 +7,14 @@ import appDialogsManager, {
 import rootScope from '@lib/rootScope';
 import {useAppSettings} from '@stores/appSettings';
 import {ButtonMenuItemOptionsVerifiable} from '@components/buttonMenu';
-import PopupDeleteDialog from '@components/popups/deleteDialog';
+import showDeleteDialogPopup from '@components/popups/deleteDialog';
 import {i18n, LangPackKey, _i18n} from '@lib/langPack';
 import {toastNew} from '@components/toast';
-import PopupMute from '@components/popups/mute';
+import showMutePopup from '@components/popups/mute';
 import {AppManagers} from '@lib/managers';
-import {CAN_HIDE_TOPIC, FOLDER_ID_ARCHIVE, GENERAL_TOPIC_ID, REAL_FOLDER_ID, REAL_FOLDERS} from '@appManagers/constants';
-import showLimitPopup from '@components/popups/limit';
+import {CAN_HIDE_TOPIC, FOLDER_ID_ALL, FOLDER_ID_ARCHIVE, GENERAL_TOPIC_ID, REAL_FOLDER_ID, REAL_FOLDERS} from '@appManagers/constants';
+import showPinLimitReached from '@components/showPinLimitReached';
 import createContextMenu from '@helpers/dom/createContextMenu';
-import PopupElement from '@components/popups';
 import showChatPreviewPopup, {chatPreviewAnchorFromDialogRow} from '@components/popups/chatPreview';
 import cancelEvent from '@helpers/dom/cancelEvent';
 import IS_SHARED_WORKER_SUPPORTED from '@environment/sharedWorkerSupport';
@@ -38,6 +37,8 @@ import type {
 import leaveCommunityWithConfirmation, {
   canLeaveCommunity
 } from '@components/communities/leaveCommunity';
+import clearHistoryWithConfirmation from '@components/clearHistory';
+import canClearHistory from '@appManagers/utils/chats/canClearHistory';
 import removeChatFromCommunityWithConfirmation
 from '@components/communities/removeChatFromCommunity';
 import {
@@ -79,12 +80,12 @@ export default class DialogsContextMenu {
   private li: HTMLElement;
   private addToFolderMenu: InstanceType<typeof AddToFolderDropdownMenu>;
 
-  constructor(private managers: AppManagers) {
+  constructor(private managers: AppManagers, private options: {recentSearch?: boolean, useDialogFolder?: boolean} = {}) {
 
   }
 
   public attach(element: HTMLElement) {
-    createContextMenu({
+    return createContextMenu({
       listenTo: element,
       buttons: this.getButtons(),
       onOpen: async(e, li) => {
@@ -111,12 +112,22 @@ export default class DialogsContextMenu {
           throw 'All chats dialog';
         }
 
+        // * Android shows no context menu while rows are being selected: the press belongs to the
+        // * selection, and on touch it is also what starts a reorder of the pinned block
+        const selection = appDialogsManager.getSelectionForRow(li);
+        if(selection?.isSelecting && selection.canSelect(li)) {
+          throw 'Selecting dialogs';
+        }
+
         this.dialog = this.isCommunityDialog ?
           undefined :
           this.monoforumParentPeerId ?
             await this.managers.monoforumDialogsStorage.getDialogByParent(this.monoforumParentPeerId, this.peerId):
             await this.managers.dialogsStorage.getAnyDialog(this.peerId, this.threadId);
-        this.filterId = this.threadId ? undefined : appDialogsManager.filterId;
+        this.filterId = this.threadId ? undefined :
+          this.options.useDialogFolder || this.options.recentSearch ?
+            (isDialog(this.dialog) ? this.dialog.folder_id ?? 0 : 0) :
+            appDialogsManager.filterId;
         this.canManageTopics = isForumTopic(this.dialog) ? await this.managers.dialogsStorage.canManageTopic(this.dialog) : undefined;
         this.canDelete = await this.checkIfCanDelete();
         this.canRemoveFromCommunity = !!this.communityId &&
@@ -136,7 +147,7 @@ export default class DialogsContextMenu {
       },
       onClose: () => {
         this.buttons?.forEach(button => button?.onClose?.());
-        this.li.classList.remove('menu-open');
+        this.li?.classList.remove('menu-open');
 
         this.li =
         this.peerId =
@@ -169,6 +180,9 @@ export default class DialogsContextMenu {
       text: 'OpenInNewTab',
       onClick: (e: MouseEvent | TouchEvent) => {
         appDialogsManager.openDialogInNewTab(this.li);
+        if(this.options.recentSearch) {
+          this.managers.appUsersManager.pushRecentSearch(this.peerId);
+        }
         cancelEvent(e);
       },
       verify: () => IS_SHARED_WORKER_SUPPORTED &&
@@ -215,6 +229,13 @@ export default class DialogsContextMenu {
         appImManager.toggleViewAsMessages(this.peerId, true);
       },
       verify: () => this.peerId === rootScope.myId && appSettings.savedAsForum && !this.threadId
+    }, {
+      icon: 'select',
+      text: 'Message.Context.Select',
+      onClick: () => {
+        appDialogsManager.getSelectionForRow(this.li)?.toggleByElement(this.li);
+      },
+      verify: () => !!appDialogsManager.getSelectionForRow(this.li)?.canSelect(this.li)
     }, {
       icon: 'unread',
       text: 'MarkAsUnread',
@@ -412,6 +433,19 @@ export default class DialogsContextMenu {
       onClick: this.onRemoveFromCommunityClick,
       verify: () => this.canRemoveFromCommunity
     }, {
+      icon: 'crossround',
+      text: 'DeleteFromRecent',
+      onClick: () => this.managers.appUsersManager.removeRecentSearch(this.peerId),
+      verify: () => !!this.options.recentSearch
+    }, {
+      icon: 'message_crossed',
+      text: 'ClearHistory',
+      onClick: this.onClearHistoryClick,
+      verify: () => !!this.dialog &&
+        !this.threadId &&
+        !this.monoforumParentPeerId &&
+        canClearHistory(apiManagerProxy.getPeer(this.peerId))
+    }, {
       icon: 'delete',
       className: 'danger',
       text: 'Delete',
@@ -536,12 +570,8 @@ export default class DialogsContextMenu {
         this.communityId,
         !this.communityDialog?.pFlags.pinned
       ).catch((err: ApiError) => {
-        if(
-          err.type === 'PINNED_DIALOGS_TOO_MUCH' ||
-          err.type === 'PINNED_TOO_MUCH'
-        ) {
-          showLimitPopup('pin');
-        }
+        // a Community is pinned among the chats of the main list
+        showPinLimitReached(err, {filterId: FOLDER_ID_ALL});
       });
       return;
     }
@@ -551,20 +581,8 @@ export default class DialogsContextMenu {
       peerId,
       filterId,
       topicOrSavedId: threadId
-    }).catch(async(err: ApiError) => {
-      if(err.type === 'PINNED_DIALOGS_TOO_MUCH' || err.type === 'PINNED_TOO_MUCH') {
-        if(isSaved) {
-          showLimitPopup('savedPin');
-        } else if(threadId) {
-          this.managers.apiManager.getLimit('topicPin').then((limit) => {
-            toastNew({langPackKey: 'LimitReachedPinnedTopics', langPackArguments: [limit]});
-          });
-        } else if(!REAL_FOLDERS.has(filterId)) {
-          toastNew({langPackKey: 'PinFolderLimitReached'});
-        } else {
-          showLimitPopup('pin');
-        }
-      }
+    }).catch((err: ApiError) => {
+      showPinLimitReached(err, {filterId, isSaved, isTopic: !!threadId});
     });
   };
 
@@ -583,7 +601,7 @@ export default class DialogsContextMenu {
       return;
     }
 
-    PopupElement.createPopup(PopupMute, this.peerId, this.threadId);
+    showMutePopup(this.peerId, this.threadId);
   };
 
   private onPreviewClick = () => {
@@ -591,6 +609,7 @@ export default class DialogsContextMenu {
       peerId: this.monoforumParentPeerId || this.peerId,
       monoforumThreadId: this.monoforumParentPeerId ? this.peerId : undefined,
       threadId: this.threadId,
+      lastMsgId: +this.li.dataset.mid || undefined,
       anchor: chatPreviewAnchorFromDialogRow(this.li)
     });
   };
@@ -664,9 +683,15 @@ export default class DialogsContextMenu {
     });
   };
 
+  private onClearHistoryClick = () => {
+    void clearHistoryWithConfirmation({
+      peerId: this.peerId,
+      managers: this.managers
+    });
+  };
+
   private onDeleteClick = () => {
-    PopupElement.createPopup(
-      PopupDeleteDialog,
+    showDeleteDialogPopup(
       this.peerId,
       undefined,
       undefined,

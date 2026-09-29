@@ -13,6 +13,12 @@ import LocalConferenceDescription from '@lib/calls/localConferenceDescription';
 import {fixMediaLineType, WebRTCLineType} from '@lib/calls/sdpBuilder';
 import {getAmplitude, toImpulseMSource} from '@lib/calls/utils';
 
+export async function waitForMediaTrackReplacements(replacements: Promise<void>[]): Promise<void> {
+  const results = await Promise.allSettled(replacements);
+  const rejected = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+  if(rejected) throw rejected.reason;
+}
+
 export type StreamItemBase = {
   type: 'input' | 'output',
   track: MediaStreamTrack,
@@ -52,6 +58,11 @@ class AudioStreamAnalyser {
     // connect Web Audio API
     streamSource.connect(analyser);
     // analyser.connect(context.destination);
+  }
+
+  public disconnect() {
+    this.streamSource.disconnect();
+    this.analyser.disconnect();
   }
 }
 
@@ -115,7 +126,7 @@ export default class StreamManager {
         for(let i = 0; i < items.length; ++i) {
           const {track: t, type, source: itemSource} = items[i];
           if(itemSource === source && type === 'input') {
-            items.splice(i, 1);
+            this.discardItem(i);
             outputStream.removeTrack(t);
             break;
           }
@@ -129,13 +140,16 @@ export default class StreamManager {
       }
     }
 
+    // A stopped manager has closed its context; a source node cannot be created
+    // on a closed one. The amplitude reader tolerates a missing analyser.
+    const canAnalyse = kind === 'audio' && context.state !== 'closed';
     this.finalizeAddingTrack({
       type,
       source,
       stream,
       track,
       kind,
-      streamAnalyser: kind === 'audio' ? new AudioStreamAnalyser(context, stream) : undefined
+      streamAnalyser: canAnalyse ? new AudioStreamAnalyser(context, stream) : undefined
     });
 
     if(kind === 'audio' && this.interval) {
@@ -150,6 +164,15 @@ export default class StreamManager {
     }, {once: true});
 
     this.items.push(item);
+  }
+
+  // Drops an item and releases its Web Audio nodes. A source node keeps the
+  // context graph (and the track it reads) referenced until it is disconnected.
+  private discardItem(index: number) {
+    const [item] = this.items.splice(index, 1);
+    if(item.kind === 'audio') {
+      item.streamAnalyser?.disconnect();
+    }
   }
 
   public hasInputTrackKind(kind: StreamItem['kind']) {
@@ -171,7 +194,7 @@ export default class StreamManager {
       switch(type) {
         case 'output': {
           if(t === track) {
-            items.splice(i, 1);
+            this.discardItem(i);
             this.outputStream.removeTrack(track);
             handled = true;
           }
@@ -181,7 +204,7 @@ export default class StreamManager {
 
         case 'input': {
           if(t === track) {
-            items.splice(i, 1);
+            this.discardItem(i);
             this.inputStream.removeTrack(track);
             handled = true;
           }
@@ -213,7 +236,7 @@ export default class StreamManager {
 
   public getAmplitude = (item: StreamAudioItem): StreamAmplitude => {
     const {streamAnalyser, stream, track, source, type} = item;
-    const analyser = streamAnalyser.analyser;
+    const analyser = streamAnalyser?.analyser;
     if(!analyser) return;
 
     const array = new Uint8Array(analyser.frequencyBinCount);
@@ -262,9 +285,13 @@ export default class StreamManager {
   // path uses this to attach `RTCRtpScriptTransform` early enough that
   // Chrome doesn't reject it as "Too late to create encoded streams" — see
   // memory tde2e-port.md K-2 for the timing details.
-  public appendToConference(conference: LocalConferenceDescription, onSenderCreated?: (sender: RTCRtpSender) => void) {
+  public async appendToConference(
+    conference: LocalConferenceDescription,
+    onSenderCreated?: (sender: RTCRtpSender) => void,
+    throwOnReplaceError = false
+  ): Promise<void> {
     if(this.locked) {
-      return;
+      return Promise.resolve();
     }
 
     const {inputStream, direction, canCreateConferenceEntry} = this;
@@ -279,6 +306,11 @@ export default class StreamManager {
     });
 
     const tracks = inputStream.getTracks();
+    const replacements: {
+      sender: RTCRtpSender,
+      previousTrack: MediaStreamTrack | null,
+      promise: Promise<void>
+    }[] = [];
     // const transceivers = conference.connection.getTransceivers();
     for(const [type, transceiverInit] of types) {
       let entry = conference.findEntry((entry) => entry.direction === direction && entry.type === type);
@@ -336,13 +368,40 @@ export default class StreamManager {
         continue;
       }
 
-      // try { // ! don't use await here. it will wait for adding track and fake one won't be visible in startNegotiation.
-      /* await  */sender.replaceTrack(track).catch((err) => {
-        this.log.error(err);
+      // Start replacement synchronously so a following createOffer sees the
+      // sender immediately. Runtime media transactions may still await the
+      // returned promise and roll back if the browser rejects replacement;
+      // legacy fire-and-forget callers retain the old logged-error behaviour.
+      const previousTrack = sender.track;
+      let replacement: Promise<void>;
+      try {
+        replacement = sender.replaceTrack(track);
+      } catch(err) {
+        replacement = Promise.reject(err);
+      }
+      replacements.push({
+        sender,
+        previousTrack,
+        promise: throwOnReplaceError ? replacement : replacement.catch((err) => {
+          this.log.error(err);
+        })
       });
-      // } catch(err) {
+    }
 
-      // }
+    try {
+      await waitForMediaTrackReplacements(replacements.map(({promise}) => promise));
+    } catch(err) {
+      // A conference can own several senders. Promise.allSettled tells us only
+      // after every replace completed, so a rejection may coexist with other
+      // senders already carrying the new stream. Restore the complete previous
+      // sender set before the caller removes/stops the rejected local tracks.
+      const rollbackResults = await Promise.allSettled(replacements.map(({sender, previousTrack}) => {
+        return sender.replaceTrack(previousTrack);
+      }));
+      rollbackResults.forEach((result) => {
+        if(result.status === 'rejected') this.log.error('replaceTrack rollback failed', result.reason);
+      });
+      throw err;
     }
   }
 
@@ -354,6 +413,28 @@ export default class StreamManager {
       });
     } catch(e) {
       this.log.error(e);
+    }
+
+    // stopTrack's synthetic `ended` removed the listed tracks above; sweep the
+    // rest (output video is never added to outputStream) so no analyser stays
+    // wired, then stop the timer that would read them.
+    while(this.items.length) {
+      this.discardItem(this.items.length - 1);
+    }
+    if(this.timer !== undefined) {
+      clearInterval(this.timer);
+      this.timer = undefined;
+    }
+
+    // Every StreamManager owns an AudioContext and only the tracks were ever
+    // stopped, so each call (and every camera/screen connection within it)
+    // leaked a running context — an audio thread per leftover manager. Close
+    // it; `state` and `close` are guarded for environments without Web Audio.
+    const {context} = this;
+    if(context && context.state !== 'closed' && typeof context.close === 'function') {
+      context.close().catch((err) => {
+        this.log.error('closing the audio context failed', err);
+      });
     }
   }
 }

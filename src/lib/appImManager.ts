@@ -1,3 +1,5 @@
+import {shouldPreserveKeyboardFocus} from '@helpers/dom/isKeyboardControl';
+import isTargetAnInput from '@helpers/dom/isTargetAnInput';
 import type {GroupCallId, MyGroupCall} from '@appManagers/appGroupCallsManager';
 import type {ApiLimitType} from '@appManagers/apiManagerMethods';
 import type GroupCallInstance from '@lib/calls/groupCallInstance';
@@ -11,7 +13,7 @@ import {logger, LogTypes} from '@lib/logger';
 import rootScope from '@lib/rootScope';
 import Chat, {ChatSearchKeys} from '@components/chat/chat';
 import {ChatType} from '@components/chat/chatType';
-import PopupNewMedia, {getCurrentNewMediaPopup} from '@components/popups/newMedia';
+import showNewMediaPopup, {canSendNewMedia, getCurrentNewMediaPopup} from '@components/popups/newMedia';
 import MarkupTooltip from '@components/chat/markupTooltip';
 import IS_TOUCH_SUPPORTED from '@environment/touchSupport';
 import SetTransition from '@components/singleTransition';
@@ -32,7 +34,6 @@ import type {TextHighlightMatch} from '@helpers/dom/textHighlight';
 import clearMediaElementSource from '@helpers/dom/clearMediaElementSource';
 import replaceContent from '@helpers/dom/replaceContent';
 import whichChild from '@helpers/dom/whichChild';
-import PopupElement from '@components/popups';
 import singleInstance from '@lib/singleInstance';
 import {hideToast, toast, toastNew} from '@components/toast';
 import debounce from '@helpers/schedulers/debounce';
@@ -53,7 +54,8 @@ import {Modify, SendMessageEmojiInteractionData} from '@types';
 import htmlToSpan from '@helpers/dom/htmlToSpan';
 import getVisibleRect from '@helpers/dom/getVisibleRect';
 import {simulateClickEvent} from '@helpers/dom/clickEvent';
-import PopupCall from '@components/call';
+import {attachSkipToContent, setLandmarkLabels} from '@helpers/dom/appLandmarks';
+import showCallPopup from '@components/call';
 import copy from '@helpers/object/copy';
 import numberThousandSplitter from '@helpers/number/numberThousandSplitter';
 import appChatBackground, {AppChatBackground} from '@components/chat/bubbles/chatBackground';
@@ -76,9 +78,15 @@ import appDialogsManager from '@lib/appDialogsManager';
 import idleController from '@helpers/idleController';
 import EventListenerBase from '@helpers/eventListenerBase';
 import {AckedResult} from '@lib/superMessagePort';
+import callTransitionCoordinator from '@lib/calls/callTransitionCoordinator';
 import groupCallsController from '@lib/calls/groupCallsController';
+import showConferenceJoinPopup from '@components/call/conferenceJoinPopup';
+import conferenceInvitesController from '@lib/calls/conferenceInvitesController';
 import GROUP_CALL_STATE from '@lib/calls/groupCallState';
 import callsController from '@lib/calls/callsController';
+import getConferenceInviteErrorLangKey from '@lib/calls/conferenceInviteError';
+import {groupCallToInput} from '@lib/calls/helpers/groupCallUpdates';
+import sameInputGroupCall from '@lib/calls/helpers/sameInputGroupCall';
 import getFilesFromEvent from '@helpers/files/getFilesFromEvent';
 import getFileMimeType from '@helpers/files/getFileMimeType';
 import apiManagerProxy from '@lib/apiManagerProxy';
@@ -99,8 +107,9 @@ import partition from '@helpers/array/partition';
 import indexOfAndSplice from '@helpers/array/indexOfAndSplice';
 import liteMode, {LiteModeKey} from '@helpers/liteMode';
 import LottiePlayer from '@lib/lottie/lottiePlayer';
-import PopupGiftPremium from '@components/popups/giftPremium';
+import showGiftPremiumPopup from '@components/popups/giftPremium';
 import internalLinkProcessor from '@lib/internalLinkProcessor';
+import {INTERNAL_LINK_TYPE} from '@lib/internalLink';
 import {createStoriesViewerWithPeer} from '@components/stories/viewer';
 import type {CustomEmojiRendererElement} from '@lib/customEmoji/renderer';
 import type {ChatInviteJoinWebView} from '@appManagers/appChatsManager';
@@ -115,25 +124,24 @@ import {findUpAvatar} from '@components/avatarNew';
 import safePlay from '@helpers/dom/safePlay';
 import getPeerId from '@appManagers/utils/peers/getPeerId';
 import {RequestWebViewOptions} from '@appManagers/appAttachMenuBotsManager';
-import PopupWebApp from '@components/popups/webApp';
+import showWebAppPopup from '@components/popups/webApp';
 import {setPeerColors} from '@appManagers/utils/peers/getPeerColorById';
 import {savedReactionTags} from '@components/chat/reactions';
 import {setAppState, useAppState} from '@stores/appState';
 import rtmpCallsController, {RtmpCallInstance} from '@lib/calls/rtmpCallsController';
-import {AppMediaViewerRtmp} from '@components/mediaViewer/rtmp';
+import openRtmpCallViewer from '@lib/calls/openRtmpCallViewer';
 import useProfileColors from '@hooks/useProfileColors';
 import {wrapSlowModeLeftDuration} from '@components/wrappers/wrapDuration';
 import {splitFullMid} from '@components/chat/bubbles';
 import getSelectedNodes from '@helpers/dom/getSelectedNodes';
 import showChatToast from '@components/chat/chatToast';
 import anchorCallback from '@helpers/dom/anchorCallback';
-import PopupPremium from '@components/popups/premium';
+import showPremiumPopup from '@components/popups/premium';
 import safeWindowOpen from '@helpers/dom/safeWindowOpen';
 import {openWebAppInAppBrowser, openGameInAppBrowser} from '@components/browser';
 import {createProxiedManagersForAccount} from '@lib/getProxiedManagers';
 import ChatBackgroundStore from '@lib/chatBackgroundStore';
 import useLockScreenShortcut from '@appManagers/utils/useLockScreenShortcut';
-import PaidMessagesInterceptor, {PAYMENT_REJECTED} from '@components/chat/paidMessagesInterceptor';
 import IS_WEB_APP_BROWSER_SUPPORTED from '@environment/webAppBrowserSupport';
 import createChatAudio, {ChatAudioController} from '@components/chat/audio';
 import AudioAssetPlayer from '@helpers/audioAssetPlayer';
@@ -211,6 +219,36 @@ type JoinChatFlow = {
   pendingWebViewUrl?: string
 };
 
+export type JoinConferenceOptions = {
+  /**
+   * The user has already agreed to join this specific call — pressing Accept
+   * on a ringing invitation — so skip the "join this call?" confirmation.
+   * Leaving a call that is currently running is still confirmed separately.
+   */
+  confirmed?: boolean,
+  /**
+   * Who invited us, when the join started from an invite message. The
+   * confirmation names them, the way tdesktop names the message's sender
+   * (window_session_controller.cpp:1023).
+   */
+  inviterPeerId?: PeerId
+};
+
+/** One person the New Call screen picked, and how they were picked. */
+export type ConferenceInviteRequest = {
+  peerId: PeerId,
+  /** Picked with the camera button rather than the handset. */
+  video?: boolean
+};
+
+export type CreateConferenceOptions = {
+  invite?: ConferenceInviteRequest[],
+  /** Default true — the "start an encrypted group call?" box. */
+  confirm?: boolean
+};
+
+class CallSwitchCancelledError extends Error {}
+
 export class AppImManager extends EventListenerBase<{
   chat_changing: (details: {from: Chat, to: Chat}) => void,
   peer_changed: (chat: Chat) => void,
@@ -237,6 +275,7 @@ export class AppImManager extends EventListenerBase<{
 
   private backgroundPromises: {[url: string]: MaybePromise<string>};
   private joinChatFlowsByQueryId = new Map<string, JoinChatFlow>();
+  private callTransitions = callTransitionCoordinator;
 
   private topbarCall: TopbarCallController;
   private chatAudio: ChatAudioController;
@@ -274,7 +313,7 @@ export class AppImManager extends EventListenerBase<{
         langPackArguments: [
           anchorCallback(() => {
             hideToast();
-            PopupPremium.show({feature: 'double_limits'});
+            showPremiumPopup({feature: 'double_limits'});
           }),
           limitPremium
         ]
@@ -311,6 +350,11 @@ export class AppImManager extends EventListenerBase<{
 
     this.selectTab(APP_TABS.CHATLIST);
 
+    const skipLink = document.getElementById('skip-to-content');
+    if(skipLink) attachSkipToContent(skipLink, this.columnEl);
+    this.setStaticLandmarkLabels();
+    rootScope.addEventListener('language_change', this.setStaticLandmarkLabels);
+
     idleController.addEventListener('change', (idle) => {
       this.offline = idle;
       this.updateStatus();
@@ -331,6 +375,10 @@ export class AppImManager extends EventListenerBase<{
     this.appendEmojiAnimationContainer(mediaSizes.activeScreen);
 
     this.columnEl.append(this.chatsContainer);
+
+    // Tip cards for the empty column. Imported lazily so this module (which the SolidJS hot-reload
+    // guard provider imports) isn't part of an import cycle with the components the cards use.
+    import('@components/chatTips').then(({renderChatTips}) => renderChatTips(this.chatsContainer));
 
     this.createNewChat();
     this.chatsSelectTab(this.chat);
@@ -418,6 +466,7 @@ export class AppImManager extends EventListenerBase<{
       }
 
       this.appendEmojiAnimationContainer(to);
+      this.updateColumnAccessibility();
     });
 
     mediaSizes.addEventListener('resize', () => {
@@ -546,7 +595,7 @@ export class AppImManager extends EventListenerBase<{
         textElement: i18n(isUpload ? 'Chat.UploadLimit.Text' : 'Chat.DownloadLimit.Text', [
           anchorCallback(() => {
             hide();
-            PopupPremium.show({feature: 'faster_download'});
+            showPremiumPopup({feature: 'faster_download'});
           }),
           increaseTimes
         ]),
@@ -776,6 +825,17 @@ export class AppImManager extends EventListenerBase<{
       uiNotificationsManager.buildNotificationQueue(options);
     });
 
+    // Remember the chat we're leaving behind (closed outright, or switched away from) so the
+    // tip cards shown on the empty column can offer it back under "Recently closed".
+    let lastOpenedPeerId: PeerId = NULL_PEER_ID;
+    this.addEventListener('peer_changed', ({peerId}) => {
+      if(lastOpenedPeerId && lastOpenedPeerId !== peerId) {
+        this.managers.appUsersManager.pushRecentlyClosedChat(lastOpenedPeerId);
+      }
+
+      lastOpenedPeerId = peerId;
+    });
+
     this.addEventListener('peer_changed', async({peerId}) => {
       document.body.classList.toggle('has-chat', !!peerId);
 
@@ -831,33 +891,65 @@ export class AppImManager extends EventListenerBase<{
         // return;
         // }
 
-        const popup = PopupElement.createPopup(PopupCall, instance);
+        instance.addEventListener('acceptCallOverride', (accept) => {
+          return this.callTransitions.run(async() => {
+            try {
+              await this.discardCurrentCall(instance.interlocutorUserId.toPeerId(), 'Call', undefined, instance);
+            } catch(err) {
+              if(err instanceof CallSwitchCancelledError) return;
+              throw err;
+            }
 
-        instance.addEventListener('acceptCallOverride', () => {
-          return this.discardCurrentCall(instance.interlocutorUserId.toPeerId(), 'Call', undefined, instance)
-          .then(() => {
             callsController.dispatchEvent('accepting', instance);
-            return true;
-          })
-          .catch(() => false);
+            await accept();
+          });
         });
 
-        popup.addEventListener('close', () => {
-          const currentCall = callsController.currentCall;
-          if(currentCall && currentCall !== instance && !instance.wasTryingToJoin) {
-            instance.hangUp('phoneCallDiscardReasonBusy');
+        showCallPopup(instance, {
+          onClose: () => {
+            const currentCall = callsController.currentCall;
+            if(currentCall && currentCall !== instance && !instance.wasTryingToJoin) {
+              void instance.hangUp('phoneCallDiscardReasonBusy').catch((err) => {
+                this.log.error('busy discard after superseded P2P popup close failed', err);
+              });
+            }
           }
-        }, {once: true});
-
-        popup.show();
+        });
       });
 
-      callsController.addEventListener('incompatible', async(userId) => {
-        toastNew({
-          langPackKey: 'VoipPeerIncompatible',
-          langPackArguments: [
-            await wrapPeerTitle({peerId: userId.toPeerId()})
-          ]
+      callsController.addEventListener('incompatible', (userId) => {
+        void (async() => {
+          try {
+            toastNew({
+              langPackKey: 'VoipPeerIncompatible',
+              langPackArguments: [
+                await wrapPeerTitle({peerId: userId.toPeerId()})
+              ]
+            });
+          } catch(err) {
+            this.log.error('opening incompatible-call notice failed', err);
+          }
+        })();
+      });
+    }
+
+    if(IS_GROUP_CALL_SUPPORTED) {
+      // A ringing conference invitation opens the same panel an incoming call
+      // does — tdesktop reuses `Calls::Panel` for both
+      // (calls_instance.cpp:1204). Closing the panel is not declining: the
+      // invitation keeps ringing in the registry until it is answered, revoked
+      // or superseded, exactly like a 1-on-1 popup that gets closed.
+      conferenceInvitesController.addEventListener('instance', (instance) => {
+        // Unlike a 1-on-1 call, an invitation has nowhere else to live once its
+        // panel is gone — no top bar entry to come back to — so closing the
+        // panel is the same answer the Decline button gives. Declining an
+        // invitation that was already accepted or revoked is a no-op.
+        showCallPopup(instance, {
+          onClose: () => {
+            void instance.hangUp().catch((err) => {
+              this.log.error('declining a conference invitation from its popup failed', err);
+            });
+          }
         });
       });
     }
@@ -939,21 +1031,28 @@ export class AppImManager extends EventListenerBase<{
 
   private checkForShare() {
     const share = apiManagerProxy.share;
-    if(share) {
-      apiManagerProxy.share = undefined;
+    if(!share) {
+      return;
+    }
+
+    apiManagerProxy.share = undefined;
+    if(share.files?.length) {
       showForwardPopup(undefined, async(peerId, threadId) => {
         await this.setPeer({peerId, threadId});
-        if(share.files?.length) {
-          const foundMedia = share.files.some((file) => MEDIA_MIME_TYPES_SUPPORTED.has(getFileMimeType(file)) || isConvertibleMov(file));
-          PopupElement.createPopup(PopupNewMedia, this.chat, share.files, foundMedia ? 'media' : 'document');
-        } else {
-          const preparedPaymentResult = await PaidMessagesInterceptor.prepareStarsForPayment({messageCount: 1, peerId});
-          if(preparedPaymentResult === PAYMENT_REJECTED) throw new Error();
-
-          this.managers.appMessagesManager.sendText({peerId, text: share.text, confirmedPaymentResult: preparedPaymentResult});
-        }
+        const foundMedia = share.files.some((file) => MEDIA_MIME_TYPES_SUPPORTED.has(getFileMimeType(file)) || isConvertibleMov(file));
+        showNewMediaPopup(this.chat, share.files, foundMedia ? 'media' : 'document');
       });
+      return;
     }
+
+    // `/share/` is a form target any origin can POST to (Web Share Target), so
+    // its text takes the `t.me/share/url` route: a draft in the chosen chat,
+    // which the user sees and sends — never an immediate `sendText`.
+    internalLinkProcessor.processInternalLink({
+      _: INTERNAL_LINK_TYPE.SHARE,
+      url: share.url,
+      text: share.text || share.title
+    }).catch(noop);
   }
 
   public async confirmBotWebViewInner({
@@ -1220,7 +1319,7 @@ export class AppImManager extends EventListenerBase<{
       }
 
       if(!IS_WEB_APP_BROWSER_SUPPORTED || options.forcePopup) {
-        PopupElement.createPopup(PopupWebApp, webAppOptions);
+        showWebAppPopup(webAppOptions);
       } else {
         await openWebAppInAppBrowser(webAppOptions);
       }
@@ -1610,25 +1709,25 @@ export class AppImManager extends EventListenerBase<{
   }
 
   private attachKeydownListener() {
-    const IGNORE_KEYS = new Set(['Meta', 'Control']);
     const onKeyDown = async(e: KeyboardEvent) => {
       const key = e.key;
       const isSelectionCollapsed = document.getSelection().isCollapsed;
       if(
+        shouldPreserveKeyboardFocus(e) ||
         overlayCounter.isOverlayActive ||
-        IGNORE_KEYS.has(key) ||
         !e.isTrusted // * ignore synthetic events
       ) return;
 
       const target = e.target as HTMLElement;
 
-      const isTargetAnInput = (target.tagName === 'INPUT' && !['checkbox', 'radio'].includes((target as HTMLInputElement).type)) || target.isContentEditable;
+      const targetIsInput = isTargetAnInput(target);
 
       // if(target.tagName === 'INPUT') return;
 
       // this.log('onkeydown', e, document.activeElement);
 
       const chat = this.chat;
+      if(targetIsInput && target !== chat?.input?.messageInput) return;
 
       // Hand keyboard focus to the bubbles scroll container so the browser scrolls it natively.
       // (overflow:auto + outline:none → focus is invisible.)
@@ -1643,11 +1742,11 @@ export class AppImManager extends EventListenerBase<{
 
       if((key.startsWith('Arrow') || (e.shiftKey && key === 'Shift')) && !isSelectionCollapsed) {
         return;
-      } else if(e.code === 'KeyC' && (e.ctrlKey || e.metaKey) && !isTargetAnInput) {
+      } else if(e.code === 'KeyC' && (e.ctrlKey || e.metaKey) && !targetIsInput) {
         return;
       } else if(
         (key === 'PageUp' || key === 'PageDown') &&
-        !isTargetAnInput &&
+        !targetIsInput &&
         !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey
       ) {
         handoffScroll();
@@ -1664,7 +1763,7 @@ export class AppImManager extends EventListenerBase<{
           }
         });
         return;
-      } else if((key === 'ArrowUp' || key === 'ArrowDown') && this.chat?.type !== ChatType.Scheduled) {
+      } else if((key === 'ArrowUp' || key === 'ArrowDown') && this.chat?.type !== ChatType.Scheduled && this.chat?.type !== ChatType.Welcome) {
         // In chats/channels where the user can't post (read-only broadcasts, restricted groups,
         // unjoined chats), there's no message to edit, so let ArrowUp/Down scroll the chat instead.
         if(chat?.input && !chat.input.canSendPlain()) {
@@ -1743,7 +1842,7 @@ export class AppImManager extends EventListenerBase<{
       if(
         chat?.input?.messageInput &&
         target !== chat.input.messageInput &&
-        !isTargetAnInput &&
+        !targetIsInput &&
         !IS_TOUCH_SUPPORTED &&
         (!mediaSizes.isMobile || this.tabId === APP_TABS.CHAT) &&
         !chat.selection.isSelecting &&
@@ -1849,7 +1948,15 @@ export class AppImManager extends EventListenerBase<{
 
     switch(splitted[0]) {
       default: {
-        params.p = splitted[0].slice(1);
+        const p = splitted[0].slice(1);
+        // Only a username or a peer id is a route. Any other bare fragment (an
+        // in-page anchor such as the skip link's #column-center) would otherwise
+        // fall through to '#/im' and open a NaN peer.
+        if(p[0] !== '@' && !p.isPeerId()) {
+          return;
+        }
+
+        params.p = p;
       }
 
       case '#/im': {
@@ -2035,8 +2142,7 @@ export class AppImManager extends EventListenerBase<{
     }
 
     if(options.call) {
-      const call = await rootScope.managers.appCallsManager.getCall(options.call);
-      rootScope.dispatchEvent('call_update', call);
+      await callsController.ringRequestedCall(options.call);
     }
 
     if(threadId) {
@@ -2117,6 +2223,7 @@ export class AppImManager extends EventListenerBase<{
     commentId: number
   }) {
     return this.managers.appMessagesManager.getDiscussionMessage(options.peerId, options.msgId).then((message) => {
+      if(!message) return;
       return this.openThread({
         peerId: message.peerId,
         lastMsgId: options.commentId,
@@ -2125,31 +2232,46 @@ export class AppImManager extends EventListenerBase<{
     });
   }
 
-  public async callUser(userId: UserId, type: CallType) {
-    const call = callsController.getCallByUserId(userId);
-    if(call) {
-      return;
-    }
+  public callUser(userId: UserId, type: CallType): Promise<void> {
+    return this.callTransitions.run(async() => {
+      const call = callsController.getCallByUserId(userId);
+      if(call) {
+        return;
+      }
 
-    const userFull = await this.managers.appProfileManager.getProfile(userId);
-    if(userFull.pFlags.phone_calls_private) {
-      wrapPeerTitle({peerId: userId.toPeerId()}).then((element) => {
-        return confirmationPopup({
-          descriptionLangKey: 'Call.PrivacyErrorMessage',
-          descriptionLangArgs: [element],
-          button: {
-            langKey: 'OK',
-            isCancel: true
+      const userFull = await this.managers.appProfileManager.getProfile(userId);
+      if(userFull.pFlags.phone_calls_private) {
+        // This informational modal is not part of the call switch. Keep it
+        // detached so the global transition reservation is released at once,
+        // but observe both title loading and popup cancellation.
+        void (async() => {
+          try {
+            const element = await wrapPeerTitle({peerId: userId.toPeerId()});
+            try {
+              await confirmationPopup({
+                descriptionLangKey: 'Call.PrivacyErrorMessage',
+                descriptionLangArgs: [element],
+                button: {
+                  langKey: 'OK',
+                  isCancel: true
+                }
+              });
+            } catch{
+              // Closing this informational modal is an expected outcome.
+            }
+          } catch(err) {
+            this.log.error('opening call privacy notice failed', err);
+            toastNew({langPackKey: 'Error.AnError'});
           }
-        });
-      });
+        })();
 
-      return;
-    }
+        return;
+      }
 
-    await this.discardCurrentCall(userId.toPeerId(), 'Call');
+      await this.discardCurrentCall(userId.toPeerId(), 'Call');
 
-    callsController.startCallInternal(userId, type === 'video');
+      await callsController.startCallInternal(userId, type === 'video');
+    });
   }
 
   private discardCurrentCall(toPeerId: PeerId, toType: 'Live' | 'Voice' | 'Call' | 'Conference', ignoreGroupCall?: GroupCallInstance, ignoreCall?: CallInstance, ignoreLive?: RtmpCallInstance): Promise<void> {
@@ -2160,11 +2282,13 @@ export class AppImManager extends EventListenerBase<{
   }
 
   private async discardAnyCallConfirmation(fromPeerId: PeerId, toPeerId: PeerId, fromType: Parameters<AppImManager['discardCurrentCall']>[1], toType: Parameters<AppImManager['discardCurrentCall']>[1]) {
-    await Promise.all([
-      wrapPeerTitle({peerId: fromPeerId}),
-      wrapPeerTitle({peerId: toPeerId})
-    ]).then(([title1, title2]) => {
-      return confirmationPopup({
+    const [title1, title2] = await Promise.all([
+      fromType === 'Conference' ? '' : wrapPeerTitle({peerId: fromPeerId}),
+      toType === 'Conference' ? '' : wrapPeerTitle({peerId: toPeerId})
+    ]);
+
+    try {
+      await confirmationPopup({
         titleLangKey: `Call.Confirm.Discard.${fromType}.Header`,
         descriptionLangKey: `Call.Confirm.Discard.${fromType}.To${toType}.Text`,
         descriptionLangArgs: [title1, title2],
@@ -2172,7 +2296,19 @@ export class AppImManager extends EventListenerBase<{
           langKey: 'OK'
         }
       });
-    });
+    } catch{
+      // confirmationPopup rejects when the user cancels/closes it. Give that
+      // expected outcome its own identity so a later hangUp/leave rejection
+      // is not mistaken for cancellation by the conference entry points.
+      throw new CallSwitchCancelledError();
+    }
+  }
+
+  private handleConferenceSwitchError(context: string, err: unknown): boolean {
+    if(err instanceof CallSwitchCancelledError) return true;
+    this.log.error(context, err);
+    toastNew({langPackKey: 'Error.AnError'});
+    return false;
   }
 
   private async discardGroupCallConfirmation(toPeerId: PeerId, toType: Parameters<AppImManager['discardCurrentCall']>[1]) {
@@ -2213,51 +2349,52 @@ export class AppImManager extends EventListenerBase<{
     }
   }
 
-  public async joinGroupCall(peerId: PeerId, groupCallId?: GroupCallId) {
-    const chatId = peerId.toChatId();
-    const hasRights = await this.managers.appChatsManager.hasRights(chatId, 'manage_call');
-    const next = async() => {
-      const chatFull = await this.managers.appProfileManager.getChatFull(chatId);
-      if(chatFull._ === 'communityFull') {
-        return;
-      }
-      let call: MyGroupCall;
-      if(!chatFull.call) {
-        if(!hasRights) {
+  public joinGroupCall(peerId: PeerId, groupCallId?: GroupCallId): Promise<void> {
+    return this.callTransitions.run(async() => {
+      const chatId = peerId.toChatId();
+      const hasRights = await this.managers.appChatsManager.hasRights(chatId, 'manage_call');
+      const next = async() => {
+        const chatFull = await this.managers.appProfileManager.getChatFull(chatId);
+        if(chatFull._ === 'communityFull') {
           return;
         }
-
-        call = await this.managers.appGroupCallsManager.createGroupCall(chatId);
-      } else {
-        call = chatFull.call as InputGroupCall.inputGroupCall;
-      }
-
-      groupCallsController.joinGroupCall(chatId, call.id, true, false);
-    };
-
-    if(groupCallId) {
-      const groupCall = await this.managers.appGroupCallsManager.getGroupCallFull(groupCallId);
-      if(groupCall._ === 'groupCallDiscarded') {
-        if(!hasRights) {
-          toastNew({
-            langPackKey: 'VoiceChat.Chat.Ended'
-          });
-
-          return;
-        }
-
-        await confirmationPopup({
-          descriptionLangKey: 'VoiceChat.Chat.StartNew',
-          button: {
-            langKey: 'VoiceChat.Chat.StartNew.OK'
+        let call: MyGroupCall;
+        if(!chatFull.call) {
+          if(!hasRights) {
+            return;
           }
-        });
+
+          call = await this.managers.appGroupCallsManager.createGroupCall(chatId);
+        } else {
+          call = chatFull.call as InputGroupCall.inputGroupCall;
+        }
+
+        await groupCallsController.joinGroupCall(chatId, call.id, true, false);
+      };
+
+      if(groupCallId) {
+        const groupCall = await this.managers.appGroupCallsManager.getGroupCallFull(groupCallId);
+        if(groupCall._ === 'groupCallDiscarded') {
+          if(!hasRights) {
+            toastNew({
+              langPackKey: 'VoiceChat.Chat.Ended'
+            });
+
+            return;
+          }
+
+          await confirmationPopup({
+            descriptionLangKey: 'VoiceChat.Chat.StartNew',
+            button: {
+              langKey: 'VoiceChat.Chat.StartNew.OK'
+            }
+          });
+        }
       }
-    }
 
-    await this.discardCurrentCall(peerId, 'Voice');
-
-    next();
+      await this.discardCurrentCall(peerId, 'Voice');
+      await next();
+    });
   }
 
   /**
@@ -2269,26 +2406,123 @@ export class AppImManager extends EventListenerBase<{
    * confirmation, the same-call short-circuit and the dead-link error UX, so the
    * link/anchor sites stay dumb.
    */
-  public async joinConference(input: InputGroupCall) {
-    if(!IS_GROUP_CALL_SUPPORTED) return;
-    // Gated until the SFU exposes a multi-mid layout to browser clients — see
-    // docs/conf-call-browser-recv-blocker.md. Without it the call connects but
-    // inbound audio decryption never runs (Chrome bypass).
-    if(!IS_CONFERENCE_CALL_SUPPORTED) {
-      toastNew({langPackKey: 'LinkNotFound'});
+  public joinConference(input: InputGroupCall, options?: JoinConferenceOptions): Promise<void> {
+    return this.callTransitions.run(() => this.joinConferenceInternal(input, options));
+  }
+
+  /**
+   * Start a fresh conference. `invite` seeds it with people the way tdesktop's
+   * `startOrJoinConferenceCall({.invite})` does — the call is created first and
+   * each person is then called into it, one server verdict per person.
+   *
+   * `confirm` is what the New Call screen turns off: picking people there IS
+   * the confirmation, so a second "start an encrypted group call?" box would
+   * only be in the way.
+   */
+  public createConference(options?: CreateConferenceOptions): Promise<void> {
+    return this.callTransitions.run(() => this.createConferenceInternal(options));
+  }
+
+  private async createConferenceInternal(options: CreateConferenceOptions = {}): Promise<void> {
+    if(!IS_GROUP_CALL_SUPPORTED || !IS_CONFERENCE_CALL_SUPPORTED) {
+      toastNew({langPackKey: 'ConferenceCall.Unsupported'});
       return;
+    }
+    if(groupCallsController.groupCall || callsController.currentCall || rtmpCallsController.currentCall) {
+      try {
+        await this.discardCurrentCall(NULL_PEER_ID, 'Conference');
+      } catch(err) {
+        if(!this.handleConferenceSwitchError('createConference: failed to leave current call', err)) {
+          throw err;
+        }
+        return;
+      }
+    } else if(options.confirm !== false) {
+      try {
+        await confirmationPopup({
+          titleLangKey: 'ConferenceCall.Create.Title',
+          descriptionLangKey: 'ConferenceCall.Create.Text',
+          button: {langKey: 'ConferenceCall.Create.Button'}
+        });
+      } catch(err) {
+        return;
+      }
+    }
+
+    try {
+      await groupCallsController.startConference({
+        selfUserId: BigInt(rootScope.myId),
+        muted: true,
+        joinVideo: false
+      });
+    } catch(err) {
+      this.log.error('createConference failed', err);
+      toastNew({langPackKey: 'Error.AnError'});
+      throw err;
+    }
+
+    const invite = options.invite;
+    if(!invite?.length) {
+      return;
+    }
+
+    // The call is live at this point, so a failed invite is not a failed
+    // creation — it is reported in the batch toast and the call stays up.
+    const {inviteConferenceParticipants, showConferenceInviteResultToast} =
+      await import('@components/groupCall/inviteParticipants');
+    const result = await inviteConferenceParticipants(
+      invite.map(({peerId}) => peerId),
+      {video: (peerId) => invite.find((request) => request.peerId === peerId)?.video}
+    );
+    await showConferenceInviteResultToast(result);
+  }
+
+  private async joinConferenceInternal(input: InputGroupCall, options?: JoinConferenceOptions): Promise<void> {
+    if(!IS_GROUP_CALL_SUPPORTED) {
+      toastNew({langPackKey: 'ConferenceCall.Unsupported'});
+      return;
+    }
+    // Per-frame E2E requires RTCRtpScriptTransform. Unsupported browsers must
+    // explain the capability gap instead of treating a valid invite as dead.
+    if(!IS_CONFERENCE_CALL_SUPPORTED) {
+      toastNew({langPackKey: 'ConferenceCall.Unsupported'});
+      return;
+    }
+
+    let canonicalInput = input as InputGroupCall;
+    // Who is already in the call — the join confirmation names them, so the
+    // resolve that has to happen anyway brings them along.
+    let participantPeerIds: PeerId[] = [];
+    let participantsCount = 0;
+    if(input._ !== 'inputGroupCall') {
+      try {
+        const preview = await this.managers.appGroupCallsManager.resolveConferenceCallPreview(input);
+        const resolved = preview.call;
+        if(resolved._ === 'groupCallDiscarded') {
+          toastNew({langPackKey: 'InviteExpired'});
+          return;
+        }
+        canonicalInput = groupCallToInput(resolved);
+        participantPeerIds = preview.participantPeerIds;
+        participantsCount = resolved.participants_count;
+      } catch(err) {
+        toastNew({langPackKey: getConferenceInviteErrorLangKey(err)});
+        this.log.error('resolveConferenceCall failed', err);
+        return;
+      }
     }
 
     // Don't rejoin a call we're already in. The conference Join affordances
     // (pinned bar, web-page preview, invite service message) stay visible while
     // you're in the call, so a second click would otherwise tear down the live
-    // GroupCallInstance and re-run the whole join. `inputGroupCall` lets us
-    // confirm it's the same call; slug / invite-message can't be matched before
-    // the join response, but you can be in only one call at a time and the
-    // dominant case is re-clicking the same call — so surface the live one.
+    // GroupCallInstance and re-run the whole join. Slug/invite references were
+    // resolved above, so this short-circuit is based on the canonical server id
+    // rather than assuming every unresolved link means the current call.
     const currentCall = groupCallsController.groupCall;
+    const currentCallInput = currentCall?.toInputGroupCall();
     if(currentCall && currentCall.state !== GROUP_CALL_STATE.CLOSED &&
-      (input._ !== 'inputGroupCall' || String(input.id) === String(currentCall.id))) {
+      canonicalInput._ === 'inputGroupCall' && currentCallInput &&
+      sameInputGroupCall(canonicalInput, currentCallInput)) {
       return;
     }
 
@@ -2300,52 +2534,81 @@ export class AppImManager extends EventListenerBase<{
     // without it a conference join would silently leave a live 1-on-1 / RTMP
     // call running. Conferences have no backing peer (NULL_PEER_ID), so the
     // `Conference` toType keys the prompt off the call being left, never a peer.
-    await this.discardCurrentCall(NULL_PEER_ID, 'Conference');
+    // Confirm BEFORE anything destructive. Following a link used to put the
+    // user straight into a live call with no chance to reconsider — and unlike
+    // a chat, a call announces your presence to everyone already in it the
+    // moment you arrive. (We join muted, so this is about presence, not a hot
+    // microphone.) This must precede discardCurrentCall: that hangs up whatever
+    // call the user is currently in, so asking afterwards would leave someone
+    // who cancels in no call at all.
+    // Cancelling rejects, which is a no-op here.
+    if(groupCallsController.groupCall || callsController.currentCall || rtmpCallsController.currentCall) {
+      try {
+        await this.discardCurrentCall(NULL_PEER_ID, 'Conference');
+      } catch(err) {
+        if(!this.handleConferenceSwitchError('joinConference: failed to leave current call', err)) {
+          throw err;
+        }
+        return;
+      }
+    } else if(!options?.confirmed) {
+      // Accepting a ringing invitation already IS the answer to this prompt —
+      // tdesktop joins straight from `Call::acceptConferenceInvite`
+      // (calls_call.cpp:435) with no box in between.
+      try {
+        await showConferenceJoinPopup({
+          inviterPeerId: options?.inviterPeerId,
+          participantPeerIds,
+          participantsCount
+        });
+      } catch(err) {
+        return;
+      }
+    }
 
     try {
       await groupCallsController.joinConference({
+        // Preserve the link/message as the actual authorization all the way
+        // through chain fetch + join. The preview only proves which canonical
+        // call that authorization is expected to resolve to; replacing it with
+        // id+access_hash would let a link revoked during confirmation still
+        // enter the call.
         input,
+        expectedCanonicalInput: canonicalInput._ === 'inputGroupCall' ? canonicalInput : undefined,
         selfUserId: BigInt(rootScope.myId),
         muted: true,
         joinVideo: false
       });
     } catch(err) {
-      const type = (err as ApiError)?.type as string | undefined;
       // Server's "this invite link is dead / call ended" responses. Match
       // tdesktop's `lng_confcall_link_inactive` UX (window_session_controller.cpp:1052).
-      if(type === 'GROUPCALL_INVALID' || type === 'GROUPCALL_FORBIDDEN' ||
-         type === 'INVITE_HASH_EXPIRED' || type === 'INVITE_SLUG_EXPIRED' ||
-         type === 'GROUPCALL_SSRC_DUPLICATE_MUCH') {
-        toastNew({langPackKey: 'LinkNotFound'});
-      } else {
-        // Fallback for transport / chain / unknown failures (e.g.
-        // CONF_WRITE_CHAIN_INVALID, network, etc.).
-        toastNew({langPackKey: 'Error.AnError'});
-      }
+      // Transport / chain / unknown failures keep the generic error fallback.
+      toastNew({langPackKey: getConferenceInviteErrorLangKey(err)});
       console.error('joinConference failed', err);
+      throw err;
     }
   }
 
-  public async joinLiveStream(peerId: PeerId) {
-    await this.discardCurrentCall(peerId, 'Live');
+  public joinLiveStream(peerId: PeerId): Promise<void> {
+    return this.callTransitions.run(async() => {
+      await this.discardCurrentCall(peerId, 'Live');
 
-    await rtmpCallsController.joinCall(peerId.toChatId()).catch((err) => {
-      console.error(err);
-      toastNew({
-        langPackKey: 'Error.AnError'
-      });
-    });
+      try {
+        await rtmpCallsController.joinCall(peerId.toChatId());
+      } catch(err) {
+        console.error(err);
+        toastNew({
+          langPackKey: 'Error.AnError'
+        });
+        return;
+      }
 
-    this.openLiveStreamPlayer(peerId);
-  }
-
-  private async openLiveStreamPlayer(peerId: PeerId) {
-    if(AppMediaViewerRtmp.activeInstance) return;
-
-    const shareUrl = await AppMediaViewerRtmp.getShareUrl(peerId.toChatId());
-    new AppMediaViewerRtmp(shareUrl).openMedia({
-      peerId,
-      isAdmin: rtmpCallsController.currentCall.admin
+      try {
+        await openRtmpCallViewer(peerId);
+      } catch(err) {
+        this.log.error('opening RTMP viewer failed', err);
+        toastNew({langPackKey: 'Error.AnError'});
+      }
     });
   }
 
@@ -2594,7 +2857,7 @@ export class AppImManager extends EventListenerBase<{
         }
       }
 
-      const rights = await PopupNewMedia.canSend({...this.chat.getMessageSendingParams(), onlyVisible: true});
+      const rights = await canSendNewMedia({...this.chat.getMessageSendingParams(), onlyVisible: true});
 
       const _dropsContainer = newMediaPopup ? mediaDropsContainer : dropsContainer;
       const _drops = newMediaPopup ? mediaDrops : drops;
@@ -2845,8 +3108,7 @@ export class AppImManager extends EventListenerBase<{
       chatInput.willAttachType = (canUploadAsMedia ? 'media' : canUploadAsDocument ? 'document' : undefined);
 
       if(chatInput.willAttachType) {
-        PopupElement.createPopup(
-          PopupNewMedia,
+        showNewMediaPopup(
           this.chat,
           [file],
           chatInput.willAttachType,
@@ -2860,8 +3122,7 @@ export class AppImManager extends EventListenerBase<{
     }
 
     chatInput.willAttachType = attachType || ((MEDIA_MIME_TYPES_SUPPORTED.has(getFileMimeType(files[0])) || isConvertibleMov(files[0])) ? 'media' : 'document');
-    PopupElement.createPopup(
-      PopupNewMedia,
+    showNewMediaPopup(
       this.chat,
       files,
       chatInput.willAttachType,
@@ -2916,6 +3177,7 @@ export class AppImManager extends EventListenerBase<{
     }
 
     this.tabId = id;
+    this.updateColumnAccessibility();
     blurActiveElement();
     if(mediaSizes.isMobile && prevTabId === APP_TABS.PROFILE && id < APP_TABS.PROFILE) {
       appSidebarRight.hide();
@@ -2940,6 +3202,17 @@ export class AppImManager extends EventListenerBase<{
     // document.body.classList.toggle(RIGHT_COLUMN_ACTIVE_CLASSNAME, id === 2);
 
     return animationPromise;
+  }
+
+  private setStaticLandmarkLabels = () => {
+    setLandmarkLabels(appSidebarLeft.sidebarEl, document.getElementById('column-right'));
+  };
+
+  private updateColumnAccessibility() {
+    // On mobile these columns slide outside the viewport but stay mounted.
+    // Match their keyboard/AT visibility to the selected screen, including PiP.
+    appSidebarLeft.sidebarEl.inert = mediaSizes.isMobile && this.tabId !== APP_TABS.CHATLIST;
+    this.columnEl.inert = mediaSizes.isMobile && this.tabId !== APP_TABS.CHAT;
   }
 
   public updateStatus() {
@@ -3552,8 +3825,7 @@ export class AppImManager extends EventListenerBase<{
 
   public giftPremium(peerId: PeerId) {
     this.managers.appPaymentsManager.getPremiumGiftCodeOptions().then((giftCodeOptions) => {
-      PopupElement.createPopup(
-        PopupGiftPremium,
+      showGiftPremiumPopup(
         peerId,
         giftCodeOptions.filter((option) => option.users === 1 && option.currency !== STARS_CURRENCY)
       );

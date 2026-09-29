@@ -1,6 +1,6 @@
 import App from '@config/app';
 import ctx from '@environment/ctx';
-import {bigIntFromBytes} from '@helpers/bigInt/bigIntConversion';
+import longFromBytes from '@helpers/long/longFromBytes';
 import tsNow from '@helpers/tsNow';
 import {AccountAuthorizations, Authorization, EmailVerification, EmailVerifyPurpose, InputCheckPasswordSRP, InputPasskeyCredential, Update} from '@layer';
 import {DcId, TrueDcId} from '@types';
@@ -68,8 +68,18 @@ export function filterExpiredUnconfirmedAuthorizations(
   });
 }
 
+/**
+ * The server locks a session out of reviewing other ones for its first day:
+ * both account.resetAuthorization and account.changeAuthorizationSettings answer
+ * FRESH_*_FORBIDDEN until then. A prompt raised inside that window can only
+ * dead-end, so it waits — Web A holds its own bar back for the same reason.
+ */
+export const FRESH_AUTHORIZATION_PERIOD = 24 * 60 * 60;
+
 export default class AppAccountManager extends AppManager {
   private unconfirmedAuthorizations: UnconfirmedAuthorization[] = [];
+  private publishedUnconfirmedAuthorizations: UnconfirmedAuthorization[] = [];
+  private currentAuthorizationDate = 0;
   private authorizationsPromise: Promise<AccountAuthorizations>;
   private unconfirmedAuthorizationMutationVersion = 0;
   private unconfirmedAuthorizationClearVersion = 0;
@@ -99,6 +109,10 @@ export default class AppAccountManager extends AppManager {
       this.setAuthorizationAutoconfirmPeriod(appConfig.authorization_autoconfirm_period, loaded);
     });
 
+    // `user_auth` also fires on every start of an already signed-in account
+    // (createManagers -> setUserAuth), and the payload it carries then is
+    // stamped with the current time rather than the login's — so the session's
+    // own age is only ever taken from the server, below.
     this.rootScope.addEventListener('user_auth', () => {
       this.unconfirmedAuthorizationsLoaded.then(() => {
         this.getAuthorizations().catch(() => {});
@@ -110,6 +124,8 @@ export default class AppAccountManager extends AppManager {
       if(periodVersion === this.authorizationAutoconfirmPeriodVersion) {
         this.setAuthorizationAutoconfirmPeriod(state.appConfig?.authorization_autoconfirm_period, false);
       }
+
+      this.currentAuthorizationDate = state.currentAuthorizationDate || 0;
 
       const saved = state.unconfirmedAuthorizations ?? [];
       const restored = filterExpiredUnconfirmedAuthorizations(
@@ -123,6 +139,8 @@ export default class AppAccountManager extends AppManager {
       }
 
       loaded = true;
+      // a restored prompt is news to everyone who asked before the state was read
+      this.publishUnconfirmedAuthorizations();
       pendingUpdates.forEach((update) => this.processNewAuthorizationUpdate(update));
       this.scheduleAuthorizationExpiration();
     });
@@ -149,10 +167,15 @@ export default class AppAccountManager extends AppManager {
 
     if(!this.unconfirmedAuthorizations.length) return;
 
-    const expiresAt = Math.min(...this.unconfirmedAuthorizations.map((authorization) => {
+    const wakeUpAt = this.unconfirmedAuthorizations.map((authorization) => {
       return authorization.date + this.authorizationAutoconfirmPeriod;
-    }));
-    const delay = Math.max(0, expiresAt - tsNow(true)) * 1000;
+    });
+
+    if(this.isCurrentAuthorizationFresh()) {
+      wakeUpAt.push(this.currentAuthorizationDate + FRESH_AUTHORIZATION_PERIOD);
+    }
+
+    const delay = Math.max(0, Math.min(...wakeUpAt) - tsNow(true)) * 1000;
 
     this.authorizationExpirationTimeout = ctx.setTimeout(() => {
       this.authorizationExpirationTimeout = undefined;
@@ -166,15 +189,37 @@ export default class AppAccountManager extends AppManager {
       this.authorizationAutoconfirmPeriod
     );
 
-    if(areSameAuthorizations(this.unconfirmedAuthorizations, updated)) {
-      this.scheduleAuthorizationExpiration();
-      return;
+    if(!areSameAuthorizations(this.unconfirmedAuthorizations, updated)) {
+      this.unconfirmedAuthorizations = updated;
+      this.appStateManager.pushToState('unconfirmedAuthorizations', updated);
     }
 
-    this.unconfirmedAuthorizations = updated;
-    this.appStateManager.pushToState('unconfirmedAuthorizations', updated);
-    this.rootScope.dispatchEvent('unconfirmed_authorizations_update', updated);
+    this.publishUnconfirmedAuthorizations();
     this.scheduleAuthorizationExpiration();
+  }
+
+  // Kept apart from the stored list: a session that is still too fresh to review
+  // anything holds every prompt back without forgetting it.
+  private publishUnconfirmedAuthorizations() {
+    const visible = this.getUnconfirmedAuthorizations();
+    if(areSameAuthorizations(this.publishedUnconfirmedAuthorizations, visible)) return;
+
+    this.publishedUnconfirmedAuthorizations = visible;
+    this.rootScope.dispatchEvent('unconfirmed_authorizations_update', visible);
+  }
+
+  private setCurrentAuthorizationDate(date?: number) {
+    if(!(date > 0) || this.currentAuthorizationDate === date) return;
+
+    this.currentAuthorizationDate = date;
+    this.appStateManager.pushToState('currentAuthorizationDate', date);
+    this.publishUnconfirmedAuthorizations();
+    this.scheduleAuthorizationExpiration();
+  }
+
+  private isCurrentAuthorizationFresh(now = tsNow(true)) {
+    return this.currentAuthorizationDate > 0 &&
+      this.currentAuthorizationDate + FRESH_AUTHORIZATION_PERIOD > now;
   }
 
   private processNewAuthorizationUpdate(update: Update.updateNewAuthorization) {
@@ -229,9 +274,15 @@ export default class AppAccountManager extends AppManager {
     }, authorizations);
   }
 
+  // `unconfirmed` sits on the session row itself — it is what makes the user's
+  // OTHER devices ask about a login, not a per-viewer flag — so the session we
+  // are running on can come back carrying it. Asking a device about itself is
+  // both pointless and unanswerable (the server refuses to let a session review
+  // itself), so `current` never becomes a prompt; tdesktop and Android sidestep
+  // this by never reading the flag from the session list at all.
   private getUnconfirmedAuthorizationsFromSessions(authorizations: Authorization.authorization[]) {
     return authorizations
-    .filter((authorization) => authorization.pFlags.unconfirmed)
+    .filter((authorization) => authorization.pFlags.unconfirmed && !authorization.pFlags.current)
     .map((authorization): UnconfirmedAuthorization => ({
       hash: authorization.hash,
       date: authorization.date_created,
@@ -243,6 +294,8 @@ export default class AppAccountManager extends AppManager {
   }
 
   public getUnconfirmedAuthorizations() {
+    if(this.isCurrentAuthorizationFresh()) return [];
+
     return this.unconfirmedAuthorizations.slice();
   }
 
@@ -275,7 +328,7 @@ export default class AppAccountManager extends AppManager {
       credential,
       ...(fromDcId ? {
         from_dc_id: fromDcId,
-        from_auth_key_id: bigIntFromBytes(fromAuthKey.id.reverse()).toString()
+        from_auth_key_id: longFromBytes(fromAuthKey.id)
       } : {})
     }, {ignoreErrors: true}).then(async(authorization) => {
       if(authorization._ === 'auth.authorization') {
@@ -283,6 +336,41 @@ export default class AppAccountManager extends AppManager {
       }
 
       return authorization;
+    });
+  }
+
+  /**
+   * A `tgWebAuthToken` handed to us in the URL by a ImpulseM website. The
+   * account it belongs to lives on its own DC, so the base moves there before
+   * we ask — the same way a migrated login would.
+   */
+  public async importWebTokenAuthorization(token: string, dcId: DcId) {
+    this.apiManager.setBaseDcId(dcId);
+
+    const authorization = await this.apiManager.invokeApi('auth.importWebTokenAuthorization', {
+      api_id: App.id,
+      api_hash: App.hash,
+      web_auth_token: token
+    }, {dcId, ignoreErrors: true});
+
+    if(authorization._ === 'auth.authorization') {
+      await this.apiManager.setUser(authorization.user);
+    }
+
+    return authorization;
+  }
+
+  /**
+   * A token we are not going to import stays a usable login on the server, and
+   * the URL it arrived in outlives the tab (history, a shared link) — so drop
+   * it. Fire-and-forget: nobody waits on the answer, and a token the server
+   * already forgot is not worth reporting either.
+   */
+  public cancelWebTokenAuthorization(token: string, dcId: DcId) {
+    this.apiManager.invokeApi('auth.cancelWebTokenAuthorization', {
+      web_auth_token: token
+    }, {dcId, ignoreErrors: true}).catch((err) => {
+      this.log.error('web token cancellation error:', err);
     });
   }
 
@@ -300,6 +388,10 @@ export default class AppAccountManager extends AppManager {
     const mutationVersion = this.unconfirmedAuthorizationMutationVersion;
     const promise = this.authorizationsPromise = this.apiManager.invokeApi('account.getAuthorizations')
     .then((authorizations) => {
+      this.setCurrentAuthorizationDate(authorizations.authorizations.find((authorization) => {
+        return authorization.pFlags.current;
+      })?.date_created);
+
       this.setUnconfirmedAuthorizations(
         this.applyUnconfirmedAuthorizationMutations(
           this.getUnconfirmedAuthorizationsFromSessions(authorizations.authorizations),
@@ -316,6 +408,17 @@ export default class AppAccountManager extends AppManager {
     });
 
     return promise;
+  }
+
+  // tdesktop `Api::Authorizations::callsDisabledHere()`: whether this session
+  // has "accept calls on this device" switched off — the current authorization's
+  // `call_requests_disabled`. A failed fetch counts as enabled, so a network
+  // hiccup never silences a call.
+  public isCallRequestsDisabled(): Promise<boolean> {
+    return this.getAuthorizations().then((result) => {
+      const current = result.authorizations.find((authorization) => authorization.pFlags.current);
+      return !!current?.pFlags.call_requests_disabled;
+    }, () => false);
   }
 
   // Wraps account.setAuthorizationTTL: the server drops any session that stays

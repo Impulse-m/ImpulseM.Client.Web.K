@@ -7,8 +7,8 @@ import {createSearchGroup, SearchGroup, SearchGroupType} from '@components/searc
 import {horizontalMenu} from '@components/horizontalMenu';
 import LazyLoadQueue from '@components/lazyLoadQueue';
 import {putPreloader} from '@components/putPreloader';
-import ripple from '@components/ripple';
-import Scrollable, {ScrollableX} from '@components/scrollable';
+import Scrollable from '@components/scrollable';
+import {ScrollableContextValue} from '@components/scrollable2';
 import useHeavyAnimationCheck, {getHeavyAnimationPromise} from '@hooks/useHeavyAnimationCheck';
 import I18n, {LangPackKey, i18n, join} from '@lib/langPack';
 import findUpClassName from '@helpers/dom/findUpClassName';
@@ -25,7 +25,7 @@ import windowSize from '@helpers/windowSize';
 import {formatPhoneNumber} from '@helpers/formatPhoneNumber';
 import {ButtonMenuItemOptions, ButtonMenuSync} from '@components/buttonMenu';
 import showForwardPopup from '@components/popups/forward';
-import PopupDeleteMessages from '@components/popups/deleteMessages';
+import showDeleteMessagesPopup from '@components/popups/deleteMessages';
 import {renderSearchWebPageRow} from '@components/searchWebPageRow';
 import htmlToDocumentFragment from '@helpers/dom/htmlToDocumentFragment';
 import {SearchSelection} from '@components/chat/selection';
@@ -35,6 +35,7 @@ import AppMediaViewer from '@components/mediaViewer';
 import lockTouchScroll from '@helpers/dom/lockTouchScroll';
 import copy from '@helpers/object/copy';
 import safeAssign from '@helpers/object/safeAssign';
+import ScrollableRefiller from '@helpers/scrollableRefiller';
 import findAndSplice from '@helpers/array/findAndSplice';
 import {ScrollStartCallbackDimensions} from '@helpers/fastSmoothScroll';
 import setInnerHTML from '@helpers/dom/setInnerHTML';
@@ -65,7 +66,6 @@ import wrapVideo from '@components/wrappers/video';
 import wrapMediaSpoiler, {hasSensitiveSpoiler, onMediaSpoilerClick} from '@components/wrappers/mediaSpoiler';
 import filterAsync from '@helpers/array/filterAsync';
 import ChatContextMenu, {getSponsoredMessageButtons} from '@components/chat/contextMenu';
-import PopupElement from '@components/popups';
 import getParticipantRank from '@appManagers/utils/chats/getParticipantRank';
 import {NULL_PEER_ID} from '@appManagers/constants';
 import createParticipantContextMenu from '@helpers/dom/createParticipantContextMenu';
@@ -76,7 +76,7 @@ import {StoriesProfileList} from '@components/stories/profileList';
 import {StoriesContextActions} from '@components/stories/store';
 import Button from '@components/button';
 import anchorCallback from '@helpers/dom/anchorCallback';
-import PopupPremium from '@components/popups/premium';
+import showPremiumPopup from '@components/popups/premium';
 import {ChatType} from './chat/chatType';
 import getFwdFromName from '@appManagers/utils/messages/getFwdFromName';
 import SidebarSlider from '@components/slider';
@@ -114,7 +114,10 @@ import {supportsSharedMediaScrollDate} from '@components/sharedMediaScrollDate';
 import createSharedMediaScrollDateBadge from '@components/sharedMediaScrollDateBadge';
 import GifsMasonry from '@components/gifsMasonry';
 
-export type SearchSuperType = MyInputMessagesFilter/*  | 'members' */;
+// The call log is searched by the Calls tab, never by shared media — and unlike
+// every other filter its constructor is not just its id (it carries `pFlags`),
+// so a media tab could not build one from `{_: inputFilter}` anyway.
+export type SearchSuperType = Exclude<MyInputMessagesFilter, 'inputMessagesFilterPhoneCalls'>/*  | 'members' */;
 export type SearchSuperContext = {
   peerId: PeerId,
   inputFilter: {_: MyInputMessagesFilter},
@@ -374,8 +377,7 @@ class SearchContextMenu {
     if(this.searchSuper.selection.isSelecting) {
       simulateClickEvent(this.searchSuper.selection.selectionDeleteBtn);
     } else {
-      PopupElement.createPopup(
-        PopupDeleteMessages,
+      showDeleteMessagesPopup(
         this.peerId,
         [this.mid],
         ChatType.Chat
@@ -403,7 +405,7 @@ export default class AppSearchSuper {
   public nav: HTMLElement;
   public navScrollableContainer: HTMLDivElement;
   public tabsContainer: HTMLElement;
-  public navScrollable: ScrollableX;
+  private disposeNav: () => void;
   private tabsMenu: HTMLElement;
   private prevTabId = -1;
 
@@ -420,6 +422,7 @@ export default class AppSearchSuper {
   private nextRates: Partial<{[type in SearchSuperMediaType]: number}> = {};
   private loadPromises: Partial<{[type in SearchSuperMediaType]: Promise<any>}> = {};
   private loaded: Partial<{[type in SearchSuperMediaType]: boolean}> = {};
+  private refiller: ScrollableRefiller<SearchSuperMediaType>;
   private loadedChats = false;
   private firstLoad = true;
 
@@ -505,6 +508,11 @@ export default class AppSearchSuper {
     safeAssign(this, options);
     this.mediaTabsDefaultOrder = [...this.mediaTabs];
 
+    this.refiller = new ScrollableRefiller({
+      scrollable: this.scrollable,
+      getProgress: (type) => this.getMediaTabProgress(type)
+    });
+
     this.slider ??= appSidebarRight;
 
     this.container = document.createElement('div');
@@ -514,38 +522,31 @@ export default class AppSearchSuper {
     this.searchContextMenu = new SearchContextMenu(this.container, this, this.listenerSetter);
     this.selection = new SearchSelection(this, this.managers, this.listenerSetter);
 
-    const navScrollableContainer = this.navScrollableContainer = document.createElement('div');
-    navScrollableContainer.classList.add('search-super-tabs-scrollable', 'menu-horizontal-scrollable', 'sticky');
-
-    const navScrollable = this.navScrollable = new ScrollableX(navScrollableContainer);
-    navScrollable.container.classList.add('search-super-nav-scrollable');
-
-    const nav = this.nav = document.createElement('nav');
-    nav.classList.add('search-super-tabs', 'menu-horizontal-div');
-    this.tabsMenu = nav;
-
-    navScrollable.container.append(nav);
-
-    for(const mediaTab of this.mediaTabs) {
-      const menuTab = document.createElement('div');
-      menuTab.classList.add('menu-horizontal-div-item');
-      const span = document.createElement('span');
-      span.classList.add('menu-horizontal-div-item-span');
-      const i = document.createElement('i');
-      i.classList.add('menu-horizontal-div-item-background');
-
-      span.append(mediaTab.menuTabName = i18n(mediaTab.name));
-
-      menuTab.append(i, span);
-
-      ripple(menuTab);
-
-      this.tabsMenu.append(menuTab);
-
-      this.mediaTabsMap.set(mediaTab.type, mediaTab);
-
-      mediaTab.menuTab = menuTab;
-    }
+    let navScrollableContext: ScrollableContextValue;
+    // the tabs are reordered and hidden by hand later on, so they are rendered once and
+    // kept as plain elements — no `For`, nothing reactive to fight with
+    const navScrollableContainer = this.navScrollableContainer = createRoot((dispose) => {
+      this.disposeNav = dispose;
+      return Tabs.MenuScrollable({
+        class: 'search-super-tabs-scrollable sticky',
+        scrollableProps: {
+          class: 'search-super-nav-scrollable',
+          contextRef: (context) => navScrollableContext = context
+        },
+        children: Tabs.Menu({
+          class: 'search-super-tabs',
+          ref: (ref) => this.tabsMenu = this.nav = ref,
+          children: this.mediaTabs.map((mediaTab) => {
+            this.mediaTabsMap.set(mediaTab.type, mediaTab);
+            return Tabs.MenuTab({
+              ripple: true,
+              ref: (ref) => mediaTab.menuTab = ref,
+              children: (mediaTab.menuTabName = i18n(mediaTab.name))
+            });
+          })
+        })
+      });
+    }) as HTMLDivElement;
 
     this.tabsContainer = document.createElement('div');
     this.tabsContainer.classList.add('search-super-tabs-container', 'tabs-container');
@@ -774,7 +775,7 @@ export default class AppSearchSuper {
       }
 
       this.onTransitionEnd();
-    }, undefined, navScrollable, this.listenerSetter);
+    }, undefined, navScrollableContext, this.listenerSetter);
 
     attachClickEvent(this.tabsContainer, (e) => {
       if(this.selection.isSelecting) {
@@ -783,7 +784,7 @@ export default class AppSearchSuper {
       }
     }, {capture: true, passive: false, listenerSetter: this.listenerSetter});
 
-    const onMediaClick = async(className: string, targetClassName: string, inputFilter: MyInputMessagesFilter, e: MouseEvent) => {
+    const onMediaClick = async(className: string, targetClassName: string, inputFilter: SearchSuperType, e: MouseEvent) => {
       const target = findUpClassName(e.target as HTMLDivElement, className);
       if(!target) return;
 
@@ -1065,6 +1066,10 @@ export default class AppSearchSuper {
     this.searchContext.inputFilter = {_: inputFilter};
     this.historyStorage[inputFilter] = [];
     this.usedFromHistory[inputFilter] = -1;
+    // * the counters the refiller watches just went back to the start, and it
+    // * only re-arms on a HIGHER number — without this the media tab would never
+    // * refill again for the rest of this peer
+    this.refiller.reset('media');
     this.loaded.media = false;
     this.nextRates.media = 0;
     delete this.counters.media;
@@ -1131,6 +1136,7 @@ export default class AppSearchSuper {
 
     mediaTab.inputFilter = state.inputFilter;
     mediaTab.scroll = state.scroll;
+    this.refiller.reset('media'); // same swap the other way round — the counters it watches are a different filter's now
     this.tabs[state.inputFilter] = itemsTab;
     this.searchContext.inputFilter = {_: state.inputFilter};
     this.loaded.media = state.loaded;
@@ -1828,8 +1834,12 @@ export default class AppSearchSuper {
         createRoot((dispose) => {
           middleware.onClean(dispose);
 
+          // Keep this panel's order until it reopens, but apply removals immediately.
+          const recentSearch = unwrap(appState.recentSearch).slice();
           const arr = For({
-            each: appState.recentSearch,
+            get each() {
+              return recentSearch.filter((peerId) => appState.recentSearch.includes(peerId));
+            },
             children: (peerId) => {
               const middlewareHelper = createMiddleware();
               const {dom} = appDialogsManager.addDialogNew({
@@ -2203,7 +2213,7 @@ export default class AppSearchSuper {
       wall.classList.add('similar-channels-paywall');
       const btn = Button('btn-primary btn-color-primary', {icon: 'premium_unlock_filled', text: 'UnlockSimilar'});
       btn.classList.add('similar-channels-paywall-button');
-      const onClick = () => PopupPremium.show();
+      const onClick = () => showPremiumPopup();
       const anchor = anchorCallback(onClick);
       attachClickEvent(btn, onClick);
       anchor.classList.add('primary');
@@ -2281,6 +2291,9 @@ export default class AppSearchSuper {
       withContext: true,
       openInner: this.openSavedDialogsInner
     });
+
+    // the pinned sublists of Saved Messages reorder like the pinned chats of a folder
+    xd.attachPinnedReorder();
 
     const getCount = async() => {
       const result = await this.managers.dialogsStorage.getDialogs({filterId: rootScope.myId});
@@ -2586,9 +2599,7 @@ export default class AppSearchSuper {
 
         this.loadPromises[type] = null;
 
-        setTimeout(() => {
-          this.scrollable.checkForTriggers();
-        }, 0);
+        this.refiller.schedule(type, middleware);
       });
     }
 
@@ -2640,9 +2651,7 @@ export default class AppSearchSuper {
         this.usedFromHistory[inputFilter] = used;
         // if(messages.length) {
         return this.performSearchResult({messages, mediaTab}).finally(() => {
-          setTimeout(() => {
-            this.scrollable.checkForTriggers();
-          }, 0);
+          this.refiller.schedule(type, middleware);
         });
         // }
       }
@@ -2712,9 +2721,7 @@ export default class AppSearchSuper {
                 promise.then(() => {
                   if(!middleware()) return;
                   // this.log('preloaded more');
-                  setTimeout(() => {
-                    this.scrollable.checkForTriggers();
-                  }, 0);
+                  this.refiller.schedule(type, middleware);
                 });
               }
             }
@@ -2732,6 +2739,29 @@ export default class AppSearchSuper {
     });
 
     return promise;
+  }
+
+  /**
+   * How far a tab has got, for `ScrollableRefiller`: fetched messages plus the
+   * ones already rendered out of them. Both only ever grow within a peer (and
+   * `cleanup` resets the refiller along with them), which is what makes the
+   * refill chain terminate.
+   *
+   * This is the exact state behind `canLoadMediaTab`'s second clause: the
+   * `justLoad` preload grows `historyStorage` WITHOUT rendering, and the only
+   * thing that renders the remainder into a list too short to scroll is the
+   * chain. A tab with no `inputFilter` — saved dialogs, stories, gifts, apps,
+   * posts — has no such state and no cache to drain, so it reports a flat 0 and
+   * gets the one check after a load that asks "is the viewport full yet"; its
+   * list owns whatever paging comes after that.
+   */
+  private getMediaTabProgress(type: SearchSuperMediaType) {
+    const inputFilter = this.mediaTabsMap.get(type)?.inputFilter;
+    if(!inputFilter) {
+      return 0;
+    }
+
+    return Math.max(0, this.usedFromHistory[inputFilter] ?? 0) + (this.historyStorage[inputFilter]?.length ?? 0);
   }
 
   private canLoadMediaTab(mediaTab: SearchSuperMediaTab) {
@@ -3122,6 +3152,7 @@ export default class AppSearchSuper {
     }
     this.loadPromises = {};
     this.loaded = {};
+    this.refiller.reset();
     this.loadedChats = false;
     this.nextRates = {};
     this.firstLoad = true;
@@ -3261,6 +3292,8 @@ export default class AppSearchSuper {
   public destroy() {
     this.cleanup();
     this.listenerSetter.removeAll();
+    this.disposeNav?.();
+    this.disposeNav = undefined;
     this.scrollable.destroy();
     this.swipeHandler?.removeListeners();
     this.selection?.cleanup();

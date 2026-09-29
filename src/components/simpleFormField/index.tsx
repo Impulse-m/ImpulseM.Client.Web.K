@@ -1,8 +1,8 @@
-import fieldSectionStyles from '@/scss/modulePartials/fieldSectionPanel.module.scss';
 import styles from '@components/simpleFormField/styles.module.scss';
 import {requestRAF} from '@helpers/solid/requestRAF';
 import {useMaxLengthError} from '@helpers/solid/useMaxLengthError';
 import classNames from '@helpers/string/classNames';
+import labelControl from '@helpers/dom/labelControl';
 import {Accessor, batch, createContext, createEffect, createMemo, createSignal, JSX, onCleanup, onMount, ParentProps, Ref, Setter, Show, splitProps, useContext} from 'solid-js';
 
 
@@ -17,6 +17,7 @@ type SimpleFormFieldContextValue = {
   useSetForceFocused: () => (focused: boolean) => void;
   forceError: Accessor<boolean>;
   useSetForceError: () => (error: boolean) => void;
+  setLabel: Setter<HTMLElement>;
 };
 
 const Context = createContext<SimpleFormFieldContextValue>();
@@ -58,9 +59,15 @@ const SimpleFormField = (inProps: ParentProps<{
 
   const [input, setInput] = createSignal<HTMLInputElement>();
   const [offsetElement, setOffsetElement] = createSignal<HTMLElement>();
+  const [label, setLabel] = createSignal<HTMLElement>();
 
   const {value: forceFocused, useSetter: useSetForceFocused} = useForceState();
   const {value: forceError, useSetter: useSetForceError} = useForceState();
+  createEffect(() => {
+    const control = input() || offsetElement()?.querySelector<HTMLElement>('input, textarea, [contenteditable="true"]');
+    labelControl(control, label());
+    if(control) control.setAttribute('aria-invalid', String(!!props.isError || forceError()));
+  });
 
   const contextValue: SimpleFormFieldContextValue = {
     input,
@@ -74,7 +81,8 @@ const SimpleFormField = (inProps: ParentProps<{
     forceFocused,
     useSetForceFocused,
     forceError,
-    useSetForceError
+    useSetForceError,
+    setLabel
   };
 
   return (
@@ -178,6 +186,7 @@ SimpleFormField.Label = (props: ParentProps<{
   return (
     <div
       class={styles.Label}
+      ref={context.setLabel}
       classList={{
         [styles.active]: props.active || !!context.value(),
         [styles.noTransition]: noTransition()
@@ -281,22 +290,6 @@ SimpleFormField.WithAutoLengthCounter = (inProps: WithAutoLengthCounterProps) =>
       lengthLeft={lengthLeft()}
       {...restProps}
     />
-  );
-};
-
-SimpleFormField.Section = (inProps: JSX.HTMLAttributes<HTMLDivElement>) => {
-  const [props, restProps] = splitProps(inProps, ['class']);
-
-  return (
-    <div class={classNames(fieldSectionStyles.fieldSectionPanel, props.class)} {...restProps} />
-  );
-};
-
-SimpleFormField.Caption = (inProps: JSX.HTMLAttributes<HTMLDivElement>) => {
-  const [props, restProps] = splitProps(inProps, ['class']);
-
-  return (
-    <div class={classNames(fieldSectionStyles.fieldSectionCaption, props.class)} {...restProps} />
   );
 };
 

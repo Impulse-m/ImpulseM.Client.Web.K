@@ -34,6 +34,12 @@ function wrapUrlEntity(url: string) {
   return fragment.querySelector('a.anchor-url');
 }
 
+function wrapTextUrlEntity(text: string, url: string) {
+  const entities: MessageEntity[] = [{_: 'messageEntityTextUrl', offset: 0, length: text.length, url}];
+  const fragment = wrapRichText(text, {entities});
+  return fragment.querySelector('a.anchor-url');
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   document.body.textContent = '';
@@ -72,6 +78,47 @@ describe('wrapRichText external links', () => {
   test('links open in a new tab when there is no bridge', () => {
     const anchor = wrapUrlEntity('https://example.invalid/plain');
     expect(anchor.getAttribute('href')).toEqual('https://example.invalid/plain');
+    expect(anchor.getAttribute('target')).toEqual('_blank');
+    expect(anchor.getAttribute('rel')).toEqual('noopener noreferrer');
+  });
+
+  test('a longer host beginning with t.me stays an external link', () => {
+    vi.stubGlobal('im', vi.fn());
+
+    const anchor = wrapUrlEntity('https://t.me.evil.com/durov');
+    expect(anchor.getAttribute('href')).toEqual('https://t.me.evil.com/durov');
+    expect(anchor.getAttribute('onclick')).toBeNull();
+    expect(anchor.getAttribute('target')).toEqual('_blank');
+    expect(anchor.getAttribute('rel')).toEqual('noopener noreferrer');
+  });
+
+  test('a concealed link on a longer host beginning with t.me keeps the external-link alert', () => {
+    vi.stubGlobal('im', vi.fn());
+
+    const anchor = wrapTextUrlEntity('t.me/durov', 'https://t.me.evil.com/durov');
+    expect(anchor.getAttribute('href')).toEqual('https://t.me.evil.com/durov');
+    expect(anchor.getAttribute('onclick')).toEqual('showMaskedAlert(this)');
+    expect(anchor.getAttribute('target')).toEqual('_blank');
+    expect(anchor.getAttribute('rel')).toEqual('noopener noreferrer');
+  });
+
+  test('an exact t.me host keeps its internal link handler', () => {
+    vi.stubGlobal('im', vi.fn());
+
+    const anchor = wrapUrlEntity('https://t.me/durov');
+    expect(anchor.getAttribute('onclick')).toEqual('im(this)');
+    expect(anchor.getAttribute('target')).toBeNull();
+  });
+
+  test('a link the URL parser rejects still renders as an external link', () => {
+    vi.stubGlobal('im', vi.fn());
+
+    // a port out of range parses nowhere. `wrapRichText` does not catch around `wrapUrl`, so this
+    // used to throw straight out of the render and blank every message quoting such a link
+    const url = 'https://t.me:99999/durov';
+    let anchor: Element;
+    expect(() => anchor = wrapUrlEntity(url)).not.toThrow();
+    expect(anchor.getAttribute('onclick')).toBeNull();
     expect(anchor.getAttribute('target')).toEqual('_blank');
     expect(anchor.getAttribute('rel')).toEqual('noopener noreferrer');
   });

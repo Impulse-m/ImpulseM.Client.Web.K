@@ -46,8 +46,7 @@ import {unwrap} from 'solid-js/store';
 import callbackify from '@helpers/callbackify';
 import useIsNightTheme from '@hooks/useIsNightTheme';
 import useStars, {setReservedStars} from '@stores/stars';
-import PopupElement from '@components/popups';
-import PopupStars from '@components/popups/stars';
+import showStarsPopup from '@components/popups/stars';
 import {getPendingPaidReactionKey, PENDING_PAID_REACTION_SENT_ABORT_REASON, PENDING_PAID_REACTIONS} from '@components/chat/reactions';
 import showUndoablePaidTooltip, {paidReactionLangKeys} from '@components/chat/undoablePaidTooltip';
 import namedPromises from '@helpers/namedPromises';
@@ -852,6 +851,12 @@ export default class Chat extends EventListenerBase<{
     this.contextMenu?.destroy();
     this.selection?.attachListeners(undefined, undefined);
     this.destroyMiddlewareHelper.destroy();
+    // * The per-peer helper too, not just the destroy-scoped one: the roots hung off it - the
+    // * theme_changed subscription among them - are disposed by its clean/destroy, and nothing else
+    // * ever calls it once the chat is gone. Its listener stayed on rootScope holding this whole
+    // * chat, container and shared-media tabs included, which is how 4 951 detached nodes ended up
+    // * charged to rootScope in a day-old tab. Peer changes keep cleaning it as before.
+    this.middlewareHelper.destroy();
 
     this.topbar =
       this.bubbles =
@@ -954,7 +959,8 @@ export default class Chat extends EventListenerBase<{
     this.isChannel = isChannel;
     this.isBot = isBot;
     this.isForum = isForum;
-    this.isAllMessagesForum = isForum && !threadId;
+    // welcome messages belong to the chat, not to a topic: no topic separators or grouping there
+    this.isAllMessagesForum = isForum && !threadId && type !== ChatType.Welcome;
     this.isAnonymousSending = isAnonymousSending;
     this.isUserBlocked = isUserBlocked;
     this.isPremiumRequired = isPremiumRequired;
@@ -986,7 +992,11 @@ export default class Chat extends EventListenerBase<{
     // hold the message objects directly, and getMessageByPeer falls back to `… || _logs`), so wiring it to
     // `_logs` here would need the whole admin-log read path re-verified. If that's ever done, the scheduled
     // chokepoint in getMessage() can generalize to "own-peer non-history box".
-    this.messagesStorageKey = `${this.peerId}_${this.type === ChatType.Scheduled ? 'scheduled' : 'history'}`;
+    this.messagesStorageKey = `${this.peerId}_${
+      this.type === ChatType.Scheduled ? 'scheduled' :
+        this.type === ChatType.Welcome ? 'welcome' :
+          'history'
+    }`;
 
     // this.container && this.container.classList.toggle('no-forwards', this.noForwards);
 
@@ -1249,7 +1259,7 @@ export default class Chat extends EventListenerBase<{
       // scheduled messages live in a separate per-peer storage; resolving a bare id via
       // getMessageByPeer would hit history/global and return another chat's message, so for
       // our own scheduled peer read from this chat's (scheduled) storage instead
-      if(this.type === ChatType.Scheduled && peerId === this.peerId) {
+      if((this.type === ChatType.Scheduled || this.type === ChatType.Welcome) && peerId === this.peerId) {
         return apiManagerProxy.getMessageFromStorage(this.messagesStorageKey, _mid);
       }
 
@@ -1329,6 +1339,10 @@ export default class Chat extends EventListenerBase<{
 
   public canSend(action?: ChatRights) {
     if(isVerificationBot(this.peerId)) return Promise.resolve(false);
+    // what goes into the welcome messages is up to the right to manage them, not to post
+    if(this.type === ChatType.Welcome) {
+      return this.managers.appChatsManager.hasRights(this.peerId.toChatId(), 'manage_welcome_messages');
+    }
     if(this.type === ChatType.Saved && this.threadId !== this.peerId) {
       return Promise.resolve(false);
     }
@@ -1380,11 +1394,20 @@ export default class Chat extends EventListenerBase<{
         ...this.input.getEphemeralSendingParams()
       }),
       replyToMonoforumPeerId: this.input?.suggestedPost?.monoforumThreadId || this.input?.getReplyTo()?.replyToMonoforumPeerId || this.monoforumThreadId,
-      savedReaction: this.savedReaction
+      savedReaction: this.savedReaction,
+      // a welcome message is an ephemeral send the server keeps for whoever joins next: no
+      // slow mode, no paid messages, no forwarding, as for any ephemeral send
+      ...(this.type === ChatType.Welcome ? {ephemeral: true, welcome: true} : {})
     };
   }
 
   public isOurMessage(message: Message.message | Message.messageService) {
+    // a welcome message is shown the way a new member receives it, as Android does: incoming,
+    // from whoever it is from — and with no read state, it is delivered to nobody yet
+    if((message as Message.message).pFlags?.welcome_template) {
+      return false;
+    }
+
     if(this.isMegagroup) {
       return !!message.pFlags.out;
     }
@@ -1485,7 +1508,7 @@ export default class Chat extends EventListenerBase<{
           pending.abortController.abort();
         }
 
-        PopupElement.createPopup(PopupStars, {
+        showStarsPopup({
           itemPrice: count,
           onTopup: () => {
             this.sendReaction(options);
@@ -1605,21 +1628,21 @@ export default class Chat extends EventListenerBase<{
 
   public async openAutoDeleteMessagesCustomTimePopup() {
     const {
-      popup: {default: AutoDeleteMessagesCustomTimePopup},
+      popup: {default: showAutoDeleteMessagesCustomTimePopup},
       autoDeletePeriod
     } = await namedPromises({
       popup: import('../sidebarLeft/tabs/autoDeleteMessages/customTimePopup'),
       autoDeletePeriod: this.getAutoDeletePeriod().then(ackedResult => ackedResult.result)
     });
 
-    new AutoDeleteMessagesCustomTimePopup({
+    showAutoDeleteMessagesCustomTimePopup({
       HotReloadGuard: SolidJSHotReloadGuardProvider,
       descriptionLangKey: this.isBroadcast ? 'AutoDeleteMessages.InfoChannel' : 'AutoDeleteMessages.InfoChat',
       period: autoDeletePeriod,
       onFinish: (period) => {
         this.managers.appPrivacyManager.setAutoDeletePeriodFor(this.peerId, period);
       }
-    }).show();
+    });
   }
 
   public canManageAutoDelete = async() => {

@@ -3,13 +3,13 @@ import {createSignal, JSX, onCleanup, onMount} from 'solid-js';
 import Button from '@components/buttonTsx';
 import PasswordInputField from '@components/passwordInputField';
 import PasswordMonkey from '@components/monkeys/password';
-import {SimpleConfirmationPopup} from '@components/popups/simpleConfirmation';
+import simpleConfirmation from '@components/popups/simpleConfirmation';
 import MediaHeader from '@components/mediaHeader';
 import {toastNew} from '@components/toast';
 import {wrapFormattedDuration} from '@components/wrappers/wrapDuration';
 import anchorCallback from '@helpers/dom/anchorCallback';
 import cancelEvent from '@helpers/dom/cancelEvent';
-import focusWhenConnected from '@helpers/dom/focusWhenConnected';
+import focusWhenSettled from '@helpers/dom/focusWhenSettled';
 import htmlToSpan from '@helpers/dom/htmlToSpan';
 import replaceContent from '@helpers/dom/replaceContent';
 import formatDuration from '@helpers/formatDuration';
@@ -80,7 +80,7 @@ export default function PasswordCard(_props: {spec: Spec}) {
         navigate({name: 'emailRecover', payload: {email_pattern: res.email_pattern}});
       }).catch(async(err: ApiError) => {
         if(err.type === 'PASSWORD_RECOVERY_NA') {
-          await SimpleConfirmationPopup.show({
+          await simpleConfirmation({
             titleLangKey: 'Login.ResetPassword.Title',
             descriptionLangKey: 'Login.ResetPassword.NoEmailText',
             button: {
@@ -89,7 +89,7 @@ export default function PasswordCard(_props: {spec: Spec}) {
             }
           });
 
-          await SimpleConfirmationPopup.show({
+          await simpleConfirmation({
             titleLangKey: 'Login.ResetAccount.Title',
             descriptionLangKey: 'Login.ResetAccount.Text',
             button: {
@@ -102,14 +102,14 @@ export default function PasswordCard(_props: {spec: Spec}) {
             navigate({name: 'signIn'});
           }).catch((err: ApiError) => {
             if(err.type === '2FA_RECENT_CONFIRM') {
-              SimpleConfirmationPopup.show({
+              simpleConfirmation({
                 titleLangKey: 'Login.ResetAccountFail.Title',
                 descriptionLangKey: 'Login.ResetAccountFail.TextCancelled',
                 button: {langKey: 'OK'}
               });
             } else if(err.type.startsWith('2FA_CONFIRM_WAIT_')) {
               const waitTime = +err.type.replace('2FA_CONFIRM_WAIT_', '');
-              SimpleConfirmationPopup.show({
+              simpleConfirmation({
                 titleLangKey: 'Login.ResetAccountFail.Title',
                 descriptionLangKey: 'Login.ResetAccountFail.TextWait',
                 descriptionArgs: [wrapFormattedDuration(formatDuration(waitTime))],
@@ -329,7 +329,7 @@ export default function PasswordCard(_props: {spec: Spec}) {
 
     getState();
 
-    cancelFocus = focusWhenConnected(passwordInput);
+    cancelFocus = focusWhenSettled(passwordInput);
   });
 
   onCleanup(() => {
@@ -345,7 +345,7 @@ export default function PasswordCard(_props: {spec: Spec}) {
       header={
         <MediaHeader>
           <MediaHeader.Sticker element={monkeyContainer} size={monkeySize}/>
-          <MediaHeader.Title>{i18n('Login.Password.Title')}</MediaHeader.Title>
+          <MediaHeader.Title tag="h1">{i18n('Login.Password.Title')}</MediaHeader.Title>
           <MediaHeader.Subtitle>{i18n('Login.Password.Subtitle')}</MediaHeader.Subtitle>
         </MediaHeader>
       }

@@ -1,5 +1,5 @@
 /*
- * Main-thread proxy to an `encryptWorker.ts` instance. One host per call.
+ * Main-thread proxy to an `encrypt.worker.ts` instance. One host per call.
  *
  * Lifecycle:
  *   - `new EncryptWorkerHost()`           — spawns the worker.
@@ -7,18 +7,23 @@
  *   - `host.on('status', cb)`             — subscribe to async events.
  *   - `host.terminate()`                  — clean shutdown.
  *
- * The host never sees the call's private key bytes after handing the seed
- * over to the worker — keep that property as the worker integration matures.
+ * The host never sees the call's private key: the worker generates it
+ * (`createKey`) and only the public half comes back — keep that property as
+ * the worker integration matures.
  */
 
 import EventListenerBase from '@helpers/eventListenerBase';
-// Vite's `?worker` suffix bundles encryptWorker.ts into a CLASSIC worker
-// (IIFE). RTCRtpScriptTransform delivery to receivers (recv direction) is
-// flaky in Chrome with module workers — Chrome 146 pumped only ~6 frames
-// before silently stopping under our SFU's setup, even with a no-op
-// passthrough handler. The W3C reference samples + production WebRTC apps
-// use classic workers, so we switch to that path.
-import EncryptWorker from './encryptWorker.ts?worker';
+// `?worker` follows the build's global `worker.format`, which is `es`
+// (vite.config.ts) — so this is a MODULE worker, and the file name matters:
+// `optimizeDeps.entries` scans `*.worker.ts` so the deps only it reaches
+// (aes-js, libsodium-wrappers) are pre-bundled before the worker asks for them.
+//
+// NOTE: this import used to be documented as producing a classic (IIFE) worker,
+// chosen because RTCRtpScriptTransform delivery to receivers looked flaky in
+// Chrome with module workers. That was never what shipped — `worker.format` has
+// been `es` since the vite migration, so a module worker is what has always run
+// here, and switching would be a global change to every worker in the app.
+import EncryptWorker from './encrypt.worker.ts?worker';
 import type {
   HostRequest,
   HostResponse,
@@ -28,6 +33,11 @@ import type {
 } from './encryptWorkerProtocol';
 
 type Pending = {resolve: (v: unknown) => void; reject: (e: Error) => void};
+
+// Key destruction is best-effort, but thread termination is not. A wedged
+// crypto operation ahead of `destroy` in the worker RPC queue must not retain
+// the worker (and its key material) indefinitely.
+const DESTROY_TIMEOUT_MS = 500;
 
 type HostEvents = {
   status: (event: Extract<WorkerEvent, {kind: 'status'}>) => void;
@@ -42,6 +52,9 @@ export class EncryptWorkerHost extends EventListenerBase<HostEvents> {
   private readonly pending = new Map<number, Pending>();
   private nextId = 1;
   private destroyed = false;
+  private failed = false;
+  private terminating = false;
+  private terminationPromise: Promise<void> | undefined;
 
   constructor() {
     super(false);
@@ -57,6 +70,11 @@ export class EncryptWorkerHost extends EventListenerBase<HostEvents> {
   // One method per HostRequest kind. The TS signature mirrors the protocol's
   // `args` shape and the response type comes from `RequestResultMap`.
 
+  /** Generate the call key inside the worker; only the public key comes back. */
+  public createKey(): Promise<RequestResultMap['createKey']> {
+    return this.invoke('createKey');
+  }
+
   public createZeroBlock(args: Extract<HostRequest, {kind: 'createZeroBlock'}>['args']): Promise<RequestResultMap['createZeroBlock']> {
     return this.invoke('createZeroBlock', args);
   }
@@ -69,12 +87,26 @@ export class EncryptWorkerHost extends EventListenerBase<HostEvents> {
     return this.invoke('init', args);
   }
 
+  /** Build and retain a rejoin block with the private key already in worker memory. */
+  public prepareRejoinBlock(
+    args: Extract<HostRequest, {kind: 'prepareRejoinBlock'}>['args']
+  ): Promise<RequestResultMap['prepareRejoinBlock']> {
+    return this.invoke('prepareRejoinBlock', args);
+  }
+
+  /** Re-anchor to the exact block returned by the latest prepareRejoinBlock call. */
+  public commitRejoinBlock(): Promise<RequestResultMap['commitRejoinBlock']> {
+    return this.invoke('commitRejoinBlock');
+  }
+
   public applyBlock(args: Extract<HostRequest, {kind: 'applyBlock'}>['args']): Promise<RequestResultMap['applyBlock']> {
     return this.invoke('applyBlock', args);
   }
 
-  public buildChangeStateBlock(args: Extract<HostRequest, {kind: 'buildChangeStateBlock'}>['args']): Promise<RequestResultMap['buildChangeStateBlock']> {
-    return this.invoke('buildChangeStateBlock', args);
+  public buildRemoveParticipantsBlock(
+    args: Extract<HostRequest, {kind: 'buildRemoveParticipantsBlock'}>['args']
+  ): Promise<RequestResultMap['buildRemoveParticipantsBlock']> {
+    return this.invoke('buildRemoveParticipantsBlock', args);
   }
 
   public pullOutbound(): Promise<RequestResultMap['pullOutbound']> {
@@ -90,28 +122,18 @@ export class EncryptWorkerHost extends EventListenerBase<HostEvents> {
   }
 
   // Send `destroy` to the worker (wiping the key) then terminate it.
-  public async terminate(): Promise<void> {
-    if(this.destroyed) return;
-    this.destroyed = true;
-    try {
-      await this.invoke('destroy');
-    } catch{
-      // Best-effort — even if the destroy RPC fails, we still terminate.
-    }
-    this.worker.removeEventListener('message', this.onMessage);
-    this.worker.removeEventListener('error', this.onError);
-    this.worker.terminate();
-    for(const {reject} of this.pending.values()) {
-      reject(new Error('Worker terminated'));
-    }
-    this.pending.clear();
-    super.cleanup();
+  public terminate(): Promise<void> {
+    if(this.terminationPromise) return this.terminationPromise;
+    if(this.destroyed) return Promise.resolve();
+
+    this.terminating = true;
+    this.terminationPromise = this.terminateInternal();
+    return this.terminationPromise;
   }
 
   // Construct an `RTCRtpScriptTransform` attached to this worker. The caller
   // assigns the returned transform to an `RTCRtpSender.transform` (for the
-  // 'send' direction) or `RTCRtpReceiver.transform` ('recv') — see Phase 5d
-  // notes in encryptWorker.ts.
+  // 'send' direction) or `RTCRtpReceiver.transform` ('recv').
   //
   // - `channelId` is the e2e logical stream id (0-1023). Pick a stable value
   //   per (sender, media kind) — see notes/call.md.
@@ -150,20 +172,22 @@ export class EncryptWorkerHost extends EventListenerBase<HostEvents> {
     return this.invoke('setSsrcUsers', {entries});
   }
 
-  public getDebug(): Promise<RequestResultMap['getDebug']> {
-    return this.invoke('getDebug');
-  }
-
   // ===== Internal =====
 
   private invoke<K extends RequestKind>(
     kind: K,
-    args?: K extends 'pullOutbound' | 'getStatus' | 'destroy' ?
+    args?: K extends 'createKey' | 'pullOutbound' | 'getStatus' | 'commitRejoinBlock' | 'destroy' ?
       undefined :
       Extract<HostRequest, {kind: K}> extends {args: infer A} ? A : undefined
   ): Promise<RequestResultMap[K]> {
+    if(this.failed && kind !== 'destroy') {
+      return Promise.reject(new Error('EncryptWorkerHost: failed'));
+    }
     if(this.destroyed) {
       return Promise.reject(new Error('EncryptWorkerHost: terminated'));
+    }
+    if(this.terminating && kind !== 'destroy') {
+      return Promise.reject(new Error('EncryptWorkerHost: terminating'));
     }
     const id = this.nextId++;
     return new Promise<RequestResultMap[K]>((resolve, reject) => {
@@ -172,13 +196,55 @@ export class EncryptWorkerHost extends EventListenerBase<HostEvents> {
         reject
       });
       const req = {kind, id, ...(args !== undefined ? {args} : {})} as HostRequest;
-      this.worker.postMessage(req);
+      try {
+        this.worker.postMessage(req);
+      } catch(err) {
+        this.pending.delete(id);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
   }
 
+  private async terminateInternal(): Promise<void> {
+    try {
+      await this.invokeDestroyWithTimeout();
+    } catch{
+      // Best-effort explicit wipe. The finally block always reclaims the worker
+      // thread even when destroy rejects or never reaches the head of its queue.
+    } finally {
+      this.destroyed = true;
+      this.worker.removeEventListener('message', this.onMessage);
+      this.worker.removeEventListener('error', this.onError);
+      this.worker.terminate();
+      this.rejectPending(new Error('Worker terminated'));
+      super.cleanup();
+    }
+  }
+
+  private invokeDestroyWithTimeout(): Promise<void> {
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if(settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(finish, DESTROY_TIMEOUT_MS);
+      this.invoke('destroy').then(finish, finish);
+    });
+  }
+
+  private rejectPending(error: Error): void {
+    for(const {reject} of this.pending.values()) reject(error);
+    this.pending.clear();
+  }
+
   private onMessage = (ev: MessageEvent<HostResponse>) => {
+    if(this.destroyed) return;
     const msg = ev.data;
     if(msg.kind === 'event') {
+      if(this.failed) return;
       // @ts-ignore - dispatchEvent's signature is too strict for our union.
       this.dispatchEvent(msg.event.kind, msg.event);
       return;
@@ -191,9 +257,18 @@ export class EncryptWorkerHost extends EventListenerBase<HostEvents> {
   };
 
   private onError = (ev: ErrorEvent) => {
-    for(const {reject} of this.pending.values()) {
-      reject(new Error(ev.message || 'Worker error'));
-    }
-    this.pending.clear();
+    // A worker-level error means the crypto runtime itself is no longer a
+    // trustworthy RPC endpoint, even when no request happened to be pending.
+    // Fail exactly once, stop accepting work and route the call through the
+    // same fail-closed recovery path as an explicit worker `callFailed` event.
+    if(this.failed || this.terminating || this.destroyed) return;
+
+    this.failed = true;
+    const message = ev.message || 'Encryption worker failed';
+    const error = new Error(message);
+    this.rejectPending(error);
+
+    this.dispatchEvent('callFailed', {kind: 'callFailed', message});
+    void this.terminate();
   };
 }

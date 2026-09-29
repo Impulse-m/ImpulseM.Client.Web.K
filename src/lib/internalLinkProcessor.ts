@@ -1,36 +1,41 @@
 import type AppMediaViewerBase from '@components/mediaViewer/base';
-import PopupElement from '@components/popups';
-import PopupSharedFolderInvite from '@components/popups/sharedFolderInvite';
-import PopupJoinChatInvite from '@components/popups/joinChatInvite';
-import PopupPayment from '@components/popups/payment';
-import PopupPeer from '@components/popups/peer';
+import showSharedFolderInvitePopup from '@components/popups/sharedFolderInvite';
+import showJoinChatInvitePopup from '@components/popups/joinChatInvite';
+import {createPaymentPopup} from '@components/popups/payment';
+import showPeerPopup from '@components/popups/peer';
 import {showPickUser3Popup, showSharingPicker2Popup} from '@components/popups/pickUser';
 import showStickersPopup from '@components/popups/stickers';
 import {toastNew, hideToast} from '@components/toast';
 import {MOUNT_CLASS_TO} from '@config/debug';
 import IS_GROUP_CALL_SUPPORTED from '@environment/groupCallSupport';
-import addAnchorListener from '@helpers/addAnchorListener';
+import {CONFERENCE_CALL_SLUG_REGEXP} from '@lib/calls/constants';
+import addAnchorListener, {listenForMaskedAnchorAuxClicks} from '@helpers/addAnchorListener';
 import assumeType from '@helpers/assumeType';
+import findUpAttribute from '@helpers/dom/findUpAttribute';
 import findUpClassName from '@helpers/dom/findUpClassName';
 import {User, AttachMenuPeerType, MessagesBotApp, BotApp, ChatlistsChatlistInvite, Chat, InputInvoice} from '@layer';
 import {i18n, LangPackKey, _i18n} from '@lib/langPack';
 import {PHONE_NUMBER_REG_EXP} from '@lib/richTextProcessor';
 import {isWebAppNameValid} from '@lib/richTextProcessor/validators';
-import appImManager from '@lib/appImManager';
+import appImManager, {APP_TABS, JoinConferenceOptions} from '@lib/appImManager';
+import {makeFullMid} from '@appManagers/utils/messages/fullMid';
 import {INTERNAL_LINK_TYPE, InternalLinkTypeMap, InternalLink} from '@lib/internalLink';
 import {AppManagers} from '@lib/managers';
 import {createStoriesViewerWithPeer} from '@components/stories/viewer';
 import {simulateClickEvent} from '@helpers/dom/clickEvent';
-import PopupPremium from '@components/popups/premium';
+import shake from '@helpers/dom/shake';
+import showPremiumPopup from '@components/popups/premium';
 import rootScope from '@lib/rootScope';
-import PopupBoost from '@components/popups/boost';
-import PopupGiftLink from '@components/popups/giftLink';
-import PopupStars from '@components/popups/stars';
+import showBoostPopup from '@components/popups/boost';
+import showGiftLinkPopup from '@components/popups/giftLink';
+import showStarsPopup, {showGiftStarsPicker} from '@components/popups/stars';
+import showSendGiftPopup from '@components/popups/sendGift';
+import showSendGiftPicker from '@components/popups/sendGiftPicker';
 import type {RequestWebViewOptions} from '@appManagers/appAttachMenuBotsManager';
 import {prefetchStars} from '@stores/stars';
 import {getMiddleware} from '@helpers/middleware';
 import anchorCallback from '@helpers/dom/anchorCallback';
-import PopupStarGiftInfo from '@components/popups/starGiftInfo';
+import showStarGiftInfoPopup from '@components/popups/starGiftInfo';
 import noop from '@helpers/noop';
 import appSidebarRight from '@components/sidebarRight';
 import pause from '@helpers/schedulers/pause';
@@ -45,7 +50,6 @@ import showCreateContactPopup from '@components/popups/createContact';
 import createNewGroupTab from '@components/sidebarLeft/tabs/createNewGroupTab';
 import {AppEditProfileTab, AppSettingsTab, getEditProfileInitArgs} from '@components/solidJsTabs';
 import showBirthdayPopup, {saveMyBirthday} from '@components/popups/birthday';
-import showLogOutPopup from '@components/popups/logOut';
 import {getStickerSetInputByShortName} from '@lib/appManagers/utils/stickers/getStickerSetInput';
 import {AppMyStoriesTab} from '@components/solidJsTabs/tabs';
 import showAddBotToChat from '@components/popups/addBotToChat';
@@ -54,6 +58,15 @@ import parseBotAdminRights from '@appManagers/utils/bots/parseBotAdminRights';
 import isEphemeralMessage from '@appManagers/utils/messages/isEphemeralMessage';
 import parseChatSpecificTag from '@lib/richTextProcessor/parseChatSpecificTag';
 import searchByTag from '@lib/richTextProcessor/searchByTag';
+
+/**
+ * A link whose section we know but whose path we do not — the one thing worse
+ * than not opening it is doing nothing about it. tdesktop answers the same way
+ * (`Router::showUnsupportedMessage`).
+ */
+const showUnsupportedLinkToast = () => {
+  toastNew({langPackKey: 'Link.NotSupported'});
+};
 
 export class InternalLinkProcessor {
   protected managers: AppManagers;
@@ -71,6 +84,10 @@ export class InternalLinkProcessor {
   public construct(managers: AppManagers) {
     this.managers = managers;
 
+    // a middle click never reaches an anchor's inline `onclick`, so the alert below is wired to it
+    // separately — otherwise the masked link opens in a new tab with nothing asked
+    listenForMaskedAnchorAuxClicks();
+
     addAnchorListener<{}>({
       name: 'showMaskedAlert',
       callback: ({element}) => {
@@ -81,7 +98,7 @@ export class InternalLinkProcessor {
         a.innerText = href;
         a.removeAttribute('onclick');
 
-        const popup = PopupElement.createPopup(PopupPeer, 'popup-masked-url', {
+        showPeerPopup('popup-masked-url', {
           titleLangKey: 'OpenUrlTitle',
           descriptionLangKey: 'OpenUrlAlert2',
           descriptionLangArgs: [a],
@@ -91,10 +108,7 @@ export class InternalLinkProcessor {
               a.click();
             }
           }]
-        })
-
-        popup.show();
-        return popup;
+        });
       }
     });
 
@@ -274,13 +288,18 @@ export class InternalLinkProcessor {
       // already does the chain-head poll itself.
       addAnchorListener<{pathnameParams: ['call', string]}>({
         name: 'call',
-        callback: ({pathnameParams}) => {
+        callback: ({pathnameParams, element, event}) => {
           if(!pathnameParams[1]) return;
           const link: InternalLink = {
             _: INTERNAL_LINK_TYPE.CONFERENCE_CALL,
             slug: pathnameParams[1]
           };
-          return this.processInternalLink(link);
+          // Straight to the handler rather than through `processInternalLink`:
+          // this is the only place that still knows WHICH message the link was
+          // clicked in, and the join confirmation names its sender.
+          return this.processConferenceCallLink(link, {
+            inviterPeerId: this.getClickedMessageSenderPeerId(element, event)
+          });
         }
       });
 
@@ -743,7 +762,7 @@ export class InternalLinkProcessor {
       name: 'new',
       protocol: 'tg',
       callback: ({pathnameParams}) => {
-        const [type] = pathnameParams;
+        const [type = ''] = pathnameParams;
         switch(type) {
           case 'contact':
             return showCreateContactPopup();
@@ -751,30 +770,73 @@ export class InternalLinkProcessor {
             return appSidebarLeft.createTab(AppNewChannelTab).open({});
           case 'group':
             return createNewGroupTab(appSidebarLeft);
-          default:
+          case '':
+            // the screen every "new" starts from
             return appSidebarLeft.createTab(AppContactsTab).open();
+          default:
+            return showUnsupportedLinkToast();
         }
       }
     });
 
     addAnchorListener<{
-      pathnameParams: string[]
+      pathnameParams: string[],
+      uriParams: {highlight?: string}
     }>({
       name: 'settings',
       protocol: 'tg',
-      callback: ({pathnameParams, event}) => {
-        const path = pathnameParams.join('/');
+      callback: ({pathnameParams, uriParams}) => {
+        // the table is written with trailing slashes in places
+        // (`tg://settings/privacy/phone-number/`) and the generated index strips
+        // them, so a path has to arrive here the same way it was addressed there
+        const path = pathnameParams.join('/').replace(/\/$/, '');
         switch(path) {
           case '':
-            return appSidebarLeft.createTab(AppSettingsTab).open();
+            // reuse the open Settings instead of stacking a second one
+            return (appSidebarLeft.getTab(AppSettingsTab) || appSidebarLeft.createTab(AppSettingsTab)).open();
           case 'edit':
           case 'edit/set-photo':
           case 'edit/first-name':
           case 'edit/last-name':
           case 'edit/bio':
           case 'edit/username':
+          case 'edit/channel':
+          case 'profile-photo': {
+            // `noSame` hands back the editor when it is already open, and a tab
+            // inits once — so the field is pointed at afterwards, from outside,
+            // the way every other settings link points at its control.
             const tab = appSidebarLeft.createTab(AppEditProfileTab);
-            return tab.open({...getEditProfileInitArgs(), focusOn: pathnameParams[1]});
+            return tab.open(getEditProfileInitArgs()).then(async() => {
+              // pointing at a field while the tab is still sliding in scrolls it
+              await tab.shown;
+
+              if(path === 'profile-photo' || path === 'edit/set-photo') {
+                shake(tab.container.querySelector('.avatar-edit'));
+                return;
+              }
+
+              const [{findSettingsLink}, {focusControl, highlightSettingsEntry}] = await Promise.all([
+                import('@lib/settingsSearch/link'),
+                import('@lib/settingsSearch/highlight')
+              ]);
+
+              // which label a path names is the link table's business, the same
+              // table the search copies links from
+              const key = findSettingsLink(path)?.highlight;
+              if(!key) {
+                return;
+              }
+
+              // the personal channel is a row opening a picker, not a field to
+              // type in, so it is flashed the way the search points at it
+              if(path === 'edit/channel') {
+                highlightSettingsEntry(tab, key);
+                return;
+              }
+
+              focusControl(key, {root: tab.container, middleware: tab.middlewareHelper.get()});
+            });
+          }
           case 'edit/birthday':
             return this.managers.appProfileManager.getProfile(rootScope.myId).then((userFull) => {
               showBirthdayPopup({
@@ -784,14 +846,72 @@ export class InternalLinkProcessor {
               });
             });
           case 'edit/add-account':
-            appSidebarLeft.addAccount(event as MouseEvent);
-            break;
-          case 'edit/log-out':
-            showLogOutPopup();
-            break;
+            // tdesktop points at the control instead of starting the flow
+            // (`SettingsControl{InformationId(), "edit/add-account"}`); ours lives
+            // in the chat list's menu, so that is the menu we open.
+            return appImManager.selectTab(APP_TABS.CHATLIST).then(() => {
+              return this.highlightMenuItem(
+                appSidebarLeft.sidebarEl.querySelector('.sidebar-header .btn-menu-toggle'),
+                'MultiAccount.AddAccount'
+              );
+            });
+          case 'edit/log-out': {
+            // tdesktop shows Settings with the log-out control highlighted
+            // (`ShowLogOutMenu`) — a link must not open the confirmation itself.
+            // Ours lives in the header menu, so the menu is opened and the item
+            // inside it is the one that flashes.
+            const settingsTab = appSidebarLeft.getTab(AppSettingsTab) || appSidebarLeft.createTab(AppSettingsTab);
+            return settingsTab.open().then(async() => {
+              // a menu opened over a tab that is still sliding in would jump
+              await settingsTab.shown;
+              return this.highlightMenuItem(
+                settingsTab.header.querySelector('.btn-menu-toggle'),
+                'EditAccount.Logout'
+              );
+            });
+          }
           // case 'edit/change-number':
           // case 'edit/your-color':
-          // case 'edit/channel':
+
+          // an alias of `tg://chats/emoji-status`, the way tdesktop keeps it
+          case 'emoji-status':
+            return this.showEmojiStatusPicker();
+
+          // destinations that are a screen of their own: tdesktop opens the
+          // Premium and Credits sections, and ours live in popups
+          case 'premium':
+            return showPremiumPopup();
+          case 'stars':
+            return showStarsPopup();
+          case 'stars/gift':
+            return showGiftStarsPicker();
+          case 'send-gift':
+            return showSendGiftPicker();
+          case 'send-gift/self':
+            return showSendGiftPopup({peerId: rootScope.myId});
+
+          // destinations outside Settings, which the section table cannot address
+          case 'saved-messages':
+            return appImManager.setPeer({peerId: appImManager.myId});
+          case 'my-profile/posts/all-stories':
+            return appSidebarLeft.createTab(AppMyStoriesTab).open(AppMyStoriesTab.getInitArgs());
+          case 'my-profile/archived-posts':
+            return appSidebarLeft.createTab(AppMyStoriesTab).open({
+              ...AppMyStoriesTab.getInitArgs(),
+              isArchive: true
+            });
+          case 'ton':
+            return showStarsPopup({ton: true});
+
+          default:
+            // Every section the settings search indexes is addressable — see
+            // @lib/settingsSearch/link. Imported lazily to keep the index out of
+            // the startup bundle.
+            return import('@lib/settingsSearch/navigate').then(async({openSettingsDeepLink}) => {
+              if(!await openSettingsDeepLink(path, uriParams.highlight, appSidebarLeft)) {
+                showUnsupportedLinkToast();
+              }
+            }).catch((err) => console.error('settings link failed', path, err));
         }
       }
     });
@@ -808,16 +928,41 @@ export class InternalLinkProcessor {
       name: 'contacts',
       protocol: 'tg',
       callback: ({pathnameParams}) => {
-        const [type] = pathnameParams;
+        const [type = ''] = pathnameParams;
         switch(type) {
           case 'new':
             return showCreateContactPopup();
           case 'search':
           case '':
             return appSidebarLeft.createTab(AppContactsTab).open();
+          case 'sort':
+            return appSidebarLeft.createTab(AppContactsTab).open({highlight: 'sort'});
           // case 'invite':
           // case 'manage':
-          // case 'sort':
+          default:
+            return showUnsupportedLinkToast();
+        }
+      }
+    });
+
+    // tg://chats/search
+    // tg://chats/emoji-status
+    addAnchorListener<{
+      pathnameParams: [InternalLink.InternalLinkChats['type'] | '']
+    }>({
+      name: 'chats',
+      protocol: 'tg',
+      callback: ({pathnameParams}) => {
+        const [type] = pathnameParams;
+        switch(type) {
+          case 'search':
+            return this.openChatListSearch();
+          case 'emoji-status':
+            return this.showEmojiStatusPicker();
+          // tdesktop's `chats` section answers to these two paths and nothing
+          // else — a bare `tg://chats` included
+          default:
+            return showUnsupportedLinkToast();
         }
       }
     });
@@ -838,6 +983,64 @@ export class InternalLinkProcessor {
         return this.processInternalLink(link);
       }
     });
+  }
+
+  /** What `tg://chats/emoji-status` — and its `tg://settings` alias — opens. */
+  private showEmojiStatusPicker() {
+    // iOS opens the picker itself, from where it always opens — for us
+    // that is the status button in the chat list header.
+    const statusBtn = appSidebarLeft.sidebarEl.querySelector<HTMLElement>('.sidebar-emoji-status');
+
+    // no button means no premium — the same promo the control itself
+    // shows when it is used without it (tdesktop: ShowPremiumPreviewBox).
+    // Nothing to reach, so nothing is closed to reach it.
+    if(!statusBtn) {
+      return showPremiumPopup({feature: 'emoji_status'});
+    }
+
+    return appImManager.selectTab(APP_TABS.CHATLIST).then(async() => {
+      // the button belongs to the chat list's own header, so whatever is
+      // stacked over the list has to go — the natural way, letting a tab
+      // that asks before closing ask
+      if(!await appSidebarLeft.closeEverythingInsideNaturally()) {
+        return;
+      }
+
+      // the button opens the picker on its own, and plays its animation
+      // when the status changes; only a collapsed column hides it, and a
+      // hidden anchor would leave the picker in the corner of the screen
+      if(statusBtn.offsetParent) {
+        simulateClickEvent(statusBtn);
+        return;
+      }
+
+      const {openEmojiStatusPicker} = await import('@components/sidebarLeft/emojiStatusPicker');
+      openEmojiStatusPicker({
+        managers: this.managers,
+        anchorElement: statusBtn.closest('.sidebar-header')
+      });
+    });
+  }
+
+  /**
+   * Puts the caret in the chat list's search — what tdesktop's `chats/search`
+   * does (`searchMessages(QString(), Dialogs::Key())`): the field, empty, with
+   * nothing left over it.
+   */
+  private async openChatListSearch() {
+    await appImManager.selectTab(APP_TABS.CHATLIST);
+
+    if(!await appSidebarLeft.closeEverythingInsideNaturally()) {
+      return;
+    }
+
+    appSidebarLeft.initSearch().open();
+  }
+
+  /** Points at a control that lives in the menu behind `toggle`. */
+  private async highlightMenuItem(toggle: HTMLElement, key: LangPackKey) {
+    const {highlightMenuControl} = await import('@lib/settingsSearch/highlight');
+    highlightMenuControl(toggle, key);
   }
 
   private makeLink<T extends INTERNAL_LINK_TYPE>(type: T, uriParams: Omit<InternalLinkTypeMap[T], '_'>) {
@@ -927,7 +1130,7 @@ export class InternalLinkProcessor {
         chatInvite._ === 'chatInvitePeek'/*  && chatInvite.expires > tsNow(true) */) {
         // `open` (not `setInnerPeer`) so a forum routes through `op` and opens the topics tab
         // in the left sidebar instead of just dropping into the chat view (same as bug with
-        // PopupJoinChatInvite.openChat).
+        // openChatFromInvite).
         appImManager.open({
           peerId: chatInvite.chat.id.toPeerId(true)
         });
@@ -940,7 +1143,7 @@ export class InternalLinkProcessor {
           hash: link.invite
         };
 
-        const popup = await PopupPayment.create({
+        const popup = await createPaymentPopup({
           inputInvoice,
           chatInvite,
           noPaymentForm: true
@@ -955,7 +1158,7 @@ export class InternalLinkProcessor {
         return popup;
       }
 
-      return PopupElement.createPopup(PopupJoinChatInvite, link.invite, chatInvite);
+      return showJoinChatInvitePopup(link.invite, chatInvite as any);
     }, (err: ApiError) => {
       if(err.type === 'INVITE_HASH_EXPIRED') {
         toastNew({langPackKey: 'InviteExpired'});
@@ -993,9 +1196,47 @@ export class InternalLinkProcessor {
   // the "already in a call" guard and the dead-link error UX (so re-clicking
   // the link while already in the call doesn't rejoin). tdesktop equivalent:
   // SessionNavigation::resolveConferenceCall → startOrJoinConferenceCall.
-  public processConferenceCallLink = (link: InternalLink.InternalLinkConferenceCall) => {
-    return appImManager.joinConference({_: 'inputGroupCallSlug', slug: link.slug});
+  public processConferenceCallLink = (
+    link: InternalLink.InternalLinkConferenceCall,
+    options?: JoinConferenceOptions
+  ) => {
+    // The slug is an opaque token the server minted; a malformed one is a dead
+    // link, and it gets the same notice as an expired one.
+    if(typeof(link.slug) !== 'string' || !CONFERENCE_CALL_SLUG_REGEXP.test(link.slug)) {
+      toastNew({langPackKey: 'InviteExpired'});
+      return Promise.resolve();
+    }
+
+    return appImManager.joinConference({_: 'inputGroupCallSlug', slug: link.slug}, options);
   };
+
+  /**
+   * Sender of the message a link was clicked in. tdesktop threads the clicked
+   * item through the click handler's context and names its sender in the
+   * conference join confirmation (window_session_controller.cpp:1023); here
+   * the click is the only thread back to that message.
+   *
+   * A surface that already knows its message says so on the anchor it builds
+   * (`getWebPageActionOnClick`) — that covers the buttons which have no
+   * rendered message around them, like the pinned bar's Join call. Otherwise
+   * the link is text inside a bubble, and the bubble is what identifies it.
+   */
+  private getClickedMessageSenderPeerId(element?: HTMLElement, event?: Event) {
+    const stamped = element?.dataset?.fromId ||
+      findUpAttribute(event?.target as HTMLElement, 'data-from-id')?.dataset.fromId;
+    if(stamped) {
+      return stamped.toPeerId();
+    }
+
+    const bubble = findUpClassName(element, 'bubble') ||
+      findUpClassName(event?.target as HTMLElement, 'bubble');
+    const chat = appImManager.chat;
+    if(!bubble || !chat || bubble.dataset.peerId !== '' + chat.peerId) {
+      return;
+    }
+
+    return chat.getMessage(makeFullMid(chat.peerId, +bubble.dataset.mid))?.fromId;
+  }
 
   public processAddAiStyleLink = async(link: InternalLink.InternalLinkAddAiStyle) => {
     if(this.processingAddAiStyleSlugs.has(link.slug)) return;
@@ -1057,7 +1298,7 @@ export class InternalLinkProcessor {
 
         //   }
         // };
-        return PopupPayment.create({inputInvoice, paymentForm});
+        return createPaymentPopup({inputInvoice, paymentForm});
       }, (err) => {
         if((err as ApiError).type === 'SLUG_INVALID') {
           toastNew({langPackKey: 'PaymentInvoiceLinkInvalid'});
@@ -1201,7 +1442,7 @@ export class InternalLinkProcessor {
       throw err;
     }
 
-    PopupElement.createPopup(PopupSharedFolderInvite, {
+    showSharedFolderInvitePopup({
       chatlistInvite,
       slug: link.slug
     });
@@ -1248,7 +1489,7 @@ export class InternalLinkProcessor {
       peerId = chat.id.toPeerId(true);
     }
 
-    PopupElement.createPopup(PopupBoost, peerId);
+    showBoostPopup(peerId);
   };
 
   public processPremiumFeaturesLink = async(link: InternalLink.InternalLinkPremiumFeatures) => {
@@ -1257,11 +1498,11 @@ export class InternalLinkProcessor {
       return;
     }
 
-    PopupPremium.show();
+    showPremiumPopup();
   };
 
   public processGiftCodeLink = (link: InternalLink.InternalLinkGiftCode) => {
-    PopupElement.createPopup(PopupGiftLink, link.slug, link.stack);
+    showGiftLinkPopup(link.slug, link.stack);
   };
 
   public processBusinessChatLink = async(link: InternalLink.InternalLinkBusinessChat) => {
@@ -1287,7 +1528,7 @@ export class InternalLinkProcessor {
         langPackArguments: [
           anchorCallback(() => {
             hideToast();
-            const popup = PopupElement.createPopup(PopupStars, {
+            const popup = showStarsPopup({
               onTopup: () => {
                 popup.hide();
               },
@@ -1299,7 +1540,7 @@ export class InternalLinkProcessor {
       return;
     }
 
-    const popup = PopupElement.createPopup(PopupStars, {
+    const popup = showStarsPopup({
       itemPrice,
       onTopup: () => {
         popup.hide();
@@ -1310,12 +1551,15 @@ export class InternalLinkProcessor {
 
   public processShareLink = async(link: InternalLink.InternalLinkShare) => {
     const {peerId, threadId, monoforumThreadId} = await showSharingPicker2Popup();
-    appImManager.setInnerPeer({
-      peerId,
-      threadId,
-      monoforumThreadId,
-      text: [link.url, link.text].filter(Boolean).join('\n')
-    });
+    // The shared text becomes a draft of the chosen chat — any chat, the way
+    // tdesktop's `MainWidget::shareUrl` does it. `setInnerPeer({text})` is the
+    // `?text=` deep-link path, which only prefills private chats.
+    const text = [link.url, link.text].filter(Boolean).join('\n');
+    if(text) {
+      await rootScope.managers.appDraftsManager.setDraft(peerId, threadId || monoforumThreadId, text);
+    }
+
+    appImManager.setInnerPeer({peerId, threadId, monoforumThreadId});
   };
 
   public processUniqueStarGiftLink = async(link: InternalLink.InternalLinkUniqueStarGift) => {
@@ -1325,7 +1569,7 @@ export class InternalLinkProcessor {
       return;
     }
 
-    PopupElement.createPopup(PopupStarGiftInfo, {gift});
+    showStarGiftInfoPopup({gift});
   };
 
   public processStarGiftCollectionLink = async(link: InternalLink.InternalLinkStarGiftCollection) => {

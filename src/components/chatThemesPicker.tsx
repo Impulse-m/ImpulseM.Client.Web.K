@@ -2,6 +2,7 @@ import {createEffect, createResource, on, onCleanup, Ref} from 'solid-js';
 import {ScrollableX} from '@components/scrollable';
 import {AppBackgroundTab} from '@components/sidebarLeft/tabs/background';
 import {attachClickEvent} from '@helpers/dom/clickEvent';
+import {attachPickerGrid} from '@helpers/dom/attachListNavigation';
 import findUpClassName from '@helpers/dom/findUpClassName';
 import ListenerSetter from '@helpers/listenerSetter';
 import createMiddleware from '@helpers/solid/createMiddleware';
@@ -10,6 +11,7 @@ import {DEFAULT_THEME} from '@config/state';
 import {blendWallpaperForTinted} from '@config/themePresets';
 import {BaseTheme, Theme} from '@layer';
 import rootScope from '@lib/rootScope';
+import I18n from '@lib/langPack';
 import themeController from '@helpers/themeController';
 import liteMode from '@helpers/liteMode';
 import LottiePlayer from '@lib/lottie/lottiePlayer';
@@ -65,6 +67,8 @@ export type ChatThemesPickerProps = {
   recenterOnBaseChange?: boolean;
   class?: string;
   ref?: Ref<HTMLDivElement>;
+  /** Fires once the tiles are built and in the DOM. */
+  onReady?: () => void;
 };
 
 /**
@@ -139,6 +143,20 @@ export default function ChatThemesPicker(props: ChatThemesPickerProps) {
 
   const scrollable = new ScrollableX(null);
   scrollable.container.classList.add('themes-container');
+  // A toolbar, so a screen reader announces the strip as one stop that is walked with the arrows.
+  scrollable.container.setAttribute('role', 'toolbar');
+  scrollable.container.setAttribute('aria-label', I18n.format('ColorTheme', true));
+  // The tiles are plain <div>s picked by the delegated click below: the shared picker grid gives
+  // them a role, a name, a single tab stop with arrow keys, and Enter / Space as a click.
+  const detachPickerGrid = attachPickerGrid(scrollable.container, '.theme-container', (item) => {
+    const theme = themesMap.get(item)?.theme;
+    return theme?.title || theme?.emoticon || I18n.format('ThemeDay', true);
+  });
+
+  const setActive = (container: HTMLElement, active: boolean) => {
+    container.classList.toggle('active', active);
+    container.setAttribute('aria-pressed', String(active));
+  };
   // Start hidden so the tiles don't pop in for one frame after the async
   // `getThemes()` resolves. We flip opacity to 1 once `buildThemes` has
   // finished mounting the containers, letting the CSS transition fade them in.
@@ -150,6 +168,14 @@ export default function ChatThemesPicker(props: ChatThemesPickerProps) {
   const buildThemes = async() => {
     const themes = themesPromise();
     if(!themes) return;
+
+    // The tiles' emoticons come out of the animated-emoji set, which the stickers manager only
+    // fetches a second after start-up. Wrapping one before then throws "no sticker" and leaves the
+    // slot permanently blank — there is no retry — so wait for the set first. It is cached, so this
+    // is free on every build after the first. Hit by the empty-column tip cards, which mount as
+    // soon as the IM page does.
+    await rootScope.managers.appStickersManager.getAnimatedEmojiStickerSet();
+    if(!middleware()) return;
 
     const defaultThemes = themes.filter((theme) => theme.pFlags.default);
     defaultThemes.unshift(DEFAULT_THEME);
@@ -196,9 +222,7 @@ export default function ChatThemesPicker(props: ChatThemesPickerProps) {
       themesMap.set(container, k);
       applyThemeOnItem(k);
 
-      if(String(theme.id ?? '') === props.selectedId()) {
-        container.classList.add('active');
-      }
+      setActive(container, String(theme.id ?? '') === props.selectedId());
 
       const loadPromises: Promise<any>[] = [];
       let emoticonContainer: HTMLElement;
@@ -245,6 +269,8 @@ export default function ChatThemesPicker(props: ChatThemesPickerProps) {
     requestAnimationFrame(() => {
       scrollable.container.style.opacity = '1';
     });
+
+    props.onReady?.();
   };
 
   createEffect(on(themesPromise, (themes) => {
@@ -256,13 +282,7 @@ export default function ChatThemesPicker(props: ChatThemesPickerProps) {
   // Reactively re-stripe `.active` when the external selectedId changes.
   createEffect(() => {
     const id = props.selectedId();
-    const lastActive = scrollable.container.querySelector('.active');
-    lastActive?.classList.remove('active');
-    themesMap.forEach((item) => {
-      if(String(item.theme.id ?? '') === id) {
-        item.container.classList.add('active');
-      }
-    });
+    themesMap.forEach((item) => setActive(item.container, String(item.theme.id ?? '') === id));
   });
 
   // Reactively re-paint thumbnails when the base theme changes (e.g. user
@@ -318,6 +338,7 @@ export default function ChatThemesPicker(props: ChatThemesPickerProps) {
   }, {listenerSetter});
 
   onCleanup(() => {
+    detachPickerGrid();
     listenerSetter.removeAll();
     solidRoots.forEach((d) => d());
   });

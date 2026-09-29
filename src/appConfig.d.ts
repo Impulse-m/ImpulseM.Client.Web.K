@@ -7,6 +7,7 @@ export interface MTAppConfig {
   stickers_emoji_suggest_only_api?:          boolean;
   stickers_emoji_cache_time?:                number;
   groupcall_video_participants_max?:         number;
+  conference_call_size_limit?:               number;
   youtube_pip?:                              string;
   qr_login_camera?:                          boolean;
   qr_login_code?:                            string;
@@ -96,6 +97,7 @@ export interface MTAppConfig {
   giveaway_countries_max?:                   number;
   giveaway_gifts_purchase_available?:        boolean;
   giveaway_period_max?:                      number;
+  ephemeral_welcome_messages_max?:           number;
   quote_length_max?:                         number;
   recommended_channels_limit_default?:       number;
   recommended_channels_limit_premium?:       number;
@@ -109,6 +111,7 @@ export interface MTAppConfig {
   stars_purchase_blocked?:                   boolean;
   can_edit_factcheck?:                       boolean;
   message_primary_edited_date?:              boolean;
+  message_typing_draft_ttl?:                 number;
   stories_pinned_to_top_count_max?:          number;
   stars_paid_post_amount_max?:               number;
   stars_gifts_enabled?:                      boolean;

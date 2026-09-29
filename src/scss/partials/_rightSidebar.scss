@@ -126,6 +126,7 @@
   &.can-add-members {
     .btn-corner:not(.is-hidden) {
       transform: translateZ(0);
+      visibility: visible;
     }
   }
 }
@@ -250,7 +251,8 @@
 .chat-requests-container {
   .chatlist-chat.no-wrap {
     min-height: 5.75rem;
-    padding-bottom: 2.25rem !important;
+    // the buttons live in the bottom padding, so the copy keeps the top edge to itself
+    padding-block: 0 2.25rem;
 
     .chatlist-chat-buttons {
       position: absolute;
@@ -495,12 +497,10 @@
 
     &-tabs {
       justify-content: flex-start;
-      padding: 0;
     }
 
     &-tab {
       flex: 0 0 auto;
-      border-radius: 0 !important;
     }
 
     &-content {

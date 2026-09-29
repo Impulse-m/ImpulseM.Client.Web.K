@@ -81,7 +81,7 @@ export const AppNotificationsTab =
   });
 
 
-export function getEditProfileInitArgs(overwriteConnectedBot?: boolean): Omit<EditProfileTabPayload, 'focusOn'> {
+export function getEditProfileInitArgs(overwriteConnectedBot?: boolean): EditProfileTabPayload {
   return {
     bioMaxLength: rootScope.managers.apiManager.getLimit('bio'),
     user: rootScope.managers.appUsersManager.getSelf(),
@@ -206,15 +206,36 @@ export const AppStickersAndEmojiTab =
   });
 
 
+export type AppContactsTabOptions = {
+  /** the control the tab points at once it is open - `tg://contacts/sort` names the sort button */
+  highlight?: 'sort'
+};
+
+// the tab is mostly opened with nothing to point at
+type AppContactsTabPayload = AppContactsTabOptions | void;
+
 export const AppContactsTab =
-  scaffoldSolidJSTab({
+  scaffoldSolidJSTab<AppContactsTabPayload>({
     title: 'Contacts',
-    getComponentModule: () => import('../sidebarLeft/tabs/contacts'),
-    onOpenAfterTimeout: function() {
-      (this as any)._focusOnOpen?.();
-    }
+    getComponentModule: () => import('../sidebarLeft/tabs/contacts')
   });
 (AppContactsTab as any).noSame = true;
+
+
+export const AppCallsTab =
+  scaffoldSolidJSTab({
+    title: 'Calls',
+    getComponentModule: () => import('../sidebarLeft/tabs/calls')
+  });
+(AppCallsTab as any).noSame = true;
+
+
+export const AppNewCallTab =
+  scaffoldSolidJSTab({
+    title: 'ConferenceCall.NewCall.Title',
+    getComponentModule: () => import('../sidebarLeft/tabs/newCall')
+  });
+(AppNewCallTab as any).noSame = true;
 
 
 export const AppPowerSavingTab =

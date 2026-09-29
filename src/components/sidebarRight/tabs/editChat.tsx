@@ -24,6 +24,7 @@ import openBoosts from '@components/openBoosts';
 import {handleChannelsTooMuch} from '@components/popups/channelsTooMuch';
 import Row from '@components/rowTsx';
 import Section from '@components/section';
+import TransactionHistorySection from '@components/stars/transactionHistory';
 import {AppDirectMessagesTab} from '@components/solidJsTabs';
 import {usePromiseCollector} from '@components/solidJsTabs/promiseCollector';
 import {useSuperTab} from '@components/solidJsTabs/superTabProvider';
@@ -43,6 +44,7 @@ import {
   AppRemovedUsersTab
 } from '@components/solidJsTabs/tabs';
 import cancelEvent from '@helpers/dom/cancelEvent';
+import wrapMessageForReply from '@components/wrappers/messageForReply';
 import anchorCallback from '@helpers/dom/anchorCallback';
 import numberThousandSplitter, {
   numberThousandSplitterForStars
@@ -141,7 +143,6 @@ function EditChatForm(props: {
     CommunityLinkSection,
     I18n,
     PeerTitleTsx,
-    PopupElement,
     apiManagerProxy,
     appDialogsManager,
     appImManager,
@@ -374,6 +375,36 @@ function EditChatForm(props: {
     }
   });
 
+  // layer 229: the messages each new member is greeted with. A group's, or a channel's one is
+  // in (desktop's condition); the row says what a single one says, how many there are, or that
+  // there are none.
+  const canManageWelcomeMessages = () => hasRights(chat(), 'manage_welcome_messages') &&
+    (!isChannel() || !!channel()?.pFlags.megagroup || (isBroadcast() && !channel()?.pFlags.left));
+  const [welcomePreview, setWelcomePreview] = createSignal<string | DocumentFragment | HTMLElement>();
+  const refreshWelcomePreview = async() => {
+    if(!canManageWelcomeMessages()) return;
+    const peer = peerId();
+    const mids = await tab.managers.appMessagesManager.getWelcomeMessages(peer);
+    let preview: string | DocumentFragment | HTMLElement;
+    if(mids.length > 1) {
+      preview = i18n('messages', [mids.length]);
+    } else if(mids.length) {
+      const message = await tab.managers.appMessagesManager.getWelcomeMessage(peer, mids[0]);
+      preview = message?._ === 'message' ? await wrapMessageForReply({message}) : undefined;
+    }
+    if(alive && peer === peerId()) setWelcomePreview(preview);
+  };
+  void refreshWelcomePreview();
+  subscribeOn(rootScope)('welcome_message_new', (message) => {
+    if(message.peerId === peerId()) void refreshWelcomePreview();
+  });
+  subscribeOn(rootScope)('welcome_messages_delete', ({peerId: updatedPeerId}) => {
+    if(updatedPeerId === peerId()) void refreshWelcomePreview();
+  });
+  subscribeOn(rootScope)('message_edit', ({storageKey}) => {
+    if(storageKey === `${peerId()}_welcome`) void refreshWelcomePreview();
+  });
+
   const save = async() => {
     if(!canSave()) {
       return;
@@ -543,9 +574,9 @@ function EditChatForm(props: {
 
     setDeleting(true);
     try {
-      const {default: PopupDeleteDialog} = await import('@components/popups/deleteDialog');
+      const {default: showDeleteDialogPopup} = await import('@components/popups/deleteDialog');
       setDeleting(false);
-      PopupElement.createPopup(PopupDeleteDialog, peerId(), undefined, (promise) => {
+      showDeleteDialogPopup(peerId(), undefined, (promise) => {
         setDeleting(true);
         promise.then(() => {
           tab.close();
@@ -726,6 +757,19 @@ function EditChatForm(props: {
             </Row>
           </Show>
 
+          <Show when={canManageWelcomeMessages()}>
+            <Row clickable={() => {
+              appImManager.setInnerPeer({
+                peerId: peerId(),
+                type: ChatType.Welcome
+              });
+            }}>
+              <Row.Icon icon="message_filled" />
+              <Row.Title>{i18n('WelcomeMessages.Title')}</Row.Title>
+              <Row.Subtitle class="text-overflow">{welcomePreview() || i18n('Off')}</Row.Subtitle>
+            </Row>
+          </Show>
+
           <Show when={isAdmin() && isChannel()}>
             <Row clickable={() => {
               if(appSettings.logsDiffView) {
@@ -764,6 +808,12 @@ function EditChatForm(props: {
           </Show>
         </Section>
       </Show>
+
+      <TransactionHistorySection
+        peerId={peerId()}
+        stars={channelFull()?.pFlags.can_view_stars_revenue}
+        ton={channelFull()?.pFlags.can_view_revenue}
+      />
 
       <Show when={hasGroupStickersSection()}>
         <Section name="GroupStickers" caption="GroupStickers.SectionInfo">

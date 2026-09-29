@@ -1,7 +1,7 @@
 import IS_TOUCH_SUPPORTED from '@environment/touchSupport';
 import AppSelectPeers, {SelectSearchPeerType} from '@components/appSelectPeers';
 import PopupElement, {createPopup, PopupContext, PopupContextValue} from '@components/popups/indexTsx';
-import {LangPackKey, i18n} from '@lib/langPack';
+import I18n, {LangPackKey, i18n} from '@lib/langPack';
 import {Modify} from '@types';
 import {IsPeerType} from '@appManagers/appPeersManager';
 import TransitionSlider from '@components/transition';
@@ -302,7 +302,7 @@ export default function showPickUserPopup(options: PopupPickUserOptions) {
 
         elements.forEach((element) => {
           const sel = fs.selected.has(element.dataset.peerId);
-          element.prepend(fs.checkbox(sel));
+          element.prepend(fs.checkbox(sel, undefined, element.querySelector<HTMLElement>('.peer-title, .row-title')));
         });
         fs.list[!append ? 'append' : 'prepend'](...elements);
       },
@@ -590,6 +590,7 @@ export default function showPickUserPopup(options: PopupPickUserOptions) {
     return (
       <PopupElement.FooterButton
         confirm
+        langKey="Next"
         callback={() => {
           finalize();
         }}
@@ -628,6 +629,7 @@ export default function showPickUserPopup(options: PopupPickUserOptions) {
             <ButtonIconTsx
               icon="checkround"
               class="popup-forward-multiselect"
+              aria-label={I18n.format('Message.Context.Select', true)}
               onClick={enableMultiSelect}
             />
           </Show>
@@ -739,6 +741,41 @@ export async function showPickUser3Popup(
   });
 }
 
+/**
+ * A picker footer that offers the link until a recipient is ticked. Confirming
+ * an empty selection is a dead button, and the link itself is what someone who
+ * opened the picker and picked nobody still wants — so that is what the button
+ * becomes. Shared by the conference invite picker and every `shareUrlToPeers`
+ * batch; both feed the returned pair straight into their picker options.
+ */
+export function createCopyLinkFooter(options: {
+  confirmLangKey: LangPackKey,
+  copy: () => void,
+  confirm: () => void
+}): Pick<PopupPickUserOptions, 'footer' | 'onChange'> {
+  const [selectedCount, setSelectedCount] = createSignal(0);
+
+  return {
+    onChange: (length) => setSelectedCount(length),
+    footer: () => (
+      <PopupElement.FooterButton
+        confirm
+        langKey={selectedCount() ? options.confirmLangKey : 'CopyLink'}
+        callback={() => {
+          if(selectedCount()) {
+            options.confirm();
+            return;
+          }
+
+          options.copy();
+          // Copying is not done with the picker — a recipient may still follow.
+          return false;
+        }}
+      />
+    )
+  };
+}
+
 export function showSharingPickerPopup(options: {
   onSelect: PopupPickUserOptions['onSelect'],
   chatRightsActions?: PopupPickUserOptions['chatRightsActions'],
@@ -750,6 +787,10 @@ export function showSharingPickerPopup(options: {
   // batch; `false` (default) ⇒ pick-and-send immediately. Pass-through to
   // AppSelectPeers' own `multiSelect` enum if a non-boolean is needed.
   multiSelect?: PopupPickUserOptions['multiSelect'],
+  // Replace the floating confirm button — `shareUrlToPeers` swaps it for a
+  // "copy the link" action while nothing is picked.
+  footer?: PopupPickUserOptions['footer'],
+  onChange?: PopupPickUserOptions['onChange'],
   onCloseAfterTimeout?: () => void,
   onClose?: () => void
 }) {

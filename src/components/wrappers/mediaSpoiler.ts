@@ -9,15 +9,31 @@ import useContentSettings from '@stores/contentSettings';
 import confirmationPopup from '@components/confirmationPopup';
 import DotRenderer from '@components/dotRenderer';
 import Icon from '@components/icon';
-import {AgeVerificationPopup} from '@components/popups/ageVerification';
+import createAgeVerification from '@components/popups/ageVerification';
 import SetTransition from '@components/singleTransition';
 import {toastNew} from '@components/toast';
+import Button from '@components/button';
+import {attachClickEvent} from '@helpers/dom/clickEvent';
+import makeMediaPreviewsAccessible, {MEDIA_PREVIEW_SELECTOR} from '@helpers/dom/mediaPreviewAccessibility';
 
 // * the dot canvas is decoration on top of an already-covering blurred thumbnail; never let it
 // * hold up the message batch for longer than this
 const SPOILER_READY_TIMEOUT = 2000;
 
 const sensitiveSpoilers = new Set<HTMLElement>();
+
+function removeSpoiler(mediaSpoiler: HTMLElement) {
+  const restoreFocus = mediaSpoiler.contains(mediaSpoiler.ownerDocument.activeElement);
+  const preview = mediaSpoiler.closest<HTMLElement>(MEDIA_PREVIEW_SELECTOR);
+  mediaSpoiler.remove();
+  mediaSpoiler.middlewareHelper?.destroy();
+  if(preview) {
+    makeMediaPreviewsAccessible(preview);
+    if(restoreFocus) {
+      (preview.matches('button, [role="button"]') ? preview : preview.querySelector<HTMLElement>('button, [role="button"]'))?.focus();
+    }
+  }
+}
 
 export function clearSensitiveSpoilers() {
   for(const spoiler of sensitiveSpoilers) {
@@ -43,8 +59,7 @@ export function toggleMediaSpoiler(options: {
     duration: 250,
     onTransitionEnd: () => {
       if(reveal && destroyAfter) {
-        mediaSpoiler.remove();
-        mediaSpoiler.middlewareHelper.destroy();
+        removeSpoiler(mediaSpoiler);
       }
     }
   });
@@ -68,8 +83,7 @@ function revealSpoilerWithAnimation(options: {
   if(!result) return false;
 
   return result.then(() => {
-    mediaSpoiler?.remove?.();
-    mediaSpoiler?.middlewareHelper?.destroy?.();
+    removeSpoiler(mediaSpoiler);
   });
 }
 
@@ -92,7 +106,7 @@ export function onMediaSpoilerClick(options: {
     }
 
     if(contentSettings.needAgeVerification() && !contentSettings.ageVerified()) {
-      AgeVerificationPopup.create().then((verified) => {
+      createAgeVerification().then((verified) => {
         if(verified) {
           clearSensitiveSpoilers();
         }
@@ -150,9 +164,11 @@ function wrapMediaSpoilerWithImage(options: {
 
   image.classList.add('media-spoiler-thumbnail');
 
-  const container = document.createElement('div');
-  container.classList.add('media-spoiler-container');
+  const container = Button('media-spoiler-container', {noRipple: true, ariaLabel: 'AccDescr.RevealMedia'});
   container.middlewareHelper = middleware.create();
+  container.middlewareHelper.get().onClean(attachClickEvent(container, (event) => {
+    onMediaSpoilerClick({mediaSpoiler: container, event});
+  }));
 
   const {canvas, readyResult} = DotRenderer.create({
     ...options,
