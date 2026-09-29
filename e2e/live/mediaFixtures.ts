@@ -87,3 +87,40 @@ export function recorderWebmVideo(name: string): MediaPayload {
     buffer: readFileSync(join(liveharnessFixturesDir, 'round-note-vp8-opus.webm'))
   };
 }
+
+
+const archiveSeedBlockBytes = 1024 * 1024;
+
+
+/**
+ * A large, deterministic-within-this-call binary payload for the big-file upload lane (#675
+ * follow-up, archive120). Not a real ZIP: nothing on either side of this pipeline parses archive
+ * contents for a plain document attachment (traced in the archive120 read-only pass — the
+ * finalizer's document branch is byte-agnostic), so a synthesized central directory would add
+ * complexity with no test-value. What the scenario actually exercises is the byte pipeline itself
+ * — upload.saveBigFilePart chunking, staging, finalization, S3, download — and that only needs
+ * bytes whose exact identity this call can name.
+ *
+ * Same reasoning as structuredPhoto's own randomBytes seed above: UNIQUE per call, so a rerun
+ * cannot land on a previously-stored object through server-side hash dedup and quietly skip the
+ * real transfer this scenario means to prove. The seed block is expanded by raw Buffer.copy
+ * (memcpy), not a byte-by-byte fill, so generating ~120 MiB costs a handful of copies rather than
+ * 120 million loop iterations.
+ */
+export function deterministicArchive(name: string, sizeBytes: number): MediaPayload {
+  const seed = randomBytes(Math.min(archiveSeedBlockBytes, sizeBytes));
+  const buffer = Buffer.allocUnsafe(sizeBytes);
+
+  let written = 0;
+  while(written < sizeBytes) {
+    const chunk = Math.min(seed.length, sizeBytes - written);
+    seed.copy(buffer, written, 0, chunk);
+    written += chunk;
+  }
+
+  return {
+    name,
+    mimeType: 'application/zip',
+    buffer
+  };
+}

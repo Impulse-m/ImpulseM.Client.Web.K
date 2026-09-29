@@ -28,9 +28,16 @@ import Schema from '@lib/mtproto/schema';
 import {formatJSONValue} from '@lib/mtproto/tl_utils';
 import {getLogger} from '@lib/impulseLogger';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {captureImpulseSessionToken, refreshImpulseSession, whenImpulseSessionReady} from '../session';
+import {captureImpulseSessionToken, clearPendingToken, persistPendingToken, refreshImpulseSession, whenImpulseSessionReady} from '../session';
 import {getServiceAndMethod} from './serviceMap';
-import {getGrpcTransport} from './transport';
+import {
+  getGrpcPendingGeneration,
+  getGrpcPendingToken,
+  getGrpcSessionToken,
+  getGrpcTransport,
+  isPendingSessionAllowedMethod,
+  setGrpcPendingToken
+} from './transport';
 
 const logger = getLogger('grpc-adapter');
 
@@ -491,6 +498,39 @@ function toApiError(err: unknown): ApiError {
   return error;
 }
 
+/**
+ * Picks the pending-2FA identity off a SESSION_PASSWORD_NEEDED ConnectError (gRPC trailer
+ * `pending-token`, ErrorOrGrpcExtensions.cs:62-70), persists it, and retains it for this account
+ * slot so the password card's immediately-following account.getPassword / auth.checkPassword
+ * calls have something to authenticate with (#675). Mirrors captureImpulseSessionToken's role for
+ * the success path — this is its error-path counterpart. Never touches userId: identity still
+ * comes only from the eventual auth.authorization.
+ *
+ * `generationAtRequestStart` (transport.ts's pendingGeneration, snapshotted by the caller before
+ * this signIn was even issued) is checked FIRST: if anything has invalidated this slot's pending
+ * context since — a newer sendCode/signIn, a logout, a completed session — the generation has
+ * already moved on, and this response belongs to an attempt nobody is waiting on any more. An
+ * abandoned attempt's own late SESSION_PASSWORD_NEEDED must not resurrect a challenge over
+ * whatever the slot has since moved on to (revision2's stale-response requirement).
+ */
+async function capturePendingToken(
+  accountNumber: ActiveAccountNumber,
+  err: unknown,
+  generationAtRequestStart: number
+): Promise<void> {
+  if(getGrpcPendingGeneration(accountNumber) !== generationAtRequestStart) {
+    return;
+  }
+
+  const token = ConnectError.from(err).metadata.get('pending-token');
+  if(!token) {
+    return;
+  }
+
+  setGrpcPendingToken(accountNumber, token);
+  await persistPendingToken(accountNumber, token);
+}
+
 const MIGRATE_PATTERN = /^(PHONE_MIGRATE_|NETWORK_MIGRATE_|USER_MIGRATE_|STATS_MIGRATE_)\d+/;
 const FLOOD_PATTERN = /^(FLOOD_WAIT_|FLOOD_PREMIUM_WAIT_|SLOWMODE_WAIT_)/;
 
@@ -543,11 +583,58 @@ export async function grpcInvoke(
     throw {type: 'GRPC_METHOD_MISSING', message: `${descMethod.localName} absent on client`, code: 501} as ApiError;
   }
 
+  // Snapshotted here — BEFORE the readiness await below, not after — so it reflects the instant
+  // this call was actually issued, not whatever happened while it was suspended waiting for that
+  // await's microtask hop (#675 revision3, item A). A synchronous invalidation issued by the
+  // caller right after this call — clearImpulseSession() without awaiting it, or another
+  // grpcInvoke('auth.sendCode', ...) call — runs to completion in exactly that gap; snapshotting
+  // after the await let such an invalidation's generation bump land BEFORE this snapshot was
+  // taken, so the later staleness check compared the post-invalidation generation against itself
+  // and never saw a mismatch. Capturing it this early is safe now that restoring a persisted
+  // pending token from storage (restoreImpulseSession) uses restoreGrpcPendingToken instead of
+  // setGrpcPendingToken and therefore never bumps this generation — otherwise the very first
+  // legitimate call of a boot, issued before restore finishes, would see its own pre-restore
+  // snapshot mismatch the post-restore generation and wrongly discard its own real response.
+  const pendingGenerationAtRequestStart = getGrpcPendingGeneration(accountNumber);
+
+  if(method === 'auth.sendCode') {
+    // A freshly (re)sent code starts a new — or restarted — login attempt the MOMENT this is
+    // called, not once it reaches the network or succeeds (#675 revision3, item B): any pending
+    // 2FA challenge from an earlier, abandoned attempt is stale from this instant (its own srp_id
+    // is already gone server-side, single-use) and must not linger to be captured by a
+    // still-in-flight signIn's late SESSION_PASSWORD_NEEDED, however long THIS call itself takes.
+    // Not awaited — the generation bump (setGrpcPendingToken's synchronous prefix, transport.ts)
+    // is what has to happen before anything else runs; the persisted clear can finish in the
+    // background. clearPendingToken never rejects, so nothing here is an unhandled rejection.
+    // No second clear on success below any more: since this already invalidates unconditionally,
+    // a success-path clear could only ever be redundant (nothing changed) or actively wrong
+    // (wiping a NEWER token a different, later capture already established in the meantime) —
+    // "do not clear again on stale success".
+    void clearPendingToken(accountNumber);
+  }
+
   // Nothing may leave before the stored session has been put back on the headers:
   // the boot sequence fires its first wave in the same tick as the restore, and
   // that wave used to travel unauthenticated. Already settled after boot, so this
   // costs a microtask.
   await whenImpulseSessionReady(accountNumber);
+
+  // Snapshotted here, right before the request actually leaves, so the catch block below can tell
+  // a response that still belongs to the CURRENT pending attempt from a stale one (#675
+  // revision2's request-attempt correlation): for a call that is itself pending-scoped, the exact
+  // token it presented, since only a rejection of THAT specific token may ever clear it. Kept
+  // AFTER the readiness await, unlike pendingGenerationAtRequestStart above: these must reflect
+  // the credentials as restore actually left them (root's revision3 disposition), which is only
+  // settled once whenImpulseSessionReady resolves, not whatever they were before restore ran.
+  // Comparing values rather than only the generation is what lets a late rejection for an old
+  // token coexist safely with a newer pending token OR a completed full session already in place
+  // by the time it arrives (a rejection for a token that is no longer current is not a rejection
+  // of whatever is current now).
+  const sessionTokenAtRequestStart = getGrpcSessionToken(accountNumber);
+  const pendingTokenAtRequestStart = getGrpcPendingToken(accountNumber);
+  const wasPendingScopedRequest = !sessionTokenAtRequestStart &&
+    Boolean(pendingTokenAtRequestStart) &&
+    isPendingSessionAllowedMethod(service.typeName, descMethod.name);
 
   try {
     const response = await methodFn.call(client, request, {signal: abortSignal});
@@ -559,6 +646,25 @@ export async function grpcInvoke(
     return result;
   } catch(err) {
     const apiError = toApiError(err);
+
+    if(apiError.type === 'SESSION_PASSWORD_NEEDED') {
+      await capturePendingToken(accountNumber, err, pendingGenerationAtRequestStart);
+    }
+
+    // The specific pending token THIS call presented has now been authoritatively rejected —
+    // expired (AUTH_KEY_UNREGISTERED, JwtValidationInterceptor.cs:208-209) or revoked/consumed
+    // (AUTH_TOKEN_INVALID, missingCap "pending-revoked", :286-295). Clear it — but only if it is
+    // still the CURRENT token: a late rejection for a token something newer has already replaced
+    // (a fresh challenge, a completed session) must not clear that newer state (revision2's
+    // control). Never for a call that wasn't pending-scoped to begin with (a real session's own
+    // 401, or an unrelated method) — this is not a blanket 401/400 handler.
+    if(
+      wasPendingScopedRequest &&
+      (apiError.type === 'AUTH_KEY_UNREGISTERED' || apiError.type === 'AUTH_TOKEN_INVALID') &&
+      getGrpcPendingToken(accountNumber) === pendingTokenAtRequestStart
+    ) {
+      await clearPendingToken(accountNumber);
+    }
 
     // The access token expires after AccessTokenExpiryMinutes and every call then
     // comes back AUTH_KEY_UNREGISTERED. Renew once with the refresh token and

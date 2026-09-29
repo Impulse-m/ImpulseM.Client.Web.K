@@ -297,6 +297,7 @@ export class PersonaSession {
     // attributed to whatever it was testing, and that is exactly how #319's fix looked
     // intermittent when a third of its reds were this.
     const nameInput = this.page.locator('.input-field-input[contenteditable="true"]:not(.input-field-input-fake)').first();
+    const passwordChallenge = this.page.locator('.input-field-password input[type="password"]:not(.stealthy)');
     const ready = this.page.waitForFunction(() => {
       const w = window as any;
       return !document.body.classList.contains('has-auth-pages') && !!w.appImManager && !!w.rootScope?.managers;
@@ -304,8 +305,26 @@ export class PersonaSession {
 
     const outcome = await Promise.race([
       nameInput.waitFor({state: 'visible', timeout: 180_000}).then(() => 'sign-up-card' as const),
-      ready.then(() => 'already-registered' as const)
+      ready.then(() => 'already-registered' as const),
+      passwordChallenge.waitFor({state: 'visible', timeout: 180_000}).then(() => 'password-protected' as const)
     ]);
+
+    // A THIRD outcome neither branch above expects: this persona's number already carries an
+    // account PROTECTED BY A CLOUD PASSWORD from an earlier run (the reserved test block wraps
+    // and is reused across runs, #509). That is a setup fixture collision, not evidence of a
+    // product bug — and resetting a password on an account this call cannot prove it owns is not
+    // this method's call to make. Fail loud and by name rather than let both other racers time
+    // out in 180s of silence.
+    if(outcome === 'password-protected') {
+      this.reusedExistingAccount = true;
+      throw new Error(
+        `signUpThroughUi landed on the password card for ${this.persona.firstName} instead of a fresh ` +
+        'sign-up or a known passwordless account — this run\'s persona collided with an account an ' +
+        'earlier run left behind WITH a cloud password set. Setup fixture collision (#675), not a ' +
+        'product-regression signal for whatever this run is testing: pick a fresh persona label or ' +
+        'free the slot rather than continuing through it.'
+      );
+    }
 
     if(outcome === 'already-registered') {
       this.reusedExistingAccount = true;
@@ -359,6 +378,138 @@ export class PersonaSession {
     ).toBe('signed-in');
 
     await this.waitForImReady();
+  }
+
+
+  /**
+   * Phone + code on an account already known to carry a cloud (2FA) password (#675): after the
+   * code, canon answers `error 400 SESSION_PASSWORD_NEEDED`
+   * (.demo/telegram-docs-text/api/auth.md:795) and the real client must show the password card —
+   * neither signing straight in nor offering the sign-up name card. Kept separate from
+   * signInThroughUi rather than folded into its race: that method's own contract asserts
+   * 'signed-in', which would be the WRONG outcome here by construction, not an alternate branch
+   * it should ever silently accept.
+   */
+  public async signInExpectingPasswordChallengeThroughUi(): Promise<void> {
+    await this.enterPhoneAndCodeThroughUi();
+
+    const passwordChallenge = this.page.locator('.input-field-password input[type="password"]:not(.stealthy)');
+
+    // The reloaded phone card and the sign-up name card share the exact same contenteditable
+    // shape — TelInputField and SignUpCard's name fields both go through InputField with
+    // `plainText` unset (telInputField.ts:19-29), so a generic `.input-field-input
+    // [contenteditable="true"]` locator cannot tell them apart. Told apart instead by SCOPE
+    // (phoneCard is explicitly the `.input-field-phone` container) and by COUNT (sign-up shows
+    // first AND last name together, so `.nth(1)` — the last-name field — only ever resolves when
+    // both are present; a lone phone field never satisfies it).
+    const phoneCard = this.page.locator('.input-field-phone .input-field-input');
+    const signUpNameCard = this.page
+      .locator('.input-field-input[contenteditable="true"]:not(.input-field-input-fake)')
+      .nth(1);
+    // Same predicate and timeout signUpThroughUi/signInThroughUi already inline, reused here
+    // through the existing public method instead of a fourth copy (review #216).
+    const ready = this.waitForImReady();
+
+    const outcome = await Promise.race([
+      passwordChallenge.waitFor({state: 'visible', timeout: 180_000}).then(() => 'password-card' as const),
+      phoneCard.waitFor({state: 'visible', timeout: 180_000}).then(() => 'bounced-to-sign-in' as const),
+      signUpNameCard.waitFor({state: 'visible', timeout: 180_000}).then(() => 'sign-up-card' as const),
+      ready.then(() => 'signed-in' as const)
+    ]);
+
+    expect(
+      outcome,
+      'signInExpectingPasswordChallengeThroughUi entered phone+code on an account this same test run ' +
+      `just gave a cloud password, and got "${outcome}" instead of the password card. ` +
+      '"bounced-to-sign-in" names the #675 shape itself: the client reached (or was about to reach) ' +
+      'the password card and then logged itself back out to the phone form instead of staying on it. ' +
+      '"sign-up-card" would mean the account was not found at all; "signed-in" would mean no ' +
+      'password was ever required.'
+    ).toBe('password-card');
+  }
+
+
+  /**
+   * Types `password` into the currently-shown password card and submits it (real keystrokes,
+   * real click — PasswordCard.tsx:142-188 owns the SRP round trip via
+   * passwordManager.check -> auth.checkPassword), then reports which of the two observable end
+   * states the card actually reached. Both are concrete predicates the real card itself produces
+   * on success/failure (the same shape signUpThroughUi/signInThroughUi already race on for their
+   * own outcomes) — never an arbitrary delay:
+   *
+   *   - 'authenticated': the app boots past has-auth-pages (correct password, canon
+   *     auth.checkPassword -> auth.authorization, .demo/telegram-docs-text/api/auth.md:813-815).
+   *   - 'rejected': the password input gets PasswordCard's own `error` class
+   *     (PasswordCard.tsx:177), the client's answer to canon's `PASSWORD_HASH_INVALID`
+   *     (.demo/telegram-docs-text/method/auth.checkPassword.md:54-56) — the card stays mounted so
+   *     the user (or this method, called again) can retry.
+   */
+  public async submitPasswordThroughUi(password: string): Promise<'authenticated' | 'rejected'> {
+    const passwordInput = this.page.locator('.input-field-password input[type="password"]:not(.stealthy)');
+    const submitButton = this.page.locator('.input-field-password ~ button.btn-primary.btn-color-primary');
+
+    await passwordInput.click();
+
+    // Replace whatever the field currently holds — a PREVIOUS call's own leftover text, on a
+    // wrong-password-then-correct-password retry in the same flow — with exactly `password`,
+    // reusing enterPhoneAndCodeThroughUi's own select-all-then-clear technique above (this file)
+    // for the identical "retyping over existing text" problem on the phone field. A plain click
+    // alone does not clear the field: production leaves a rejected attempt's text fully SELECTED
+    // (PasswordCard.tsx's own error handling), but a click only collapses that selection to the
+    // caret rather than deleting it, so typing without first clearing INSERTS the new password into
+    // the middle of the old one instead of replacing it — a genuinely garbled credential that the
+    // server then, correctly, rejects as PASSWORD_HASH_INVALID. That fixture defect is exactly what
+    // read as the #675 v3 browser "product regression" (cloud-password-v3-input-value-proof-20260918.json).
+    await this.page.keyboard.press('ControlOrMeta+a');
+    await this.page.keyboard.press('Backspace');
+    await this.page.keyboard.type(password, {delay: 20});
+
+    // Prove the field holds EXACTLY the requested password before submitting — boolean-only, never
+    // the password itself, so a future regression of this same fixture-defect class fails by name
+    // instead of silently submitting a garbled string that reads as a false product rejection.
+    const typedValue = await passwordInput.inputValue();
+    expect(
+      typedValue === password,
+      'submitPasswordThroughUi: the password field does not hold exactly the requested password ' +
+      'right before submit — retyping over existing text failed to replace it, which would submit a ' +
+      'garbled credential and read as a false PASSWORD_HASH_INVALID product rejection rather than ' +
+      'exercising the real login path this method is meant to drive'
+    ).toBe(true);
+
+    await submitButton.click();
+
+    const authenticated = this.page.waitForFunction(() => {
+      const w = window as any;
+      return !document.body.classList.contains('has-auth-pages') && !!w.appImManager && !!w.rootScope?.managers;
+    }, undefined, {timeout: 60_000}).then(() => 'authenticated' as const);
+
+    const rejected = this.page.waitForFunction(() => {
+      const input = document.querySelector('.input-field-password input[type="password"]:not(.stealthy)');
+      return !!input && input.classList.contains('error');
+    }, undefined, {timeout: 60_000}).then(() => 'rejected' as const);
+
+    const outcome = await Promise.race([authenticated, rejected]);
+
+    if(outcome === 'authenticated') {
+      await this.waitForImReady();
+    }
+
+    return outcome;
+  }
+
+
+  /**
+   * Sets or clears the cloud (2FA) password on the currently-signed-in account through the real
+   * manager — passwordManager.updateSettings (src/lib/appManagers/passwordManager.ts:17-68), the
+   * same call Settings -> Privacy and Security -> Two-Step Verification drives. Setup/cleanup
+   * plumbing only (#675): the login half of a password scenario must go through the real card
+   * (signInExpectingPasswordChallengeThroughUi / submitPasswordThroughUi above), never this.
+   */
+  public async updateCloudPasswordThroughApi(options: {currentPassword?: string, newPassword?: string}): Promise<void> {
+    await this.page.evaluate(async(opts) => {
+      const w = window as any;
+      await w.rootScope.managers.passwordManager.updateSettings(opts);
+    }, options);
   }
 
 

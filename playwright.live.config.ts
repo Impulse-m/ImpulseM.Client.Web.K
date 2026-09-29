@@ -27,7 +27,27 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure'
   },
-  projects: [{name: 'chromium', use: {...devices['Desktop Chrome']}}],
+  projects: [
+    {
+      name: 'chromium',
+      use: {...devices['Desktop Chrome']},
+      // archive120Upload targets Firefox against the actual public ingress on purpose (the
+      // reported incident's own browser/route) — it belongs to firefox-archive120 below only,
+      // so this line is what keeps the ordinary chromium live suite provably unchanged rather
+      // than silently gaining a second, unrelated 120 MiB-over-the-network test.
+      testIgnore: '**/archive120Upload.live.spec.ts'
+    },
+    {
+      // Selected explicitly with --project=firefox-archive120; never picked up by a bare
+      // `pnpm run test:e2e:live` run of the rest of the suite because testMatch below is the
+      // only spec file this project ever collects. The scenario itself carries a second,
+      // narrower env gate (IMPULSE_LIVE_ARCHIVE120) so even an explicit --project run skips
+      // unless that is also set on purpose.
+      name: 'firefox-archive120',
+      use: {...devices['Desktop Firefox']},
+      testMatch: '**/archive120Upload.live.spec.ts'
+    }
+  ],
   webServer: liveLane.enabled ? {
     command: `pnpm exec vite --port ${clientPort} --strictPort`,
     url: `http://localhost:${clientPort}/`,

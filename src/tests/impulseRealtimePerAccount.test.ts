@@ -140,7 +140,7 @@ describe('realtime lifecycle is per account, not a SharedWorker-wide singleton (
     try {
       const realtime = await importRealtime();
       ([1, 2, 3, 4] as ActiveAccountNumber[]).forEach((accountNumber) => realtime.stopImpulseRealtime(accountNumber));
-    } catch {
+    } catch{
       // module may not have been imported in a given test
     }
   });

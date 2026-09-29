@@ -255,7 +255,11 @@ const refusalMarker = 'be played on ImpulseM Web';
  * The rebuild recorder is armed on the sender's page BEFORE the file is attached, because the
  * swap it exists to catch happens between the temp bubble and the server's answer.
  */
-export async function attachAsFileThroughUi(session: PersonaSession, files: MediaPayload[]): Promise<void> {
+export async function attachAsFileThroughUi(
+  session: PersonaSession,
+  files: MediaPayload[],
+  settleTimeoutMs = 120_000
+): Promise<void> {
   const page = session.page;
   await recordDocumentRowRebuilds(session);
   await page.locator('.attach-file').click();
@@ -272,7 +276,67 @@ export async function attachAsFileThroughUi(session: PersonaSession, files: Medi
   await confirm.click();
   await page.locator('.popup-new-media').waitFor({state: 'hidden', timeout: 30_000});
 
-  await session.waitForOutgoingSettled('attached file');
+  await waitForFileSendSettled(session, 'attached file', settleTimeoutMs);
+}
+
+
+/**
+ * Same ack discipline as PersonaSession.waitForOutgoingSettled (bubbles carry
+ * is-outgoing/is-sending until the server ack rebinds them, bubbles.ts:964,1170; an is-error
+ * bubble is an immediate, named failure rather than a timeout) with a caller-supplied budget —
+ * kept here, not as an edit to personaSession.ts's own fixed-120s method, because that file
+ * belongs to a separate, currently frozen changeset (#675) this scenario must not disturb. A
+ * default-timeout caller should keep using session.waitForOutgoingSettled directly; this exists
+ * only for the one case that genuinely needs a longer budget than a text or small-file send does.
+ */
+export async function waitForFileSendSettled(
+  session: PersonaSession,
+  what: string,
+  timeoutMs: number
+): Promise<void> {
+  const page = session.page;
+  const sinceMs = Date.now() - 10_000;
+  await page.waitForFunction(() => {
+    const container: HTMLElement | undefined = (window as any).appImManager?.chat?.bubbles?.container;
+    if(!container) {
+      return false;
+    }
+
+    if(container.querySelector('.bubble.is-error')) {
+      throw new Error('an outgoing bubble entered is-error state — the send failed at the server or the transport');
+    }
+
+    return !container.querySelector('.bubble.is-outgoing, .bubble.is-sending');
+  }, undefined, {timeout: timeoutMs}).catch(async(error: Error) => {
+    const capture = await page.evaluate(() => {
+      const container: HTMLElement | undefined = (window as any).appImManager?.chat?.bubbles?.container;
+      const pendingBubbles = container ?
+        Array.from(container.querySelectorAll<HTMLElement>('.bubble.is-outgoing, .bubble.is-sending, .bubble.is-error'))
+          .map((bubble) => ({
+            mid: bubble.dataset.mid ?? '',
+            classes: bubble.className,
+            preloaderText: bubble.querySelector('.preloader-container')?.textContent ?? '(no preloader)'
+          })) :
+        [];
+
+      return {
+        pendingBubbles,
+        messageSentEvents: (window as any).__impulseSentEvents ?? []
+      };
+    }).catch(() => ({
+      pendingBubbles: [] as {mid: string, classes: string, preloaderText: string}[],
+      messageSentEvents: [] as {tempId: string, mid: string, at: number}[]
+    }));
+
+    throw new Error(
+      `the ${what} send never settled on the ${session.persona.firstName} page within ${timeoutMs}ms: the ` +
+      `user's bubble keeps the clock/sending state forever instead of becoming a sent message ` +
+      `(${error.message.split('\n')[0]}).\n` +
+      `pending bubbles: ${JSON.stringify(capture.pendingBubbles)}\n` +
+      `message_sent events on the main thread: ${JSON.stringify(capture.messageSentEvents)}\n` +
+      `console since the send:\n${session.formatConsoleTrailSince(sinceMs)}`
+    );
+  });
 }
 
 

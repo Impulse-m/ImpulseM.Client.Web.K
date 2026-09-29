@@ -25,7 +25,7 @@ import AccountController from '@lib/accounts/accountController';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getLogger} from '@lib/impulseLogger';
 import {AuthService} from './grpc/gen/v1/internal/impulse/auth/auth_service_pb';
-import {getGrpcTransport, setGrpcSessionToken, setGrpcUserId} from './grpc/transport';
+import {getGrpcPendingGeneration, getGrpcTransport, restoreGrpcPendingToken, setGrpcPendingToken, setGrpcSessionToken, setGrpcUserId} from './grpc/transport';
 
 const logger = getLogger('impulse-session');
 
@@ -152,6 +152,11 @@ export async function captureImpulseSessionToken(accountNumber: ActiveAccountNum
 
   setGrpcSessionToken(accountNumber, token);
   refreshTokenByAccount.set(accountNumber, refresh);
+  // A real session now exists for this slot — any pending 2FA challenge it was carrying is
+  // obsolete (checkPassword already revoked the challenge's jti server-side on success,
+  // CheckPasswordCommand.cs:76-78); dropping the client's own copy here rather than leaving it to
+  // be shadowed keeps clearImpulseSession-style teardown exhaustive (#675).
+  await clearPendingToken(accountNumber);
   await persistTokens(accountNumber, token, refresh);
 }
 
@@ -177,7 +182,46 @@ async function applyTokens(accountNumber: ActiveAccountNumber, token: string, re
 
   setGrpcSessionToken(accountNumber, token);
   refreshTokenByAccount.set(accountNumber, effectiveRefresh);
+  // Same reasoning as captureImpulseSessionToken's own call: a slot that just proved it holds a
+  // real, refreshable session has no business still carrying a pending 2FA challenge (#675).
+  await clearPendingToken(accountNumber);
   await persistTokens(accountNumber, token, effectiveRefresh);
+}
+
+/**
+ * Persists a freshly captured pending token to this slot's AccountController record — the same
+ * place impulse_session_token/impulse_refresh_token already live (worker-211 §2) — so a reload or
+ * SharedWorker restart while a challenge is still pending does not lose it. AccountController.update
+ * is asynchronous (accountController.ts: `static update(...)` returns the enqueued write's own
+ * Promise, never resolved synchronously); awaited and its rejection logged rather than either
+ * blocking the whole capture on a transient storage failure or silently treating an unsettled/failed
+ * write as durable. The in-memory token (already set by the caller) stays usable for this tab's
+ * current session either way — only cross-reload survival is at risk if this specific write fails.
+ */
+export async function persistPendingToken(accountNumber: ActiveAccountNumber, token: string): Promise<void> {
+  try {
+    await AccountController.update(accountNumber, {impulse_pending_token: token});
+    logger.info('Pending token persisted', {accountNumber});
+  } catch(err) {
+    logger.warn('Failed to persist the pending token', {accountNumber}, err);
+  }
+}
+
+/**
+ * Drops the pending-2FA credential — in memory (bumps its generation, transport.ts) and, awaited,
+ * in storage — never the session/refresh fields. `AccountController.clearFields` is asynchronous
+ * exactly like `.update` (same `enqueue`-backed implementation); the previous version here called
+ * it without awaiting, so a genuine write failure was an unhandled rejection nobody observed and
+ * the function returned as if the clear had already durably completed. Awaited and logged now,
+ * matching persistPendingToken's own handling.
+ */
+export async function clearPendingToken(accountNumber: ActiveAccountNumber): Promise<void> {
+  setGrpcPendingToken(accountNumber, undefined);
+  try {
+    await AccountController.clearFields(accountNumber, ['impulse_pending_token']);
+  } catch(err) {
+    logger.warn('Failed to clear the persisted pending token', {accountNumber}, err);
+  }
 }
 
 /**
@@ -238,8 +282,41 @@ async function runRefresh(accountNumber: ActiveAccountNumber): Promise<boolean> 
 export async function restoreImpulseSession(accountNumber: ActiveAccountNumber): Promise<void> {
   const gate = gateFor(accountNumber);
   gate.restoreStarted = true;
+
+  // Snapshotted synchronously, before the storage read below is even issued — the same "capture
+  // before the await, compare after" shape grpcInvoke already uses for its own generation snapshot
+  // (adapter.ts). AccountController.get/.clearFields are both enqueue-backed and settle in
+  // ISSUANCE order (not completion-urgency order), so a concurrent clearImpulseSession/new login
+  // that bumps the generation AFTER this read was issued but BEFORE it resolves still leaves this
+  // read holding the STALE, pre-clear persisted record — restoreGrpcPendingToken has no way to
+  // tell that apart from a genuine, unchanged boot unless something outside it does (reviewer271).
+  const pendingGenerationAtRestoreStart = getGrpcPendingGeneration(accountNumber);
   try {
     const data = await AccountController.get(accountNumber);
+
+    // Restored BEFORE the no-userId early return below, and never through
+    // applyImpulseUserId: a persisted pending challenge has no signed-in identity to give this
+    // slot, only a bearer for the handful of methods that accept one (#675). Without this, a
+    // reload or SharedWorker restart that finds the password card's own persisted authState
+    // (authStatePassword, mountAuthFlow.tsx) re-mounts it straight into the same empty-header
+    // account.getPassword call the original incident traced.
+    //
+    // restoreGrpcPendingToken, not setGrpcPendingToken: this is recovering state an attempt
+    // already had, not a login attempt beginning — it must not bump pendingGeneration (revision3
+    // item A), or a request already waiting on THIS SAME restore to finish could see its own
+    // pre-restore generation snapshot mismatch the post-restore one and wrongly discard its own
+    // legitimate response.
+    //
+    // Applied only if the generation is STILL the one this restore started with: a normal boot
+    // never bumps it, so this is always true then and the credential restores exactly as before.
+    // But if a concurrent logout, a new login attempt, or a capture already moved the generation
+    // on while AccountController.get above was in flight, this read's own persisted record is
+    // stale — applying it now would resurrect a credential something newer has already correctly
+    // invalidated (reviewer271's traced gap: v3 applied this unconditionally).
+    if(data?.impulse_pending_token && getGrpcPendingGeneration(accountNumber) === pendingGenerationAtRestoreStart) {
+      restoreGrpcPendingToken(accountNumber, data.impulse_pending_token);
+    }
+
     if(!data || data.userId === undefined) {
       logger.info('Session slot is empty', {accountNumber});
       return;
@@ -297,13 +374,22 @@ export async function restoreImpulseSession(accountNumber: ActiveAccountNumber):
   }
 }
 
-export function clearImpulseSession(accountNumber: ActiveAccountNumber): void {
+/**
+ * Now async (was previously fire-and-forget for its own persisted clear too — the same
+ * synchronous-try/catch-around-an-unawaited-Promise gap clearPendingToken had; both are fixed
+ * together here since this function's own clearFields call has the identical shape). Its one
+ * production caller, apiManager.ts's logOut(), is already async and now awaits this.
+ */
+export async function clearImpulseSession(accountNumber: ActiveAccountNumber): Promise<void> {
   setGrpcUserId(accountNumber, undefined);
   setGrpcSessionToken(accountNumber, undefined);
   refreshTokenByAccount.delete(accountNumber);
+  // logOut() is an exhaustive wipe of this slot's credentials — a pending 2FA challenge is one
+  // of them (#675), even though it never carried a session on its own.
+  await clearPendingToken(accountNumber);
 
   try {
-    AccountController.clearFields(accountNumber, ['impulse_session_token', 'impulse_refresh_token']);
+    await AccountController.clearFields(accountNumber, ['impulse_session_token', 'impulse_refresh_token']);
   } catch(err) {
     logger.warn('Failed to clear the session token', {accountNumber}, err);
   }

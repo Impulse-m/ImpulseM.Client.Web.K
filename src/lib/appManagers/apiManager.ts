@@ -395,7 +395,7 @@ export class ApiManager extends ApiManagerMethods {
     // B's realtime alive (#436); tearing down the singleton here is exactly the
     // cross-account bug this change removes.
     stopImpulseRealtime(this.getAccountNumber());
-    clearImpulseSession(this.getAccountNumber());
+    await clearImpulseSession(this.getAccountNumber());
 
     const totalAccounts = await AccountController.getTotalAccounts();
     const accountNumber = this.getAccountNumber();

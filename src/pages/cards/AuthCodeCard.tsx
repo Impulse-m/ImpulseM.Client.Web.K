@@ -96,6 +96,16 @@ export default function AuthCodeCard(props: {spec: Spec}) {
 
   /* ---------- submission ---------- */
 
+  // Guards submitCode's own then/catch below against an ABANDONED attempt: auth.signIn has no
+  // cancellation, so leaving this card (edit phone number, sign up elsewhere) while a submit is
+  // still in flight does not stop it. Without this, a stale response arriving after the user has
+  // already moved on could still fire — worst case landing them back on the password card
+  // (SESSION_PASSWORD_NEEDED) or even completing a sign-in (auth.authorization) for a code they
+  // are no longer looking at (#675 revision2: "an abandoned in-flight challenge must not steer
+  // the newer UI flow"). Same local pattern SignInCard.tsx already uses for its own tryAgain(),
+  // not a new mechanism — this card just never had it.
+  let cancelled = false;
+
   function submitCode(code: string) {
     codeInputField.disabled = true;
 
@@ -106,9 +116,11 @@ export default function AuthCodeCard(props: {spec: Spec}) {
     };
 
     managers.apiManager.invokeApi('auth.signIn', params, {ignoreErrors: true}).then(async(response) => {
+      if(cancelled) return;
       switch(response._) {
         case 'auth.authorization':
           await managers.apiManager.setUser(response.user);
+          if(cancelled) return;
           toIm();
           break;
         case 'auth.authorizationSignUpRequired':
@@ -122,6 +134,7 @@ export default function AuthCodeCard(props: {spec: Spec}) {
           break;
       }
     }).catch((err) => {
+      if(cancelled) return;
       let good = false;
       switch(err.type) {
         case 'SESSION_PASSWORD_NEEDED':
@@ -316,6 +329,7 @@ export default function AuthCodeCard(props: {spec: Spec}) {
   });
 
   onCleanup(() => {
+    cancelled = true;
     cancelFocus?.();
     if(resetEmailTimer) clearTimeout(resetEmailTimer);
     monkey?.remove();

@@ -10,8 +10,8 @@ import randomize from '@helpers/array/randomize';
 import {AppManager} from '@appManagers/manager';
 
 export class PasswordManager extends AppManager {
-  public getState(): Promise<AccountPassword> {
-    return this.apiManager.invokeApi('account.getPassword');
+  public getState(options: any = {}): Promise<AccountPassword> {
+    return this.apiManager.invokeApi('account.getPassword', {}, options);
   }
 
   public updateSettings(settings: {
