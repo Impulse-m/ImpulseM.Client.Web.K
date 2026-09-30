@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/files/processed_attributes.proto.
  */
 export const file_impulse_files_processed_attributes: GenFile = /*@__PURE__*/
-  fileDesc("CihpbXB1bHNlL2ZpbGVzL3Byb2Nlc3NlZF9hdHRyaWJ1dGVzLnByb3RvEg1pbXB1bHNlLmZpbGVzIoUDChNQcm9jZXNzZWRBdHRyaWJ1dGVzEi8KBWltYWdlGAEgASgLMh4uaW1wdWxzZS5maWxlcy5JbWFnZUF0dHJpYnV0ZXNIABIzCgdzdGlja2VyGAIgASgLMiAuaW1wdWxzZS5maWxlcy5TdGlja2VyQXR0cmlidXRlc0gAEi8KBXZpZGVvGAMgASgLMh4uaW1wdWxzZS5maWxlcy5WaWRlb0F0dHJpYnV0ZXNIABIvCgV2b2ljZRgEIAEoCzIeLmltcHVsc2UuZmlsZXMuVm9pY2VBdHRyaWJ1dGVzSAASLwoFbXVzaWMYBSABKAsyHi5pbXB1bHNlLmZpbGVzLk11c2ljQXR0cmlidXRlc0gAEjUKCGFuaW1hdGVkGAYgASgLMiEuaW1wdWxzZS5maWxlcy5BbmltYXRlZEF0dHJpYnV0ZXNIABIzCgdkZWZhdWx0GAcgASgLMiAuaW1wdWxzZS5maWxlcy5EZWZhdWx0QXR0cmlidXRlc0gAQgkKB3BheWxvYWQiSAoPSW1hZ2VBdHRyaWJ1dGVzEg0KBXdpZHRoGAEgASgFEg4KBmhlaWdodBgCIAEoBRIWCg5zdHJpcHBlZF90aHVtYhgDIAEoDCKyAQoRU3RpY2tlckF0dHJpYnV0ZXMSDQoFd2lkdGgYASABKAUSDgoGaGVpZ2h0GAIgASgFEhAKCHN2Z19wYXRoGAMgASgMEhYKDnN0cmlwcGVkX3RodW1iGAQgASgMEhMKC2lzX2FuaW1hdGVkGAUgASgIEhAKCGlzX3ZpZGVvGAYgASgIEhgKEGR1cmF0aW9uX3NlY29uZHMYByABKAUSEwoLdGh1bWJfYnl0ZXMYCCABKAwiqgMKD1ZpZGVvQXR0cmlidXRlcxINCgV3aWR0aBgBIAEoBRIOCgZoZWlnaHQYAiABKAUSGAoQZHVyYXRpb25fc2Vjb25kcxgDIAEoBRITCgt0aHVtYl9ieXRlcxgEIAEoDBIZChF2aWRlb190aHVtYl9ieXRlcxgHIAEoDBIZChF2aWRlb190aHVtYl93aWR0aBgIIAEoBRIaChJ2aWRlb190aHVtYl9oZWlnaHQYCSABKAUSGAoQdmlkZW9fdGh1bWJfc2l6ZRgKIAEoBRIaChJ2aWRlb190aHVtYl9zM19rZXkYCyABKAkSEAoIbm9fc291bmQYDCABKAgSEwoLdmlkZW9fY29kZWMYDSABKAkSGQoRc291cmNlX3NpemVfYnl0ZXMYDiABKAMSGAoQY29udmVydGVkX3MzX2tleRgPIAEoCRIcChRjb252ZXJ0ZWRfc2l6ZV9ieXRlcxgQIAEoAxIYChBjb252ZXJ0ZWRfc2hhMjU2GBEgASgMSgQIBRAGSgQIBhAHUg1yb3VuZF9tZXNzYWdlUhJzdXBwb3J0c19zdHJlYW1pbmciQgoPVm9pY2VBdHRyaWJ1dGVzEhgKEGR1cmF0aW9uX3NlY29uZHMYASABKAUSFQoNd2F2ZWZvcm1fNWJpdBgCIAEoDCJ/Cg9NdXNpY0F0dHJpYnV0ZXMSGAoQZHVyYXRpb25fc2Vjb25kcxgBIAEoBRIVCg13YXZlZm9ybV81Yml0GAIgASgMEg0KBXRpdGxlGAMgASgJEhEKCXBlcmZvcm1lchgEIAEoCRIZChFhbGJ1bV9jb3Zlcl90aHVtYhgFIAEoDCK0AQoSQW5pbWF0ZWRBdHRyaWJ1dGVzEg0KBXdpZHRoGAEgASgFEg4KBmhlaWdodBgCIAEoBRIYChBkdXJhdGlvbl9zZWNvbmRzGAMgASgFEhMKC3RodW1iX2J5dGVzGAQgASgMEhgKEGNvbnZlcnRlZF9zM19rZXkYBSABKAkSHAoUY29udmVydGVkX3NpemVfYnl0ZXMYBiABKAMSGAoQY29udmVydGVkX3NoYTI1NhgHIAEoDCJMChFEZWZhdWx0QXR0cmlidXRlcxIQCghmaWxlbmFtZRgBIAEoCRIRCgltaW1lX3R5cGUYAiABKAkSEgoKc2l6ZV9ieXRlcxgDIAEoA0IYqgIVSW1wdWxzZU0uUHJvdG9zLkZpbGVzYgZwcm90bzM");
+  fileDesc("CihpbXB1bHNlL2ZpbGVzL3Byb2Nlc3NlZF9hdHRyaWJ1dGVzLnByb3RvEg1pbXB1bHNlLmZpbGVzIoUDChNQcm9jZXNzZWRBdHRyaWJ1dGVzEi8KBWltYWdlGAEgASgLMh4uaW1wdWxzZS5maWxlcy5JbWFnZUF0dHJpYnV0ZXNIABIzCgdzdGlja2VyGAIgASgLMiAuaW1wdWxzZS5maWxlcy5TdGlja2VyQXR0cmlidXRlc0gAEi8KBXZpZGVvGAMgASgLMh4uaW1wdWxzZS5maWxlcy5WaWRlb0F0dHJpYnV0ZXNIABIvCgV2b2ljZRgEIAEoCzIeLmltcHVsc2UuZmlsZXMuVm9pY2VBdHRyaWJ1dGVzSAASLwoFbXVzaWMYBSABKAsyHi5pbXB1bHNlLmZpbGVzLk11c2ljQXR0cmlidXRlc0gAEjUKCGFuaW1hdGVkGAYgASgLMiEuaW1wdWxzZS5maWxlcy5BbmltYXRlZEF0dHJpYnV0ZXNIABIzCgdkZWZhdWx0GAcgASgLMiAuaW1wdWxzZS5maWxlcy5EZWZhdWx0QXR0cmlidXRlc0gAQgkKB3BheWxvYWQiSAoPSW1hZ2VBdHRyaWJ1dGVzEg0KBXdpZHRoGAEgASgFEg4KBmhlaWdodBgCIAEoBRIWCg5zdHJpcHBlZF90aHVtYhgDIAEoDCKyAQoRU3RpY2tlckF0dHJpYnV0ZXMSDQoFd2lkdGgYASABKAUSDgoGaGVpZ2h0GAIgASgFEhAKCHN2Z19wYXRoGAMgASgMEhYKDnN0cmlwcGVkX3RodW1iGAQgASgMEhMKC2lzX2FuaW1hdGVkGAUgASgIEhAKCGlzX3ZpZGVvGAYgASgIEhgKEGR1cmF0aW9uX3NlY29uZHMYByABKAUSEwoLdGh1bWJfYnl0ZXMYCCABKAwiwgQKD1ZpZGVvQXR0cmlidXRlcxINCgV3aWR0aBgBIAEoBRIOCgZoZWlnaHQYAiABKAUSGAoQZHVyYXRpb25fc2Vjb25kcxgDIAEoBRITCgt0aHVtYl9ieXRlcxgEIAEoDBIZChF2aWRlb190aHVtYl9ieXRlcxgHIAEoDBIZChF2aWRlb190aHVtYl93aWR0aBgIIAEoBRIaChJ2aWRlb190aHVtYl9oZWlnaHQYCSABKAUSGAoQdmlkZW9fdGh1bWJfc2l6ZRgKIAEoBRIaChJ2aWRlb190aHVtYl9zM19rZXkYCyABKAkSEAoIbm9fc291bmQYDCABKAgSEwoLdmlkZW9fY29kZWMYDSABKAkSGQoRc291cmNlX3NpemVfYnl0ZXMYDiABKAMSGAoQY29udmVydGVkX3MzX2tleRgPIAEoCRIcChRjb252ZXJ0ZWRfc2l6ZV9ieXRlcxgQIAEoAxIYChBjb252ZXJ0ZWRfc2hhMjU2GBEgASgMEiMKFnZpZGVvX3RodW1iX3N0b3JhZ2VfaWQYEiABKAlIAIgBARIvCiJ2aWRlb190aHVtYl9yZXByZXNlbnRhdGlvbl92ZXJzaW9uGBMgASgFSAGIAQFCGQoXX3ZpZGVvX3RodW1iX3N0b3JhZ2VfaWRCJQojX3ZpZGVvX3RodW1iX3JlcHJlc2VudGF0aW9uX3ZlcnNpb25KBAgFEAZKBAgGEAdSDXJvdW5kX21lc3NhZ2VSEnN1cHBvcnRzX3N0cmVhbWluZyKUAQoPVm9pY2VBdHRyaWJ1dGVzEhgKEGR1cmF0aW9uX3NlY29uZHMYASABKAUSFQoNd2F2ZWZvcm1fNWJpdBgCIAEoDBIYChBjb252ZXJ0ZWRfczNfa2V5GAMgASgJEhwKFGNvbnZlcnRlZF9zaXplX2J5dGVzGAQgASgDEhgKEGNvbnZlcnRlZF9zaGEyNTYYBSABKAwifwoPTXVzaWNBdHRyaWJ1dGVzEhgKEGR1cmF0aW9uX3NlY29uZHMYASABKAUSFQoNd2F2ZWZvcm1fNWJpdBgCIAEoDBINCgV0aXRsZRgDIAEoCRIRCglwZXJmb3JtZXIYBCABKAkSGQoRYWxidW1fY292ZXJfdGh1bWIYBSABKAwitAEKEkFuaW1hdGVkQXR0cmlidXRlcxINCgV3aWR0aBgBIAEoBRIOCgZoZWlnaHQYAiABKAUSGAoQZHVyYXRpb25fc2Vjb25kcxgDIAEoBRITCgt0aHVtYl9ieXRlcxgEIAEoDBIYChBjb252ZXJ0ZWRfczNfa2V5GAUgASgJEhwKFGNvbnZlcnRlZF9zaXplX2J5dGVzGAYgASgDEhgKEGNvbnZlcnRlZF9zaGEyNTYYByABKAwiTAoRRGVmYXVsdEF0dHJpYnV0ZXMSEAoIZmlsZW5hbWUYASABKAkSEQoJbWltZV90eXBlGAIgASgJEhIKCnNpemVfYnl0ZXMYAyABKANCGKoCFUltcHVsc2VNLlByb3Rvcy5GaWxlc2IGcHJvdG8z");
 
 /**
  * @generated from message impulse.files.ProcessedAttributes
@@ -237,6 +237,23 @@ export type VideoAttributes = Message<"impulse.files.VideoAttributes"> & {
    * @generated from field: bytes converted_sha256 = 17;
    */
   convertedSha256: Uint8Array;
+
+  /**
+   * #679: the durable identity the alternate trimmed preview (video_thumb_s3_key) was actually WRITTEN
+   * under -- the S3 writer's storage id and the representation version of that object. Internal media
+   * metadata only, never on the Telegram wire. Both are absent on every row produced before they existed
+   * (the object is then read with the parent's identity, exactly as before); when either is present BOTH
+   * must be usable, and a reader refuses anything else before any backend I/O. Never a default and never
+   * the parent's or the poster's ("m" thumbnail) identity.
+   *
+   * @generated from field: optional string video_thumb_storage_id = 18;
+   */
+  videoThumbStorageId?: string | undefined;
+
+  /**
+   * @generated from field: optional int32 video_thumb_representation_version = 19;
+   */
+  videoThumbRepresentationVersion?: number | undefined;
 };
 
 /**
@@ -259,6 +276,28 @@ export type VoiceAttributes = Message<"impulse.files.VoiceAttributes"> & {
    * @generated from field: bytes waveform_5bit = 2;
    */
   waveform5bit: Uint8Array;
+
+  /**
+   * A voice note uploaded as anything but OGG (m4a/AAC, mp3, ...) is synchronously transcoded to
+   * OGG/Opus by Files.Processing before its document is minted -- the real server accepts OGG/Opus,
+   * MP3 and M4A for voice (.demo/telegram-docs-text/bots/api.md:8882) and clients render voice only
+   * for audio/ogg. On the S3 lane the converted object stays in S3 under <key>.converted.ogg rather
+   * than crossing gRPC's bounded message body, and Files commits these final-byte facts. All three
+   * are absent for a voice note that was already OGG (nothing was converted).
+   *
+   * @generated from field: string converted_s3_key = 3;
+   */
+  convertedS3Key: string;
+
+  /**
+   * @generated from field: int64 converted_size_bytes = 4;
+   */
+  convertedSizeBytes: bigint;
+
+  /**
+   * @generated from field: bytes converted_sha256 = 5;
+   */
+  convertedSha256: Uint8Array;
 };
 
 /**

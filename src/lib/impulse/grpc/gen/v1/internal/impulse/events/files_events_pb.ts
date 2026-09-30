@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/events/files_events.proto.
  */
 export const file_impulse_events_files_events: GenFile = /*@__PURE__*/
-  fileDesc("CiFpbXB1bHNlL2V2ZW50cy9maWxlc19ldmVudHMucHJvdG8SFGltcHVsc2UuZXZlbnRzLmZpbGVzIsQCCgpGaWxlc0V2ZW50Ei8KCGVudmVsb3BlGAEgASgLMh0uaW1wdWxzZS5ldmVudHMuRXZlbnRFbnZlbG9wZRJKChVwcm9maWxlX3Bob3RvX3VwZGF0ZWQYCiABKAsyKS5pbXB1bHNlLmV2ZW50cy5maWxlcy5Qcm9maWxlUGhvdG9VcGRhdGVkSAASOwoNZmlsZV91cGxvYWRlZBgLIAEoCzIiLmltcHVsc2UuZXZlbnRzLmZpbGVzLkZpbGVVcGxvYWRlZEgAElkKHWNvbnRhY3RfcHJvZmlsZV9waG90b191cGRhdGVkGBAgASgLMjAuaW1wdWxzZS5ldmVudHMuZmlsZXMuQ29udGFjdFByb2ZpbGVQaG90b1VwZGF0ZWRIAEIJCgdwYXlsb2FkSgQIDBANSgQIDRAOSgQIDhAPSgQIDxAQIoECChpDb250YWN0UHJvZmlsZVBob3RvVXBkYXRlZBIVCg1vd25lcl91c2VyX2lkGAEgASgDEhcKD2NvbnRhY3RfdXNlcl9pZBgCIAEoAxIQCghwaG90b19pZBgDIAEoAxIVCg1waG90b19maWxlX2lkGAQgASgDEhkKEXBob3RvX2FjY2Vzc19oYXNoGAUgASgDEhwKFHBob3RvX3N0cmlwcGVkX3RodW1iGAYgASgMEhMKC3Bob3RvX2RjX2lkGAcgASgFEhIKCmNoYW5nZWRfYXQYCCABKAMSDwoHcmVtb3ZlZBgJIAEoCBIXCg9waG90b193aXJlX2Jsb2IYCiABKAwilwIKE1Byb2ZpbGVQaG90b1VwZGF0ZWQSDwoHdXNlcl9pZBgBIAEoAxIQCghwaG90b19pZBgCIAEoAxIVCg1waG90b19maWxlX2lkGAMgASgDEhkKEXBob3RvX2FjY2Vzc19oYXNoGAQgASgDEhwKFHBob3RvX3N0cmlwcGVkX3RodW1iGAUgASgMEhMKC3Bob3RvX2RjX2lkGAYgASgFEhkKEXBob3RvX2NoYW5nZV9kYXRlGAcgASgDEhEKCWhhc192aWRlbxgIIAEoCBIQCghmYWxsYmFjaxgJIAEoCBIfChd2aWRlb19lbW9qaV9tYXJrdXBfanNvbhgKIAEoCRIXCg9waG90b193aXJlX2Jsb2IYCyABKAwikgIKDEZpbGVVcGxvYWRlZBIPCgdmaWxlX2lkGAEgASgDEg4KBnMzX2tleRgCIAEoCRIRCgltaW1lX3R5cGUYAyABKAkSEAoIY2F0ZWdvcnkYBCABKAUSEgoKc2l6ZV9ieXRlcxgFIAEoAxIQCghvd25lcl9pZBgGIAEoAxIRCglzM19idWNrZXQYByABKAkSEwoLc2hhMjU2X2hhc2gYCCABKAwSFAoMaXNfZHVwbGljYXRlGAkgASgIEiUKHWRlZHVwbGljYXRlZF9mcm9tX2RvY3VtZW50X2lkGAogASgDEhsKE2NsaWVudF90aHVtYl9zM19rZXkYCyABKAkSFAoMaXNfcmVwcm9jZXNzGAwgASgIIuMBChBEZWR1cE91dGJveEV2ZW50Ei8KCGVudmVsb3BlGAEgASgLMh0uaW1wdWxzZS5ldmVudHMuRXZlbnRFbnZlbG9wZRIPCgdmaWxlX2lkGAIgASgDEg4KBnNoYTI1NhgDIAEoDBISCgpzaXplX2J5dGVzGAQgASgDEhAKCG93bmVyX2lkGAUgASgDEhgKC2RvY3VtZW50X2lkGAYgASgDSACIAQESCgoCb3AYByABKAkSDgoGczNfa2V5GAggASgJEhEKCXMzX2J1Y2tldBgJIAEoCUIOCgxfZG9jdW1lbnRfaWRCH6oCHEltcHVsc2VNLlByb3Rvcy5FdmVudHMuRmlsZXNiBnByb3RvMw", [file_impulse_events_events_common]);
+  fileDesc("CiFpbXB1bHNlL2V2ZW50cy9maWxlc19ldmVudHMucHJvdG8SFGltcHVsc2UuZXZlbnRzLmZpbGVzIsQCCgpGaWxlc0V2ZW50Ei8KCGVudmVsb3BlGAEgASgLMh0uaW1wdWxzZS5ldmVudHMuRXZlbnRFbnZlbG9wZRJKChVwcm9maWxlX3Bob3RvX3VwZGF0ZWQYCiABKAsyKS5pbXB1bHNlLmV2ZW50cy5maWxlcy5Qcm9maWxlUGhvdG9VcGRhdGVkSAASOwoNZmlsZV91cGxvYWRlZBgLIAEoCzIiLmltcHVsc2UuZXZlbnRzLmZpbGVzLkZpbGVVcGxvYWRlZEgAElkKHWNvbnRhY3RfcHJvZmlsZV9waG90b191cGRhdGVkGBAgASgLMjAuaW1wdWxzZS5ldmVudHMuZmlsZXMuQ29udGFjdFByb2ZpbGVQaG90b1VwZGF0ZWRIAEIJCgdwYXlsb2FkSgQIDBANSgQIDRAOSgQIDhAPSgQIDxAQIoECChpDb250YWN0UHJvZmlsZVBob3RvVXBkYXRlZBIVCg1vd25lcl91c2VyX2lkGAEgASgDEhcKD2NvbnRhY3RfdXNlcl9pZBgCIAEoAxIQCghwaG90b19pZBgDIAEoAxIVCg1waG90b19maWxlX2lkGAQgASgDEhkKEXBob3RvX2FjY2Vzc19oYXNoGAUgASgDEhwKFHBob3RvX3N0cmlwcGVkX3RodW1iGAYgASgMEhMKC3Bob3RvX2RjX2lkGAcgASgFEhIKCmNoYW5nZWRfYXQYCCABKAMSDwoHcmVtb3ZlZBgJIAEoCBIXCg9waG90b193aXJlX2Jsb2IYCiABKAwilwIKE1Byb2ZpbGVQaG90b1VwZGF0ZWQSDwoHdXNlcl9pZBgBIAEoAxIQCghwaG90b19pZBgCIAEoAxIVCg1waG90b19maWxlX2lkGAMgASgDEhkKEXBob3RvX2FjY2Vzc19oYXNoGAQgASgDEhwKFHBob3RvX3N0cmlwcGVkX3RodW1iGAUgASgMEhMKC3Bob3RvX2RjX2lkGAYgASgFEhkKEXBob3RvX2NoYW5nZV9kYXRlGAcgASgDEhEKCWhhc192aWRlbxgIIAEoCBIQCghmYWxsYmFjaxgJIAEoCBIfChd2aWRlb19lbW9qaV9tYXJrdXBfanNvbhgKIAEoCRIXCg9waG90b193aXJlX2Jsb2IYCyABKAwikgIKDEZpbGVVcGxvYWRlZBIPCgdmaWxlX2lkGAEgASgDEg4KBnMzX2tleRgCIAEoCRIRCgltaW1lX3R5cGUYAyABKAkSEAoIY2F0ZWdvcnkYBCABKAUSEgoKc2l6ZV9ieXRlcxgFIAEoAxIQCghvd25lcl9pZBgGIAEoAxIRCglzM19idWNrZXQYByABKAkSEwoLc2hhMjU2X2hhc2gYCCABKAwSFAoMaXNfZHVwbGljYXRlGAkgASgIEiUKHWRlZHVwbGljYXRlZF9mcm9tX2RvY3VtZW50X2lkGAogASgDEhsKE2NsaWVudF90aHVtYl9zM19rZXkYCyABKAkSFAoMaXNfcmVwcm9jZXNzGAwgASgIIosCChBEZWR1cE91dGJveEV2ZW50Ei8KCGVudmVsb3BlGAEgASgLMh0uaW1wdWxzZS5ldmVudHMuRXZlbnRFbnZlbG9wZRIPCgdmaWxlX2lkGAIgASgDEg4KBnNoYTI1NhgDIAEoDBISCgpzaXplX2J5dGVzGAQgASgDEhAKCG93bmVyX2lkGAUgASgDEhgKC2RvY3VtZW50X2lkGAYgASgDSACIAQESCgoCb3AYByABKAkSDgoGczNfa2V5GAggASgJEhEKCXMzX2J1Y2tldBgJIAEoCRIXCgpzdG9yYWdlX2lkGAogASgJSAGIAQFCDgoMX2RvY3VtZW50X2lkQg0KC19zdG9yYWdlX2lkQh+qAhxJbXB1bHNlTS5Qcm90b3MuRXZlbnRzLkZpbGVzYgZwcm90bzM", [file_impulse_events_events_common]);
 
 /**
  * @generated from message impulse.events.files.FilesEvent
@@ -353,6 +353,25 @@ export type DedupOutboxEvent = Message<"impulse.events.files.DedupOutboxEvent"> 
    * @generated from field: string s3_bucket = 9;
    */
   s3Bucket: string;
+
+  /**
+   * #679: the durable StorageId the object named by s3_key was written through at upload time
+   * (IStorageLocationResolver.CurrentWriteStorageId when the upload finalized). The producer stamps
+   * it on every op it emits for that upload; it is unset when the upload carried no identity, and
+   * "unset" means "legacy" -- never a guessed default. What each op does with it:
+   *   insert_dedup      persists it, pinned by the same LWT as s3_key, onto the canonical
+   *                     documents_by_hash row and the gc_pending projection row, so the garbage
+   *                     collector deletes on the store the bytes actually live in. A later or losing
+   *                     insert_dedup for the same hash never replaces the winner's value. Unset
+   *                     stores NULL; the collector then refuses to guess and keeps the row.
+   *   delete_dup_s3     resolves the delete target through the verified storage registry. Unset falls
+   *                     back to resolving s3_bucket through the existing (bucket, dcId) path exactly
+   *                     as before, preserving every already-queued/replayed old-shape event.
+   *   increment_owner   carries it but does not use it (no S3 location is touched).
+   *
+   * @generated from field: optional string storage_id = 10;
+   */
+  storageId?: string | undefined;
 };
 
 /**

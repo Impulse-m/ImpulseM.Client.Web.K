@@ -12,7 +12,44 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/files/media_processing.proto.
  */
 export const file_impulse_files_media_processing: GenFile = /*@__PURE__*/
-  fileDesc("CiRpbXB1bHNlL2ZpbGVzL21lZGlhX3Byb2Nlc3NpbmcucHJvdG8SDWltcHVsc2UuZmlsZXMijgEKIEV4dHJhY3REb2N1bWVudEF0dHJpYnV0ZXNSZXF1ZXN0EhEKCXMzX2J1Y2tldBgBIAEoCRIOCgZzM19rZXkYAiABKAkSEQoJbWltZV90eXBlGAMgASgJEjQKCm1lZGlhX2tpbmQYBCABKA4yIC5pbXB1bHNlLmZpbGVzLkRvY3VtZW50TWVkaWFLaW5kIlgKGEV4dHJhY3RWaWRlb0ZyYW1lUmVxdWVzdBIRCglzM19idWNrZXQYASABKAkSDgoGczNfa2V5GAIgASgJEhkKEXRpbWVzdGFtcF9zZWNvbmRzGAMgASgBIm4KGUV4dHJhY3RWaWRlb0ZyYW1lUmVzcG9uc2USDAoEanBlZxgBIAEoDBITCgt2aWRlb193aWR0aBgCIAEoBRIUCgx2aWRlb19oZWlnaHQYAyABKAUSGAoQZHVyYXRpb25fc2Vjb25kcxgEIAEoASr8AQoRRG9jdW1lbnRNZWRpYUtpbmQSIwofRE9DVU1FTlRfTUVESUFfS0lORF9VTlNQRUNJRklFRBAAEh0KGURPQ1VNRU5UX01FRElBX0tJTkRfVk9JQ0UQARIiCh5ET0NVTUVOVF9NRURJQV9LSU5EX1ZJREVPX05PVEUQAhIdChlET0NVTUVOVF9NRURJQV9LSU5EX01VU0lDEAMSHQoZRE9DVU1FTlRfTUVESUFfS0lORF9WSURFTxAEEh8KG0RPQ1VNRU5UX01FRElBX0tJTkRfU1RJQ0tFUhAFEiAKHERPQ1VNRU5UX01FRElBX0tJTkRfQU5JTUFURUQQBjLyAQoWTWVkaWFQcm9jZXNzaW5nU2VydmljZRJmChFFeHRyYWN0VmlkZW9GcmFtZRInLmltcHVsc2UuZmlsZXMuRXh0cmFjdFZpZGVvRnJhbWVSZXF1ZXN0GiguaW1wdWxzZS5maWxlcy5FeHRyYWN0VmlkZW9GcmFtZVJlc3BvbnNlEnAKGUV4dHJhY3REb2N1bWVudEF0dHJpYnV0ZXMSLy5pbXB1bHNlLmZpbGVzLkV4dHJhY3REb2N1bWVudEF0dHJpYnV0ZXNSZXF1ZXN0GiIuaW1wdWxzZS5maWxlcy5Qcm9jZXNzZWRBdHRyaWJ1dGVzQhiqAhVJbXB1bHNlTS5Qcm90b3MuRmlsZXNiBnByb3RvMw", [file_impulse_files_processed_attributes]);
+  fileDesc("CiRpbXB1bHNlL2ZpbGVzL21lZGlhX3Byb2Nlc3NpbmcucHJvdG8SDWltcHVsc2UuZmlsZXMibwoZUHJvY2Vzc2luZ1NvdXJjZVJlZmVyZW5jZRISCgpzdG9yYWdlX2lkGAEgASgJEh4KFnJlcHJlc2VudGF0aW9uX3ZlcnNpb24YAiABKAUSHgoWZGVzY3JpcHRvcl9maW5nZXJwcmludBgDIAEoCSLCAgogRXh0cmFjdERvY3VtZW50QXR0cmlidXRlc1JlcXVlc3QSEQoJczNfYnVja2V0GAEgASgJEg4KBnMzX2tleRgCIAEoCRIRCgltaW1lX3R5cGUYAyABKAkSNAoKbWVkaWFfa2luZBgEIAEoDjIgLmltcHVsc2UuZmlsZXMuRG9jdW1lbnRNZWRpYUtpbmQSQgoQc291cmNlX3JlZmVyZW5jZRgFIAEoCzIoLmltcHVsc2UuZmlsZXMuUHJvY2Vzc2luZ1NvdXJjZVJlZmVyZW5jZRIeChZ0cmFuc2NvZGVfdm9pY2VfdG9fb2dnGAYgASgIEg8KB3VzZXJfaWQYByABKAMSPQoTdm9pY2Vfc291cmNlX2Zvcm1hdBgIIAEoDjIgLmltcHVsc2UuZmlsZXMuVm9pY2VTb3VyY2VGb3JtYXQinAEKGEV4dHJhY3RWaWRlb0ZyYW1lUmVxdWVzdBIRCglzM19idWNrZXQYASABKAkSDgoGczNfa2V5GAIgASgJEhkKEXRpbWVzdGFtcF9zZWNvbmRzGAMgASgBEkIKEHNvdXJjZV9yZWZlcmVuY2UYBCABKAsyKC5pbXB1bHNlLmZpbGVzLlByb2Nlc3NpbmdTb3VyY2VSZWZlcmVuY2UibgoZRXh0cmFjdFZpZGVvRnJhbWVSZXNwb25zZRIMCgRqcGVnGAEgASgMEhMKC3ZpZGVvX3dpZHRoGAIgASgFEhQKDHZpZGVvX2hlaWdodBgDIAEoBRIYChBkdXJhdGlvbl9zZWNvbmRzGAQgASgBIpsCChtDb252ZXJ0QW5pbWF0ZWRUb01wNFJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoAxIPCgdmaWxlX2lkGAIgASgDEhEKCXMzX2J1Y2tldBgDIAEoCRIOCgZzM19rZXkYBCABKAkSQgoQc291cmNlX3JlZmVyZW5jZRgFIAEoCzIoLmltcHVsc2UuZmlsZXMuUHJvY2Vzc2luZ1NvdXJjZVJlZmVyZW5jZRI0CgptZWRpYV9raW5kGAYgASgOMiAuaW1wdWxzZS5maWxlcy5Eb2N1bWVudE1lZGlhS2luZBI9ChN2b2ljZV9zb3VyY2VfZm9ybWF0GAcgASgOMiAuaW1wdWxzZS5maWxlcy5Wb2ljZVNvdXJjZUZvcm1hdCJsChxDb252ZXJ0QW5pbWF0ZWRUb01wNFJlc3BvbnNlEjAKBmhlYWRlchgBIAEoCzIeLmltcHVsc2UuZmlsZXMuQ29udmVydGVkSGVhZGVySAASDwoFY2h1bmsYAiABKAxIAEIJCgdwYXlsb2FkIqcBCg9Db252ZXJ0ZWRIZWFkZXISDQoFd2lkdGgYASABKAUSDgoGaGVpZ2h0GAIgASgFEhgKEGR1cmF0aW9uX3NlY29uZHMYAyABKAUSEwoLdGh1bWJfYnl0ZXMYBCABKAwSEQoJbWltZV90eXBlGAUgASgJEhwKFGNvbnZlcnRlZF9zaXplX2J5dGVzGAYgASgDEhUKDXdhdmVmb3JtXzViaXQYByABKAwqjwEKEVZvaWNlU291cmNlRm9ybWF0EiMKH1ZPSUNFX1NPVVJDRV9GT1JNQVRfVU5TUEVDSUZJRUQQABIbChdWT0lDRV9TT1VSQ0VfRk9STUFUX09HRxABEhsKF1ZPSUNFX1NPVVJDRV9GT1JNQVRfTVAzEAISGwoXVk9JQ0VfU09VUkNFX0ZPUk1BVF9NUDQQAyqbAgoRRG9jdW1lbnRNZWRpYUtpbmQSIwofRE9DVU1FTlRfTUVESUFfS0lORF9VTlNQRUNJRklFRBAAEh0KGURPQ1VNRU5UX01FRElBX0tJTkRfVk9JQ0UQARIiCh5ET0NVTUVOVF9NRURJQV9LSU5EX1ZJREVPX05PVEUQAhIdChlET0NVTUVOVF9NRURJQV9LSU5EX01VU0lDEAMSHQoZRE9DVU1FTlRfTUVESUFfS0lORF9WSURFTxAEEh8KG0RPQ1VNRU5UX01FRElBX0tJTkRfU1RJQ0tFUhAFEiAKHERPQ1VNRU5UX01FRElBX0tJTkRfQU5JTUFURUQQBhIdChlET0NVTUVOVF9NRURJQV9LSU5EX0lNQUdFEAcy5QIKFk1lZGlhUHJvY2Vzc2luZ1NlcnZpY2USZgoRRXh0cmFjdFZpZGVvRnJhbWUSJy5pbXB1bHNlLmZpbGVzLkV4dHJhY3RWaWRlb0ZyYW1lUmVxdWVzdBooLmltcHVsc2UuZmlsZXMuRXh0cmFjdFZpZGVvRnJhbWVSZXNwb25zZRJwChlFeHRyYWN0RG9jdW1lbnRBdHRyaWJ1dGVzEi8uaW1wdWxzZS5maWxlcy5FeHRyYWN0RG9jdW1lbnRBdHRyaWJ1dGVzUmVxdWVzdBoiLmltcHVsc2UuZmlsZXMuUHJvY2Vzc2VkQXR0cmlidXRlcxJxChRDb252ZXJ0QW5pbWF0ZWRUb01wNBIqLmltcHVsc2UuZmlsZXMuQ29udmVydEFuaW1hdGVkVG9NcDRSZXF1ZXN0GisuaW1wdWxzZS5maWxlcy5Db252ZXJ0QW5pbWF0ZWRUb01wNFJlc3BvbnNlMAFCGKoCFUltcHVsc2VNLlByb3Rvcy5GaWxlc2IGcHJvdG8z", [file_impulse_files_processed_attributes]);
+
+/**
+ * #679: an OPTIONAL, additive, authenticated internal reference to the durable storage identity
+ * Files already resolved and verified for this source object -- s3_bucket/s3_key above are
+ * retained unchanged for rollout/back-compat (an absent reference reads through the explicit,
+ * finite, locally-configured legacy binding set honoring the supplied persisted bucket, exactly
+ * today's behaviour). representation_version is the SAME persisted representation/format version
+ * FileRecord carries (FileRecord.CurrentRepresentationVersion), never an independent wire-protocol
+ * versioning axis. Never an endpoint, host, or credential: descriptor_fingerprint is a one-way
+ * hash Processing compares against its OWN locally-computed descriptor for storage_id -- it
+ * structurally cannot be used to construct a connection, by design.
+ *
+ * @generated from message impulse.files.ProcessingSourceReference
+ */
+export type ProcessingSourceReference = Message<"impulse.files.ProcessingSourceReference"> & {
+  /**
+   * @generated from field: string storage_id = 1;
+   */
+  storageId: string;
+
+  /**
+   * @generated from field: int32 representation_version = 2;
+   */
+  representationVersion: number;
+
+  /**
+   * @generated from field: string descriptor_fingerprint = 3;
+   */
+  descriptorFingerprint: string;
+};
+
+/**
+ * Describes the message impulse.files.ProcessingSourceReference.
+ * Use `create(ProcessingSourceReferenceSchema)` to create a new message.
+ */
+export const ProcessingSourceReferenceSchema: GenMessage<ProcessingSourceReference> = /*@__PURE__*/
+  messageDesc(file_impulse_files_media_processing, 0);
 
 /**
  * @generated from message impulse.files.ExtractDocumentAttributesRequest
@@ -37,6 +74,40 @@ export type ExtractDocumentAttributesRequest = Message<"impulse.files.ExtractDoc
    * @generated from field: impulse.files.DocumentMediaKind media_kind = 4;
    */
   mediaKind: DocumentMediaKind;
+
+  /**
+   * @generated from field: impulse.files.ProcessingSourceReference source_reference = 5;
+   */
+  sourceReference?: ProcessingSourceReference | undefined;
+
+  /**
+   * Voice only: transcode the source (m4a/AAC, mp3, ...) to OGG/Opus in the SAME ffmpeg invocation
+   * that decodes it for the waveform, write the result to <s3_key>.converted.ogg and report it on
+   * VoiceAttributes.converted_*. The CALLER decides this from the sniffed container bytes (never the
+   * declared mime): an OGG voice note is left untouched and never sets it. Ignored for every other
+   * media_kind.
+   *
+   * @generated from field: bool transcode_voice_to_ogg = 6;
+   */
+  transcodeVoiceToOgg: boolean;
+
+  /**
+   * Only the per-user concurrent-conversion cap's key (like ConvertAnimatedToMp4Request.user_id --
+   * never authentication). Required (> 0) when transcode_voice_to_ogg is set.
+   *
+   * @generated from field: int64 user_id = 7;
+   */
+  userId: bigint;
+
+  /**
+   * Required (MP3 or MP4) when transcode_voice_to_ogg is set: the container the CALLER positively
+   * sniffed from the header bytes. Processing pins BOTH the probe and the transcode to it (-f), so
+   * ffmpeg never auto-selects a demuxer for attacker bytes (an ffconcat playlist would otherwise
+   * read the worker's own files). UNSPECIFIED/OGG with the flag set is InvalidArgument.
+   *
+   * @generated from field: impulse.files.VoiceSourceFormat voice_source_format = 8;
+   */
+  voiceSourceFormat: VoiceSourceFormat;
 };
 
 /**
@@ -44,7 +115,7 @@ export type ExtractDocumentAttributesRequest = Message<"impulse.files.ExtractDoc
  * Use `create(ExtractDocumentAttributesRequestSchema)` to create a new message.
  */
 export const ExtractDocumentAttributesRequestSchema: GenMessage<ExtractDocumentAttributesRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_files_media_processing, 0);
+  messageDesc(file_impulse_files_media_processing, 1);
 
 /**
  * @generated from message impulse.files.ExtractVideoFrameRequest
@@ -69,6 +140,11 @@ export type ExtractVideoFrameRequest = Message<"impulse.files.ExtractVideoFrameR
    * @generated from field: double timestamp_seconds = 3;
    */
   timestampSeconds: number;
+
+  /**
+   * @generated from field: impulse.files.ProcessingSourceReference source_reference = 4;
+   */
+  sourceReference?: ProcessingSourceReference | undefined;
 };
 
 /**
@@ -76,7 +152,7 @@ export type ExtractVideoFrameRequest = Message<"impulse.files.ExtractVideoFrameR
  * Use `create(ExtractVideoFrameRequestSchema)` to create a new message.
  */
 export const ExtractVideoFrameRequestSchema: GenMessage<ExtractVideoFrameRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_files_media_processing, 1);
+  messageDesc(file_impulse_files_media_processing, 2);
 
 /**
  * @generated from message impulse.files.ExtractVideoFrameResponse
@@ -111,7 +187,200 @@ export type ExtractVideoFrameResponse = Message<"impulse.files.ExtractVideoFrame
  * Use `create(ExtractVideoFrameResponseSchema)` to create a new message.
  */
 export const ExtractVideoFrameResponseSchema: GenMessage<ExtractVideoFrameResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_files_media_processing, 2);
+  messageDesc(file_impulse_files_media_processing, 3);
+
+/**
+ * T7: the source triple as ExtractDocumentAttributesRequest takes it (s3_bucket/s3_key locate
+ * the object under whichever binding source_reference resolves to; see ProcessingSourceReference
+ * above), plus the identities the admission gates key on. user_id is NOT authentication -- the
+ * caller is already the authenticated `files` service identity -- it is only the per-user,
+ * per-pod concurrent-conversion cap's key. file_id is carried for logging/telemetry correlation
+ * only; the object is located exclusively through s3_bucket/s3_key/source_reference.
+ *
+ * T8 (webm video notes on the local-root lane): media_kind picks the conversion pipeline --
+ * DOCUMENT_MEDIA_KIND_ANIMATED (a GIF, canon api/gifs.md:2) or DOCUMENT_MEDIA_KIND_VIDEO_NOTE (a
+ * webm round video). One RPC with a kind discriminant rather than a sibling RPC: the admission
+ * gates, source resolution, fd-based read and chunked streaming below are IDENTICAL for both
+ * kinds, and a second RPC would either duplicate that plumbing or need its own factoring back
+ * into this one anyway. Reuses DocumentMediaKind rather than a new two-value enum -- the SAME
+ * closed set ExtractDocumentAttributesRequest already declares and switches on -- refused as
+ * InvalidArgument for anything else (including the zero-value UNSPECIFIED), the same posture
+ * ExtractDocumentAttributes' own media_kind switch already takes.
+ *
+ * Voice notes (DOCUMENT_MEDIA_KIND_VOICE) are the third kind: a non-OGG voice note (m4a/AAC, mp3,
+ * ...) is transcoded to OGG/Opus. Unlike the two video kinds it runs under its OWN admission pool
+ * (VoiceTranscodeOptions.capacity, never the shared GIF/video-note pool) and answers the timeout
+ * case as DeadlineExceeded (transient -- the Files side answers FLOOD_WAIT and keeps the original)
+ * rather than FailedPrecondition, which stays reserved for probe-proven input faults (undecodable,
+ * no audio stream, zero duration). An input over the duration bound derived from the subprocess
+ * timeout is OutOfRange (input-determined).
+ *
+ * @generated from message impulse.files.ConvertAnimatedToMp4Request
+ */
+export type ConvertAnimatedToMp4Request = Message<"impulse.files.ConvertAnimatedToMp4Request"> & {
+  /**
+   * @generated from field: int64 user_id = 1;
+   */
+  userId: bigint;
+
+  /**
+   * @generated from field: int64 file_id = 2;
+   */
+  fileId: bigint;
+
+  /**
+   * @generated from field: string s3_bucket = 3;
+   */
+  s3Bucket: string;
+
+  /**
+   * @generated from field: string s3_key = 4;
+   */
+  s3Key: string;
+
+  /**
+   * @generated from field: impulse.files.ProcessingSourceReference source_reference = 5;
+   */
+  sourceReference?: ProcessingSourceReference | undefined;
+
+  /**
+   * @generated from field: impulse.files.DocumentMediaKind media_kind = 6;
+   */
+  mediaKind: DocumentMediaKind;
+
+  /**
+   * Required (MP3 or MP4) when media_kind is VOICE -- see ExtractDocumentAttributesRequest.
+   *
+   * @generated from field: impulse.files.VoiceSourceFormat voice_source_format = 7;
+   */
+  voiceSourceFormat: VoiceSourceFormat;
+};
+
+/**
+ * Describes the message impulse.files.ConvertAnimatedToMp4Request.
+ * Use `create(ConvertAnimatedToMp4RequestSchema)` to create a new message.
+ */
+export const ConvertAnimatedToMp4RequestSchema: GenMessage<ConvertAnimatedToMp4Request> = /*@__PURE__*/
+  messageDesc(file_impulse_files_media_processing, 4);
+
+/**
+ * @generated from message impulse.files.ConvertAnimatedToMp4Response
+ */
+export type ConvertAnimatedToMp4Response = Message<"impulse.files.ConvertAnimatedToMp4Response"> & {
+  /**
+   * @generated from oneof impulse.files.ConvertAnimatedToMp4Response.payload
+   */
+  payload: {
+    /**
+     * @generated from field: impulse.files.ConvertedHeader header = 1;
+     */
+    value: ConvertedHeader;
+    case: "header";
+  } | {
+    /**
+     * @generated from field: bytes chunk = 2;
+     */
+    value: Uint8Array;
+    case: "chunk";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message impulse.files.ConvertAnimatedToMp4Response.
+ * Use `create(ConvertAnimatedToMp4ResponseSchema)` to create a new message.
+ */
+export const ConvertAnimatedToMp4ResponseSchema: GenMessage<ConvertAnimatedToMp4Response> = /*@__PURE__*/
+  messageDesc(file_impulse_files_media_processing, 5);
+
+/**
+ * Always the first message on the stream, before any chunk. Carries what AnimatedAttributes
+ * carries for a converted GIF, minus converted_s3_key (nothing is written to S3 here) and minus
+ * converted_sha256 (the receiver hashes the bytes it reassembles itself -- Processing does not
+ * compute or send one).
+ *
+ * @generated from message impulse.files.ConvertedHeader
+ */
+export type ConvertedHeader = Message<"impulse.files.ConvertedHeader"> & {
+  /**
+   * @generated from field: int32 width = 1;
+   */
+  width: number;
+
+  /**
+   * @generated from field: int32 height = 2;
+   */
+  height: number;
+
+  /**
+   * @generated from field: int32 duration_seconds = 3;
+   */
+  durationSeconds: number;
+
+  /**
+   * @generated from field: bytes thumb_bytes = 4;
+   */
+  thumbBytes: Uint8Array;
+
+  /**
+   * @generated from field: string mime_type = 5;
+   */
+  mimeType: string;
+
+  /**
+   * @generated from field: int64 converted_size_bytes = 6;
+   */
+  convertedSizeBytes: bigint;
+
+  /**
+   * Voice only (media_kind VOICE): the source's own packed 5-bit waveform, decoded in the SAME ffmpeg
+   * invocation that produced the OGG/Opus bytes streamed after this header. Empty for the two video
+   * kinds. width/height/thumb_bytes are unset for voice; mime_type is audio/ogg.
+   *
+   * @generated from field: bytes waveform_5bit = 7;
+   */
+  waveform5bit: Uint8Array;
+};
+
+/**
+ * Describes the message impulse.files.ConvertedHeader.
+ * Use `create(ConvertedHeaderSchema)` to create a new message.
+ */
+export const ConvertedHeaderSchema: GenMessage<ConvertedHeader> = /*@__PURE__*/
+  messageDesc(file_impulse_files_media_processing, 6);
+
+/**
+ * The canon voice containers besides OGG/Opus (.demo/telegram-docs-text/bots/api.md:8882): MP3 and
+ * M4A (an ISO-BMFF/MP4 audio file). OGG is a pass-through and never reaches Processing.
+ *
+ * @generated from enum impulse.files.VoiceSourceFormat
+ */
+export enum VoiceSourceFormat {
+  /**
+   * @generated from enum value: VOICE_SOURCE_FORMAT_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: VOICE_SOURCE_FORMAT_OGG = 1;
+   */
+  OGG = 1,
+
+  /**
+   * @generated from enum value: VOICE_SOURCE_FORMAT_MP3 = 2;
+   */
+  MP3 = 2,
+
+  /**
+   * @generated from enum value: VOICE_SOURCE_FORMAT_MP4 = 3;
+   */
+  MP4 = 3,
+}
+
+/**
+ * Describes the enum impulse.files.VoiceSourceFormat.
+ */
+export const VoiceSourceFormatSchema: GenEnum<VoiceSourceFormat> = /*@__PURE__*/
+  enumDesc(file_impulse_files_media_processing, 0);
 
 /**
  * @generated from enum impulse.files.DocumentMediaKind
@@ -151,13 +420,25 @@ export enum DocumentMediaKind {
    * @generated from enum value: DOCUMENT_MEDIA_KIND_ANIMATED = 6;
    */
   ANIMATED = 6,
+
+  /**
+   * #514: a plain image (image/png, image/jpeg, ...) sent as a Document, never a Photo -- the
+   * ONLY DocumentMediaKind whose extractor (ImageAttributeExtractor) was already written, already
+   * registered in DI (ImpulseM.Files.Processing/Program.cs), and had no value here to be reached
+   * through. documentAttributeImageSize.md:1 -- "Defines the width and height of an image
+   * uploaded as document" -- is this kind's whole reason to exist; a Photo's own size ladder is
+   * ShouldHydratePhotoSizes' separate, pre-existing path and is unaffected by this value.
+   *
+   * @generated from enum value: DOCUMENT_MEDIA_KIND_IMAGE = 7;
+   */
+  IMAGE = 7,
 }
 
 /**
  * Describes the enum impulse.files.DocumentMediaKind.
  */
 export const DocumentMediaKindSchema: GenEnum<DocumentMediaKind> = /*@__PURE__*/
-  enumDesc(file_impulse_files_media_processing, 0);
+  enumDesc(file_impulse_files_media_processing, 1);
 
 /**
  * Synchronous media work that the Files service cannot perform in its own process.
@@ -198,6 +479,31 @@ export const MediaProcessingService: GenService<{
     methodKind: "unary";
     input: typeof ExtractDocumentAttributesRequestSchema;
     output: typeof ProcessedAttributesSchema;
+  },
+  /**
+   * T7: filesystem-resident uploads. The Files-side local store, unlike S3, is written
+   * EXCLUSIVELY by the Files process itself -- so unlike ExtractDocumentAttributes' Animated
+   * arm (which writes <key>.converted.mp4 to S3 itself), this endpoint writes nothing anywhere
+   * and instead RETURNS the converted bytes. Server-streaming because ffmpeg still needs a
+   * real seekable file for moov-atom placement (mp4 cannot be muxed to a forward-only pipe) --
+   * it is written once to this pod's OWN tmpfs, streamed back in bounded chunks, then deleted.
+   *
+   * The shared ffmpeg admission pool (FfmpegExtractionAdmissionOptions) and the per-user,
+   * per-pod cap (AnimatedConversionOptions.maxConcurrentPerUserPerPod) are both taken at RPC
+   * entry, before the source is opened or a single byte is read -- refused either way with the
+   * same catalog FLOOD_WAIT (ResourceExhausted). An input or converted-output byte count over
+   * the configured ceiling is refused as OutOfRange ("input rejected": the Files side maps this
+   * to the method's own canon error), never attempted past the length probe that catches it. A
+   * decode failure or the sandbox's own subprocess timeout is FailedPrecondition. Caller
+   * cancellation surfaces as Cancelled. Anything else server-side is Internal. Five distinct
+   * statuses so the Files side tells them apart by StatusCode, never by string matching.
+   *
+   * @generated from rpc impulse.files.MediaProcessingService.ConvertAnimatedToMp4
+   */
+  convertAnimatedToMp4: {
+    methodKind: "server_streaming";
+    input: typeof ConvertAnimatedToMp4RequestSchema;
+    output: typeof ConvertAnimatedToMp4ResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_impulse_files_media_processing, 0);

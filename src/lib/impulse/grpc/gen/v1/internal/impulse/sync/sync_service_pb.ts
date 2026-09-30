@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { ChannelDifferenceSchema, DifferenceSchema, EnsurePtsSeededRequestSchema, EnsurePtsSeededResponseSchema, PersistPtsAllocationRequestSchema, PersistPtsAllocationResponseSchema, StateSchema } from "./sync_types_pb";
+import type { ChannelDifferenceSchema, DifferenceSchema, EnsurePtsSeededRequestSchema, EnsurePtsSeededResponseSchema, PersistPtsAllocationRequestSchema, PersistPtsAllocationResponseSchema, ReseedPtsCounterFromDurableLogRequestSchema, ReseedPtsCounterFromDurableLogResponseSchema, StateSchema } from "./sync_types_pb";
 import { file_impulse_sync_sync_types } from "./sync_types_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/sync/sync_service.proto.
  */
 export const file_impulse_sync_sync_service: GenFile = /*@__PURE__*/
-  fileDesc("Ch9pbXB1bHNlL3N5bmMvc3luY19zZXJ2aWNlLnByb3RvEgxpbXB1bHNlLnN5bmMiEQoPR2V0U3RhdGVSZXF1ZXN0IlcKFEdldERpZmZlcmVuY2VSZXF1ZXN0EgsKA3B0cxgBIAEoAxIMCgRkYXRlGAIgASgDEgsKA3F0cxgDIAEoAxIXCg9wdHNfdG90YWxfbGltaXQYBCABKAUiYgobR2V0Q2hhbm5lbERpZmZlcmVuY2VSZXF1ZXN0EhIKCmNoYW5uZWxfaWQYASABKAMSCwoDcHRzGAIgASgDEg0KBWxpbWl0GAMgASgFEhMKC2FjY2Vzc19oYXNoGAQgASgDIhsKGUdldENlbnRyaWZ1Z29Ub2tlblJlcXVlc3QiPwoaR2V0Q2VudHJpZnVnb1Rva2VuUmVzcG9uc2USDQoFdG9rZW4YASABKAkSEgoKZXhwaXJlc19pbhgCIAEoBTK4BAoLU3luY1NlcnZpY2USPgoIR2V0U3RhdGUSHS5pbXB1bHNlLnN5bmMuR2V0U3RhdGVSZXF1ZXN0GhMuaW1wdWxzZS5zeW5jLlN0YXRlEk0KDUdldERpZmZlcmVuY2USIi5pbXB1bHNlLnN5bmMuR2V0RGlmZmVyZW5jZVJlcXVlc3QaGC5pbXB1bHNlLnN5bmMuRGlmZmVyZW5jZRJiChRHZXRDaGFubmVsRGlmZmVyZW5jZRIpLmltcHVsc2Uuc3luYy5HZXRDaGFubmVsRGlmZmVyZW5jZVJlcXVlc3QaHy5pbXB1bHNlLnN5bmMuQ2hhbm5lbERpZmZlcmVuY2USZwoSR2V0Q2VudHJpZnVnb1Rva2VuEicuaW1wdWxzZS5zeW5jLkdldENlbnRyaWZ1Z29Ub2tlblJlcXVlc3QaKC5pbXB1bHNlLnN5bmMuR2V0Q2VudHJpZnVnb1Rva2VuUmVzcG9uc2USXgoPRW5zdXJlUHRzU2VlZGVkEiQuaW1wdWxzZS5zeW5jLkVuc3VyZVB0c1NlZWRlZFJlcXVlc3QaJS5pbXB1bHNlLnN5bmMuRW5zdXJlUHRzU2VlZGVkUmVzcG9uc2USbQoUUGVyc2lzdFB0c0FsbG9jYXRpb24SKS5pbXB1bHNlLnN5bmMuUGVyc2lzdFB0c0FsbG9jYXRpb25SZXF1ZXN0GiouaW1wdWxzZS5zeW5jLlBlcnNpc3RQdHNBbGxvY2F0aW9uUmVzcG9uc2VCF6oCFEltcHVsc2VNLlByb3Rvcy5TeW5jYgZwcm90bzM", [file_impulse_sync_sync_types]);
+  fileDesc("Ch9pbXB1bHNlL3N5bmMvc3luY19zZXJ2aWNlLnByb3RvEgxpbXB1bHNlLnN5bmMiEQoPR2V0U3RhdGVSZXF1ZXN0IlcKFEdldERpZmZlcmVuY2VSZXF1ZXN0EgsKA3B0cxgBIAEoAxIMCgRkYXRlGAIgASgDEgsKA3F0cxgDIAEoAxIXCg9wdHNfdG90YWxfbGltaXQYBCABKAUiYgobR2V0Q2hhbm5lbERpZmZlcmVuY2VSZXF1ZXN0EhIKCmNoYW5uZWxfaWQYASABKAMSCwoDcHRzGAIgASgDEg0KBWxpbWl0GAMgASgFEhMKC2FjY2Vzc19oYXNoGAQgASgDIioKFEdldENoYW5uZWxQdHNSZXF1ZXN0EhIKCmNoYW5uZWxfaWQYASABKAMiJAoVR2V0Q2hhbm5lbFB0c1Jlc3BvbnNlEgsKA3B0cxgBIAEoAyIxChpHZXRDaGFubmVsQWN0b3JUYWdzUmVxdWVzdBITCgtjaGFubmVsX2lkcxgBIAMoAyKNAQobR2V0Q2hhbm5lbEFjdG9yVGFnc1Jlc3BvbnNlEkEKBHRhZ3MYASADKAsyMy5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbEFjdG9yVGFnc1Jlc3BvbnNlLlRhZ3NFbnRyeRorCglUYWdzRW50cnkSCwoDa2V5GAEgASgDEg0KBXZhbHVlGAIgASgJOgI4ASIbChlHZXRDZW50cmlmdWdvVG9rZW5SZXF1ZXN0Ij8KGkdldENlbnRyaWZ1Z29Ub2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEhIKCmV4cGlyZXNfaW4YAiABKAUyjAcKC1N5bmNTZXJ2aWNlEj4KCEdldFN0YXRlEh0uaW1wdWxzZS5zeW5jLkdldFN0YXRlUmVxdWVzdBoTLmltcHVsc2Uuc3luYy5TdGF0ZRJNCg1HZXREaWZmZXJlbmNlEiIuaW1wdWxzZS5zeW5jLkdldERpZmZlcmVuY2VSZXF1ZXN0GhguaW1wdWxzZS5zeW5jLkRpZmZlcmVuY2USYgoUR2V0Q2hhbm5lbERpZmZlcmVuY2USKS5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbERpZmZlcmVuY2VSZXF1ZXN0Gh8uaW1wdWxzZS5zeW5jLkNoYW5uZWxEaWZmZXJlbmNlElgKDUdldENoYW5uZWxQdHMSIi5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbFB0c1JlcXVlc3QaIy5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbFB0c1Jlc3BvbnNlEmcKEkdldENlbnRyaWZ1Z29Ub2tlbhInLmltcHVsc2Uuc3luYy5HZXRDZW50cmlmdWdvVG9rZW5SZXF1ZXN0GiguaW1wdWxzZS5zeW5jLkdldENlbnRyaWZ1Z29Ub2tlblJlc3BvbnNlEmoKE0dldENoYW5uZWxBY3RvclRhZ3MSKC5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbEFjdG9yVGFnc1JlcXVlc3QaKS5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbEFjdG9yVGFnc1Jlc3BvbnNlEl4KD0Vuc3VyZVB0c1NlZWRlZBIkLmltcHVsc2Uuc3luYy5FbnN1cmVQdHNTZWVkZWRSZXF1ZXN0GiUuaW1wdWxzZS5zeW5jLkVuc3VyZVB0c1NlZWRlZFJlc3BvbnNlEm0KFFBlcnNpc3RQdHNBbGxvY2F0aW9uEikuaW1wdWxzZS5zeW5jLlBlcnNpc3RQdHNBbGxvY2F0aW9uUmVxdWVzdBoqLmltcHVsc2Uuc3luYy5QZXJzaXN0UHRzQWxsb2NhdGlvblJlc3BvbnNlEosBCh5SZXNlZWRQdHNDb3VudGVyRnJvbUR1cmFibGVMb2cSMy5pbXB1bHNlLnN5bmMuUmVzZWVkUHRzQ291bnRlckZyb21EdXJhYmxlTG9nUmVxdWVzdBo0LmltcHVsc2Uuc3luYy5SZXNlZWRQdHNDb3VudGVyRnJvbUR1cmFibGVMb2dSZXNwb25zZUIXqgIUSW1wdWxzZU0uUHJvdG9zLlN5bmNiBnByb3RvMw", [file_impulse_sync_sync_types]);
 
 /**
  * @generated from message impulse.sync.GetStateRequest
@@ -92,6 +92,76 @@ export const GetChannelDifferenceRequestSchema: GenMessage<GetChannelDifferenceR
   messageDesc(file_impulse_sync_sync_service, 2);
 
 /**
+ * @generated from message impulse.sync.GetChannelPtsRequest
+ */
+export type GetChannelPtsRequest = Message<"impulse.sync.GetChannelPtsRequest"> & {
+  /**
+   * @generated from field: int64 channel_id = 1;
+   */
+  channelId: bigint;
+};
+
+/**
+ * Describes the message impulse.sync.GetChannelPtsRequest.
+ * Use `create(GetChannelPtsRequestSchema)` to create a new message.
+ */
+export const GetChannelPtsRequestSchema: GenMessage<GetChannelPtsRequest> = /*@__PURE__*/
+  messageDesc(file_impulse_sync_sync_service, 3);
+
+/**
+ * @generated from message impulse.sync.GetChannelPtsResponse
+ */
+export type GetChannelPtsResponse = Message<"impulse.sync.GetChannelPtsResponse"> & {
+  /**
+   * @generated from field: int64 pts = 1;
+   */
+  pts: bigint;
+};
+
+/**
+ * Describes the message impulse.sync.GetChannelPtsResponse.
+ * Use `create(GetChannelPtsResponseSchema)` to create a new message.
+ */
+export const GetChannelPtsResponseSchema: GenMessage<GetChannelPtsResponse> = /*@__PURE__*/
+  messageDesc(file_impulse_sync_sync_service, 4);
+
+/**
+ * @generated from message impulse.sync.GetChannelActorTagsRequest
+ */
+export type GetChannelActorTagsRequest = Message<"impulse.sync.GetChannelActorTagsRequest"> & {
+  /**
+   * @generated from field: repeated int64 channel_ids = 1;
+   */
+  channelIds: bigint[];
+};
+
+/**
+ * Describes the message impulse.sync.GetChannelActorTagsRequest.
+ * Use `create(GetChannelActorTagsRequestSchema)` to create a new message.
+ */
+export const GetChannelActorTagsRequestSchema: GenMessage<GetChannelActorTagsRequest> = /*@__PURE__*/
+  messageDesc(file_impulse_sync_sync_service, 5);
+
+/**
+ * @generated from message impulse.sync.GetChannelActorTagsResponse
+ */
+export type GetChannelActorTagsResponse = Message<"impulse.sync.GetChannelActorTagsResponse"> & {
+  /**
+   * channel_id -> the caller's own actor tag for that channel.
+   *
+   * @generated from field: map<int64, string> tags = 1;
+   */
+  tags: { [key: string]: string };
+};
+
+/**
+ * Describes the message impulse.sync.GetChannelActorTagsResponse.
+ * Use `create(GetChannelActorTagsResponseSchema)` to create a new message.
+ */
+export const GetChannelActorTagsResponseSchema: GenMessage<GetChannelActorTagsResponse> = /*@__PURE__*/
+  messageDesc(file_impulse_sync_sync_service, 6);
+
+/**
  * @generated from message impulse.sync.GetCentrifugoTokenRequest
  */
 export type GetCentrifugoTokenRequest = Message<"impulse.sync.GetCentrifugoTokenRequest"> & {
@@ -102,7 +172,7 @@ export type GetCentrifugoTokenRequest = Message<"impulse.sync.GetCentrifugoToken
  * Use `create(GetCentrifugoTokenRequestSchema)` to create a new message.
  */
 export const GetCentrifugoTokenRequestSchema: GenMessage<GetCentrifugoTokenRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_service, 3);
+  messageDesc(file_impulse_sync_sync_service, 7);
 
 /**
  * @generated from message impulse.sync.GetCentrifugoTokenResponse
@@ -124,7 +194,7 @@ export type GetCentrifugoTokenResponse = Message<"impulse.sync.GetCentrifugoToke
  * Use `create(GetCentrifugoTokenResponseSchema)` to create a new message.
  */
 export const GetCentrifugoTokenResponseSchema: GenMessage<GetCentrifugoTokenResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_service, 4);
+  messageDesc(file_impulse_sync_sync_service, 8);
 
 /**
  * @generated from service impulse.sync.SyncService
@@ -155,12 +225,37 @@ export const SyncService: GenService<{
     output: typeof ChannelDifferenceSchema;
   },
   /**
+   * @generated from rpc impulse.sync.SyncService.GetChannelPts
+   */
+  getChannelPts: {
+    methodKind: "unary";
+    input: typeof GetChannelPtsRequestSchema;
+    output: typeof GetChannelPtsResponseSchema;
+  },
+  /**
    * @generated from rpc impulse.sync.SyncService.GetCentrifugoToken
    */
   getCentrifugoToken: {
     methodKind: "unary";
     input: typeof GetCentrifugoTokenRequestSchema;
     output: typeof GetCentrifugoTokenResponseSchema;
+  },
+  /**
+   * GetChannelActorTags -- our own realtime bridge surface, not a Telegram method. Answers the
+   * CALLER'S opaque per-channel actor tag for each requested channel, which the client must send as
+   * the value of its `actor neq <tag>` tags filter when it subscribes to channel:{id}. The server
+   * tags every shared channel publication with the actor's tag rather than the actor's user id, and
+   * a client is told only its OWN tag. The tag is a stable per-(channel, user) PSEUDONYM: it does not
+   * reveal the user id, but every publication by one account in one channel carries the same value, so
+   * it links that account's posts to each other. It is NOT anonymity: message bodies carry from_id
+   * today (see the issue on anonymous channel posting). Client-facing, like GetCentrifugoToken.
+   *
+   * @generated from rpc impulse.sync.SyncService.GetChannelActorTags
+   */
+  getChannelActorTags: {
+    methodKind: "unary";
+    input: typeof GetChannelActorTagsRequestSchema;
+    output: typeof GetChannelActorTagsResponseSchema;
   },
   /**
    * EnsurePtsSeeded — cross-service reserve-path cold-start recovery seam (IMPAAA-2025,
@@ -186,6 +281,32 @@ export const SyncService: GenService<{
     methodKind: "unary";
     input: typeof PersistPtsAllocationRequestSchema;
     output: typeof PersistPtsAllocationResponseSchema;
+  },
+  /**
+   * ReseedPtsCounterFromDurableLog -- the OPERATOR remedy for a user pts counter that has fallen
+   * behind its own durable log (#190). INTERNAL SURFACE ONLY, gated by its OWN service capability
+   * "sync.pts.reseed" -- deliberately NOT the "sync.pts.seed" that EnsurePtsSeeded uses, which is
+   * granted to the messages and chats identities. No serviceId is granted this one, so the RPC is
+   * unreachable until an operator token carries it. Never exposed on the public gateway.
+   *
+   * Distinct from EnsurePtsSeeded and never to be merged with it. That one is seed-IF-ABSENT and
+   * fires automatically on a cold sentinel; this one raises a PRESENT counter to the greatest of
+   * THREE durable floors -- update_log, update_log_fence and ptsAllocationWatermarks -- and has NO
+   * automatic trigger, because deciding that an account's counter is behind its log is a judgement
+   * made with the numbers in front of you. The fence is read because it refuses the colliding write
+   * and outlives the payload table; the watermark is read because it stands above every pts ever
+   * ISSUED, including those whose durable row never landed, which no row maximum can see.
+   * Idempotent: the raise is monotone, so a second call finds nothing to do and reports the same
+   * numbers.
+   *
+   * Executes on the home-region Sync of the account, which owns the durable log.
+   *
+   * @generated from rpc impulse.sync.SyncService.ReseedPtsCounterFromDurableLog
+   */
+  reseedPtsCounterFromDurableLog: {
+    methodKind: "unary";
+    input: typeof ReseedPtsCounterFromDurableLogRequestSchema;
+    output: typeof ReseedPtsCounterFromDurableLogResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_impulse_sync_sync_service, 0);

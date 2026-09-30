@@ -4,13 +4,15 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file impulse/events/saved_dialog_events.proto.
  */
 export const file_impulse_events_saved_dialog_events: GenFile = /*@__PURE__*/
-  fileDesc("CihpbXB1bHNlL2V2ZW50cy9zYXZlZF9kaWFsb2dfZXZlbnRzLnByb3RvEhxpbXB1bHNlLmV2ZW50cy5zYXZlZF9kaWFsb2dzIr8DChBTYXZlZERpYWxvZ0V2ZW50EhAKCGV2ZW50X2lkGAEgASgJEg8KB3VzZXJfaWQYAiABKAMSDwoHcGVlcl9pZBgDIAEoAxIRCglwZWVyX2tpbmQYBCABKAkSPwoFYWRkZWQYCiABKAsyLi5pbXB1bHNlLmV2ZW50cy5zYXZlZF9kaWFsb2dzLlNhdmVkRGlhbG9nQWRkZWRIABJDCgdyZW1vdmVkGAsgASgLMjAuaW1wdWxzZS5ldmVudHMuc2F2ZWRfZGlhbG9ncy5TYXZlZERpYWxvZ1JlbW92ZWRIABJBCgZwaW5uZWQYDCABKAsyLy5pbXB1bHNlLmV2ZW50cy5zYXZlZF9kaWFsb2dzLlNhdmVkRGlhbG9nUGlubmVkSAASRQoIdW5waW5uZWQYDSABKAsyMS5pbXB1bHNlLmV2ZW50cy5zYXZlZF9kaWFsb2dzLlNhdmVkRGlhbG9nVW5waW5uZWRIABJMCg9oaXN0b3J5X2RlbGV0ZWQYDiABKAsyMS5pbXB1bHNlLmV2ZW50cy5zYXZlZF9kaWFsb2dzLlNhdmVkSGlzdG9yeURlbGV0ZWRIAEIGCgRraW5kIhIKEFNhdmVkRGlhbG9nQWRkZWQiSQoSU2F2ZWREaWFsb2dSZW1vdmVkEhMKC21lc3NhZ2VfaWRzGAEgAygDEgsKA3B0cxgCIAEoAxIRCglwdHNfY291bnQYAyABKAUiSgoTU2F2ZWRIaXN0b3J5RGVsZXRlZBITCgttZXNzYWdlX2lkcxgBIAMoAxILCgNwdHMYAiABKAMSEQoJcHRzX2NvdW50GAMgASgFIhMKEVNhdmVkRGlhbG9nUGlubmVkIhUKE1NhdmVkRGlhbG9nVW5waW5uZWRCJqoCI0ltcHVsc2VNLlByb3Rvcy5FdmVudHMuU2F2ZWREaWFsb2dzYgZwcm90bzM");
+  fileDesc("CihpbXB1bHNlL2V2ZW50cy9zYXZlZF9kaWFsb2dfZXZlbnRzLnByb3RvEhxpbXB1bHNlLmV2ZW50cy5zYXZlZF9kaWFsb2dzIu8DChBTYXZlZERpYWxvZ0V2ZW50EhAKCGV2ZW50X2lkGAEgASgJEg8KB3VzZXJfaWQYAiABKAMSDwoHcGVlcl9pZBgDIAEoAxIRCglwZWVyX2tpbmQYBCABKAkSLgoKZW1pdHRlZF9hdBgUIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASPwoFYWRkZWQYCiABKAsyLi5pbXB1bHNlLmV2ZW50cy5zYXZlZF9kaWFsb2dzLlNhdmVkRGlhbG9nQWRkZWRIABJDCgdyZW1vdmVkGAsgASgLMjAuaW1wdWxzZS5ldmVudHMuc2F2ZWRfZGlhbG9ncy5TYXZlZERpYWxvZ1JlbW92ZWRIABJBCgZwaW5uZWQYDCABKAsyLy5pbXB1bHNlLmV2ZW50cy5zYXZlZF9kaWFsb2dzLlNhdmVkRGlhbG9nUGlubmVkSAASRQoIdW5waW5uZWQYDSABKAsyMS5pbXB1bHNlLmV2ZW50cy5zYXZlZF9kaWFsb2dzLlNhdmVkRGlhbG9nVW5waW5uZWRIABJMCg9oaXN0b3J5X2RlbGV0ZWQYDiABKAsyMS5pbXB1bHNlLmV2ZW50cy5zYXZlZF9kaWFsb2dzLlNhdmVkSGlzdG9yeURlbGV0ZWRIAEIGCgRraW5kIhIKEFNhdmVkRGlhbG9nQWRkZWQiSQoSU2F2ZWREaWFsb2dSZW1vdmVkEhMKC21lc3NhZ2VfaWRzGAEgAygDEgsKA3B0cxgCIAEoAxIRCglwdHNfY291bnQYAyABKAUiSgoTU2F2ZWRIaXN0b3J5RGVsZXRlZBITCgttZXNzYWdlX2lkcxgBIAMoAxILCgNwdHMYAiABKAMSEQoJcHRzX2NvdW50GAMgASgFIhMKEVNhdmVkRGlhbG9nUGlubmVkIhUKE1NhdmVkRGlhbG9nVW5waW5uZWRCJqoCI0ltcHVsc2VNLlByb3Rvcy5FdmVudHMuU2F2ZWREaWFsb2dzYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * @generated from message impulse.events.saved_dialogs.SavedDialogEvent
@@ -37,6 +39,15 @@ export type SavedDialogEvent = Message<"impulse.events.saved_dialogs.SavedDialog
    * @generated from field: string peer_kind = 4;
    */
   peerKind: string;
+
+  /**
+   * When the producing command emitted the event. Pinning has no pts, so the account's pts-less
+   * update log needs a date to place it on (getDifference serves that log by date). Absent on
+   * events emitted before this field existed.
+   *
+   * @generated from field: google.protobuf.Timestamp emitted_at = 20;
+   */
+  emittedAt?: Timestamp | undefined;
 
   /**
    * @generated from oneof impulse.events.saved_dialogs.SavedDialogEvent.kind

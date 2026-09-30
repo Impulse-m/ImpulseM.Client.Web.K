@@ -8,13 +8,15 @@ import type { EventEnvelope } from "../events_common_pb";
 import { file_impulse_events_events_common } from "../events_common_pb";
 import type { Peer } from "../../peer_pb";
 import { file_impulse_peer } from "../../peer_pb";
+import type { ChatAdminRights, ChatBannedRights } from "../../chats/chat_types_pb";
+import { file_impulse_chats_chat_types } from "../../chats/chat_types_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file impulse/events/messages/multi_media_message_event.proto.
  */
 export const file_impulse_events_messages_multi_media_message_event: GenFile = /*@__PURE__*/
-  fileDesc("CjdpbXB1bHNlL2V2ZW50cy9tZXNzYWdlcy9tdWx0aV9tZWRpYV9tZXNzYWdlX2V2ZW50LnByb3RvEhdpbXB1bHNlLmV2ZW50cy5tZXNzYWdlcyLxAQoWTXVsdGlNZWRpYU1lc3NhZ2VFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSEgoKZ3JvdXBlZF9pZBgCIAEoAxIRCglzZW5kZXJfaWQYAyABKAMSGwoEcGVlchgEIAEoCzINLmltcHVsc2UuUGVlchIQCghiYXNlX3B0cxgFIAEoAxIRCglwdHNfY291bnQYBiABKAUSPQoFaXRlbXMYByADKAsyLi5pbXB1bHNlLmV2ZW50cy5tZXNzYWdlcy5NdWx0aU1lZGlhSXRlbVBheWxvYWQixAEKFU11bHRpTWVkaWFJdGVtUGF5bG9hZBISCgptZXNzYWdlX2lkGAEgASgDEhEKCXJhbmRvbV9pZBgCIAEoAxIUCgdmaWxlX2lkGAMgASgDSACIAQESFAoHY2FwdGlvbhgEIAEoCUgBiAEBEhIKCm1lZGlhX2pzb24YBSABKAkSGgoNZW50aXRpZXNfanNvbhgGIAEoCUgCiAEBQgoKCF9maWxlX2lkQgoKCF9jYXB0aW9uQhAKDl9lbnRpdGllc19qc29uQiKqAh9JbXB1bHNlTS5Qcm90b3MuRXZlbnRzLk1lc3NhZ2VzYgZwcm90bzM", [file_impulse_events_events_common, file_impulse_peer]);
+  fileDesc("CjdpbXB1bHNlL2V2ZW50cy9tZXNzYWdlcy9tdWx0aV9tZWRpYV9tZXNzYWdlX2V2ZW50LnByb3RvEhdpbXB1bHNlLmV2ZW50cy5tZXNzYWdlcyLxAQoWTXVsdGlNZWRpYU1lc3NhZ2VFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSEgoKZ3JvdXBlZF9pZBgCIAEoAxIRCglzZW5kZXJfaWQYAyABKAMSGwoEcGVlchgEIAEoCzINLmltcHVsc2UuUGVlchIQCghiYXNlX3B0cxgFIAEoAxIRCglwdHNfY291bnQYBiABKAUSPQoFaXRlbXMYByADKAsyLi5pbXB1bHNlLmV2ZW50cy5tZXNzYWdlcy5NdWx0aU1lZGlhSXRlbVBheWxvYWQikgIKFU11bHRpTWVkaWFJdGVtUGF5bG9hZBISCgptZXNzYWdlX2lkGAEgASgDEhEKCXJhbmRvbV9pZBgCIAEoAxIUCgdmaWxlX2lkGAMgASgDSACIAQESFAoHY2FwdGlvbhgEIAEoCUgBiAEBEhIKCm1lZGlhX2pzb24YBSABKAkSGgoNZW50aXRpZXNfanNvbhgGIAEoCUgCiAEBEkwKEW93bmVyX2Fzc2lnbm1lbnRzGAcgAygLMjEuaW1wdWxzZS5ldmVudHMubWVzc2FnZXMuT3duZXJNZXNzYWdlSWRBc3NpZ25tZW50QgoKCF9maWxlX2lkQgoKCF9jYXB0aW9uQhAKDl9lbnRpdGllc19qc29uIlsKGE93bmVyTWVzc2FnZUlkQXNzaWdubWVudBIVCg1vd25lcl91c2VyX2lkGAEgASgDEhIKCm1lc3NhZ2VfaWQYAiABKAUSFAoMcmVwbHlfbXNnX2lkGAMgASgFIl4KG01lbWJlckFkbWluUmlnaHRzQXNzaWdubWVudBIPCgd1c2VyX2lkGAEgASgDEi4KBnJpZ2h0cxgCIAEoCzIeLmltcHVsc2UuY2hhdHMuQ2hhdEFkbWluUmlnaHRzImAKHE1lbWJlckJhbm5lZFJpZ2h0c0Fzc2lnbm1lbnQSDwoHdXNlcl9pZBgBIAEoAxIvCgZyaWdodHMYAiABKAsyHy5pbXB1bHNlLmNoYXRzLkNoYXRCYW5uZWRSaWdodHNCIqoCH0ltcHVsc2VNLlByb3Rvcy5FdmVudHMuTWVzc2FnZXNiBnByb3RvMw", [file_impulse_events_events_common, file_impulse_peer, file_impulse_chats_chat_types]);
 
 /**
  * @generated from message impulse.events.messages.MultiMediaMessageEvent
@@ -101,6 +103,15 @@ export type MultiMediaItemPayload = Message<"impulse.events.messages.MultiMediaI
    * @generated from field: optional string entities_json = 6;
    */
   entitiesJson?: string | undefined;
+
+  /**
+   * Per ITEM, never per album: an album is N messages that happen to travel together, and each of
+   * them gets its own number in each account. One list on the album would have to be read as a
+   * matrix and would be one wrong index away from handing a member somebody else's message.
+   *
+   * @generated from field: repeated impulse.events.messages.OwnerMessageIdAssignment owner_assignments = 7;
+   */
+  ownerAssignments: OwnerMessageIdAssignment[];
 };
 
 /**
@@ -109,4 +120,111 @@ export type MultiMediaItemPayload = Message<"impulse.events.messages.MultiMediaI
  */
 export const MultiMediaItemPayloadSchema: GenMessage<MultiMediaItemPayload> = /*@__PURE__*/
   messageDesc(file_impulse_events_messages_multi_media_message_event, 1);
+
+/**
+ * One owner's number for one message. The body travels ONCE on the event; this is the whole
+ * per-owner delta, because canon gives the same message a different id in each account
+ * (.demo/telegram-docs-text/api/updates.md:857-859) and nothing else about the message varies
+ * by owner.
+ *
+ * No bucket: it is a pure function of message_id and MessageRepository.GetBucketForMessageId is
+ * its one owner, so a copy here could drift from it.
+ *
+ * No StoredMessage: 200 copies of a 4096-character non-Latin body is 1.65 MB against the
+ * 1,000,000-byte ceiling OutboxPublisher enforces at enqueue, so a group send would fail
+ * deterministically rather than degrade.
+ *
+ * @generated from message impulse.events.messages.OwnerMessageIdAssignment
+ */
+export type OwnerMessageIdAssignment = Message<"impulse.events.messages.OwnerMessageIdAssignment"> & {
+  /**
+   * @generated from field: int64 owner_user_id = 1;
+   */
+  ownerUserId: bigint;
+
+  /**
+   * @generated from field: int32 message_id = 2;
+   */
+  messageId: number;
+
+  /**
+   * What THIS owner calls the message this one replies to. On the wire since #551, and the reason
+   * is the same one message_id is here for: the reply key is per account too, so the shared
+   * reply_to_id beside it names the SENDER's message in every recipient's account
+   * (.demo/telegram-docs-text/api/updates.md:857-859). The recipient's stored row has carried this
+   * number since the mint produced it; the push lane had no way to read it and stamped the
+   * sender's, so a live reply pointed at one of the recipient's own messages while the same
+   * message re-read through getHistory pointed at the right one.
+   *
+   * ZERO means "this owner holds no number for the reply target" -- it aged out of their rolling
+   * origin window, or they never received it -- and the header's reply_to_msg_id is then OMITTED
+   * rather than sent as zero (reply_to_msg_id is flags.4?int,
+   * .demo/telegram-docs-text/constructor/messageReplyHeader.md:7). Zero is a real message id in
+   * nobody's account, which is what makes it usable as the absent value; a proto3 scalar at its
+   * default is not serialised at all, so the overwhelmingly common case -- a message that replies
+   * to nothing -- costs zero bytes per assignment across a 200-member basic group.
+   *
+   * @generated from field: int32 reply_msg_id = 3;
+   */
+  replyMsgId: number;
+};
+
+/**
+ * Describes the message impulse.events.messages.OwnerMessageIdAssignment.
+ * Use `create(OwnerMessageIdAssignmentSchema)` to create a new message.
+ */
+export const OwnerMessageIdAssignmentSchema: GenMessage<OwnerMessageIdAssignment> = /*@__PURE__*/
+  messageDesc(file_impulse_events_messages_multi_media_message_event, 2);
+
+/**
+ * One recipient's admin rights inside the chat a message was sent to, addressed by user id so the
+ * fan-out looks a member up rather than scanning for one. Beside OwnerMessageIdAssignment because
+ * it answers the same shape of question: something the fan-out must know PER RECIPIENT and cannot
+ * derive from a shared snapshot.
+ *
+ * @generated from message impulse.events.messages.MemberAdminRightsAssignment
+ */
+export type MemberAdminRightsAssignment = Message<"impulse.events.messages.MemberAdminRightsAssignment"> & {
+  /**
+   * @generated from field: int64 user_id = 1;
+   */
+  userId: bigint;
+
+  /**
+   * @generated from field: impulse.chats.ChatAdminRights rights = 2;
+   */
+  rights?: ChatAdminRights | undefined;
+};
+
+/**
+ * Describes the message impulse.events.messages.MemberAdminRightsAssignment.
+ * Use `create(MemberAdminRightsAssignmentSchema)` to create a new message.
+ */
+export const MemberAdminRightsAssignmentSchema: GenMessage<MemberAdminRightsAssignment> = /*@__PURE__*/
+  messageDesc(file_impulse_events_messages_multi_media_message_event, 3);
+
+/**
+ * The banned-rights twin of MemberAdminRightsAssignment, for the same reason and the same shape:
+ * each recipient's OWN restriction, not the sender's, and not derivable from a shared snapshot.
+ *
+ * @generated from message impulse.events.messages.MemberBannedRightsAssignment
+ */
+export type MemberBannedRightsAssignment = Message<"impulse.events.messages.MemberBannedRightsAssignment"> & {
+  /**
+   * @generated from field: int64 user_id = 1;
+   */
+  userId: bigint;
+
+  /**
+   * @generated from field: impulse.chats.ChatBannedRights rights = 2;
+   */
+  rights?: ChatBannedRights | undefined;
+};
+
+/**
+ * Describes the message impulse.events.messages.MemberBannedRightsAssignment.
+ * Use `create(MemberBannedRightsAssignmentSchema)` to create a new message.
+ */
+export const MemberBannedRightsAssignmentSchema: GenMessage<MemberBannedRightsAssignment> = /*@__PURE__*/
+  messageDesc(file_impulse_events_messages_multi_media_message_event, 4);
 
