@@ -45,7 +45,6 @@ import SuperIntersectionObserver, {IntersectionCallback} from '@helpers/dom/supe
 import VideoPlayer from '@lib/mediaPlayer';
 import debounce from '@helpers/schedulers/debounce';
 import {isFullScreen} from '@helpers/dom/fullScreen';
-import ButtonIcon from '@components/buttonIcon';
 import overlayCounter from '@helpers/overlayCounter';
 import {ChatAutoDownloadSettings} from '@hooks/useAutoDownloadSettings';
 
@@ -64,13 +63,14 @@ mediaSizes.addEventListener('changeScreen', (from, to) => {
 
 let turnedObserverOn = false;
 
-export default async function wrapVideo({doc, altDoc, container, message, boxWidth, boxHeight, withTail, isOut, middleware, lazyLoadQueue, noInfo, group, onlyPreview, noPreview, withoutPreloader, loadPromises, noPlayButton, photoSize, videoSize, searchContext, autoDownload, managers = rootScope.managers, noAutoplayAttribute, ignoreStreaming, canAutoplay, useBlur, observer, setShowControlsOn, uploadingFileName, onGlobalMedia, onLoad, withPreview}: {
+export default async function wrapVideo({doc, altDoc, container, message, boxWidth, boxHeight, fillBox, withTail, isOut, middleware, lazyLoadQueue, noInfo, group, onlyPreview, noPreview, withoutPreloader, loadPromises, noPlayButton, photoSize, videoSize, searchContext, autoDownload, managers = rootScope.managers, noAutoplayAttribute, ignoreStreaming, canAutoplay, useBlur, observer, setShowControlsOn, uploadingFileName, onGlobalMedia, onLoad, withPreview}: {
   doc: MyDocument,
   altDoc?: MyDocument,
   container?: HTMLElement,
   message?: Message.message,
   boxWidth?: number,
   boxHeight?: number,
+  fillBox?: boolean,
   withTail?: boolean,
   isOut?: boolean,
   middleware: Middleware,
@@ -126,7 +126,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
   );
   let spanTime: HTMLElement, spanPlay: HTMLElement;
 
-  let willObserveSound = false, noSoundIcon: HTMLElement, myMiddlewareHelper: MiddlewareHelper, originalMiddleware: Middleware;
+  let willObserveSound = false, myMiddlewareHelper: MiddlewareHelper, originalMiddleware: Middleware;
   if(!noInfo && container) {
     spanTime = document.createElement('span');
     spanTime.classList.add('video-time');
@@ -146,7 +146,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
             middleware = myMiddlewareHelper.get();
           }
 
-          spanTime.append(noSoundIcon = Icon('nosound_filled', 'video-time-icon'));
+          spanTime.append(Icon('nosound_filled', 'video-time-icon'));
         } else {
           needPlayButton = true;
         }
@@ -179,6 +179,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
       container,
       boxWidth,
       boxHeight,
+      fillBox,
       withTail,
       isOut,
       lazyLoadQueue,
@@ -459,6 +460,7 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
       container,
       boxWidth,
       boxHeight,
+      fillBox,
       withTail,
       isOut,
       lazyLoadQueue,
@@ -773,78 +775,9 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
   const attachSoundObserver = willObserveSound ? () => {
     video.mini = true;
     video.pause();
-    // const button = ButtonIcon('zoomin video-to-viewer', {noRipple: true});
-    // container.append(button);
-
-    // const updateIcon = (muted: boolean) => {
-    //   replaceButtonIcon(button, muted ? 'speakeroff_filled' : 'speaker_filled');
-    // };
-
-    // updateIcon(video.muted);
-
-    const onMuted = () => {
-      return;
-
-      releaseSingleMedia?.(true);
-      releaseSingleMedia = undefined;
-      // video.muted = true;
-    };
-
-    const onUnmute = () => {
-      return;
-
-      // if(onAnotherSingleMedia !== _onAnotherSingleMedia) {
-      //   onAnotherSingleMedia?.();
-      // }
-
-      releaseSingleMedia = appMediaPlaybackController.setSingleMedia({
-        media: video,
-        message,
-        standalone: true
-      });
-      // onAnotherSingleMedia = _onAnotherSingleMedia = () => {
-      //   mute();
-      // };
-    };
-
-    const mute = () => {
-      if(!releaseSingleMedia) {
-        return;
-      }
-
-      noSoundIcon.classList.remove('hide');
-      onMuted();
-    };
-
-    const unmute = () => {
-      if(releaseSingleMedia) {
-        return;
-      }
-
-      noSoundIcon.classList.add('hide');
-      onUnmute();
-    };
-
-    // const toggle = (_unmute?: boolean) => {
-    //   if(_unmute !== undefined) (_unmute ? unmute : mute)();
-    //   else (releaseSingleMedia ? mute : unmute)();
-    //   updateIcon(video.muted);
-    // };
-
-    let releaseSingleMedia: ReturnType<AppMediaPlaybackController['setSingleMedia']>/* , _onAnotherSingleMedia: () => void */;
-    // const detachClickEvent = attachClickEvent(button, (e) => {
-    //   cancelEvent(e);
-    //   toggle();
-    // });
-
     const onIntersection: IntersectionCallback = (entry) => {
       if(!entry.isIntersecting) {
         destroyPlayer();
-      }
-
-      if(!entry.isIntersecting && !video.muted) {
-        // toggle(false);
-        onMuted();
       }
     };
 
@@ -914,7 +847,6 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
           }
 
           // changedVolume = true;
-          // (!video.volume || video.muted ? mute : unmute)();
         },
         onFullScreen: (active) => {
           onLock(active);
@@ -953,16 +885,6 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
       video.volume = Math.min(appMediaPlaybackController.volume, 1);
     };
 
-    const onSingleMedia = (media: HTMLMediaElement) => {
-      if(media !== video && !video.muted) {
-        if(videoPlayer) {
-          videoPlayer.volumeSelector.setVolume({muted: true, volume: video.volume});
-        } else {
-          video.muted = true;
-        }
-      }
-    };
-
     const onPlaybackMediaParams = (params: ReturnType<AppMediaPlaybackController['getPlaybackParams']>) => {
       if(videoPlayer) {
         return;
@@ -974,16 +896,12 @@ export default async function wrapVideo({doc, altDoc, container, message, boxWid
     };
 
     appMediaPlaybackController.addEventListener('toggleVideoAutoplaySound', onAutoplaySound);
-    // appMediaPlaybackController.addEventListener('singleMedia', onSingleMedia);
     appMediaPlaybackController.addEventListener('playbackParams', onPlaybackMediaParams);
 
     middleware.onClean(() => {
-      // detachClickEvent();
-      releaseSingleMedia?.();
       observer.unobserve(video, onIntersection);
       delete container.onMiniVideoMouseMove;
       appMediaPlaybackController.removeEventListener('toggleVideoAutoplaySound', onAutoplaySound);
-      // appMediaPlaybackController.removeEventListener('singleMedia', onSingleMedia);
       appMediaPlaybackController.removeEventListener('playbackParams', onPlaybackMediaParams);
     });
 

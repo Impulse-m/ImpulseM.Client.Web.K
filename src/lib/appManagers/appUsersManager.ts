@@ -963,6 +963,12 @@ export class AppUsersManager extends AppManager {
       return {_: 'inputUserSelf'};
     }
 
+    // * a `min` user's access_hash is not accepted by most methods — name them through a message
+    const fromMessage = user?.pFlags?.min && this.appPeersManager.getMessageWithPeer(id.toPeerId(false));
+    if(fromMessage) {
+      return {_: 'inputUserFromMessage', ...fromMessage, user_id: id};
+    }
+
     return {
       _: 'inputUser',
       user_id: id,
@@ -970,7 +976,7 @@ export class AppUsersManager extends AppManager {
     };
   }
 
-  public getUserInputPeer(id: UserId): InputPeer.inputPeerSelf | InputPeer.inputPeerUser {
+  public getUserInputPeer(id: UserId): InputPeer.inputPeerSelf | InputPeer.inputPeerUser | InputPeer.inputPeerUserFromMessage {
     const user = this.getUser(id);
     // ! do not use it, there are places that don't support it. need explicit peer id
     // if(user.pFlags?.self) {
@@ -981,6 +987,11 @@ export class AppUsersManager extends AppManager {
     // * ourselves beats an inputPeerUser with an undefined access_hash
     if(!user && id === this.userId) {
       return {_: 'inputPeerSelf'};
+    }
+
+    const fromMessage = user?.pFlags?.min && this.appPeersManager.getMessageWithPeer(id.toPeerId(false));
+    if(fromMessage) {
+      return {_: 'inputPeerUserFromMessage', ...fromMessage, user_id: id};
     }
 
     return {
@@ -1141,6 +1152,25 @@ export class AppUsersManager extends AppManager {
     });
   }
 
+  /**
+   * Takes a peer out of the top correspondents, on the server and in the cached list
+   */
+  public resetTopPeerRating(peerId: PeerId) {
+    const type: TopPeerType = 'correspondents';
+    return this.apiManager.invokeApi('contacts.resetTopPeerRating', {
+      category: {_: 'topPeerCategoryCorrespondents'},
+      peer: this.appPeersManager.getInputPeerById(peerId)
+    }).then(() => {
+      delete this.getTopPeersPromises[type];
+      return this.appStateManager.getState().then((state) => {
+        const cached = state.topPeersCache[type];
+        if(!cached?.peers) return;
+        cached.peers = cached.peers.filter((topPeer) => topPeer.id !== peerId);
+        this.appStateManager.pushToState('topPeersCache', state.topPeersCache);
+      });
+    });
+  }
+
   public getBlocked(offset = 0, limit = 0, myStoriesFrom?: boolean) {
     return this.apiManager.invokeApiSingle('contacts.getBlocked', {offset, limit, my_stories_from: myStoriesFrom}).then((contactsBlocked) => {
       this.saveApiUsers(contactsBlocked.users);
@@ -1200,7 +1230,8 @@ export class AppUsersManager extends AppManager {
       return out;
     });
   } */
-  public searchContacts(query: string, limit = 20) {
+  // * `filter` asks the server for channels or bots only (both at once are not supported)
+  public searchContacts(query: string, limit = 20, filter?: 'broadcasts' | 'bots') {
     // handle 't.me/username' as 'username'
     const entities = parseEntities(query);
     if(entities.length && entities[0].length === query.trim().length && entities[0]._ === 'messageEntityUrl') {
@@ -1215,7 +1246,8 @@ export class AppUsersManager extends AppManager {
 
     return this.apiManager.invokeApiCacheable('contacts.search', {
       q: query,
-      limit
+      limit,
+      ...(filter && {[filter]: true})
     }, {cacheSeconds: 60}).then((peers) => {
       this.saveApiUsers(peers.users);
       this.appChatsManager.saveApiChats(peers.chats);

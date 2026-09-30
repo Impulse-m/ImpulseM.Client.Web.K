@@ -25,6 +25,7 @@ import {copyTextToClipboard} from '@helpers/clipboard';
 import {showSharingPicker2Popup} from '@components/popups/pickUser';
 import {I18nTsx} from '@helpers/solid/i18n';
 import buttonKeyDown from '@helpers/solid/buttonKeyDown';
+import Modes from '@config/modes';
 import tsNow from '@helpers/tsNow';
 import {useAppState} from '@stores/appState';
 import transferStarGift from '@components/popups/transferStarGift';
@@ -78,12 +79,14 @@ function AttributeTableButton(props: {rarity: StarGiftAttributeRarity}) {
     );
   }
 
+  // * the server rounds a rarity below 0.1% down to zero
+  const percent = props.rarity.permille > 0 ? `${props.rarity.permille / 10}%` : '< 0.1%';
   return (
     <TableButtonWithTooltip
-      tooltipTextElement={i18n('StarGiftAttributeTooltip', [`${props.rarity.permille / 10}%`])}
+      tooltipTextElement={i18n('StarGiftAttributeTooltip', [percent])}
       tooltipClass="popup-star-gift-info-tooltip"
     >
-      {props.rarity.permille / 10}%
+      {percent}
     </TableButtonWithTooltip>
   );
 }
@@ -95,7 +98,7 @@ export function AttributeValue(props: {name: string, rarity: StarGiftAttributeRa
         <span
           class="popup-star-gift-info-attribute-clickable"
           role="button"
-          tabindex={0}
+          tabindex={Modes.a11y ? 0 : undefined}
           onClick={props.onClick}
           onKeyDown={buttonKeyDown}
         >

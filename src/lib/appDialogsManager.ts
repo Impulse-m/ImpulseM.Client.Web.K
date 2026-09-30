@@ -22,6 +22,7 @@ import Button from '@components/button';
 import SetTransition from '@components/singleTransition';
 import {MyDraftMessage} from '@appManagers/appDraftsManager';
 import {MOUNT_CLASS_TO} from '@config/debug';
+import Modes from '@config/modes';
 import PeerTitle, {changeTitleEmojiColor} from '@components/peerTitle';
 import I18n, {FormatterArguments, i18n, LangPackKey, _i18n} from '@lib/langPack';
 import findUpClassName from '@helpers/dom/findUpClassName';
@@ -42,7 +43,6 @@ import handleTabSwipe from '@helpers/dom/handleTabSwipe';
 import {ChatlistContacts, createChatlistContacts} from '@components/sidebarLeft/chatlistContacts';
 import isInDOM from '@helpers/dom/isInDOM';
 import {setSendingStatus} from '@components/sendingStatus';
-import {SortedElementBase} from '@helpers/sortedList';
 import {FOLDER_ID_ALL, FOLDER_ID_ARCHIVE, NULL_PEER_ID, REAL_FOLDERS} from '@appManagers/constants';
 import groupCallActiveIcon from '@components/groupCallActiveIcon';
 import {ChatlistsChatlistUpdates, DialogFilter, Message, MessageMedia, MessageReplyHeader, Photo} from '@layer';
@@ -54,6 +54,7 @@ import appSidebarRight from '@components/sidebarRight';
 import choosePhotoSize from '@appManagers/utils/photos/choosePhotoSize';
 import renderDialogSubtitleParts from '@components/wrappers/dialogSubtitle';
 import wrapMessageForReply from '@components/wrappers/messageForReply';
+import getMessageForReplyContent from '@components/wrappers/messageForReplyContent';
 import wrapPeerTitle from '@components/wrappers/peerTitle';
 import isMessageRestricted, {isMessageSensitive} from '@appManagers/utils/messages/isMessageRestricted';
 import getMediaFromMessage from '@appManagers/utils/messages/getMediaFromMessage';
@@ -70,7 +71,6 @@ import cancelEvent from '@helpers/dom/cancelEvent';
 import noop from '@helpers/noop';
 import pause from '@helpers/schedulers/pause';
 import apiManagerProxy from '@lib/apiManagerProxy';
-import filterAsync from '@helpers/array/filterAsync';
 import indexOfAndSplice from '@helpers/array/indexOfAndSplice';
 import {getMiddleware, MiddlewareHelper} from '@helpers/middleware';
 import getDialogMentionBadgeState from '@helpers/dialogMentionBadgeState';
@@ -129,9 +129,7 @@ import {
   type ChatlistTopNotificationController
 } from '@components/sidebarLeft/chatlistTopNotification';
 
-
 export const DIALOG_LIST_ELEMENT_TAG = 'A';
-const DIALOG_LOAD_COUNT = 20;
 // below this many dialogs the sidebar looks empty, so contacts are offered under the chat list
 const MIN_DIALOGS_WITHOUT_CONTACTS = 10;
 
@@ -185,11 +183,6 @@ export type DialogDom = {
   setUnreadMessagePromise?: CancellablePromise<void>
 };
 
-interface SortedDialog extends SortedElementBase<PeerId> {
-  dom: DialogDom,
-  dialogElement: DialogElement
-}
-
 function setPromiseMiddleware<T extends {[smth in K as K]?: CancellablePromise<void>}, K extends keyof T>(obj: T, key: K) {
   const oldPromise: CancellablePromise<void> = obj[key] as any;
   oldPromise?.reject();
@@ -230,7 +223,6 @@ function getFolderTitleTextColor(active: boolean) {
 }
 
 const BADGE_SIZE = 22;
-
 
 const avatarSizeMap: {[k in DialogElementSize]?: number} = {
   bigger: 54,
@@ -443,7 +435,6 @@ export class DialogElement {
     if(threadId) li.dataset.threadId = '' + threadId;
     if(monoforumParentPeerId) li.dataset.monoforumParentPeerId = '' + monoforumParentPeerId;
     if(asAllChats) li.dataset.isAllChats = 'true';
-
 
     const statusSpan = document.createElement('span');
     statusSpan.classList.add('message-status', 'sending-status'/* , 'transition', 'reveal' */);
@@ -841,8 +832,6 @@ export class AppDialogsManager {
   private foldersOverlay: HTMLElement;
 
   private lazyLoadQueue: LazyLoadQueue;
-
-  private ignoreFolderChange: boolean;
 
   public start() {
     const managers = this.managers = getProxiedManagers();
@@ -2238,7 +2227,6 @@ export class AppDialogsManager {
         return;
       }
 
-
       if(peer?._ === 'user' && peer?.pFlags?.bot_forum_view && !lastMsgId && !threadId && !elem.dataset.isAllChats && !e.shiftKey) {
         this.toggleForumTabByPeerId(peerId).then(() => {
           if(appImManager.chat?.peerId?.toUserId() !== peer.id && !mediaSizes.isLessThanFloatingLeftSidebar) openChat();
@@ -2316,7 +2304,7 @@ export class AppDialogsManager {
       // guard that lives in that listener rather than in `onPress`, so the story
       // check has to be repeated here. `e.button` is 0 for a keyboard click and
       // `isDialogListAction` is already ruled out above.
-      if(e.detail === 0 && !setWillOpenStory(e)) {
+      if(Modes.a11y && e.detail === 0 && !setWillOpenStory(e)) {
         onPress(e);
       }
 
@@ -2455,6 +2443,7 @@ export class AppDialogsManager {
     const message = lastMessage as Message.message;
     const media = lastMessage && getMediaFromMessage(lastMessage, true);
     const messageMedia = message?.media as MessageMedia.messageMediaPhoto | MessageMedia.messageMediaDocument;
+    const draftContent = draftMessage && getMessageForReplyContent(draftMessage);
 
     return [
       options.peerId,
@@ -2466,6 +2455,11 @@ export class AppDialogsManager {
       options.isSensitive,
       draftMessage?.date,
       draftMessage?.message,
+      draftContent?.text,
+      draftContent?.entities && JSON.stringify(
+        draftContent.entities,
+        (_key, value) => typeof(value) === 'bigint' ? value.toString() : value
+      ),
       lastMessage?._,
       lastMessage?.peerId,
       lastMessage?.mid,
@@ -2640,6 +2634,7 @@ export class AppDialogsManager {
         noForwardIcon,
         mediaParts,
         withoutMediaType,
+        withoutMessageIcon: !!mediaContainer,
         prependPeerId: subtitlePeerId,
         middleware,
         messageRenderer: wrapMessageForReply,
@@ -3059,7 +3054,6 @@ export class AppDialogsManager {
     });
   }
 }
-
 
 const appDialogsManager = new AppDialogsManager();
 MOUNT_CLASS_TO.appDialogsManager = appDialogsManager;

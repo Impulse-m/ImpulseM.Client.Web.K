@@ -802,6 +802,8 @@ export default class ChatRecording {
       return;
     }
 
+    if(value) this.input.setMessageInputExpanded(false);
+
     this.active = value;
     this.input.managers.appMessagesManager.setTyping(
       this.input.chat.peerId,

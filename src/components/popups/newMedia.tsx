@@ -3,7 +3,11 @@ import {getOverlayRoot} from '@helpers/appWindow';
 import {createStore} from 'solid-js/store';
 
 import type Chat from '@components/chat/chat';
-import type {MessageSendingParams, SendFileDetails} from '@appManagers/appMessagesManager';
+import type {
+  MessageSendingParams,
+  SendFileDetails,
+  UploadedRichMessageMedia
+} from '@appManagers/appMessagesManager';
 import type {ChatRights} from '@appManagers/appChatsManager';
 import PopupElement, {createPopup, PopupContext, PopupContextValue} from './indexTsx';
 import {toastNew} from '@components/toast';
@@ -14,6 +18,7 @@ import {i18n, LangPackKey} from '@lib/langPack';
 import calcImageInBox from '@helpers/calcImageInBox';
 import placeCaretAtEnd from '@helpers/dom/placeCaretAtEnd';
 import {shouldPreserveKeyboardFocus} from '@helpers/dom/isKeyboardControl';
+import Modes from '@config/modes';
 import {attachClickEvent} from '@helpers/dom/clickEvent';
 import MEDIA_MIME_TYPES_SUPPORTED from '@environment/mediaMimeTypesSupport';
 import getGifDuration from '@helpers/getGifDuration';
@@ -24,7 +29,6 @@ import deferredPromise from '@helpers/cancellablePromise';
 import {ObjectURLScope} from '@helpers/objectUrl';
 import noop from '@helpers/noop';
 import toHHMMSS from '@helpers/string/toHHMMSS';
-import replaceContent from '@helpers/dom/replaceContent';
 import createVideo from '@helpers/dom/createVideo';
 import prepareAlbum from '@components/prepareAlbum';
 import {makeMediaSize} from '@helpers/mediaSize';
@@ -33,13 +37,17 @@ import onMediaLoad from '@helpers/onMediaLoad';
 import {SEND_WHEN_ONLINE_TIMESTAMP, SERVER_IMAGE_MIME_TYPES, STARS_CURRENCY, THUMB_TYPE_FULL} from '@appManagers/constants';
 import wrapDocument from '@components/wrappers/document';
 import wrapVideo from '@components/wrappers/video';
-import wrapMediaSpoiler, {toggleMediaSpoiler} from '@components/wrappers/mediaSpoiler';
+import wrapMediaSpoiler, {
+  concealMediaSpoilerWithAnimation,
+  toggleMediaSpoiler
+} from '@components/wrappers/mediaSpoiler';
 import {MiddlewareHelper} from '@helpers/middleware';
 import animationIntersector, {AnimationItemGroup} from '@components/animationIntersector';
 import scaleMediaElement from '@helpers/canvas/scaleMediaElement';
+import photoUploadPreparation, {PHOTO_COMPRESSED_QUALITY, PHOTO_HEAVY_BYTES, PHOTO_MAX_BYTES} from '@helpers/canvas/photoUploadPreparation';
 import {doubleRaf, fastRafPromise} from '@helpers/schedulers';
 import defineNotNumerableProperties from '@helpers/object/defineNotNumerableProperties';
-import {DocumentAttribute, DraftMessage, Photo, PhotoSize} from '@layer';
+import {DocumentAttribute, DraftMessage, MessageEntity, Photo, PhotoSize} from '@layer';
 import {getPreviewBytesFromURL} from '@helpers/bytes/getPreviewURLFromBytes';
 import {renderImageFromUrlPromise} from '@helpers/dom/renderImageFromUrl';
 import ButtonMenuToggle from '@components/buttonMenuToggle';
@@ -55,7 +63,8 @@ import shake from '@helpers/dom/shake';
 import AUDIO_MIME_TYPES_SUPPORTED from '@environment/audioMimeTypeSupport';
 import liteMode from '@helpers/liteMode';
 import handleVideoLeak from '@helpers/dom/handleVideoLeak';
-import wrapDraft from '@components/wrappers/draft';
+import draftTextWithEntities from '@lib/richTextProcessor/draftTextWithEntities';
+import type {LocalTextWithEntities} from '@types';
 import getRichValueWithCaret from '@helpers/dom/getRichValueWithCaret';
 import {ChatType} from '@components/chat/chatType';
 import pause from '@helpers/schedulers/pause';
@@ -84,9 +93,9 @@ import createContextMenu from '@helpers/dom/createContextMenu';
 import {positionMenuTrigger} from '@helpers/positionMenu';
 import {makeDateFromTimestamp} from '@helpers/date/makeDateFromTimestamp';
 import Section from '@components/section';
+import {canAddMultipleRichMessageMedia, isVisualRichMessageMimeType} from '@helpers/files/richMessageMediaInsertPolicy';
 import classNames from '@helpers/string/classNames';
 import {ScrollableContextValue} from '@components/scrollable2';
-
 
 type SendFileParams = SendFileDetails & {
   file?: File | MyDocument,
@@ -101,6 +110,19 @@ type SendFileParams = SendFileDetails & {
 type ConstructorInputFile = {
   file: File;
   editResult: MediaEditorFinalResult;
+};
+
+export type RichMessageMediaInsertPayload = {
+  caption: string,
+  entities: MessageEntity[],
+  grouped: boolean,
+  media: Array<UploadedRichMessageMedia & {previewUrl?: string}>
+};
+
+export type RichMessageMediaInsertOptions = {
+  allowMultiple?: boolean,
+  visualOnly?: boolean,
+  onInsert: (payload: RichMessageMediaInsertPayload) => MaybePromise<void>
 };
 
 type WillAttachType = 'media' | 'document';
@@ -124,18 +146,6 @@ export type NewMediaPopupHandle = {
 let currentPopup: NewMediaPopupHandle;
 
 const MAX_WIDTH = 400 - 16;
-
-// A "compressed photo" heavier than this is re-encoded to JPEG at PHOTO_COMPRESSED_QUALITY,
-// otherwise the server rejects it with PHOTO_SAVE_FILE_INVALID (a detailed 2560px PNG is
-// ~10MB). Used for both the direct send (scaleImageForImpulseM) and the edited result
-// (passed into the media editor), so the policy lives in one place.
-const PHOTO_HEAVY_BYTES = 2 * 1024 * 1024;
-const PHOTO_COMPRESSED_QUALITY = 0.9;
-// The source size above only predicts the ENCODED size for the formats it names; a
-// lossy source (HEIC, WEBP, AVIF) is small on disk yet re-encodes to ~12MB at full
-// quality when it is detailed. So the encoded result is checked too, and only a
-// result over this budget is compressed — anything that already fits is left alone.
-const PHOTO_MAX_BYTES = 6 * 1024 * 1024;
 
 type MediaTitleKind = 'gif' | 'photo' | 'video' | 'file';
 
@@ -188,7 +198,8 @@ export default function showNewMediaPopup(
   willAttachType: WillAttachType,
   ignoreInputValue?: boolean,
   gifDocument?: MyDocument,
-  ephemeralSnapshot?: MessageSendingParams
+  ephemeralSnapshot?: MessageSendingParams,
+  richMessageInsert?: RichMessageMediaInsertOptions
 ) {
   let context: PopupContextValue;
 
@@ -317,7 +328,13 @@ export default function showNewMediaPopup(
         icon: 'plusround',
         text: 'Add',
         onClick: () => {
-          chat.input.onAttachClick(false, false, false);
+          chat.input.onAttachClick(
+            false,
+            !!richMessageInsert,
+            !!richMessageInsert,
+            undefined,
+            !!richMessageInsert && !richMessageInsert.visualOnly
+          );
         },
         verify: () => canHaveMultipleFiles()
       }, {
@@ -335,7 +352,7 @@ export default function showNewMediaPopup(
 
           if(!canSendPhotos || !canSendVideos) {
             const mimeTypes = canSendPhotos ? IMAGE_MIME_TYPES_SUPPORTED : VIDEO_MIME_TYPES_SUPPORTED;
-            const {media, files} = partition(mimeTypes);
+            const {files} = partition(mimeTypes);
             if(files.length) {
               return false;
             }
@@ -347,12 +364,12 @@ export default function showNewMediaPopup(
         icon: 'document',
         text: 'SendAsFile',
         onClick: () => changeType('document'),
-        verify: () => files.length === 1 && willAttach.type !== 'document' && canSendDocs && !isEditingMediaFromAlbum()
+        verify: () => !richMessageInsert && files.length === 1 && willAttach.type !== 'document' && canSendDocs && !isEditingMediaFromAlbum()
       }, {
         icon: 'document',
         text: 'SendAsFiles',
         onClick: () => changeType('document'),
-        verify: () => files.length > 1 && willAttach.type !== 'document' && canSendDocs && !isEditingMediaFromAlbum()
+        verify: () => !richMessageInsert && files.length > 1 && willAttach.type !== 'document' && canSendDocs && !isEditingMediaFromAlbum()
       }, {
         icon: 'groupmedia',
         text: 'Popup.Attach.GroupMedia',
@@ -416,15 +433,15 @@ export default function showNewMediaPopup(
 
     setMenuEl(btnMenu);
 
-    let draft: DocumentFragment;
+    let draft: LocalTextWithEntities;
     if(!ignoreInputValue) {
-      wasDraft = chat.input.getCurrentInputAsDraft();
-      if(wasDraft) {
-        draft = wrapDraft(wasDraft, {
-          wrappingForPeerId: chat.peerId,
-          animationGroup,
-          middleware: context.middlewareHelper.get()
-        });
+      const currentDraft = chat.input.getCurrentInputAsDraft();
+      if(currentDraft?.rich_message) {
+        // A media caption cannot carry rich_message. Keep the document in the composer.
+        toastNew({langPackKey: 'RichMessage.Error.MediaUnsupported'});
+      } else if(currentDraft) {
+        wasDraft = currentDraft;
+        draft = draftTextWithEntities(wasDraft);
 
         chat.input.messageInputField.value = '';
       }
@@ -448,7 +465,7 @@ export default function showNewMediaPopup(
           messageInputField = inputField;
         },
         btnConfirm,
-        chatInput: chat.input
+        ai: chat.input.getAiEditorContext()
       });
 
       Portal({
@@ -576,6 +593,12 @@ export default function showNewMediaPopup(
     return MEDIA_MIME_TYPES_SUPPORTED.has(getFileMimeType(file)) || canConvertMov(file);
   }
 
+  function isVisualRichMessageFile(file: File | MyDocument) {
+    const mimeType = getFileMimeType(file);
+    if(!isVisualRichMessageMimeType(mimeType)) return false;
+    return mimeType !== 'video/quicktime' || IS_MOV_SUPPORTED || canConvertMov(file);
+  }
+
   // * the server only allows photos and plain videos in paid media, so GIF files
   // * are sent converted to silent videos — an unconvertible GIF can't be paid.
   // * Same for .mov files in browsers that can't play them natively: unconverted
@@ -613,7 +636,7 @@ export default function showNewMediaPopup(
   }
 
   async function canSendPaidMedia() {
-    if(ephemeralComposer || isEditing() || hasUnpayableMedia()) return false;
+    if(ephemeralComposer || richMessageInsert || isEditing() || hasUnpayableMedia()) return false;
     return await context.managers.appPeersManager.isBroadcast(chat.peerId) &&
       !!(await context.managers.appProfileManager.getChannelFull(chat.peerId.toChatId())).pFlags.paid_media_allowed;
   }
@@ -671,7 +694,6 @@ export default function showNewMediaPopup(
   async function applyMediaSpoiler(item: SendFileParams, noAnimation?: boolean) {
     const spoilerToggle: HTMLElement = item.itemDiv.querySelector('.spoiler-toggle');
     if(spoilerToggle) spoilerToggle.dataset.disabled = 'true';
-
 
     const middleware = item.middlewareHelper.get();
     const {width: widthStr, height: heightStr} = item.itemDiv.style;
@@ -731,22 +753,18 @@ export default function showNewMediaPopup(
       return;
     }
 
-    if(!noAnimation) {
-      mediaSpoiler.classList.add('is-revealing');
-    }
-
     item.mediaSpoiler = mediaSpoiler;
+    const animation = !noAnimation ?
+      concealMediaSpoilerWithAnimation({
+        mediaSpoiler,
+        canAnimate: middleware
+      }) :
+      undefined;
     item.itemDiv.append(mediaSpoiler);
-
-    await doubleRaf();
-    if(!middleware()) {
-      return;
+    if(animation) {
+      await animation;
+      if(!middleware()) return;
     }
-
-    toggleMediaSpoiler({
-      mediaSpoiler,
-      reveal: false
-    });
 
     if(spoilerToggle) {
       spoilerToggle.dataset.toggled = 'true';
@@ -875,7 +893,7 @@ export default function showNewMediaPopup(
   }
 
   const onKeyDown = (e: KeyboardEvent) => {
-    if(shouldPreserveKeyboardFocus(e)) return;
+    if(Modes.a11y && shouldPreserveKeyboardFocus(e)) return;
     const target = e.target as HTMLElement;
     const {input} = messageInputField;
     if(target !== input) {
@@ -893,6 +911,51 @@ export default function showNewMediaPopup(
     if(!editResult || editResult instanceof Promise) return undefined;
 
     return wrapMediaEditorBlobInFile(params.file as File, editResult.blob, params.editResult?.isVideo);
+  }
+
+  async function insertRichMessageMedia(caption: string, entities: MessageEntity[]) {
+    if(
+      richMessageInsert.visualOnly &&
+      willAttach.sendFileDetails.some(({file}) => (
+        !isVisualRichMessageFile(file)
+      ))
+    ) {
+      toastNew({langPackKey: 'RichMessage.Error.UnsupportedContent'});
+      return;
+    }
+    const sendFileDetails: SendFileDetails[] = willAttach.sendFileDetails.map((params) => ({
+      ...params,
+      file: prepareEditedFileForSending(params) ||
+        convertedFiles.get(params.file as File)?.file ||
+        params.scaledBlob ||
+        params.file,
+      width: params.editResult?.width || params.width,
+      height: params.editResult?.height || params.height,
+      spoiler: !!params.mediaSpoiler,
+      editResult: undefined as MediaEditorFinalResult
+    }));
+    const button = btnConfirm as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      const media = await Promise.all(sendFileDetails.map(async(sendFileDetails) => (
+        context.managers.appMessagesManager.uploadRichMessageMedia({
+          peerId: chat.peerId,
+          sendFileDetails
+        })
+      )));
+      await richMessageInsert.onInsert({
+        caption,
+        entities,
+        grouped: !!willAttach.group && media.length > 1,
+        media
+      });
+      wasDraft = undefined;
+      handle.hide();
+    } catch(err) {
+      console.error('rich message media upload error', err);
+      toastNew({langPackKey: 'Error.AnError'});
+      button.disabled = false;
+    }
   }
 
   // * the send menu stamps the one-shot flags (schedule date / silent) onto the
@@ -919,8 +982,9 @@ export default function showNewMediaPopup(
     }
 
     const {input} = chat;
-    const ephemeralCommandResolution = getEphemeralCommandResolution(caption);
-    if(!pinnedEphemeralSendingParams && !input.verifyEphemeralCommand(caption)) {
+    const ephemeralCommandResolution = richMessageInsert ?
+      {state: 'none'} as const : getEphemeralCommandResolution(caption);
+    if(!richMessageInsert && !pinnedEphemeralSendingParams && !input.verifyEphemeralCommand(caption)) {
       return;
     }
 
@@ -949,7 +1013,7 @@ export default function showNewMediaPopup(
       element: btnConfirm
     });
 
-    if(!isEditing() && !isEphemeral && await isSlowModeActive()) {
+    if(!richMessageInsert && !isEditing() && !isEphemeral && await isSlowModeActive()) {
       return;
     }
 
@@ -1007,6 +1071,11 @@ export default function showNewMediaPopup(
     });
 
     if(foundBad) {
+      return;
+    }
+
+    if(richMessageInsert) {
+      await insertRichMessageMedia(caption, entities);
       return;
     }
 
@@ -1119,28 +1188,12 @@ export default function showNewMediaPopup(
     objectURLs: ObjectURLScope,
     convertIncompatible?: boolean
   ) {
-    const PHOTO_SIDE_LIMIT = 2560;
-    // PNG/BMP are lossless and can be huge even when ≤2560px (a detailed 2560px
-    // screenshot/map is ~10MB), which the server rejects as a compressed photo with
-    // PHOTO_SAVE_FILE_INVALID. Re-encode such HEAVY lossless images to JPEG — but
-    // only when they're actually heavy, so a normal small PNG keeps its original
-    // quality and isn't touched at all.
-    const isHeavyLossless = (mimeType === 'image/png' || mimeType === 'image/bmp') && fileSize > PHOTO_HEAVY_BYTES;
-    const needsResize = Math.max(image.naturalWidth, image.naturalHeight) > PHOTO_SIDE_LIMIT;
+    const preparation = photoUploadPreparation(image.naturalWidth, image.naturalHeight, mimeType, fileSize, convertIncompatible);
     let url = image.src, scaledBlob: Blob;
-    if(
-      mimeType !== 'image/gif' &&
-      (needsResize || isHeavyLossless || (convertIncompatible && !SERVER_IMAGE_MIME_TYPES.has(mimeType)))
-    ) {
+    if(preparation) {
       const encode = (quality?: number) => scaleMediaElement({
+        ...preparation,
         media: image,
-        // Cap each side at PHOTO_SIDE_LIMIT, but never upscale a smaller image
-        // (aspectFitted would otherwise blow a small PNG up to 2560px).
-        boxSize: makeMediaSize(
-          Math.min(image.naturalWidth, PHOTO_SIDE_LIMIT),
-          Math.min(image.naturalHeight, PHOTO_SIDE_LIMIT)
-        ),
-        mediaSize: makeMediaSize(image.naturalWidth, image.naturalHeight),
         // Whatever came in, what leaves is JPEG: it is the only encoding every
         // re-encode reason wants (a resized photo, a flattened heavy PNG, a
         // format the server has no use for) and the only one every browser can
@@ -1151,9 +1204,8 @@ export default function showNewMediaPopup(
 
       // Only drop quality when compressing a heavy image; a plain >2560 resize or
       // a format conversion keeps the default (near-lossless) quality.
-      const initialQuality = isHeavyLossless ? PHOTO_COMPRESSED_QUALITY : undefined;
-      let {blob} = await encode(initialQuality);
-      if(initialQuality === undefined && blob.size > PHOTO_MAX_BYTES) {
+      let {blob} = await encode(preparation.quality);
+      if(preparation.quality === undefined && blob.size > PHOTO_MAX_BYTES) {
         ({blob} = await encode(PHOTO_COMPRESSED_QUALITY));
       }
 
@@ -1510,11 +1562,14 @@ export default function showNewMediaPopup(
         const canEditVideo = await supportsVideoEncoding() && file.size <= MAX_EDITABLE_VIDEO_SIZE;
         if(activeActionsMenu !== actions || context.destroyed) return;
 
-        let equalizeIcon: HTMLButtonElement;
+        // real buttons only with the a11y layer, the icons they were before without it
+        let equalizeIcon: HTMLElement;
         if(!willAttach.stars && getFileMimeType(file) !== 'image/gif' && (!isVideo || canEditVideo)) {
           import('../mediaEditor'); // prefetch
 
-          equalizeIcon = ButtonElement(itemCls, {icon: 'equalizer', ariaLabel: 'Edit', noRipple: true});
+          equalizeIcon = Modes.a11y ?
+            ButtonElement(itemCls, {icon: 'equalizer', ariaLabel: 'Edit', noRipple: true}) :
+            Icon('equalizer', itemCls);
           equalizeIcon.addEventListener('click', async() => {
             hideActiveActionsMenu();
             MarkupTooltip.getInstance().hide();
@@ -1556,9 +1611,14 @@ export default function showNewMediaPopup(
           });
         }
 
-        let spoilerToggle: HTMLButtonElement;
+        let spoilerToggle: HTMLElement;
         if(!willAttach.stars) {
-          spoilerToggle = ButtonElement(`${itemCls} spoiler-toggle`, {ariaLabel: 'EnablePhotoSpoiler', noRipple: true});
+          if(Modes.a11y) {
+            spoilerToggle = ButtonElement(`${itemCls} spoiler-toggle`, {ariaLabel: 'EnablePhotoSpoiler', noRipple: true});
+          } else {
+            spoilerToggle = document.createElement('span');
+            spoilerToggle.classList.add(itemCls, 'spoiler-toggle');
+          }
           spoilerToggle.setAttribute('aria-pressed', String(!!params.mediaSpoiler));
           if(params.mediaSpoiler) spoilerToggle.dataset.toggled = 'true';
           spoilerToggle.append(Icon('mediaspoiler', 'spoiler-on'), Icon('mediaspoileroff', 'spoiler-off'));
@@ -1570,14 +1630,22 @@ export default function showNewMediaPopup(
           });
         }
 
-        const deleteIcon = ButtonElement(itemCls, {icon: 'delete', ariaLabel: 'Delete', noRipple: true});
+        const deleteIcon = Modes.a11y ?
+          ButtonElement(itemCls, {icon: 'delete', ariaLabel: 'Delete', noRipple: true}) :
+          Icon('delete', itemCls);
         deleteIcon.addEventListener('click', () => removeFile(params));
 
         const resultPromise = params?.editResult?.getResult();
-        let cancelBtn: HTMLButtonElement;
+        let cancelBtn: HTMLElement;
         if(resultPromise instanceof Promise) {
           actions.classList.add('popup-item-media-action-menu-cancel');
-          cancelBtn = ButtonElement('popup-item-media-action-menu-cancel-btn', {text: 'Cancel', noRipple: true});
+          if(Modes.a11y) {
+            cancelBtn = ButtonElement('popup-item-media-action-menu-cancel-btn', {text: 'Cancel', noRipple: true});
+          } else {
+            cancelBtn = document.createElement('div');
+            cancelBtn.append(i18n('Cancel'));
+            cancelBtn.classList.add('popup-item-media-action-menu-cancel-btn');
+          }
           cancelBtn.addEventListener('click', () => {
             params?.editResult.cancel?.();
           });
@@ -1618,38 +1686,40 @@ export default function showNewMediaPopup(
 
       // The hover toolbar is also available through the shared menu, so keyboard
       // users get the same actions and focus handling as every other popup menu.
-      const moreButton = ButtonElement('btn-icon popup-item-media-more', {icon: 'more', ariaLabel: 'AccDescr.MediaActions', noRipple: true});
-      moreButton.disabled = !canShowActions;
-      const menuButtons: (ButtonMenuItemOptionsVerifiable & {checked?: boolean})[] = [];
-      createContextMenu({
-        listenTo: moreButton,
-        listenForClick: true,
-        middleware: params.middlewareHelper.get(),
-        buttons: [],
-        position: (_, menu) => positionMenuTrigger(moreButton, menu, 'top-right'),
-        filterButtons: async() => {
-          await showActions(true);
-          const actions = activeActionsMenu;
-          if(!actions || activeActionsMenuItemDiv !== itemDiv) return [];
-          actions.inert = true;
-          actions.style.opacity = '0';
-          menuButtons.splice(0, menuButtons.length, ...(Array.from(actions.children) as HTMLButtonElement[]).map((element) => ({
-            regularText: element.getAttribute('aria-label') || element.textContent,
-            checked: element.hasAttribute('aria-pressed') ? element.getAttribute('aria-pressed') === 'true' : undefined,
-            onClick: () => element.click()
-          })));
-          return menuButtons;
-        },
-        onOpenAfter: () => {
-          menuButtons.forEach(({element, checked}) => {
-            if(checked === undefined) return;
-            element.setAttribute('role', 'menuitemcheckbox');
-            element.setAttribute('aria-checked', String(checked));
-          });
-        },
-        onClose: () => { hideActiveActionsMenu(); }
-      });
-      itemDiv.append(moreButton);
+      if(Modes.a11y) {
+        const moreButton = ButtonElement('btn-icon popup-item-media-more', {icon: 'more', ariaLabel: 'AccDescr.MediaActions', noRipple: true});
+        moreButton.disabled = !canShowActions;
+        const menuButtons: (ButtonMenuItemOptionsVerifiable & {checked?: boolean})[] = [];
+        createContextMenu({
+          listenTo: moreButton,
+          listenForClick: true,
+          middleware: params.middlewareHelper.get(),
+          buttons: [],
+          position: (_, menu) => positionMenuTrigger(moreButton, menu, 'top-right'),
+          filterButtons: async() => {
+            await showActions(true);
+            const actions = activeActionsMenu;
+            if(!actions || activeActionsMenuItemDiv !== itemDiv) return [];
+            actions.inert = true;
+            actions.style.opacity = '0';
+            menuButtons.splice(0, menuButtons.length, ...(Array.from(actions.children) as HTMLButtonElement[]).map((element) => ({
+              regularText: element.getAttribute('aria-label') || element.textContent,
+              checked: element.hasAttribute('aria-pressed') ? element.getAttribute('aria-pressed') === 'true' : undefined,
+              onClick: () => element.click()
+            })));
+            return menuButtons;
+          },
+          onOpenAfter: () => {
+            menuButtons.forEach(({element, checked}) => {
+              if(checked === undefined) return;
+              element.setAttribute('role', 'menuitemcheckbox');
+              element.setAttribute('aria-checked', String(checked));
+            });
+          },
+          onClose: () => { hideActiveActionsMenu(); }
+        });
+        itemDiv.append(moreButton);
+      }
 
       itemDiv.addEventListener('pointermove', showActions);
       itemDiv.addEventListener('pointerup', showActions);
@@ -1703,7 +1773,6 @@ export default function showNewMediaPopup(
 
     return result;
   }
-
 
   async function attachDocument(params: SendFileParams): ReturnType<typeof attachMedia> {
     const {itemDiv} = params;
@@ -2000,6 +2069,7 @@ export default function showNewMediaPopup(
 
   function canHaveMultipleFiles() {
     return !ephemeralComposer &&
+      canAddMultipleRichMessageMedia(richMessageInsert?.allowMultiple) &&
       !isEditing() &&
       !isSuggestingPost() &&
       !gifDocument;
@@ -2076,6 +2146,7 @@ export default function showNewMediaPopup(
 
   function addFiles(newFiles: File[]) {
     newFiles = newFiles.map(normalizeFileMimeType);
+    if(richMessageInsert?.visualOnly) newFiles = newFiles.filter(isVisualRichMessageFile);
 
     if(!canHaveMultipleFiles() && files.length) {
       if(newFiles.length) {

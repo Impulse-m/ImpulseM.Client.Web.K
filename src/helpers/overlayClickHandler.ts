@@ -6,6 +6,7 @@ import {CLICK_EVENT_NAME, hasMouseMovedSinceDown} from '@helpers/dom/clickEvent'
 import findUpAsChild from '@helpers/dom/findUpAsChild';
 import EventListenerBase from '@helpers/eventListenerBase';
 import {getOverlayRoot} from '@helpers/appWindow';
+import Modes from '@config/modes';
 
 export default class OverlayClickHandler extends EventListenerBase<{
   toggle: (open: boolean) => void
@@ -22,7 +23,10 @@ export default class OverlayClickHandler extends EventListenerBase<{
 
   constructor(
     protected navigationType?: NavigationItem['type'],
-    protected withOverlay?: boolean
+    protected withOverlay?: boolean,
+    // a press from the keyboard (or assistive technology) is aimed at the focused control: close,
+    // but let it through — for an overlay that only informs, like a toast
+    protected passKeyboardActivation?: boolean
   ) {
     super(false);
     this.listenerOptions = withOverlay ? {} : {capture: true};
@@ -40,7 +44,8 @@ export default class OverlayClickHandler extends EventListenerBase<{
       }
     }
 
-    if(this.listenerOptions?.capture) {
+    const keyboardActivation = Modes.a11y && e.type === 'click' && (e as MouseEvent).detail === 0;
+    if(this.listenerOptions?.capture && !(this.passKeyboardActivation && keyboardActivation)) {
       cancelEvent(e);
     }
 
@@ -76,7 +81,7 @@ export default class OverlayClickHandler extends EventListenerBase<{
       appNavigationController.pushItem({
         type: this.navigationType,
         onEscape: this.onEscape,
-        noBlurOnPop: true,
+        noBlurOnPop: Modes.a11y,
         onPop: (canAnimate) => {
           this.close();
         }

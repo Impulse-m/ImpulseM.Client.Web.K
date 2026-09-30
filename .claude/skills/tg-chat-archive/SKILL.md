@@ -97,9 +97,17 @@ A run ends with `[tg-archive] done: …` (or `dry run — nothing written`); if
 that line is missing the script exits 1 and prints the path of the full vitest
 log.
 
+## Private by default
+
+Archived chats are private. Their names, ids, members and contents — and what
+was done because of them — never go into anything tracked or published: commit
+messages, code comments, tests, docs, PRs. Describe a change by the API behaviour
+or by the public reference clients instead. Reports built from an archive stay in
+gitignored `tmp/`.
+
 ## Answering a question about a chat
 
-The user asks about content ("что было в группе MTProto", "кто предлагал X"),
+The user asks about content ("что было в группе X", "кто предлагал Y"),
 usually by title, not by id:
 
 1. Read `~/.claude/tg-archive/INDEX.md` and match the chat by title, id or
@@ -122,7 +130,7 @@ bash .claude/skills/tg-chat-archive/mark.sh <chat> --list      # what is marked;
 bash .claude/skills/tg-chat-archive/mark.sh <chat> <id> --undo
 ```
 
-`<chat>` is the folder key (`chat12904944`), the Bot API or tweb id, the
+`<chat>` is the folder key (`chat1234567890`), the Bot API or tweb id, the
 @username or a piece of the title. It is offline — it edits `messages.jsonl` and
 regenerates the transcript, nothing else — and a sync running at the same time
 keeps the marks (it takes them from disk when it writes).
