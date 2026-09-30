@@ -36,6 +36,20 @@ describe('every invoked API method has a gRPC mapping', () => {
       'Removed from this list by the slice that serves them.'
   };
 
+  /**
+   * Individual methods that are a known, owned gap -- as opposed to a whole namespace. Same rule:
+   * a reason per entry, and the entry is checked from the other side too (see the last assertion),
+   * so it cannot outlive the gap it describes.
+   */
+  const unmappedMethods: Record<string, string> = {
+    'auth.cancelWebTokenAuthorization': 'the server adds this method in parallel with this client ' +
+      'work, with the same TL crc (490dada1) as the schema.json declaration ' +
+      '(protos/generated/overlays.json in the layer-229 server slice), but the proto set this ' +
+      'client was generated from does not declare it yet. Once the regenerated code carries the rpc ' +
+      'the serviceMap maps it by itself and this entry must be deleted -- the guard below fails ' +
+      'while it is stale.'
+  };
+
   const generatedDescriptorRoot = 'src/lib/impulse/grpc/gen';
 
   /**
@@ -288,6 +302,7 @@ describe('every invoked API method has a gRPC mapping', () => {
     const unmapped = [...invoked.entries()]
       .filter(([method]) => !mapped.has(method))
       .filter(([method]) => !(method.split('.')[0] in unimplementedNamespaces))
+      .filter(([method]) => !(method in unmappedMethods))
       .map(([method, file]) => `${method}  (${file})`)
       .sort();
 
@@ -301,5 +316,11 @@ describe('every invoked API method has a gRPC mapping', () => {
       'implemented. A bare name in that list is how the next omission will hide.',
       ''
     ].join('\n')).toEqual([]);
+
+    expect(
+      Object.keys(unmappedMethods).filter((method) => mapped.has(method) || !invoked.has(method)),
+      'An entry in unmappedMethods is stale: the method is now mapped, or nothing invokes it any ' +
+      'more. Delete the entry -- the allowlist must describe only gaps that still exist.'
+    ).toEqual([]);
   });
 });
