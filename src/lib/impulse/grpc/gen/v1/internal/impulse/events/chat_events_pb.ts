@@ -6,7 +6,7 @@ import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2"
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { EventEnvelope } from "./events_common_pb";
 import { file_impulse_events_events_common } from "./events_common_pb";
-import type { Chat, ChatBannedRightsSnapshot, ForumTopic } from "../chats/chat_types_pb";
+import type { Chat, ChatAdminRights, ChatBannedRights, ChatBannedRightsSnapshot, ForumTopic } from "../chats/chat_types_pb";
 import { file_impulse_chats_chat_types } from "../chats/chat_types_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/events/chat_events.proto.
  */
 export const file_impulse_events_chat_events: GenFile = /*@__PURE__*/
-  fileDesc("CiBpbXB1bHNlL2V2ZW50cy9jaGF0X2V2ZW50cy5wcm90bxIUaW1wdWxzZS5ldmVudHMuY2hhdHMiiggKCUNoYXRFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSCwoDcHRzGAIgASgDEhEKCXB0c19jb3VudBgDIAEoBRJCCg1jaGF0X3NuYXBzaG90GAogASgLMikuaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdFNuYXBzaG90VXBkYXRlZEgAEjQKB2RlbGV0ZWQYCyABKAsyIS5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0RGVsZXRlZEgAEj8KCG1pZ3JhdGVkGAwgASgLMisuaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdE1pZ3JhdGVkVG9DaGFubmVsSAASPQoKbWVtYmVyc2hpcBgNIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLk1lbWJlcnNoaXBDaGFuZ2VkSAASTwoUZm9ydW1fdG9waWNfc25hcHNob3QYDiABKAsyLy5pbXB1bHNlLmV2ZW50cy5jaGF0cy5Gb3J1bVRvcGljU25hcHNob3RVcGRhdGVkSAASRgoTZm9ydW1fdG9waWNfZGVsZXRlZBgPIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLkZvcnVtVG9waWNEZWxldGVkSAASRgoTam9pbl9yZXF1ZXN0X2hpZGRlbhgQIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLkpvaW5SZXF1ZXN0SGlkZGVuSAASSAoUY2hhdF9oaXN0b3J5X2RlbGV0ZWQYESABKAsyKC5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0SGlzdG9yeURlbGV0ZWRIABI5CgxjaGF0X2NyZWF0ZWQYEiABKAsyIS5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0Q3JlYXRlZEgAEkoKFWJhbm5lZF9yaWdodHNfY2hhbmdlZBgTIAEoCzIpLmltcHVsc2UuZXZlbnRzLmNoYXRzLkJhbm5lZFJpZ2h0c0NoYW5nZWRIABJTChpqb2luX3JlcXVlc3RzX2hpZGRlbl9iYXRjaBgUIAEoCzItLmltcHVsc2UuZXZlbnRzLmNoYXRzLkpvaW5SZXF1ZXN0c0hpZGRlbkJhdGNoSAASUAoYbWVtYmVyc2hpcF9jaGFuZ2VkX2JhdGNoGBUgASgLMiwuaW1wdWxzZS5ldmVudHMuY2hhdHMuTWVtYmVyc2hpcENoYW5nZWRCYXRjaEgAEk4KFGNoYXRfc2VydmljZV9tZXNzYWdlGBYgASgLMi4uaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdFNlcnZpY2VNZXNzYWdlUG9zdGVkSABCCQoHcGF5bG9hZCI4ChNDaGF0U25hcHNob3RVcGRhdGVkEiEKBGNoYXQYASABKAsyEy5pbXB1bHNlLmNoYXRzLkNoYXQiMAoLQ2hhdERlbGV0ZWQSDwoHY2hhdF9pZBgBIAEoAxIQCgh1c2VyX2lkcxgCIAMoAyLjAQoVQ2hhdE1pZ3JhdGVkVG9DaGFubmVsEhMKC29sZF9jaGF0X2lkGAEgASgDEhYKDm5ld19jaGFubmVsX2lkGAIgASgDEjAKB21lbWJlcnMYAyADKAsyHy5pbXB1bHNlLmV2ZW50cy5jaGF0cy5NZW1iZXJQdHMSEAoIYWN0b3JfaWQYBCABKAMSDQoFdGl0bGUYBSABKAkSGwoTb2xkX2NoYXRfbWVzc2FnZV9pZBgGIAEoAxIUCgxvbGRfY2hhdF9wdHMYByABKAMSFwoPbmV3X2NoYW5uZWxfcHRzGAggASgDIvcCChFNZW1iZXJzaGlwQ2hhbmdlZBIPCgdjaGF0X2lkGAEgASgDEg8KB3VzZXJfaWQYAiABKAMSPgoGYWN0aW9uGAMgASgOMi4uaW1wdWxzZS5ldmVudHMuY2hhdHMuTWVtYmVyc2hpcENoYW5nZWQuQWN0aW9uEhEKBHJhbmsYBCABKAlIAIgBARIVCghhY3Rvcl9pZBgFIAEoA0gBiAEBIr8BCgZBY3Rpb24SFgoSQUNUSU9OX1VOU1BFQ0lGSUVEEAASEQoNQUNUSU9OX0pPSU5FRBABEg8KC0FDVElPTl9MRUZUEAISEQoNQUNUSU9OX0tJQ0tFRBADEhEKDUFDVElPTl9CQU5ORUQQBBIZChVBQ1RJT05fQURNSU5fUFJPTU9URUQQBRIYChRBQ1RJT05fQURNSU5fREVNT1RFRBAGEh4KGkFDVElPTl9DUkVBVE9SX1RSQU5TRkVSUkVEEAdCBwoFX3JhbmtCCwoJX2FjdG9yX2lkIkUKGUZvcnVtVG9waWNTbmFwc2hvdFVwZGF0ZWQSKAoFdG9waWMYASABKAsyGS5pbXB1bHNlLmNoYXRzLkZvcnVtVG9waWMiNgoRRm9ydW1Ub3BpY0RlbGV0ZWQSDwoHY2hhdF9pZBgBIAEoAxIQCgh0b3BpY19pZBgCIAEoAyLvAQoRSm9pblJlcXVlc3RIaWRkZW4SDwoHY2hhdF9pZBgBIAEoAxIPCgd1c2VyX2lkGAIgASgDEkIKCGRlY2lzaW9uGAMgASgOMjAuaW1wdWxzZS5ldmVudHMuY2hhdHMuSm9pblJlcXVlc3RIaWRkZW4uRGVjaXNpb24SFQoIYWN0b3JfaWQYBCABKANIAIgBASJQCghEZWNpc2lvbhIYChRERUNJU0lPTl9VTlNQRUNJRklFRBAAEhUKEURFQ0lTSU9OX0FQUFJPVkVEEAESEwoPREVDSVNJT05fREVOSUVEEAJCCwoJX2FjdG9yX2lkIsABChdKb2luUmVxdWVzdHNIaWRkZW5CYXRjaBIPCgdjaGF0X2lkGAEgASgDEhMKC3JlcXVlc3RfaWRzGAIgAygDEhAKCHVzZXJfaWRzGAMgAygDEkIKCGRlY2lzaW9uGAQgASgOMjAuaW1wdWxzZS5ldmVudHMuY2hhdHMuSm9pblJlcXVlc3RIaWRkZW4uRGVjaXNpb24SEAoIYWN0b3JfaWQYBSABKAMSFwoPaWRlbXBvdGVuY3lfa2V5GAYgASgJIqYBChZNZW1iZXJzaGlwQ2hhbmdlZEJhdGNoEg8KB2NoYXRfaWQYASABKAMSEAoIdXNlcl9pZHMYAiADKAMSPgoGYWN0aW9uGAMgASgOMi4uaW1wdWxzZS5ldmVudHMuY2hhdHMuTWVtYmVyc2hpcENoYW5nZWQuQWN0aW9uEhAKCGFjdG9yX2lkGAQgASgDEhcKD2lkZW1wb3RlbmN5X2tleRgFIAEoCSKzAQoSQ2hhdEhpc3RvcnlEZWxldGVkEg8KB2NoYXRfaWQYASABKAMSFQoIdG9waWNfaWQYAiABKANIAIgBARIbCg5wYXJ0aWNpcGFudF9pZBgDIAEoA0gBiAEBEhYKDm1heF9tZXNzYWdlX2lkGAQgASgDEg4KBnJldm9rZRgFIAEoCBIQCghhY3Rvcl9pZBgGIAEoA0ILCglfdG9waWNfaWRCEQoPX3BhcnRpY2lwYW50X2lkIq8BCgtDaGF0Q3JlYXRlZBIPCgdjaGF0X2lkGAEgASgDEhIKCmNyZWF0b3JfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSFwoKdHRsX3BlcmlvZBgEIAEoBUgAiAEBEhIKCmNyZWF0ZWRfYXQYBSABKAMSMAoHbWVtYmVycxgGIAMoCzIfLmltcHVsc2UuZXZlbnRzLmNoYXRzLk1lbWJlclB0c0INCgtfdHRsX3BlcmlvZCK8AQoYQ2hhdFNlcnZpY2VNZXNzYWdlUG9zdGVkEg8KB2NoYXRfaWQYASABKAMSEgoKbWVzc2FnZV9pZBgCIAEoBRIQCghhY3Rvcl9pZBgDIAEoAxITCgthY3Rpb25fanNvbhgEIAEoCRIRCglwb3N0ZWRfYXQYBSABKAMSGgoScmVjaXBpZW50X3VzZXJfaWRzGAYgAygDEhgKEG1lbWJlcnNoaXBfZXBvY2gYByABKAMSCwoDcHRzGAggASgDIikKCU1lbWJlclB0cxIPCgd1c2VyX2lkGAEgASgDEgsKA3B0cxgCIAEoAyKoAQoTQmFubmVkUmlnaHRzQ2hhbmdlZBIPCgdjaGF0X2lkGAEgASgDEg8KB3VzZXJfaWQYAiABKAMSNwoGcmlnaHRzGAMgASgLMicuaW1wdWxzZS5jaGF0cy5DaGF0QmFubmVkUmlnaHRzU25hcHNob3QSFQoIYWN0b3JfaWQYBCABKANIAIgBARISCgppc19kZWZhdWx0GAUgASgIQgsKCV9hY3Rvcl9pZEIfqgIcSW1wdWxzZU0uUHJvdG9zLkV2ZW50cy5DaGF0c2IGcHJvdG8z", [file_impulse_events_events_common, file_impulse_chats_chat_types]);
+  fileDesc("CiBpbXB1bHNlL2V2ZW50cy9jaGF0X2V2ZW50cy5wcm90bxIUaW1wdWxzZS5ldmVudHMuY2hhdHMiiggKCUNoYXRFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSCwoDcHRzGAIgASgDEhEKCXB0c19jb3VudBgDIAEoBRJCCg1jaGF0X3NuYXBzaG90GAogASgLMikuaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdFNuYXBzaG90VXBkYXRlZEgAEjQKB2RlbGV0ZWQYCyABKAsyIS5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0RGVsZXRlZEgAEj8KCG1pZ3JhdGVkGAwgASgLMisuaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdE1pZ3JhdGVkVG9DaGFubmVsSAASPQoKbWVtYmVyc2hpcBgNIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLk1lbWJlcnNoaXBDaGFuZ2VkSAASTwoUZm9ydW1fdG9waWNfc25hcHNob3QYDiABKAsyLy5pbXB1bHNlLmV2ZW50cy5jaGF0cy5Gb3J1bVRvcGljU25hcHNob3RVcGRhdGVkSAASRgoTZm9ydW1fdG9waWNfZGVsZXRlZBgPIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLkZvcnVtVG9waWNEZWxldGVkSAASRgoTam9pbl9yZXF1ZXN0X2hpZGRlbhgQIAEoCzInLmltcHVsc2UuZXZlbnRzLmNoYXRzLkpvaW5SZXF1ZXN0SGlkZGVuSAASSAoUY2hhdF9oaXN0b3J5X2RlbGV0ZWQYESABKAsyKC5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0SGlzdG9yeURlbGV0ZWRIABI5CgxjaGF0X2NyZWF0ZWQYEiABKAsyIS5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0Q3JlYXRlZEgAEkoKFWJhbm5lZF9yaWdodHNfY2hhbmdlZBgTIAEoCzIpLmltcHVsc2UuZXZlbnRzLmNoYXRzLkJhbm5lZFJpZ2h0c0NoYW5nZWRIABJTChpqb2luX3JlcXVlc3RzX2hpZGRlbl9iYXRjaBgUIAEoCzItLmltcHVsc2UuZXZlbnRzLmNoYXRzLkpvaW5SZXF1ZXN0c0hpZGRlbkJhdGNoSAASUAoYbWVtYmVyc2hpcF9jaGFuZ2VkX2JhdGNoGBUgASgLMiwuaW1wdWxzZS5ldmVudHMuY2hhdHMuTWVtYmVyc2hpcENoYW5nZWRCYXRjaEgAEk4KFGNoYXRfc2VydmljZV9tZXNzYWdlGBYgASgLMi4uaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdFNlcnZpY2VNZXNzYWdlUG9zdGVkSABCCQoHcGF5bG9hZCI4ChNDaGF0U25hcHNob3RVcGRhdGVkEiEKBGNoYXQYASABKAsyEy5pbXB1bHNlLmNoYXRzLkNoYXQiMAoLQ2hhdERlbGV0ZWQSDwoHY2hhdF9pZBgBIAEoAxIQCgh1c2VyX2lkcxgCIAMoAyKDAwoVQ2hhdE1pZ3JhdGVkVG9DaGFubmVsEhMKC29sZF9jaGF0X2lkGAEgASgDEhYKDm5ld19jaGFubmVsX2lkGAIgASgDEjAKB21lbWJlcnMYAyADKAsyHy5pbXB1bHNlLmV2ZW50cy5jaGF0cy5NZW1iZXJQdHMSEAoIYWN0b3JfaWQYBCABKAMSDQoFdGl0bGUYBSABKAkSGwoTb2xkX2NoYXRfbWVzc2FnZV9pZBgGIAEoAxIUCgxvbGRfY2hhdF9wdHMYByABKAMSFwoPbmV3X2NoYW5uZWxfcHRzGAggASgDEk0KE2Zhbm91dF9hZG1pbl9yaWdodHMYCSADKAsyMC5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0RXZlbnRNZW1iZXJBZG1pblJpZ2h0cxJPChRmYW5vdXRfYmFubmVkX3JpZ2h0cxgKIAMoCzIxLmltcHVsc2UuZXZlbnRzLmNoYXRzLkNoYXRFdmVudE1lbWJlckJhbm5lZFJpZ2h0cyJdChpDaGF0RXZlbnRNZW1iZXJBZG1pblJpZ2h0cxIPCgd1c2VyX2lkGAEgASgDEi4KBnJpZ2h0cxgCIAEoCzIeLmltcHVsc2UuY2hhdHMuQ2hhdEFkbWluUmlnaHRzIl8KG0NoYXRFdmVudE1lbWJlckJhbm5lZFJpZ2h0cxIPCgd1c2VyX2lkGAEgASgDEi8KBnJpZ2h0cxgCIAEoCzIfLmltcHVsc2UuY2hhdHMuQ2hhdEJhbm5lZFJpZ2h0cyKzAwoRTWVtYmVyc2hpcENoYW5nZWQSDwoHY2hhdF9pZBgBIAEoAxIPCgd1c2VyX2lkGAIgASgDEj4KBmFjdGlvbhgDIAEoDjIuLmltcHVsc2UuZXZlbnRzLmNoYXRzLk1lbWJlcnNoaXBDaGFuZ2VkLkFjdGlvbhIRCgRyYW5rGAQgASgJSACIAQESFQoIYWN0b3JfaWQYBSABKANIAYgBARIhCgRjaGF0GAYgASgLMhMuaW1wdWxzZS5jaGF0cy5DaGF0ItgBCgZBY3Rpb24SFgoSQUNUSU9OX1VOU1BFQ0lGSUVEEAASEQoNQUNUSU9OX0pPSU5FRBABEg8KC0FDVElPTl9MRUZUEAISEQoNQUNUSU9OX0tJQ0tFRBADEhEKDUFDVElPTl9CQU5ORUQQBBIZChVBQ1RJT05fQURNSU5fUFJPTU9URUQQBRIYChRBQ1RJT05fQURNSU5fREVNT1RFRBAGEh4KGkFDVElPTl9DUkVBVE9SX1RSQU5TRkVSUkVEEAcSFwoTQUNUSU9OX1JBTktfQ0hBTkdFRBAIQgcKBV9yYW5rQgsKCV9hY3Rvcl9pZCJFChlGb3J1bVRvcGljU25hcHNob3RVcGRhdGVkEigKBXRvcGljGAEgASgLMhkuaW1wdWxzZS5jaGF0cy5Gb3J1bVRvcGljIjYKEUZvcnVtVG9waWNEZWxldGVkEg8KB2NoYXRfaWQYASABKAMSEAoIdG9waWNfaWQYAiABKAMi7wEKEUpvaW5SZXF1ZXN0SGlkZGVuEg8KB2NoYXRfaWQYASABKAMSDwoHdXNlcl9pZBgCIAEoAxJCCghkZWNpc2lvbhgDIAEoDjIwLmltcHVsc2UuZXZlbnRzLmNoYXRzLkpvaW5SZXF1ZXN0SGlkZGVuLkRlY2lzaW9uEhUKCGFjdG9yX2lkGAQgASgDSACIAQEiUAoIRGVjaXNpb24SGAoUREVDSVNJT05fVU5TUEVDSUZJRUQQABIVChFERUNJU0lPTl9BUFBST1ZFRBABEhMKD0RFQ0lTSU9OX0RFTklFRBACQgsKCV9hY3Rvcl9pZCLAAQoXSm9pblJlcXVlc3RzSGlkZGVuQmF0Y2gSDwoHY2hhdF9pZBgBIAEoAxITCgtyZXF1ZXN0X2lkcxgCIAMoAxIQCgh1c2VyX2lkcxgDIAMoAxJCCghkZWNpc2lvbhgEIAEoDjIwLmltcHVsc2UuZXZlbnRzLmNoYXRzLkpvaW5SZXF1ZXN0SGlkZGVuLkRlY2lzaW9uEhAKCGFjdG9yX2lkGAUgASgDEhcKD2lkZW1wb3RlbmN5X2tleRgGIAEoCSLJAQoWTWVtYmVyc2hpcENoYW5nZWRCYXRjaBIPCgdjaGF0X2lkGAEgASgDEhAKCHVzZXJfaWRzGAIgAygDEj4KBmFjdGlvbhgDIAEoDjIuLmltcHVsc2UuZXZlbnRzLmNoYXRzLk1lbWJlcnNoaXBDaGFuZ2VkLkFjdGlvbhIQCghhY3Rvcl9pZBgEIAEoAxIXCg9pZGVtcG90ZW5jeV9rZXkYBSABKAkSIQoEY2hhdBgGIAEoCzITLmltcHVsc2UuY2hhdHMuQ2hhdCKzAQoSQ2hhdEhpc3RvcnlEZWxldGVkEg8KB2NoYXRfaWQYASABKAMSFQoIdG9waWNfaWQYAiABKANIAIgBARIbCg5wYXJ0aWNpcGFudF9pZBgDIAEoA0gBiAEBEhYKDm1heF9tZXNzYWdlX2lkGAQgASgDEg4KBnJldm9rZRgFIAEoCBIQCghhY3Rvcl9pZBgGIAEoA0ILCglfdG9waWNfaWRCEQoPX3BhcnRpY2lwYW50X2lkIq8BCgtDaGF0Q3JlYXRlZBIPCgdjaGF0X2lkGAEgASgDEhIKCmNyZWF0b3JfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSFwoKdHRsX3BlcmlvZBgEIAEoBUgAiAEBEhIKCmNyZWF0ZWRfYXQYBSABKAMSMAoHbWVtYmVycxgGIAMoCzIfLmltcHVsc2UuZXZlbnRzLmNoYXRzLk1lbWJlclB0c0INCgtfdHRsX3BlcmlvZCLhAwoYQ2hhdFNlcnZpY2VNZXNzYWdlUG9zdGVkEg8KB2NoYXRfaWQYASABKAMSEgoKbWVzc2FnZV9pZBgCIAEoBRIQCghhY3Rvcl9pZBgDIAEoAxITCgthY3Rpb25fanNvbhgEIAEoCRIRCglwb3N0ZWRfYXQYBSABKAMSGgoScmVjaXBpZW50X3VzZXJfaWRzGAYgAygDEhgKEG1lbWJlcnNoaXBfZXBvY2gYByABKAMSCwoDcHRzGAggASgDEhgKEGFjdG9yX21lc3NhZ2VfaWQYCSABKAUSGQoMbGVmdF91c2VyX2lkGAogASgDSACIAQESTQoTZmFub3V0X2FkbWluX3JpZ2h0cxgLIAMoCzIwLmltcHVsc2UuZXZlbnRzLmNoYXRzLkNoYXRFdmVudE1lbWJlckFkbWluUmlnaHRzEk8KFGZhbm91dF9iYW5uZWRfcmlnaHRzGAwgAygLMjEuaW1wdWxzZS5ldmVudHMuY2hhdHMuQ2hhdEV2ZW50TWVtYmVyQmFubmVkUmlnaHRzEj0KDWhpc3RvcnlfZ3JhbnQYDSABKAsyJi5pbXB1bHNlLmV2ZW50cy5jaGF0cy5DaGF0SGlzdG9yeUdyYW50Qg8KDV9sZWZ0X3VzZXJfaWQiOwoQQ2hhdEhpc3RvcnlHcmFudBIQCgh1c2VyX2lkcxgBIAMoAxIVCg1tZXNzYWdlX2NvdW50GAIgASgFIj0KCU1lbWJlclB0cxIPCgd1c2VyX2lkGAEgASgDEgsKA3B0cxgCIAEoAxISCgptZXNzYWdlX2lkGAMgASgFIqgBChNCYW5uZWRSaWdodHNDaGFuZ2VkEg8KB2NoYXRfaWQYASABKAMSDwoHdXNlcl9pZBgCIAEoAxI3CgZyaWdodHMYAyABKAsyJy5pbXB1bHNlLmNoYXRzLkNoYXRCYW5uZWRSaWdodHNTbmFwc2hvdBIVCghhY3Rvcl9pZBgEIAEoA0gAiAEBEhIKCmlzX2RlZmF1bHQYBSABKAhCCwoJX2FjdG9yX2lkQh+qAhxJbXB1bHNlTS5Qcm90b3MuRXZlbnRzLkNoYXRzYgZwcm90bzM", [file_impulse_events_events_common, file_impulse_chats_chat_types]);
 
 /**
  * The canonical impulse.chats.Chat message already covers both group
@@ -245,6 +245,31 @@ export type ChatMigratedToChannel = Message<"impulse.events.chats.ChatMigratedTo
    * @generated from field: int64 new_channel_pts = 8;
    */
   newChannelPts: bigint;
+
+  /**
+   * The audience's own admin rights, captured by MigrateChatCommand inside the migration
+   * transaction -- mirrors ValidateMembershipResponse.fanout_admin_rights (chat_service.proto)
+   * exactly, and for the same reason (#419): messageActionChatMigrateTo reaches every member's
+   * OWN history as an ordinary basic-group message (MigrationServiceMessageWriter), and the
+   * consumer that fans it out cannot re-derive a per-recipient answer from a shared snapshot at
+   * delivery time -- a roster read at redelivery answers with whatever the membership has become
+   * since, and Kafka is at-least-once. The command captures it here instead, beside the audience
+   * it already holds. Absent from the list means an ordinary member, which is why it stays small:
+   * O(admins), never O(members).
+   *
+   * @generated from field: repeated impulse.events.chats.ChatEventMemberAdminRights fanout_admin_rights = 9;
+   */
+  fanoutAdminRights: ChatEventMemberAdminRights[];
+
+  /**
+   * The banned-rights twin of fanout_admin_rights above, for the identical reason: each restricted
+   * member's OWN restriction, captured with the audience rather than read again at delivery time.
+   * Absent from the list means unrestricted, which is why it stays small: O(restricted), never
+   * O(members).
+   *
+   * @generated from field: repeated impulse.events.chats.ChatEventMemberBannedRights fanout_banned_rights = 10;
+   */
+  fanoutBannedRights: ChatEventMemberBannedRights[];
 };
 
 /**
@@ -253,6 +278,64 @@ export type ChatMigratedToChannel = Message<"impulse.events.chats.ChatMigratedTo
  */
 export const ChatMigratedToChannelSchema: GenMessage<ChatMigratedToChannel> = /*@__PURE__*/
   messageDesc(file_impulse_events_chat_events, 3);
+
+/**
+ * One recipient's admin rights, addressed by user id. Mirrors MemberAdminRights on
+ * ValidateMembershipResponse (chat_service.proto) field for field; declared again here, rather
+ * than importing that service's proto, because an events lane must not couple its wire shape to a
+ * service contract it does not otherwise depend on -- message_events.proto's own
+ * MemberAdminRightsAssignment makes the identical choice for the send lane. Named with a
+ * ChatEvent prefix, unlike either of those two, because this file's own consumers
+ * (MigrationServiceMessageWriter, ChatServiceMessageWriter) sit between both namespaces at once --
+ * they read impulse.chats.* rights payloads off THIS type and write impulse.events.messages.*
+ * assignments from it, so the bare "MemberAdminRights"/"MemberAdminRightsAssignment" spellings
+ * those two already use would make the type ambiguous the moment a file needed all three.
+ *
+ * @generated from message impulse.events.chats.ChatEventMemberAdminRights
+ */
+export type ChatEventMemberAdminRights = Message<"impulse.events.chats.ChatEventMemberAdminRights"> & {
+  /**
+   * @generated from field: int64 user_id = 1;
+   */
+  userId: bigint;
+
+  /**
+   * @generated from field: impulse.chats.ChatAdminRights rights = 2;
+   */
+  rights?: ChatAdminRights | undefined;
+};
+
+/**
+ * Describes the message impulse.events.chats.ChatEventMemberAdminRights.
+ * Use `create(ChatEventMemberAdminRightsSchema)` to create a new message.
+ */
+export const ChatEventMemberAdminRightsSchema: GenMessage<ChatEventMemberAdminRights> = /*@__PURE__*/
+  messageDesc(file_impulse_events_chat_events, 4);
+
+/**
+ * The banned-rights twin of ChatEventMemberAdminRights above, for the same reason and the same
+ * shape.
+ *
+ * @generated from message impulse.events.chats.ChatEventMemberBannedRights
+ */
+export type ChatEventMemberBannedRights = Message<"impulse.events.chats.ChatEventMemberBannedRights"> & {
+  /**
+   * @generated from field: int64 user_id = 1;
+   */
+  userId: bigint;
+
+  /**
+   * @generated from field: impulse.chats.ChatBannedRights rights = 2;
+   */
+  rights?: ChatBannedRights | undefined;
+};
+
+/**
+ * Describes the message impulse.events.chats.ChatEventMemberBannedRights.
+ * Use `create(ChatEventMemberBannedRightsSchema)` to create a new message.
+ */
+export const ChatEventMemberBannedRightsSchema: GenMessage<ChatEventMemberBannedRights> = /*@__PURE__*/
+  messageDesc(file_impulse_events_chat_events, 5);
 
 /**
  * @generated from message impulse.events.chats.MembershipChanged
@@ -282,6 +365,26 @@ export type MembershipChanged = Message<"impulse.events.chats.MembershipChanged"
    * @generated from field: optional int64 actor_id = 5;
    */
   actorId?: bigint | undefined;
+
+  /**
+   * The chat snapshot this very action produced, carried on the action's own event.
+   *
+   * One action on one aggregate is ONE ChatEvent. Before this field the producing command wrote a
+   * separate ChatSnapshotUpdated event beside the membership one, on the same aggregate at the same
+   * version, and both resolved through ChatEventProjector.ResolveUpdateType to UpdateType.ChatSettings
+   * -- so every member received updateChat twice for one membership change. updateChat means "re-read
+   * this entity" (.demo/telegram-docs-text/constructor/updateChat.md:1-5); a second copy tells the
+   * client nothing and costs a durable row and a Centrifugo publish per member.
+   *
+   * OPTIONAL BY CONSTRUCTION, and readers must gate on PRESENCE, never on the payload case: during a
+   * rolling deploy an older producer still emits this payload with the field unset, and a default Chat
+   * (id 0, type UNSPECIFIED, participants_count 0) written into peer_chats would wipe the card at a
+   * version the LWW guard has already spent. ChatEvent.TryGetChatSnapshot is the one accessor that
+   * gets this right; nothing else may walk the payload case for a snapshot.
+   *
+   * @generated from field: impulse.chats.Chat chat = 6;
+   */
+  chat?: Chat | undefined;
 };
 
 /**
@@ -289,7 +392,7 @@ export type MembershipChanged = Message<"impulse.events.chats.MembershipChanged"
  * Use `create(MembershipChangedSchema)` to create a new message.
  */
 export const MembershipChangedSchema: GenMessage<MembershipChanged> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 4);
+  messageDesc(file_impulse_events_chat_events, 6);
 
 /**
  * @generated from enum impulse.events.chats.MembershipChanged.Action
@@ -334,13 +437,23 @@ export enum MembershipChanged_Action {
    * @generated from enum value: ACTION_CREATOR_TRANSFERRED = 7;
    */
   CREATOR_TRANSFERRED = 7,
+
+  /**
+   * A participant's display tag changed, with no role change at all. Distinct from
+   * ACTION_ADMIN_PROMOTED (which this action used to share) so ChatEventProjector can tell the two
+   * apart: canon emits updateChatParticipantRank for this one, only for basic groups
+   * (.demo/telegram-docs-text/api/rank.md:595-601), never updateChat/updateChannel.
+   *
+   * @generated from enum value: ACTION_RANK_CHANGED = 8;
+   */
+  RANK_CHANGED = 8,
 }
 
 /**
  * Describes the enum impulse.events.chats.MembershipChanged.Action.
  */
 export const MembershipChanged_ActionSchema: GenEnum<MembershipChanged_Action> = /*@__PURE__*/
-  enumDesc(file_impulse_events_chat_events, 4, 0);
+  enumDesc(file_impulse_events_chat_events, 6, 0);
 
 /**
  * @generated from message impulse.events.chats.ForumTopicSnapshotUpdated
@@ -357,7 +470,7 @@ export type ForumTopicSnapshotUpdated = Message<"impulse.events.chats.ForumTopic
  * Use `create(ForumTopicSnapshotUpdatedSchema)` to create a new message.
  */
 export const ForumTopicSnapshotUpdatedSchema: GenMessage<ForumTopicSnapshotUpdated> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 5);
+  messageDesc(file_impulse_events_chat_events, 7);
 
 /**
  * @generated from message impulse.events.chats.ForumTopicDeleted
@@ -379,7 +492,7 @@ export type ForumTopicDeleted = Message<"impulse.events.chats.ForumTopicDeleted"
  * Use `create(ForumTopicDeletedSchema)` to create a new message.
  */
 export const ForumTopicDeletedSchema: GenMessage<ForumTopicDeleted> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 6);
+  messageDesc(file_impulse_events_chat_events, 8);
 
 /**
  * @generated from message impulse.events.chats.JoinRequestHidden
@@ -411,7 +524,7 @@ export type JoinRequestHidden = Message<"impulse.events.chats.JoinRequestHidden"
  * Use `create(JoinRequestHiddenSchema)` to create a new message.
  */
 export const JoinRequestHiddenSchema: GenMessage<JoinRequestHidden> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 7);
+  messageDesc(file_impulse_events_chat_events, 9);
 
 /**
  * @generated from enum impulse.events.chats.JoinRequestHidden.Decision
@@ -437,7 +550,7 @@ export enum JoinRequestHidden_Decision {
  * Describes the enum impulse.events.chats.JoinRequestHidden.Decision.
  */
 export const JoinRequestHidden_DecisionSchema: GenEnum<JoinRequestHidden_Decision> = /*@__PURE__*/
-  enumDesc(file_impulse_events_chat_events, 7, 0);
+  enumDesc(file_impulse_events_chat_events, 9, 0);
 
 /**
  * @generated from message impulse.events.chats.JoinRequestsHiddenBatch
@@ -479,7 +592,7 @@ export type JoinRequestsHiddenBatch = Message<"impulse.events.chats.JoinRequests
  * Use `create(JoinRequestsHiddenBatchSchema)` to create a new message.
  */
 export const JoinRequestsHiddenBatchSchema: GenMessage<JoinRequestsHiddenBatch> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 8);
+  messageDesc(file_impulse_events_chat_events, 10);
 
 /**
  * @generated from message impulse.events.chats.MembershipChangedBatch
@@ -509,6 +622,15 @@ export type MembershipChangedBatch = Message<"impulse.events.chats.MembershipCha
    * @generated from field: string idempotency_key = 5;
    */
   idempotencyKey: string;
+
+  /**
+   * The chat snapshot this batch produced. Same contract as MembershipChanged.chat above: one action
+   * is one event, and a reader gates on field PRESENCE rather than on the payload case, because an
+   * older producer's event during a rolling deploy leaves it unset.
+   *
+   * @generated from field: impulse.chats.Chat chat = 6;
+   */
+  chat?: Chat | undefined;
 };
 
 /**
@@ -516,7 +638,7 @@ export type MembershipChangedBatch = Message<"impulse.events.chats.MembershipCha
  * Use `create(MembershipChangedBatchSchema)` to create a new message.
  */
 export const MembershipChangedBatchSchema: GenMessage<MembershipChangedBatch> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 9);
+  messageDesc(file_impulse_events_chat_events, 11);
 
 /**
  * @generated from message impulse.events.chats.ChatHistoryDeleted
@@ -558,7 +680,7 @@ export type ChatHistoryDeleted = Message<"impulse.events.chats.ChatHistoryDelete
  * Use `create(ChatHistoryDeletedSchema)` to create a new message.
  */
 export const ChatHistoryDeletedSchema: GenMessage<ChatHistoryDeleted> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 10);
+  messageDesc(file_impulse_events_chat_events, 12);
 
 /**
  * @generated from message impulse.events.chats.ChatCreated
@@ -608,7 +730,7 @@ export type ChatCreated = Message<"impulse.events.chats.ChatCreated"> & {
  * Use `create(ChatCreatedSchema)` to create a new message.
  */
 export const ChatCreatedSchema: GenMessage<ChatCreated> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 11);
+  messageDesc(file_impulse_events_chat_events, 13);
 
 /**
  * A service message a chat-lifecycle action posts into the chat's own history: a rename, a member
@@ -702,6 +824,72 @@ export type ChatServiceMessagePosted = Message<"impulse.events.chats.ChatService
    * @generated from field: int64 pts = 8;
    */
   pts: bigint;
+
+  /**
+   * What the ACTOR calls this message, minted out of the actor's own account box by the command,
+   * in the same reservation as the pts above.
+   *
+   * message_id is the conversation's storage sequence and is not a client-visible id for a basic
+   * group: canon numbers a basic group's messages out of each ACCOUNT's own common sequence
+   * (.demo/telegram-docs-text/api/updates.md:853-859). The RPC answers the actor with THIS number,
+   * so it has to exist before the answer is built -- which is why it is minted at command time and
+   * carried, rather than minted by the Messages-side writer a Kafka round trip later. The writer
+   * hands it to OwnerMessageIdAssigner as the sender's already-reserved id and mints every other
+   * recipient around it.
+   *
+   * Zero for a megagroup or a broadcast, and that is an absence rather than a number: a channel's
+   * ids are the same in every account (:886-888), so message_id already IS what every reader calls
+   * it and there is no per-owner id to carry.
+   *
+   * @generated from field: int32 actor_message_id = 9;
+   */
+  actorMessageId: number;
+
+  /**
+   * The recipient recipient_user_ids above re-added ONLY because this action just removed them
+   * (ChatServiceMessageEmitter's alsoInclude) -- canon delivers a removal to the person removed,
+   * and by the time this event is built the command has already taken them out of the roster this
+   * writer would otherwise be re-emitting them into as an ordinary, still-present member. Absent
+   * for every action that removes nobody. The message lane re-emit
+   * (ChatServiceMessageWriter.BuildDeliveryEvent) carries this straight onto NewMessage.left_user_id
+   * so the recipient's own copy of the chat can say `left: true` instead of `false`.
+   *
+   * @generated from field: optional int64 left_user_id = 10;
+   */
+  leftUserId?: bigint | undefined;
+
+  /**
+   * The audience's own admin rights, captured by ChatServiceMessageEmitter alongside the audience
+   * it already resolves for recipient_user_ids -- same shape and same reason as
+   * ChatMigratedToChannel.fanout_admin_rights above, since this event's own re-emit onto the
+   * message lane (ChatServiceMessageWriter.BuildDeliveryEvent) is the same "ordinary NewMessage
+   * for a basic group" case that field exists for. Empty for a megagroup/broadcast posting: that
+   * arm never resolves an audience at all (#419), a channel is read fan-out, and the wire builder
+   * is licensed to answer with `min` there (constructor/channel.md:5-40) rather than needing this.
+   *
+   * @generated from field: repeated impulse.events.chats.ChatEventMemberAdminRights fanout_admin_rights = 11;
+   */
+  fanoutAdminRights: ChatEventMemberAdminRights[];
+
+  /**
+   * The banned-rights twin of fanout_admin_rights above, for the identical reason.
+   *
+   * @generated from field: repeated impulse.events.chats.ChatEventMemberBannedRights fanout_banned_rights = 12;
+   */
+  fanoutBannedRights: ChatEventMemberBannedRights[];
+
+  /**
+   * messages.addChatUser's fwd_limit, "Number of last messages to be forwarded"
+   * (.demo/telegram-docs-text/method/messages.addChatUser.md:33-35), carried to the writer that owns
+   * the message store. A basic group's messages are numbered per account
+   * (.demo/telegram-docs-text/api/updates.md:853-859), so the people this line adds hold no number
+   * for anything written before it until one is minted for them -- and the writer mints those BEFORE
+   * this line's own per-owner ids, so the history they are given sits below the line announcing them.
+   * Absent for every action that adds nobody, and for an addition asked with fwd_limit = 0.
+   *
+   * @generated from field: impulse.events.chats.ChatHistoryGrant history_grant = 13;
+   */
+  historyGrant?: ChatHistoryGrant | undefined;
 };
 
 /**
@@ -709,7 +897,36 @@ export type ChatServiceMessagePosted = Message<"impulse.events.chats.ChatService
  * Use `create(ChatServiceMessagePostedSchema)` to create a new message.
  */
 export const ChatServiceMessagePostedSchema: GenMessage<ChatServiceMessagePosted> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 12);
+  messageDesc(file_impulse_events_chat_events, 14);
+
+/**
+ * Who is given how much of a basic group's existing history on joining it.
+ *
+ * @generated from message impulse.events.chats.ChatHistoryGrant
+ */
+export type ChatHistoryGrant = Message<"impulse.events.chats.ChatHistoryGrant"> & {
+  /**
+   * The members this action added, in the order it added them.
+   *
+   * @generated from field: repeated int64 user_ids = 1;
+   */
+  userIds: bigint[];
+
+  /**
+   * How many of the chat's most recent messages each of them receives, already clamped to canon's
+   * ceiling ("up to 100", .demo/tdlib/td/generate/scheme/td_api.tl:12635).
+   *
+   * @generated from field: int32 message_count = 2;
+   */
+  messageCount: number;
+};
+
+/**
+ * Describes the message impulse.events.chats.ChatHistoryGrant.
+ * Use `create(ChatHistoryGrantSchema)` to create a new message.
+ */
+export const ChatHistoryGrantSchema: GenMessage<ChatHistoryGrant> = /*@__PURE__*/
+  messageDesc(file_impulse_events_chat_events, 15);
 
 /**
  * @generated from message impulse.events.chats.MemberPts
@@ -724,6 +941,29 @@ export type MemberPts = Message<"impulse.events.chats.MemberPts"> & {
    * @generated from field: int64 pts = 2;
    */
   pts: bigint;
+
+  /**
+   * What THIS member calls the creation service message, minted out of their own account box by the
+   * command that created the chat.
+   *
+   * A basic group's messages are numbered out of each account's own common sequence
+   * (.demo/telegram-docs-text/api/updates.md:853-859), so the chat's storage seat -- id 1, kept free
+   * by CreationServiceMessageId -- names the line for nobody. It is minted at COMMAND time and
+   * carried here rather than minted by the Messages-side writer, because the chat lane's own
+   * projector announces this line to every member and is a different consumer group from that
+   * writer: a number minted after the event cannot be announced with it.
+   *
+   * Filled on the Migrated event's member list too, and for the same reason. The line that list
+   * numbers is the OLD basic group's closing messageActionChatMigrateTo, which is a basic-group
+   * message and therefore one id per account; MigrateChatCommand mints every member's, the requester
+   * out of the same box reservation as their pts and everyone else beside it, and
+   * MigrationServiceMessageWriter.AssignmentsOf refuses a zero exactly as the creation writer does.
+   * The CHANNEL half of a migration carries nothing here and needs nothing: a channel's ids are the
+   * same in every account (:886-888), and its opening line takes CreationServiceMessageId.Value.
+   *
+   * @generated from field: int32 message_id = 3;
+   */
+  messageId: number;
 };
 
 /**
@@ -731,7 +971,7 @@ export type MemberPts = Message<"impulse.events.chats.MemberPts"> & {
  * Use `create(MemberPtsSchema)` to create a new message.
  */
 export const MemberPtsSchema: GenMessage<MemberPts> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 13);
+  messageDesc(file_impulse_events_chat_events, 16);
 
 /**
  * Emitted by EditBannedCommand on partial-rights edits (no role flip), and by
@@ -774,5 +1014,5 @@ export type BannedRightsChanged = Message<"impulse.events.chats.BannedRightsChan
  * Use `create(BannedRightsChangedSchema)` to create a new message.
  */
 export const BannedRightsChangedSchema: GenMessage<BannedRightsChanged> = /*@__PURE__*/
-  messageDesc(file_impulse_events_chat_events, 14);
+  messageDesc(file_impulse_events_chat_events, 17);
 

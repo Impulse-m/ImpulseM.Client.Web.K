@@ -6,89 +6,13 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { GiftCodeOption, LangPackString, Language, LanguageSchema, PremiumFeature, Theme, ThemeSchema, WallPaper, WallPaperSchema } from "./config_types_pb";
 import { file_impulse_config_config_types } from "./config_types_pb";
-import type { Peer } from "../peer_pb";
-import { file_impulse_peer } from "../peer_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file impulse/config/config_service.proto.
  */
 export const file_impulse_config_config_service: GenFile = /*@__PURE__*/
-  fileDesc("CiNpbXB1bHNlL2NvbmZpZy9jb25maWdfc2VydmljZS5wcm90bxIOaW1wdWxzZS5jb25maWciegoSQ3JlYXRlVGhlbWVSZXF1ZXN0Eg0KBXRpdGxlGAEgASgJEgwKBHNsdWcYAiABKAkSFQoNc2V0dGluZ3NfanNvbhgDIAEoCRITCgZmb3JtYXQYBCABKAlIAIgBARIQCghmb3JfY2hhdBgFIAEoCEIJCgdfZm9ybWF0Iq4BChJVcGRhdGVUaGVtZVJlcXVlc3QSEAoIdGhlbWVfaWQYASABKAMSEgoFdGl0bGUYAiABKAlIAIgBARIRCgRzbHVnGAMgASgJSAGIAQESGgoNc2V0dGluZ3NfanNvbhgEIAEoCUgCiAEBEhMKBmZvcm1hdBgFIAEoCUgDiAEBQggKBl90aXRsZUIHCgVfc2x1Z0IQCg5fc2V0dGluZ3NfanNvbkIJCgdfZm9ybWF0Il8KD0dldFRoZW1lUmVxdWVzdBIQCgh0aGVtZV9pZBgBIAEoAxITCgZmb3JtYXQYAiABKAlIAIgBARIRCgRzbHVnGAMgASgJSAGIAQFCCQoHX2Zvcm1hdEIHCgVfc2x1ZyIgChBHZXRUaGVtZXNSZXF1ZXN0EgwKBGhhc2gYASABKAMiXgoRR2V0VGhlbWVzUmVzcG9uc2USJQoGdGhlbWVzGAEgAygLMhUuaW1wdWxzZS5jb25maWcuVGhlbWUSDAoEaGFzaBgCIAEoAxIUCgxub3RfbW9kaWZpZWQYAyABKAgiXQoTSW5zdGFsbFRoZW1lUmVxdWVzdBIQCgh0aGVtZV9pZBgBIAEoAxIMCgRkYXJrGAIgASgIEhcKCmJhc2VfdGhlbWUYAyABKAlIAIgBAUINCgtfYmFzZV90aGVtZSIWChRJbnN0YWxsVGhlbWVSZXNwb25zZSIkChRHZXRDaGF0VGhlbWVzUmVxdWVzdBIMCgRoYXNoGAEgASgDImIKFUdldENoYXRUaGVtZXNSZXNwb25zZRIlCgZ0aGVtZXMYASADKAsyFS5pbXB1bHNlLmNvbmZpZy5UaGVtZRIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCIkChRHZXRXYWxsUGFwZXJzUmVxdWVzdBIMCgRoYXNoGAEgASgDImoKFUdldFdhbGxQYXBlcnNSZXNwb25zZRItCgp3YWxscGFwZXJzGAEgAygLMhkuaW1wdWxzZS5jb25maWcuV2FsbFBhcGVyEgwKBGhhc2gYAiABKAMSFAoMbm90X21vZGlmaWVkGAMgASgIIkcKE0dldFdhbGxQYXBlclJlcXVlc3QSFgoMd2FsbHBhcGVyX2lkGAEgASgDSAASDgoEc2x1ZxgCIAEoCUgAQggKBmxvb2t1cCJ8ChZVcGxvYWRXYWxsUGFwZXJSZXF1ZXN0Eg8KB2ZpbGVfaWQYASABKAMSEQoJbWltZV90eXBlGAIgASgJEhAKCGZvcl9jaGF0GAMgASgIEhoKDXNldHRpbmdzX2pzb24YBCABKAlIAIgBAUIQCg5fc2V0dGluZ3NfanNvbiJqChRTYXZlV2FsbFBhcGVyUmVxdWVzdBIUCgx3YWxscGFwZXJfaWQYASABKAMSDgoGdW5zYXZlGAIgASgIEhoKDXNldHRpbmdzX2pzb24YAyABKAlIAIgBAUIQCg5fc2V0dGluZ3NfanNvbiIXChVTYXZlV2FsbFBhcGVyUmVzcG9uc2UiGAoWUmVzZXRXYWxsUGFwZXJzUmVxdWVzdCIZChdSZXNldFdhbGxQYXBlcnNSZXNwb25zZSIYChZHZXRQcmVtaXVtUHJvbW9SZXF1ZXN0InsKGVByZW1pdW1TdWJzY3JpcHRpb25PcHRpb24SDgoGbW9udGhzGAEgASgFEhAKCGN1cnJlbmN5GAIgASgJEg4KBmFtb3VudBgDIAEoAxIaCg1zdG9yZV9wcm9kdWN0GAQgASgJSACIAQFCEAoOX3N0b3JlX3Byb2R1Y3Qi0wEKF0dldFByZW1pdW1Qcm9tb1Jlc3BvbnNlEhMKC2Rlc2NyaXB0aW9uGAEgASgJEjAKCGZlYXR1cmVzGAIgAygLMh4uaW1wdWxzZS5jb25maWcuUHJlbWl1bUZlYXR1cmUSFgoOdmlkZW9fc2VjdGlvbnMYAyADKAkSFgoOdmlkZW9fZmlsZV9pZHMYBCADKAMSQQoOcGVyaW9kX29wdGlvbnMYBSADKAsyKS5pbXB1bHNlLmNvbmZpZy5QcmVtaXVtU3Vic2NyaXB0aW9uT3B0aW9uIlAKIEdldFByZW1pdW1HaWZ0Q29kZU9wdGlvbnNSZXF1ZXN0EhoKDWJvb3N0X3BlZXJfaWQYASABKANIAIgBAUIQCg5fYm9vc3RfcGVlcl9pZCJUCiFHZXRQcmVtaXVtR2lmdENvZGVPcHRpb25zUmVzcG9uc2USLwoHb3B0aW9ucxgBIAMoCzIeLmltcHVsc2UuY29uZmlnLkdpZnRDb2RlT3B0aW9uIiMKE0dldEFwcENvbmZpZ1JlcXVlc3QSDAoEaGFzaBgBIAEoAyJPChRHZXRBcHBDb25maWdSZXNwb25zZRITCgtjb25maWdfanNvbhgBIAEoCRIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCIlChNHZXRBcHBVcGRhdGVSZXF1ZXN0Eg4KBnNvdXJjZRgBIAEoCSKYAQoUR2V0QXBwVXBkYXRlUmVzcG9uc2USEAoDdXJsGAEgASgJSACIAQESEQoEdGV4dBgCIAEoCUgBiAEBEhAKCGNhbl9za2lwGAMgASgIEg8KAmlkGAQgASgFSAKIAQESFAoHdmVyc2lvbhgFIAEoCUgDiAEBQgYKBF91cmxCBwoFX3RleHRCBQoDX2lkQgoKCF92ZXJzaW9uIhUKE0dldE5lYXJlc3REY1JlcXVlc3QiRwoUR2V0TmVhcmVzdERjUmVzcG9uc2USDwoHY291bnRyeRgBIAEoCRINCgVkY19pZBgCIAEoBRIPCgd0aGlzX2RjGAMgASgFIiMKE0dldExhbmd1YWdlc1JlcXVlc3QSDAoEaGFzaBgBIAEoAyJnChRHZXRMYW5ndWFnZXNSZXNwb25zZRIrCglsYW5ndWFnZXMYASADKAsyGC5pbXB1bHNlLmNvbmZpZy5MYW5ndWFnZRIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCI6ChJHZXRMYW5ndWFnZVJlcXVlc3QSEQoJbGFuZ19jb2RlGAEgASgJEhEKCWxhbmdfcGFjaxgCIAEoCSI6ChJHZXRMYW5nUGFja1JlcXVlc3QSEQoJbGFuZ19jb2RlGAEgASgJEhEKCWxhbmdfcGFjaxgCIAEoCSKAAQoTR2V0TGFuZ1BhY2tSZXNwb25zZRIvCgdzdHJpbmdzGAEgAygLMh4uaW1wdWxzZS5jb25maWcuTGFuZ1BhY2tTdHJpbmcSEQoJbGFuZ19jb2RlGAIgASgJEg8KB3ZlcnNpb24YAyABKAUSFAoMZnJvbV92ZXJzaW9uGAQgASgFIkcKEUdldFN0cmluZ3NSZXF1ZXN0EhEKCWxhbmdfY29kZRgBIAEoCRIMCgRrZXlzGAIgAygJEhEKCWxhbmdfcGFjaxgDIAEoCSJFChJHZXRTdHJpbmdzUmVzcG9uc2USLwoHc3RyaW5ncxgBIAMoCzIeLmltcHVsc2UuY29uZmlnLkxhbmdQYWNrU3RyaW5nIlYKGEdldExhbmdEaWZmZXJlbmNlUmVxdWVzdBIRCglsYW5nX2NvZGUYASABKAkSFAoMZnJvbV92ZXJzaW9uGAIgASgFEhEKCWxhbmdfcGFjaxgDIAEoCSISChBHZXRDb25maWdSZXF1ZXN0IsYCChFHZXRDb25maWdSZXNwb25zZRIPCgdleHBpcmVzGAEgASgFEhoKEm1heF9tZXNzYWdlX2xlbmd0aBgCIAEoBRIXCg9lZGl0X3RpbWVfbGltaXQYAyABKAUSFgoObWF4X2dyb3VwX3NpemUYBCABKAUSGwoTbWF4X2ZvcndhcmRlZF9jb3VudBgFIAEoBRIdChBkZWZhdWx0X3JlYWN0aW9uGAYgASgJSACIAQESIAoTZ2lmX3NlYXJjaF91c2VybmFtZRgHIAEoCUgBiAEBEhwKD2F1dG9sb2dpbl90b2tlbhgIIAEoCUgCiAEBEhYKDmlzX3Rlc3Rfc2VydmVyGAkgASgIQhMKEV9kZWZhdWx0X3JlYWN0aW9uQhYKFF9naWZfc2VhcmNoX3VzZXJuYW1lQhIKEF9hdXRvbG9naW5fdG9rZW4iNAoQU2F2ZVRoZW1lUmVxdWVzdBIQCgh0aGVtZV9pZBgBIAEoAxIOCgZ1bnNhdmUYAiABKAgiIgoRU2F2ZVRoZW1lUmVzcG9uc2USDQoFc2F2ZWQYASABKAgibQoTU2V0Q2hhdFRoZW1lUmVxdWVzdBIPCgdjaGF0X2lkGAEgASgDEhgKC3RoZW1lX2Vtb2ppGAIgASgJSACIAQESGwoEcGVlchgDIAEoCzINLmltcHVsc2UuUGVlckIOCgxfdGhlbWVfZW1vamkiFgoUU2V0Q2hhdFRoZW1lUmVzcG9uc2UiSgoOVGVybXNPZlNlcnZpY2USCgoCaWQYASABKAkSDAoEdGV4dBgCIAEoCRIPCgdtaW5fYWdlGAMgASgFEg0KBXBvcHVwGAQgASgIIiAKHkdldFRlcm1zT2ZTZXJ2aWNlVXBkYXRlUmVxdWVzdCJsCh9HZXRUZXJtc09mU2VydmljZVVwZGF0ZVJlc3BvbnNlEjAKA3RvcxgBIAEoCzIeLmltcHVsc2UuY29uZmlnLlRlcm1zT2ZTZXJ2aWNlSACIAQESDwoHZXhwaXJlcxgCIAEoA0IGCgRfdG9zIi0KG0FjY2VwdFRlcm1zT2ZTZXJ2aWNlUmVxdWVzdBIOCgZ0b3NfaWQYASABKAkiHgocQWNjZXB0VGVybXNPZlNlcnZpY2VSZXNwb25zZSLAAQoPUGVlckNvbG9yT3B0aW9uEhAKCGNvbG9yX2lkGAEgASgFEg4KBmNvbG9ycxgCIAMoBRITCgtkYXJrX2NvbG9ycxgDIAMoBRIOCgZoaWRkZW4YBCABKAgSHgoRY2hhbm5lbF9taW5fbGV2ZWwYBSABKANIAIgBARIcCg9ncm91cF9taW5fbGV2ZWwYBiABKANIAYgBAUIUChJfY2hhbm5lbF9taW5fbGV2ZWxCEgoQX2dyb3VwX21pbl9sZXZlbCIkChRHZXRQZWVyQ29sb3JzUmVxdWVzdBIMCgRoYXNoGAEgASgDImwKFUdldFBlZXJDb2xvcnNSZXNwb25zZRIvCgZjb2xvcnMYASADKAsyHy5pbXB1bHNlLmNvbmZpZy5QZWVyQ29sb3JPcHRpb24SDAoEaGFzaBgCIAEoAxIUCgxub3RfbW9kaWZpZWQYAyABKAgiKwobR2V0UGVlclByb2ZpbGVDb2xvcnNSZXF1ZXN0EgwKBGhhc2gYASABKAMicwocR2V0UGVlclByb2ZpbGVDb2xvcnNSZXNwb25zZRIvCgZjb2xvcnMYASADKAsyHy5pbXB1bHNlLmNvbmZpZy5QZWVyQ29sb3JPcHRpb24SDAoEaGFzaBgCIAEoAxIUCgxub3RfbW9kaWZpZWQYAyABKAgiPQoNVGltZXpvbmVFbnRyeRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhIKCnV0Y19vZmZzZXQYAyABKAUiJwoXR2V0VGltZXpvbmVzTGlzdFJlcXVlc3QSDAoEaGFzaBgBIAEoAyJwChhHZXRUaW1lem9uZXNMaXN0UmVzcG9uc2USMAoJdGltZXpvbmVzGAEgAygLMh0uaW1wdWxzZS5jb25maWcuVGltZXpvbmVFbnRyeRIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCJ8CgxDb3VudHJ5RW50cnkSDAoEaXNvMhgBIAEoCRIUCgxkZWZhdWx0X25hbWUYAiABKAkSDAoEbmFtZRgDIAEoCRIqCgVjb2RlcxgEIAMoCzIbLmltcHVsc2UuY29uZmlnLkNvdW50cnlDb2RlEg4KBmhpZGRlbhgFIAEoCCI/CgtDb3VudHJ5Q29kZRIMCgRjb2RlGAEgASgJEhAKCHByZWZpeGVzGAIgAygJEhAKCHBhdHRlcm5zGAMgAygJIjoKF0dldENvdW50cmllc0xpc3RSZXF1ZXN0EhEKCWxhbmdfY29kZRgBIAEoCRIMCgRoYXNoGAIgASgDIm8KGEdldENvdW50cmllc0xpc3RSZXNwb25zZRIvCgljb3VudHJpZXMYASADKAsyHC5pbXB1bHNlLmNvbmZpZy5Db3VudHJ5RW50cnkSDAoEaGFzaBgCIAEoAxIUCgxub3RfbW9kaWZpZWQYAyABKAgiFQoTR2V0UHJvbW9EYXRhUmVxdWVzdCLfAQoUR2V0UHJvbW9EYXRhUmVzcG9uc2USGgoNcHJvbW9fY2hhdF9pZBgBIAEoA0gAiAEBEhUKCHBzYV90eXBlGAIgASgJSAGIAQESGAoLcHNhX21lc3NhZ2UYAyABKAlIAogBARIPCgdleHBpcmVzGAQgASgDEhsKE3BlbmRpbmdfc3VnZ2VzdGlvbnMYBSADKAkSHQoVZGlzbWlzc2VkX3N1Z2dlc3Rpb25zGAYgAygJQhAKDl9wcm9tb19jaGF0X2lkQgsKCV9wc2FfdHlwZUIOCgxfcHNhX21lc3NhZ2UiUAoYRGlzbWlzc1N1Z2dlc3Rpb25SZXF1ZXN0EhIKCnN1Z2dlc3Rpb24YASABKAkSFAoHcGVlcl9pZBgCIAEoA0gAiAEBQgoKCF9wZWVyX2lkIhsKGURpc21pc3NTdWdnZXN0aW9uUmVzcG9uc2UyuxcKDUNvbmZpZ1NlcnZpY2USSAoLQ3JlYXRlVGhlbWUSIi5pbXB1bHNlLmNvbmZpZy5DcmVhdGVUaGVtZVJlcXVlc3QaFS5pbXB1bHNlLmNvbmZpZy5UaGVtZRJICgtVcGRhdGVUaGVtZRIiLmltcHVsc2UuY29uZmlnLlVwZGF0ZVRoZW1lUmVxdWVzdBoVLmltcHVsc2UuY29uZmlnLlRoZW1lEkIKCEdldFRoZW1lEh8uaW1wdWxzZS5jb25maWcuR2V0VGhlbWVSZXF1ZXN0GhUuaW1wdWxzZS5jb25maWcuVGhlbWUSUAoJR2V0VGhlbWVzEiAuaW1wdWxzZS5jb25maWcuR2V0VGhlbWVzUmVxdWVzdBohLmltcHVsc2UuY29uZmlnLkdldFRoZW1lc1Jlc3BvbnNlElkKDEluc3RhbGxUaGVtZRIjLmltcHVsc2UuY29uZmlnLkluc3RhbGxUaGVtZVJlcXVlc3QaJC5pbXB1bHNlLmNvbmZpZy5JbnN0YWxsVGhlbWVSZXNwb25zZRJcCg1HZXRDaGF0VGhlbWVzEiQuaW1wdWxzZS5jb25maWcuR2V0Q2hhdFRoZW1lc1JlcXVlc3QaJS5pbXB1bHNlLmNvbmZpZy5HZXRDaGF0VGhlbWVzUmVzcG9uc2USXAoNR2V0V2FsbFBhcGVycxIkLmltcHVsc2UuY29uZmlnLkdldFdhbGxQYXBlcnNSZXF1ZXN0GiUuaW1wdWxzZS5jb25maWcuR2V0V2FsbFBhcGVyc1Jlc3BvbnNlEk4KDEdldFdhbGxQYXBlchIjLmltcHVsc2UuY29uZmlnLkdldFdhbGxQYXBlclJlcXVlc3QaGS5pbXB1bHNlLmNvbmZpZy5XYWxsUGFwZXISVAoPVXBsb2FkV2FsbFBhcGVyEiYuaW1wdWxzZS5jb25maWcuVXBsb2FkV2FsbFBhcGVyUmVxdWVzdBoZLmltcHVsc2UuY29uZmlnLldhbGxQYXBlchJcCg1TYXZlV2FsbFBhcGVyEiQuaW1wdWxzZS5jb25maWcuU2F2ZVdhbGxQYXBlclJlcXVlc3QaJS5pbXB1bHNlLmNvbmZpZy5TYXZlV2FsbFBhcGVyUmVzcG9uc2USYgoPUmVzZXRXYWxsUGFwZXJzEiYuaW1wdWxzZS5jb25maWcuUmVzZXRXYWxsUGFwZXJzUmVxdWVzdBonLmltcHVsc2UuY29uZmlnLlJlc2V0V2FsbFBhcGVyc1Jlc3BvbnNlEmIKD0dldFByZW1pdW1Qcm9tbxImLmltcHVsc2UuY29uZmlnLkdldFByZW1pdW1Qcm9tb1JlcXVlc3QaJy5pbXB1bHNlLmNvbmZpZy5HZXRQcmVtaXVtUHJvbW9SZXNwb25zZRKAAQoZR2V0UHJlbWl1bUdpZnRDb2RlT3B0aW9ucxIwLmltcHVsc2UuY29uZmlnLkdldFByZW1pdW1HaWZ0Q29kZU9wdGlvbnNSZXF1ZXN0GjEuaW1wdWxzZS5jb25maWcuR2V0UHJlbWl1bUdpZnRDb2RlT3B0aW9uc1Jlc3BvbnNlElkKDEdldEFwcENvbmZpZxIjLmltcHVsc2UuY29uZmlnLkdldEFwcENvbmZpZ1JlcXVlc3QaJC5pbXB1bHNlLmNvbmZpZy5HZXRBcHBDb25maWdSZXNwb25zZRJZCgxHZXRBcHBVcGRhdGUSIy5pbXB1bHNlLmNvbmZpZy5HZXRBcHBVcGRhdGVSZXF1ZXN0GiQuaW1wdWxzZS5jb25maWcuR2V0QXBwVXBkYXRlUmVzcG9uc2USWQoMR2V0TmVhcmVzdERjEiMuaW1wdWxzZS5jb25maWcuR2V0TmVhcmVzdERjUmVxdWVzdBokLmltcHVsc2UuY29uZmlnLkdldE5lYXJlc3REY1Jlc3BvbnNlElkKDEdldExhbmd1YWdlcxIjLmltcHVsc2UuY29uZmlnLkdldExhbmd1YWdlc1JlcXVlc3QaJC5pbXB1bHNlLmNvbmZpZy5HZXRMYW5ndWFnZXNSZXNwb25zZRJLCgtHZXRMYW5ndWFnZRIiLmltcHVsc2UuY29uZmlnLkdldExhbmd1YWdlUmVxdWVzdBoYLmltcHVsc2UuY29uZmlnLkxhbmd1YWdlElYKC0dldExhbmdQYWNrEiIuaW1wdWxzZS5jb25maWcuR2V0TGFuZ1BhY2tSZXF1ZXN0GiMuaW1wdWxzZS5jb25maWcuR2V0TGFuZ1BhY2tSZXNwb25zZRJTCgpHZXRTdHJpbmdzEiEuaW1wdWxzZS5jb25maWcuR2V0U3RyaW5nc1JlcXVlc3QaIi5pbXB1bHNlLmNvbmZpZy5HZXRTdHJpbmdzUmVzcG9uc2USYgoRR2V0TGFuZ0RpZmZlcmVuY2USKC5pbXB1bHNlLmNvbmZpZy5HZXRMYW5nRGlmZmVyZW5jZVJlcXVlc3QaIy5pbXB1bHNlLmNvbmZpZy5HZXRMYW5nUGFja1Jlc3BvbnNlElAKCUdldENvbmZpZxIgLmltcHVsc2UuY29uZmlnLkdldENvbmZpZ1JlcXVlc3QaIS5pbXB1bHNlLmNvbmZpZy5HZXRDb25maWdSZXNwb25zZRJQCglTYXZlVGhlbWUSIC5pbXB1bHNlLmNvbmZpZy5TYXZlVGhlbWVSZXF1ZXN0GiEuaW1wdWxzZS5jb25maWcuU2F2ZVRoZW1lUmVzcG9uc2USWQoMU2V0Q2hhdFRoZW1lEiMuaW1wdWxzZS5jb25maWcuU2V0Q2hhdFRoZW1lUmVxdWVzdBokLmltcHVsc2UuY29uZmlnLlNldENoYXRUaGVtZVJlc3BvbnNlEnoKF0dldFRlcm1zT2ZTZXJ2aWNlVXBkYXRlEi4uaW1wdWxzZS5jb25maWcuR2V0VGVybXNPZlNlcnZpY2VVcGRhdGVSZXF1ZXN0Gi8uaW1wdWxzZS5jb25maWcuR2V0VGVybXNPZlNlcnZpY2VVcGRhdGVSZXNwb25zZRJxChRBY2NlcHRUZXJtc09mU2VydmljZRIrLmltcHVsc2UuY29uZmlnLkFjY2VwdFRlcm1zT2ZTZXJ2aWNlUmVxdWVzdBosLmltcHVsc2UuY29uZmlnLkFjY2VwdFRlcm1zT2ZTZXJ2aWNlUmVzcG9uc2USXAoNR2V0UGVlckNvbG9ycxIkLmltcHVsc2UuY29uZmlnLkdldFBlZXJDb2xvcnNSZXF1ZXN0GiUuaW1wdWxzZS5jb25maWcuR2V0UGVlckNvbG9yc1Jlc3BvbnNlEnEKFEdldFBlZXJQcm9maWxlQ29sb3JzEisuaW1wdWxzZS5jb25maWcuR2V0UGVlclByb2ZpbGVDb2xvcnNSZXF1ZXN0GiwuaW1wdWxzZS5jb25maWcuR2V0UGVlclByb2ZpbGVDb2xvcnNSZXNwb25zZRJlChBHZXRUaW1lem9uZXNMaXN0EicuaW1wdWxzZS5jb25maWcuR2V0VGltZXpvbmVzTGlzdFJlcXVlc3QaKC5pbXB1bHNlLmNvbmZpZy5HZXRUaW1lem9uZXNMaXN0UmVzcG9uc2USZQoQR2V0Q291bnRyaWVzTGlzdBInLmltcHVsc2UuY29uZmlnLkdldENvdW50cmllc0xpc3RSZXF1ZXN0GiguaW1wdWxzZS5jb25maWcuR2V0Q291bnRyaWVzTGlzdFJlc3BvbnNlElkKDEdldFByb21vRGF0YRIjLmltcHVsc2UuY29uZmlnLkdldFByb21vRGF0YVJlcXVlc3QaJC5pbXB1bHNlLmNvbmZpZy5HZXRQcm9tb0RhdGFSZXNwb25zZRJoChFEaXNtaXNzU3VnZ2VzdGlvbhIoLmltcHVsc2UuY29uZmlnLkRpc21pc3NTdWdnZXN0aW9uUmVxdWVzdBopLmltcHVsc2UuY29uZmlnLkRpc21pc3NTdWdnZXN0aW9uUmVzcG9uc2VCGaoCFkltcHVsc2VNLlByb3Rvcy5Db25maWdiBnByb3RvMw", [file_impulse_config_config_types, file_impulse_peer]);
-
-/**
- * @generated from message impulse.config.CreateThemeRequest
- */
-export type CreateThemeRequest = Message<"impulse.config.CreateThemeRequest"> & {
-  /**
-   * @generated from field: string title = 1;
-   */
-  title: string;
-
-  /**
-   * @generated from field: string slug = 2;
-   */
-  slug: string;
-
-  /**
-   * @generated from field: string settings_json = 3;
-   */
-  settingsJson: string;
-
-  /**
-   * @generated from field: optional string format = 4;
-   */
-  format?: string | undefined;
-
-  /**
-   * @generated from field: bool for_chat = 5;
-   */
-  forChat: boolean;
-};
-
-/**
- * Describes the message impulse.config.CreateThemeRequest.
- * Use `create(CreateThemeRequestSchema)` to create a new message.
- */
-export const CreateThemeRequestSchema: GenMessage<CreateThemeRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 0);
-
-/**
- * @generated from message impulse.config.UpdateThemeRequest
- */
-export type UpdateThemeRequest = Message<"impulse.config.UpdateThemeRequest"> & {
-  /**
-   * @generated from field: int64 theme_id = 1;
-   */
-  themeId: bigint;
-
-  /**
-   * @generated from field: optional string title = 2;
-   */
-  title?: string | undefined;
-
-  /**
-   * @generated from field: optional string slug = 3;
-   */
-  slug?: string | undefined;
-
-  /**
-   * @generated from field: optional string settings_json = 4;
-   */
-  settingsJson?: string | undefined;
-
-  /**
-   * @generated from field: optional string format = 5;
-   */
-  format?: string | undefined;
-};
-
-/**
- * Describes the message impulse.config.UpdateThemeRequest.
- * Use `create(UpdateThemeRequestSchema)` to create a new message.
- */
-export const UpdateThemeRequestSchema: GenMessage<UpdateThemeRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 1);
+  fileDesc("CiNpbXB1bHNlL2NvbmZpZy9jb25maWdfc2VydmljZS5wcm90bxIOaW1wdWxzZS5jb25maWciXwoPR2V0VGhlbWVSZXF1ZXN0EhAKCHRoZW1lX2lkGAEgASgDEhMKBmZvcm1hdBgCIAEoCUgAiAEBEhEKBHNsdWcYAyABKAlIAYgBAUIJCgdfZm9ybWF0QgcKBV9zbHVnIiAKEEdldFRoZW1lc1JlcXVlc3QSDAoEaGFzaBgBIAEoAyJeChFHZXRUaGVtZXNSZXNwb25zZRIlCgZ0aGVtZXMYASADKAsyFS5pbXB1bHNlLmNvbmZpZy5UaGVtZRIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCJdChNJbnN0YWxsVGhlbWVSZXF1ZXN0EhAKCHRoZW1lX2lkGAEgASgDEgwKBGRhcmsYAiABKAgSFwoKYmFzZV90aGVtZRgDIAEoCUgAiAEBQg0KC19iYXNlX3RoZW1lIhYKFEluc3RhbGxUaGVtZVJlc3BvbnNlIiQKFEdldENoYXRUaGVtZXNSZXF1ZXN0EgwKBGhhc2gYASABKAMiYgoVR2V0Q2hhdFRoZW1lc1Jlc3BvbnNlEiUKBnRoZW1lcxgBIAMoCzIVLmltcHVsc2UuY29uZmlnLlRoZW1lEgwKBGhhc2gYAiABKAMSFAoMbm90X21vZGlmaWVkGAMgASgIIiQKFEdldFdhbGxQYXBlcnNSZXF1ZXN0EgwKBGhhc2gYASABKAMiagoVR2V0V2FsbFBhcGVyc1Jlc3BvbnNlEi0KCndhbGxwYXBlcnMYASADKAsyGS5pbXB1bHNlLmNvbmZpZy5XYWxsUGFwZXISDAoEaGFzaBgCIAEoAxIUCgxub3RfbW9kaWZpZWQYAyABKAgiRwoTR2V0V2FsbFBhcGVyUmVxdWVzdBIWCgx3YWxscGFwZXJfaWQYASABKANIABIOCgRzbHVnGAIgASgJSABCCAoGbG9va3VwInwKFlVwbG9hZFdhbGxQYXBlclJlcXVlc3QSDwoHZmlsZV9pZBgBIAEoAxIRCgltaW1lX3R5cGUYAiABKAkSEAoIZm9yX2NoYXQYAyABKAgSGgoNc2V0dGluZ3NfanNvbhgEIAEoCUgAiAEBQhAKDl9zZXR0aW5nc19qc29uImoKFFNhdmVXYWxsUGFwZXJSZXF1ZXN0EhQKDHdhbGxwYXBlcl9pZBgBIAEoAxIOCgZ1bnNhdmUYAiABKAgSGgoNc2V0dGluZ3NfanNvbhgDIAEoCUgAiAEBQhAKDl9zZXR0aW5nc19qc29uIhcKFVNhdmVXYWxsUGFwZXJSZXNwb25zZSIYChZSZXNldFdhbGxQYXBlcnNSZXF1ZXN0IhkKF1Jlc2V0V2FsbFBhcGVyc1Jlc3BvbnNlIhgKFkdldFByZW1pdW1Qcm9tb1JlcXVlc3QiewoZUHJlbWl1bVN1YnNjcmlwdGlvbk9wdGlvbhIOCgZtb250aHMYASABKAUSEAoIY3VycmVuY3kYAiABKAkSDgoGYW1vdW50GAMgASgDEhoKDXN0b3JlX3Byb2R1Y3QYBCABKAlIAIgBAUIQCg5fc3RvcmVfcHJvZHVjdCLTAQoXR2V0UHJlbWl1bVByb21vUmVzcG9uc2USEwoLZGVzY3JpcHRpb24YASABKAkSMAoIZmVhdHVyZXMYAiADKAsyHi5pbXB1bHNlLmNvbmZpZy5QcmVtaXVtRmVhdHVyZRIWCg52aWRlb19zZWN0aW9ucxgDIAMoCRIWCg52aWRlb19maWxlX2lkcxgEIAMoAxJBCg5wZXJpb2Rfb3B0aW9ucxgFIAMoCzIpLmltcHVsc2UuY29uZmlnLlByZW1pdW1TdWJzY3JpcHRpb25PcHRpb24iUAogR2V0UHJlbWl1bUdpZnRDb2RlT3B0aW9uc1JlcXVlc3QSGgoNYm9vc3RfcGVlcl9pZBgBIAEoA0gAiAEBQhAKDl9ib29zdF9wZWVyX2lkIlQKIUdldFByZW1pdW1HaWZ0Q29kZU9wdGlvbnNSZXNwb25zZRIvCgdvcHRpb25zGAEgAygLMh4uaW1wdWxzZS5jb25maWcuR2lmdENvZGVPcHRpb24iIwoTR2V0QXBwQ29uZmlnUmVxdWVzdBIMCgRoYXNoGAEgASgDIk8KFEdldEFwcENvbmZpZ1Jlc3BvbnNlEhMKC2NvbmZpZ19qc29uGAEgASgJEgwKBGhhc2gYAiABKAMSFAoMbm90X21vZGlmaWVkGAMgASgIIiUKE0dldEFwcFVwZGF0ZVJlcXVlc3QSDgoGc291cmNlGAEgASgJIpgBChRHZXRBcHBVcGRhdGVSZXNwb25zZRIQCgN1cmwYASABKAlIAIgBARIRCgR0ZXh0GAIgASgJSAGIAQESEAoIY2FuX3NraXAYAyABKAgSDwoCaWQYBCABKAVIAogBARIUCgd2ZXJzaW9uGAUgASgJSAOIAQFCBgoEX3VybEIHCgVfdGV4dEIFCgNfaWRCCgoIX3ZlcnNpb24iFQoTR2V0TmVhcmVzdERjUmVxdWVzdCJHChRHZXROZWFyZXN0RGNSZXNwb25zZRIPCgdjb3VudHJ5GAEgASgJEg0KBWRjX2lkGAIgASgFEg8KB3RoaXNfZGMYAyABKAUiIwoTR2V0TGFuZ3VhZ2VzUmVxdWVzdBIMCgRoYXNoGAEgASgDImcKFEdldExhbmd1YWdlc1Jlc3BvbnNlEisKCWxhbmd1YWdlcxgBIAMoCzIYLmltcHVsc2UuY29uZmlnLkxhbmd1YWdlEgwKBGhhc2gYAiABKAMSFAoMbm90X21vZGlmaWVkGAMgASgIIjoKEkdldExhbmd1YWdlUmVxdWVzdBIRCglsYW5nX2NvZGUYASABKAkSEQoJbGFuZ19wYWNrGAIgASgJIjoKEkdldExhbmdQYWNrUmVxdWVzdBIRCglsYW5nX2NvZGUYASABKAkSEQoJbGFuZ19wYWNrGAIgASgJIoABChNHZXRMYW5nUGFja1Jlc3BvbnNlEi8KB3N0cmluZ3MYASADKAsyHi5pbXB1bHNlLmNvbmZpZy5MYW5nUGFja1N0cmluZxIRCglsYW5nX2NvZGUYAiABKAkSDwoHdmVyc2lvbhgDIAEoBRIUCgxmcm9tX3ZlcnNpb24YBCABKAUiRwoRR2V0U3RyaW5nc1JlcXVlc3QSEQoJbGFuZ19jb2RlGAEgASgJEgwKBGtleXMYAiADKAkSEQoJbGFuZ19wYWNrGAMgASgJIkUKEkdldFN0cmluZ3NSZXNwb25zZRIvCgdzdHJpbmdzGAEgAygLMh4uaW1wdWxzZS5jb25maWcuTGFuZ1BhY2tTdHJpbmciVgoYR2V0TGFuZ0RpZmZlcmVuY2VSZXF1ZXN0EhEKCWxhbmdfY29kZRgBIAEoCRIUCgxmcm9tX3ZlcnNpb24YAiABKAUSEQoJbGFuZ19wYWNrGAMgASgJIhIKEEdldENvbmZpZ1JlcXVlc3QixgIKEUdldENvbmZpZ1Jlc3BvbnNlEg8KB2V4cGlyZXMYASABKAUSGgoSbWF4X21lc3NhZ2VfbGVuZ3RoGAIgASgFEhcKD2VkaXRfdGltZV9saW1pdBgDIAEoBRIWCg5tYXhfZ3JvdXBfc2l6ZRgEIAEoBRIbChNtYXhfZm9yd2FyZGVkX2NvdW50GAUgASgFEh0KEGRlZmF1bHRfcmVhY3Rpb24YBiABKAlIAIgBARIgChNnaWZfc2VhcmNoX3VzZXJuYW1lGAcgASgJSAGIAQESHAoPYXV0b2xvZ2luX3Rva2VuGAggASgJSAKIAQESFgoOaXNfdGVzdF9zZXJ2ZXIYCSABKAhCEwoRX2RlZmF1bHRfcmVhY3Rpb25CFgoUX2dpZl9zZWFyY2hfdXNlcm5hbWVCEgoQX2F1dG9sb2dpbl90b2tlbiI0ChBTYXZlVGhlbWVSZXF1ZXN0EhAKCHRoZW1lX2lkGAEgASgDEg4KBnVuc2F2ZRgCIAEoCCIiChFTYXZlVGhlbWVSZXNwb25zZRINCgVzYXZlZBgBIAEoCCJKCg5UZXJtc09mU2VydmljZRIKCgJpZBgBIAEoCRIMCgR0ZXh0GAIgASgJEg8KB21pbl9hZ2UYAyABKAUSDQoFcG9wdXAYBCABKAgiIAoeR2V0VGVybXNPZlNlcnZpY2VVcGRhdGVSZXF1ZXN0ImwKH0dldFRlcm1zT2ZTZXJ2aWNlVXBkYXRlUmVzcG9uc2USMAoDdG9zGAEgASgLMh4uaW1wdWxzZS5jb25maWcuVGVybXNPZlNlcnZpY2VIAIgBARIPCgdleHBpcmVzGAIgASgDQgYKBF90b3MiLQobQWNjZXB0VGVybXNPZlNlcnZpY2VSZXF1ZXN0Eg4KBnRvc19pZBgBIAEoCSIeChxBY2NlcHRUZXJtc09mU2VydmljZVJlc3BvbnNlIsABCg9QZWVyQ29sb3JPcHRpb24SEAoIY29sb3JfaWQYASABKAUSDgoGY29sb3JzGAIgAygFEhMKC2RhcmtfY29sb3JzGAMgAygFEg4KBmhpZGRlbhgEIAEoCBIeChFjaGFubmVsX21pbl9sZXZlbBgFIAEoA0gAiAEBEhwKD2dyb3VwX21pbl9sZXZlbBgGIAEoA0gBiAEBQhQKEl9jaGFubmVsX21pbl9sZXZlbEISChBfZ3JvdXBfbWluX2xldmVsIiQKFEdldFBlZXJDb2xvcnNSZXF1ZXN0EgwKBGhhc2gYASABKAMibAoVR2V0UGVlckNvbG9yc1Jlc3BvbnNlEi8KBmNvbG9ycxgBIAMoCzIfLmltcHVsc2UuY29uZmlnLlBlZXJDb2xvck9wdGlvbhIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCIrChtHZXRQZWVyUHJvZmlsZUNvbG9yc1JlcXVlc3QSDAoEaGFzaBgBIAEoAyJzChxHZXRQZWVyUHJvZmlsZUNvbG9yc1Jlc3BvbnNlEi8KBmNvbG9ycxgBIAMoCzIfLmltcHVsc2UuY29uZmlnLlBlZXJDb2xvck9wdGlvbhIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCI9Cg1UaW1lem9uZUVudHJ5EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEgoKdXRjX29mZnNldBgDIAEoBSInChdHZXRUaW1lem9uZXNMaXN0UmVxdWVzdBIMCgRoYXNoGAEgASgDInAKGEdldFRpbWV6b25lc0xpc3RSZXNwb25zZRIwCgl0aW1lem9uZXMYASADKAsyHS5pbXB1bHNlLmNvbmZpZy5UaW1lem9uZUVudHJ5EgwKBGhhc2gYAiABKAMSFAoMbm90X21vZGlmaWVkGAMgASgIInwKDENvdW50cnlFbnRyeRIMCgRpc28yGAEgASgJEhQKDGRlZmF1bHRfbmFtZRgCIAEoCRIMCgRuYW1lGAMgASgJEioKBWNvZGVzGAQgAygLMhsuaW1wdWxzZS5jb25maWcuQ291bnRyeUNvZGUSDgoGaGlkZGVuGAUgASgIIj8KC0NvdW50cnlDb2RlEgwKBGNvZGUYASABKAkSEAoIcHJlZml4ZXMYAiADKAkSEAoIcGF0dGVybnMYAyADKAkiOgoXR2V0Q291bnRyaWVzTGlzdFJlcXVlc3QSEQoJbGFuZ19jb2RlGAEgASgJEgwKBGhhc2gYAiABKAMibwoYR2V0Q291bnRyaWVzTGlzdFJlc3BvbnNlEi8KCWNvdW50cmllcxgBIAMoCzIcLmltcHVsc2UuY29uZmlnLkNvdW50cnlFbnRyeRIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCIVChNHZXRQcm9tb0RhdGFSZXF1ZXN0It8BChRHZXRQcm9tb0RhdGFSZXNwb25zZRIaCg1wcm9tb19jaGF0X2lkGAEgASgDSACIAQESFQoIcHNhX3R5cGUYAiABKAlIAYgBARIYCgtwc2FfbWVzc2FnZRgDIAEoCUgCiAEBEg8KB2V4cGlyZXMYBCABKAMSGwoTcGVuZGluZ19zdWdnZXN0aW9ucxgFIAMoCRIdChVkaXNtaXNzZWRfc3VnZ2VzdGlvbnMYBiADKAlCEAoOX3Byb21vX2NoYXRfaWRCCwoJX3BzYV90eXBlQg4KDF9wc2FfbWVzc2FnZSJQChhEaXNtaXNzU3VnZ2VzdGlvblJlcXVlc3QSEgoKc3VnZ2VzdGlvbhgBIAEoCRIUCgdwZWVyX2lkGAIgASgDSACIAQFCCgoIX3BlZXJfaWQiGwoZRGlzbWlzc1N1Z2dlc3Rpb25SZXNwb25zZTLMFQoNQ29uZmlnU2VydmljZRJCCghHZXRUaGVtZRIfLmltcHVsc2UuY29uZmlnLkdldFRoZW1lUmVxdWVzdBoVLmltcHVsc2UuY29uZmlnLlRoZW1lElAKCUdldFRoZW1lcxIgLmltcHVsc2UuY29uZmlnLkdldFRoZW1lc1JlcXVlc3QaIS5pbXB1bHNlLmNvbmZpZy5HZXRUaGVtZXNSZXNwb25zZRJZCgxJbnN0YWxsVGhlbWUSIy5pbXB1bHNlLmNvbmZpZy5JbnN0YWxsVGhlbWVSZXF1ZXN0GiQuaW1wdWxzZS5jb25maWcuSW5zdGFsbFRoZW1lUmVzcG9uc2USXAoNR2V0Q2hhdFRoZW1lcxIkLmltcHVsc2UuY29uZmlnLkdldENoYXRUaGVtZXNSZXF1ZXN0GiUuaW1wdWxzZS5jb25maWcuR2V0Q2hhdFRoZW1lc1Jlc3BvbnNlElwKDUdldFdhbGxQYXBlcnMSJC5pbXB1bHNlLmNvbmZpZy5HZXRXYWxsUGFwZXJzUmVxdWVzdBolLmltcHVsc2UuY29uZmlnLkdldFdhbGxQYXBlcnNSZXNwb25zZRJOCgxHZXRXYWxsUGFwZXISIy5pbXB1bHNlLmNvbmZpZy5HZXRXYWxsUGFwZXJSZXF1ZXN0GhkuaW1wdWxzZS5jb25maWcuV2FsbFBhcGVyElQKD1VwbG9hZFdhbGxQYXBlchImLmltcHVsc2UuY29uZmlnLlVwbG9hZFdhbGxQYXBlclJlcXVlc3QaGS5pbXB1bHNlLmNvbmZpZy5XYWxsUGFwZXISXAoNU2F2ZVdhbGxQYXBlchIkLmltcHVsc2UuY29uZmlnLlNhdmVXYWxsUGFwZXJSZXF1ZXN0GiUuaW1wdWxzZS5jb25maWcuU2F2ZVdhbGxQYXBlclJlc3BvbnNlEmIKD1Jlc2V0V2FsbFBhcGVycxImLmltcHVsc2UuY29uZmlnLlJlc2V0V2FsbFBhcGVyc1JlcXVlc3QaJy5pbXB1bHNlLmNvbmZpZy5SZXNldFdhbGxQYXBlcnNSZXNwb25zZRJiCg9HZXRQcmVtaXVtUHJvbW8SJi5pbXB1bHNlLmNvbmZpZy5HZXRQcmVtaXVtUHJvbW9SZXF1ZXN0GicuaW1wdWxzZS5jb25maWcuR2V0UHJlbWl1bVByb21vUmVzcG9uc2USgAEKGUdldFByZW1pdW1HaWZ0Q29kZU9wdGlvbnMSMC5pbXB1bHNlLmNvbmZpZy5HZXRQcmVtaXVtR2lmdENvZGVPcHRpb25zUmVxdWVzdBoxLmltcHVsc2UuY29uZmlnLkdldFByZW1pdW1HaWZ0Q29kZU9wdGlvbnNSZXNwb25zZRJZCgxHZXRBcHBDb25maWcSIy5pbXB1bHNlLmNvbmZpZy5HZXRBcHBDb25maWdSZXF1ZXN0GiQuaW1wdWxzZS5jb25maWcuR2V0QXBwQ29uZmlnUmVzcG9uc2USWQoMR2V0QXBwVXBkYXRlEiMuaW1wdWxzZS5jb25maWcuR2V0QXBwVXBkYXRlUmVxdWVzdBokLmltcHVsc2UuY29uZmlnLkdldEFwcFVwZGF0ZVJlc3BvbnNlElkKDEdldE5lYXJlc3REYxIjLmltcHVsc2UuY29uZmlnLkdldE5lYXJlc3REY1JlcXVlc3QaJC5pbXB1bHNlLmNvbmZpZy5HZXROZWFyZXN0RGNSZXNwb25zZRJZCgxHZXRMYW5ndWFnZXMSIy5pbXB1bHNlLmNvbmZpZy5HZXRMYW5ndWFnZXNSZXF1ZXN0GiQuaW1wdWxzZS5jb25maWcuR2V0TGFuZ3VhZ2VzUmVzcG9uc2USSwoLR2V0TGFuZ3VhZ2USIi5pbXB1bHNlLmNvbmZpZy5HZXRMYW5ndWFnZVJlcXVlc3QaGC5pbXB1bHNlLmNvbmZpZy5MYW5ndWFnZRJWCgtHZXRMYW5nUGFjaxIiLmltcHVsc2UuY29uZmlnLkdldExhbmdQYWNrUmVxdWVzdBojLmltcHVsc2UuY29uZmlnLkdldExhbmdQYWNrUmVzcG9uc2USUwoKR2V0U3RyaW5ncxIhLmltcHVsc2UuY29uZmlnLkdldFN0cmluZ3NSZXF1ZXN0GiIuaW1wdWxzZS5jb25maWcuR2V0U3RyaW5nc1Jlc3BvbnNlEmIKEUdldExhbmdEaWZmZXJlbmNlEiguaW1wdWxzZS5jb25maWcuR2V0TGFuZ0RpZmZlcmVuY2VSZXF1ZXN0GiMuaW1wdWxzZS5jb25maWcuR2V0TGFuZ1BhY2tSZXNwb25zZRJQCglHZXRDb25maWcSIC5pbXB1bHNlLmNvbmZpZy5HZXRDb25maWdSZXF1ZXN0GiEuaW1wdWxzZS5jb25maWcuR2V0Q29uZmlnUmVzcG9uc2USUAoJU2F2ZVRoZW1lEiAuaW1wdWxzZS5jb25maWcuU2F2ZVRoZW1lUmVxdWVzdBohLmltcHVsc2UuY29uZmlnLlNhdmVUaGVtZVJlc3BvbnNlEnoKF0dldFRlcm1zT2ZTZXJ2aWNlVXBkYXRlEi4uaW1wdWxzZS5jb25maWcuR2V0VGVybXNPZlNlcnZpY2VVcGRhdGVSZXF1ZXN0Gi8uaW1wdWxzZS5jb25maWcuR2V0VGVybXNPZlNlcnZpY2VVcGRhdGVSZXNwb25zZRJxChRBY2NlcHRUZXJtc09mU2VydmljZRIrLmltcHVsc2UuY29uZmlnLkFjY2VwdFRlcm1zT2ZTZXJ2aWNlUmVxdWVzdBosLmltcHVsc2UuY29uZmlnLkFjY2VwdFRlcm1zT2ZTZXJ2aWNlUmVzcG9uc2USXAoNR2V0UGVlckNvbG9ycxIkLmltcHVsc2UuY29uZmlnLkdldFBlZXJDb2xvcnNSZXF1ZXN0GiUuaW1wdWxzZS5jb25maWcuR2V0UGVlckNvbG9yc1Jlc3BvbnNlEnEKFEdldFBlZXJQcm9maWxlQ29sb3JzEisuaW1wdWxzZS5jb25maWcuR2V0UGVlclByb2ZpbGVDb2xvcnNSZXF1ZXN0GiwuaW1wdWxzZS5jb25maWcuR2V0UGVlclByb2ZpbGVDb2xvcnNSZXNwb25zZRJlChBHZXRUaW1lem9uZXNMaXN0EicuaW1wdWxzZS5jb25maWcuR2V0VGltZXpvbmVzTGlzdFJlcXVlc3QaKC5pbXB1bHNlLmNvbmZpZy5HZXRUaW1lem9uZXNMaXN0UmVzcG9uc2USZQoQR2V0Q291bnRyaWVzTGlzdBInLmltcHVsc2UuY29uZmlnLkdldENvdW50cmllc0xpc3RSZXF1ZXN0GiguaW1wdWxzZS5jb25maWcuR2V0Q291bnRyaWVzTGlzdFJlc3BvbnNlElkKDEdldFByb21vRGF0YRIjLmltcHVsc2UuY29uZmlnLkdldFByb21vRGF0YVJlcXVlc3QaJC5pbXB1bHNlLmNvbmZpZy5HZXRQcm9tb0RhdGFSZXNwb25zZRJoChFEaXNtaXNzU3VnZ2VzdGlvbhIoLmltcHVsc2UuY29uZmlnLkRpc21pc3NTdWdnZXN0aW9uUmVxdWVzdBopLmltcHVsc2UuY29uZmlnLkRpc21pc3NTdWdnZXN0aW9uUmVzcG9uc2VCGaoCFkltcHVsc2VNLlByb3Rvcy5Db25maWdiBnByb3RvMw", [file_impulse_config_config_types]);
 
 /**
  * @generated from message impulse.config.GetThemeRequest
@@ -117,7 +41,7 @@ export type GetThemeRequest = Message<"impulse.config.GetThemeRequest"> & {
  * Use `create(GetThemeRequestSchema)` to create a new message.
  */
 export const GetThemeRequestSchema: GenMessage<GetThemeRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 2);
+  messageDesc(file_impulse_config_config_service, 0);
 
 /**
  * @generated from message impulse.config.GetThemesRequest
@@ -134,7 +58,7 @@ export type GetThemesRequest = Message<"impulse.config.GetThemesRequest"> & {
  * Use `create(GetThemesRequestSchema)` to create a new message.
  */
 export const GetThemesRequestSchema: GenMessage<GetThemesRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 3);
+  messageDesc(file_impulse_config_config_service, 1);
 
 /**
  * @generated from message impulse.config.GetThemesResponse
@@ -161,7 +85,7 @@ export type GetThemesResponse = Message<"impulse.config.GetThemesResponse"> & {
  * Use `create(GetThemesResponseSchema)` to create a new message.
  */
 export const GetThemesResponseSchema: GenMessage<GetThemesResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 4);
+  messageDesc(file_impulse_config_config_service, 2);
 
 /**
  * @generated from message impulse.config.InstallThemeRequest
@@ -188,7 +112,7 @@ export type InstallThemeRequest = Message<"impulse.config.InstallThemeRequest"> 
  * Use `create(InstallThemeRequestSchema)` to create a new message.
  */
 export const InstallThemeRequestSchema: GenMessage<InstallThemeRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 5);
+  messageDesc(file_impulse_config_config_service, 3);
 
 /**
  * @generated from message impulse.config.InstallThemeResponse
@@ -201,7 +125,7 @@ export type InstallThemeResponse = Message<"impulse.config.InstallThemeResponse"
  * Use `create(InstallThemeResponseSchema)` to create a new message.
  */
 export const InstallThemeResponseSchema: GenMessage<InstallThemeResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 6);
+  messageDesc(file_impulse_config_config_service, 4);
 
 /**
  * @generated from message impulse.config.GetChatThemesRequest
@@ -218,7 +142,7 @@ export type GetChatThemesRequest = Message<"impulse.config.GetChatThemesRequest"
  * Use `create(GetChatThemesRequestSchema)` to create a new message.
  */
 export const GetChatThemesRequestSchema: GenMessage<GetChatThemesRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 7);
+  messageDesc(file_impulse_config_config_service, 5);
 
 /**
  * @generated from message impulse.config.GetChatThemesResponse
@@ -245,7 +169,7 @@ export type GetChatThemesResponse = Message<"impulse.config.GetChatThemesRespons
  * Use `create(GetChatThemesResponseSchema)` to create a new message.
  */
 export const GetChatThemesResponseSchema: GenMessage<GetChatThemesResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 8);
+  messageDesc(file_impulse_config_config_service, 6);
 
 /**
  * @generated from message impulse.config.GetWallPapersRequest
@@ -262,7 +186,7 @@ export type GetWallPapersRequest = Message<"impulse.config.GetWallPapersRequest"
  * Use `create(GetWallPapersRequestSchema)` to create a new message.
  */
 export const GetWallPapersRequestSchema: GenMessage<GetWallPapersRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 9);
+  messageDesc(file_impulse_config_config_service, 7);
 
 /**
  * @generated from message impulse.config.GetWallPapersResponse
@@ -289,7 +213,7 @@ export type GetWallPapersResponse = Message<"impulse.config.GetWallPapersRespons
  * Use `create(GetWallPapersResponseSchema)` to create a new message.
  */
 export const GetWallPapersResponseSchema: GenMessage<GetWallPapersResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 10);
+  messageDesc(file_impulse_config_config_service, 8);
 
 /**
  * @generated from message impulse.config.GetWallPaperRequest
@@ -318,7 +242,7 @@ export type GetWallPaperRequest = Message<"impulse.config.GetWallPaperRequest"> 
  * Use `create(GetWallPaperRequestSchema)` to create a new message.
  */
 export const GetWallPaperRequestSchema: GenMessage<GetWallPaperRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 11);
+  messageDesc(file_impulse_config_config_service, 9);
 
 /**
  * @generated from message impulse.config.UploadWallPaperRequest
@@ -350,7 +274,7 @@ export type UploadWallPaperRequest = Message<"impulse.config.UploadWallPaperRequ
  * Use `create(UploadWallPaperRequestSchema)` to create a new message.
  */
 export const UploadWallPaperRequestSchema: GenMessage<UploadWallPaperRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 12);
+  messageDesc(file_impulse_config_config_service, 10);
 
 /**
  * @generated from message impulse.config.SaveWallPaperRequest
@@ -377,7 +301,7 @@ export type SaveWallPaperRequest = Message<"impulse.config.SaveWallPaperRequest"
  * Use `create(SaveWallPaperRequestSchema)` to create a new message.
  */
 export const SaveWallPaperRequestSchema: GenMessage<SaveWallPaperRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 13);
+  messageDesc(file_impulse_config_config_service, 11);
 
 /**
  * @generated from message impulse.config.SaveWallPaperResponse
@@ -390,7 +314,7 @@ export type SaveWallPaperResponse = Message<"impulse.config.SaveWallPaperRespons
  * Use `create(SaveWallPaperResponseSchema)` to create a new message.
  */
 export const SaveWallPaperResponseSchema: GenMessage<SaveWallPaperResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 14);
+  messageDesc(file_impulse_config_config_service, 12);
 
 /**
  * @generated from message impulse.config.ResetWallPapersRequest
@@ -403,7 +327,7 @@ export type ResetWallPapersRequest = Message<"impulse.config.ResetWallPapersRequ
  * Use `create(ResetWallPapersRequestSchema)` to create a new message.
  */
 export const ResetWallPapersRequestSchema: GenMessage<ResetWallPapersRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 15);
+  messageDesc(file_impulse_config_config_service, 13);
 
 /**
  * @generated from message impulse.config.ResetWallPapersResponse
@@ -416,7 +340,7 @@ export type ResetWallPapersResponse = Message<"impulse.config.ResetWallPapersRes
  * Use `create(ResetWallPapersResponseSchema)` to create a new message.
  */
 export const ResetWallPapersResponseSchema: GenMessage<ResetWallPapersResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 16);
+  messageDesc(file_impulse_config_config_service, 14);
 
 /**
  * @generated from message impulse.config.GetPremiumPromoRequest
@@ -429,7 +353,7 @@ export type GetPremiumPromoRequest = Message<"impulse.config.GetPremiumPromoRequ
  * Use `create(GetPremiumPromoRequestSchema)` to create a new message.
  */
 export const GetPremiumPromoRequestSchema: GenMessage<GetPremiumPromoRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 17);
+  messageDesc(file_impulse_config_config_service, 15);
 
 /**
  * @generated from message impulse.config.PremiumSubscriptionOption
@@ -461,7 +385,7 @@ export type PremiumSubscriptionOption = Message<"impulse.config.PremiumSubscript
  * Use `create(PremiumSubscriptionOptionSchema)` to create a new message.
  */
 export const PremiumSubscriptionOptionSchema: GenMessage<PremiumSubscriptionOption> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 18);
+  messageDesc(file_impulse_config_config_service, 16);
 
 /**
  * @generated from message impulse.config.GetPremiumPromoResponse
@@ -500,7 +424,7 @@ export type GetPremiumPromoResponse = Message<"impulse.config.GetPremiumPromoRes
  * Use `create(GetPremiumPromoResponseSchema)` to create a new message.
  */
 export const GetPremiumPromoResponseSchema: GenMessage<GetPremiumPromoResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 19);
+  messageDesc(file_impulse_config_config_service, 17);
 
 /**
  * @generated from message impulse.config.GetPremiumGiftCodeOptionsRequest
@@ -517,7 +441,7 @@ export type GetPremiumGiftCodeOptionsRequest = Message<"impulse.config.GetPremiu
  * Use `create(GetPremiumGiftCodeOptionsRequestSchema)` to create a new message.
  */
 export const GetPremiumGiftCodeOptionsRequestSchema: GenMessage<GetPremiumGiftCodeOptionsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 20);
+  messageDesc(file_impulse_config_config_service, 18);
 
 /**
  * @generated from message impulse.config.GetPremiumGiftCodeOptionsResponse
@@ -534,7 +458,7 @@ export type GetPremiumGiftCodeOptionsResponse = Message<"impulse.config.GetPremi
  * Use `create(GetPremiumGiftCodeOptionsResponseSchema)` to create a new message.
  */
 export const GetPremiumGiftCodeOptionsResponseSchema: GenMessage<GetPremiumGiftCodeOptionsResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 21);
+  messageDesc(file_impulse_config_config_service, 19);
 
 /**
  * @generated from message impulse.config.GetAppConfigRequest
@@ -551,7 +475,7 @@ export type GetAppConfigRequest = Message<"impulse.config.GetAppConfigRequest"> 
  * Use `create(GetAppConfigRequestSchema)` to create a new message.
  */
 export const GetAppConfigRequestSchema: GenMessage<GetAppConfigRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 22);
+  messageDesc(file_impulse_config_config_service, 20);
 
 /**
  * @generated from message impulse.config.GetAppConfigResponse
@@ -578,7 +502,7 @@ export type GetAppConfigResponse = Message<"impulse.config.GetAppConfigResponse"
  * Use `create(GetAppConfigResponseSchema)` to create a new message.
  */
 export const GetAppConfigResponseSchema: GenMessage<GetAppConfigResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 23);
+  messageDesc(file_impulse_config_config_service, 21);
 
 /**
  * @generated from message impulse.config.GetAppUpdateRequest
@@ -595,7 +519,7 @@ export type GetAppUpdateRequest = Message<"impulse.config.GetAppUpdateRequest"> 
  * Use `create(GetAppUpdateRequestSchema)` to create a new message.
  */
 export const GetAppUpdateRequestSchema: GenMessage<GetAppUpdateRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 24);
+  messageDesc(file_impulse_config_config_service, 22);
 
 /**
  * @generated from message impulse.config.GetAppUpdateResponse
@@ -632,7 +556,7 @@ export type GetAppUpdateResponse = Message<"impulse.config.GetAppUpdateResponse"
  * Use `create(GetAppUpdateResponseSchema)` to create a new message.
  */
 export const GetAppUpdateResponseSchema: GenMessage<GetAppUpdateResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 25);
+  messageDesc(file_impulse_config_config_service, 23);
 
 /**
  * @generated from message impulse.config.GetNearestDcRequest
@@ -645,7 +569,7 @@ export type GetNearestDcRequest = Message<"impulse.config.GetNearestDcRequest"> 
  * Use `create(GetNearestDcRequestSchema)` to create a new message.
  */
 export const GetNearestDcRequestSchema: GenMessage<GetNearestDcRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 26);
+  messageDesc(file_impulse_config_config_service, 24);
 
 /**
  * @generated from message impulse.config.GetNearestDcResponse
@@ -672,7 +596,7 @@ export type GetNearestDcResponse = Message<"impulse.config.GetNearestDcResponse"
  * Use `create(GetNearestDcResponseSchema)` to create a new message.
  */
 export const GetNearestDcResponseSchema: GenMessage<GetNearestDcResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 27);
+  messageDesc(file_impulse_config_config_service, 25);
 
 /**
  * @generated from message impulse.config.GetLanguagesRequest
@@ -689,7 +613,7 @@ export type GetLanguagesRequest = Message<"impulse.config.GetLanguagesRequest"> 
  * Use `create(GetLanguagesRequestSchema)` to create a new message.
  */
 export const GetLanguagesRequestSchema: GenMessage<GetLanguagesRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 28);
+  messageDesc(file_impulse_config_config_service, 26);
 
 /**
  * @generated from message impulse.config.GetLanguagesResponse
@@ -716,7 +640,7 @@ export type GetLanguagesResponse = Message<"impulse.config.GetLanguagesResponse"
  * Use `create(GetLanguagesResponseSchema)` to create a new message.
  */
 export const GetLanguagesResponseSchema: GenMessage<GetLanguagesResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 29);
+  messageDesc(file_impulse_config_config_service, 27);
 
 /**
  * @generated from message impulse.config.GetLanguageRequest
@@ -738,7 +662,7 @@ export type GetLanguageRequest = Message<"impulse.config.GetLanguageRequest"> & 
  * Use `create(GetLanguageRequestSchema)` to create a new message.
  */
 export const GetLanguageRequestSchema: GenMessage<GetLanguageRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 30);
+  messageDesc(file_impulse_config_config_service, 28);
 
 /**
  * @generated from message impulse.config.GetLangPackRequest
@@ -760,7 +684,7 @@ export type GetLangPackRequest = Message<"impulse.config.GetLangPackRequest"> & 
  * Use `create(GetLangPackRequestSchema)` to create a new message.
  */
 export const GetLangPackRequestSchema: GenMessage<GetLangPackRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 31);
+  messageDesc(file_impulse_config_config_service, 29);
 
 /**
  * @generated from message impulse.config.GetLangPackResponse
@@ -792,7 +716,7 @@ export type GetLangPackResponse = Message<"impulse.config.GetLangPackResponse"> 
  * Use `create(GetLangPackResponseSchema)` to create a new message.
  */
 export const GetLangPackResponseSchema: GenMessage<GetLangPackResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 32);
+  messageDesc(file_impulse_config_config_service, 30);
 
 /**
  * @generated from message impulse.config.GetStringsRequest
@@ -819,7 +743,7 @@ export type GetStringsRequest = Message<"impulse.config.GetStringsRequest"> & {
  * Use `create(GetStringsRequestSchema)` to create a new message.
  */
 export const GetStringsRequestSchema: GenMessage<GetStringsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 33);
+  messageDesc(file_impulse_config_config_service, 31);
 
 /**
  * @generated from message impulse.config.GetStringsResponse
@@ -836,7 +760,7 @@ export type GetStringsResponse = Message<"impulse.config.GetStringsResponse"> & 
  * Use `create(GetStringsResponseSchema)` to create a new message.
  */
 export const GetStringsResponseSchema: GenMessage<GetStringsResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 34);
+  messageDesc(file_impulse_config_config_service, 32);
 
 /**
  * @generated from message impulse.config.GetLangDifferenceRequest
@@ -863,7 +787,7 @@ export type GetLangDifferenceRequest = Message<"impulse.config.GetLangDifference
  * Use `create(GetLangDifferenceRequestSchema)` to create a new message.
  */
 export const GetLangDifferenceRequestSchema: GenMessage<GetLangDifferenceRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 35);
+  messageDesc(file_impulse_config_config_service, 33);
 
 /**
  * @generated from message impulse.config.GetConfigRequest
@@ -876,7 +800,7 @@ export type GetConfigRequest = Message<"impulse.config.GetConfigRequest"> & {
  * Use `create(GetConfigRequestSchema)` to create a new message.
  */
 export const GetConfigRequestSchema: GenMessage<GetConfigRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 36);
+  messageDesc(file_impulse_config_config_service, 34);
 
 /**
  * @generated from message impulse.config.GetConfigResponse
@@ -933,7 +857,7 @@ export type GetConfigResponse = Message<"impulse.config.GetConfigResponse"> & {
  * Use `create(GetConfigResponseSchema)` to create a new message.
  */
 export const GetConfigResponseSchema: GenMessage<GetConfigResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 37);
+  messageDesc(file_impulse_config_config_service, 35);
 
 /**
  * @generated from message impulse.config.SaveThemeRequest
@@ -955,7 +879,7 @@ export type SaveThemeRequest = Message<"impulse.config.SaveThemeRequest"> & {
  * Use `create(SaveThemeRequestSchema)` to create a new message.
  */
 export const SaveThemeRequestSchema: GenMessage<SaveThemeRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 38);
+  messageDesc(file_impulse_config_config_service, 36);
 
 /**
  * @generated from message impulse.config.SaveThemeResponse
@@ -972,47 +896,7 @@ export type SaveThemeResponse = Message<"impulse.config.SaveThemeResponse"> & {
  * Use `create(SaveThemeResponseSchema)` to create a new message.
  */
 export const SaveThemeResponseSchema: GenMessage<SaveThemeResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 39);
-
-/**
- * @generated from message impulse.config.SetChatThemeRequest
- */
-export type SetChatThemeRequest = Message<"impulse.config.SetChatThemeRequest"> & {
-  /**
-   * @generated from field: int64 chat_id = 1;
-   */
-  chatId: bigint;
-
-  /**
-   * @generated from field: optional string theme_emoji = 2;
-   */
-  themeEmoji?: string | undefined;
-
-  /**
-   * @generated from field: impulse.Peer peer = 3;
-   */
-  peer?: Peer | undefined;
-};
-
-/**
- * Describes the message impulse.config.SetChatThemeRequest.
- * Use `create(SetChatThemeRequestSchema)` to create a new message.
- */
-export const SetChatThemeRequestSchema: GenMessage<SetChatThemeRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 40);
-
-/**
- * @generated from message impulse.config.SetChatThemeResponse
- */
-export type SetChatThemeResponse = Message<"impulse.config.SetChatThemeResponse"> & {
-};
-
-/**
- * Describes the message impulse.config.SetChatThemeResponse.
- * Use `create(SetChatThemeResponseSchema)` to create a new message.
- */
-export const SetChatThemeResponseSchema: GenMessage<SetChatThemeResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 41);
+  messageDesc(file_impulse_config_config_service, 37);
 
 /**
  * @generated from message impulse.config.TermsOfService
@@ -1044,7 +928,7 @@ export type TermsOfService = Message<"impulse.config.TermsOfService"> & {
  * Use `create(TermsOfServiceSchema)` to create a new message.
  */
 export const TermsOfServiceSchema: GenMessage<TermsOfService> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 42);
+  messageDesc(file_impulse_config_config_service, 38);
 
 /**
  * @generated from message impulse.config.GetTermsOfServiceUpdateRequest
@@ -1057,7 +941,7 @@ export type GetTermsOfServiceUpdateRequest = Message<"impulse.config.GetTermsOfS
  * Use `create(GetTermsOfServiceUpdateRequestSchema)` to create a new message.
  */
 export const GetTermsOfServiceUpdateRequestSchema: GenMessage<GetTermsOfServiceUpdateRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 43);
+  messageDesc(file_impulse_config_config_service, 39);
 
 /**
  * @generated from message impulse.config.GetTermsOfServiceUpdateResponse
@@ -1079,7 +963,7 @@ export type GetTermsOfServiceUpdateResponse = Message<"impulse.config.GetTermsOf
  * Use `create(GetTermsOfServiceUpdateResponseSchema)` to create a new message.
  */
 export const GetTermsOfServiceUpdateResponseSchema: GenMessage<GetTermsOfServiceUpdateResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 44);
+  messageDesc(file_impulse_config_config_service, 40);
 
 /**
  * @generated from message impulse.config.AcceptTermsOfServiceRequest
@@ -1096,7 +980,7 @@ export type AcceptTermsOfServiceRequest = Message<"impulse.config.AcceptTermsOfS
  * Use `create(AcceptTermsOfServiceRequestSchema)` to create a new message.
  */
 export const AcceptTermsOfServiceRequestSchema: GenMessage<AcceptTermsOfServiceRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 45);
+  messageDesc(file_impulse_config_config_service, 41);
 
 /**
  * @generated from message impulse.config.AcceptTermsOfServiceResponse
@@ -1109,7 +993,7 @@ export type AcceptTermsOfServiceResponse = Message<"impulse.config.AcceptTermsOf
  * Use `create(AcceptTermsOfServiceResponseSchema)` to create a new message.
  */
 export const AcceptTermsOfServiceResponseSchema: GenMessage<AcceptTermsOfServiceResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 46);
+  messageDesc(file_impulse_config_config_service, 42);
 
 /**
  * @generated from message impulse.config.PeerColorOption
@@ -1155,7 +1039,7 @@ export type PeerColorOption = Message<"impulse.config.PeerColorOption"> & {
  * Use `create(PeerColorOptionSchema)` to create a new message.
  */
 export const PeerColorOptionSchema: GenMessage<PeerColorOption> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 47);
+  messageDesc(file_impulse_config_config_service, 43);
 
 /**
  * @generated from message impulse.config.GetPeerColorsRequest
@@ -1172,7 +1056,7 @@ export type GetPeerColorsRequest = Message<"impulse.config.GetPeerColorsRequest"
  * Use `create(GetPeerColorsRequestSchema)` to create a new message.
  */
 export const GetPeerColorsRequestSchema: GenMessage<GetPeerColorsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 48);
+  messageDesc(file_impulse_config_config_service, 44);
 
 /**
  * @generated from message impulse.config.GetPeerColorsResponse
@@ -1199,7 +1083,7 @@ export type GetPeerColorsResponse = Message<"impulse.config.GetPeerColorsRespons
  * Use `create(GetPeerColorsResponseSchema)` to create a new message.
  */
 export const GetPeerColorsResponseSchema: GenMessage<GetPeerColorsResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 49);
+  messageDesc(file_impulse_config_config_service, 45);
 
 /**
  * @generated from message impulse.config.GetPeerProfileColorsRequest
@@ -1216,7 +1100,7 @@ export type GetPeerProfileColorsRequest = Message<"impulse.config.GetPeerProfile
  * Use `create(GetPeerProfileColorsRequestSchema)` to create a new message.
  */
 export const GetPeerProfileColorsRequestSchema: GenMessage<GetPeerProfileColorsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 50);
+  messageDesc(file_impulse_config_config_service, 46);
 
 /**
  * @generated from message impulse.config.GetPeerProfileColorsResponse
@@ -1243,7 +1127,7 @@ export type GetPeerProfileColorsResponse = Message<"impulse.config.GetPeerProfil
  * Use `create(GetPeerProfileColorsResponseSchema)` to create a new message.
  */
 export const GetPeerProfileColorsResponseSchema: GenMessage<GetPeerProfileColorsResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 51);
+  messageDesc(file_impulse_config_config_service, 47);
 
 /**
  * @generated from message impulse.config.TimezoneEntry
@@ -1272,7 +1156,7 @@ export type TimezoneEntry = Message<"impulse.config.TimezoneEntry"> & {
  * Use `create(TimezoneEntrySchema)` to create a new message.
  */
 export const TimezoneEntrySchema: GenMessage<TimezoneEntry> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 52);
+  messageDesc(file_impulse_config_config_service, 48);
 
 /**
  * @generated from message impulse.config.GetTimezonesListRequest
@@ -1289,7 +1173,7 @@ export type GetTimezonesListRequest = Message<"impulse.config.GetTimezonesListRe
  * Use `create(GetTimezonesListRequestSchema)` to create a new message.
  */
 export const GetTimezonesListRequestSchema: GenMessage<GetTimezonesListRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 53);
+  messageDesc(file_impulse_config_config_service, 49);
 
 /**
  * @generated from message impulse.config.GetTimezonesListResponse
@@ -1316,7 +1200,7 @@ export type GetTimezonesListResponse = Message<"impulse.config.GetTimezonesListR
  * Use `create(GetTimezonesListResponseSchema)` to create a new message.
  */
 export const GetTimezonesListResponseSchema: GenMessage<GetTimezonesListResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 54);
+  messageDesc(file_impulse_config_config_service, 50);
 
 /**
  * @generated from message impulse.config.CountryEntry
@@ -1353,7 +1237,7 @@ export type CountryEntry = Message<"impulse.config.CountryEntry"> & {
  * Use `create(CountryEntrySchema)` to create a new message.
  */
 export const CountryEntrySchema: GenMessage<CountryEntry> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 55);
+  messageDesc(file_impulse_config_config_service, 51);
 
 /**
  * @generated from message impulse.config.CountryCode
@@ -1380,7 +1264,7 @@ export type CountryCode = Message<"impulse.config.CountryCode"> & {
  * Use `create(CountryCodeSchema)` to create a new message.
  */
 export const CountryCodeSchema: GenMessage<CountryCode> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 56);
+  messageDesc(file_impulse_config_config_service, 52);
 
 /**
  * @generated from message impulse.config.GetCountriesListRequest
@@ -1402,7 +1286,7 @@ export type GetCountriesListRequest = Message<"impulse.config.GetCountriesListRe
  * Use `create(GetCountriesListRequestSchema)` to create a new message.
  */
 export const GetCountriesListRequestSchema: GenMessage<GetCountriesListRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 57);
+  messageDesc(file_impulse_config_config_service, 53);
 
 /**
  * @generated from message impulse.config.GetCountriesListResponse
@@ -1429,7 +1313,7 @@ export type GetCountriesListResponse = Message<"impulse.config.GetCountriesListR
  * Use `create(GetCountriesListResponseSchema)` to create a new message.
  */
 export const GetCountriesListResponseSchema: GenMessage<GetCountriesListResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 58);
+  messageDesc(file_impulse_config_config_service, 54);
 
 /**
  * @generated from message impulse.config.GetPromoDataRequest
@@ -1442,7 +1326,7 @@ export type GetPromoDataRequest = Message<"impulse.config.GetPromoDataRequest"> 
  * Use `create(GetPromoDataRequestSchema)` to create a new message.
  */
 export const GetPromoDataRequestSchema: GenMessage<GetPromoDataRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 59);
+  messageDesc(file_impulse_config_config_service, 55);
 
 /**
  * @generated from message impulse.config.GetPromoDataResponse
@@ -1484,7 +1368,7 @@ export type GetPromoDataResponse = Message<"impulse.config.GetPromoDataResponse"
  * Use `create(GetPromoDataResponseSchema)` to create a new message.
  */
 export const GetPromoDataResponseSchema: GenMessage<GetPromoDataResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 60);
+  messageDesc(file_impulse_config_config_service, 56);
 
 /**
  * @generated from message impulse.config.DismissSuggestionRequest
@@ -1506,7 +1390,7 @@ export type DismissSuggestionRequest = Message<"impulse.config.DismissSuggestion
  * Use `create(DismissSuggestionRequestSchema)` to create a new message.
  */
 export const DismissSuggestionRequestSchema: GenMessage<DismissSuggestionRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 61);
+  messageDesc(file_impulse_config_config_service, 57);
 
 /**
  * @generated from message impulse.config.DismissSuggestionResponse
@@ -1519,7 +1403,7 @@ export type DismissSuggestionResponse = Message<"impulse.config.DismissSuggestio
  * Use `create(DismissSuggestionResponseSchema)` to create a new message.
  */
 export const DismissSuggestionResponseSchema: GenMessage<DismissSuggestionResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 62);
+  messageDesc(file_impulse_config_config_service, 58);
 
 /**
  * --- Themes ---
@@ -1527,26 +1411,6 @@ export const DismissSuggestionResponseSchema: GenMessage<DismissSuggestionRespon
  * @generated from service impulse.config.ConfigService
  */
 export const ConfigService: GenService<{
-  /**
-   * Create a new UI theme
-   *
-   * @generated from rpc impulse.config.ConfigService.CreateTheme
-   */
-  createTheme: {
-    methodKind: "unary";
-    input: typeof CreateThemeRequestSchema;
-    output: typeof ThemeSchema;
-  },
-  /**
-   * Update an existing theme
-   *
-   * @generated from rpc impulse.config.ConfigService.UpdateTheme
-   */
-  updateTheme: {
-    methodKind: "unary";
-    input: typeof UpdateThemeRequestSchema;
-    output: typeof ThemeSchema;
-  },
   /**
    * Get a theme by ID
    *
@@ -1756,16 +1620,6 @@ export const ConfigService: GenService<{
     methodKind: "unary";
     input: typeof SaveThemeRequestSchema;
     output: typeof SaveThemeResponseSchema;
-  },
-  /**
-   * Set the emoji theme for a chat
-   *
-   * @generated from rpc impulse.config.ConfigService.SetChatTheme
-   */
-  setChatTheme: {
-    methodKind: "unary";
-    input: typeof SetChatThemeRequestSchema;
-    output: typeof SetChatThemeResponseSchema;
   },
   /**
    * Get the current Terms of Service info

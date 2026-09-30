@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/sync/sync_types.proto.
  */
 export const file_impulse_sync_sync_types: GenFile = /*@__PURE__*/
-  fileDesc("Ch1pbXB1bHNlL3N5bmMvc3luY190eXBlcy5wcm90bxIMaW1wdWxzZS5zeW5jIlIKBVN0YXRlEgsKA3B0cxgBIAEoAxILCgNzZXEYAiABKAMSDAoEZGF0ZRgDIAEoAxIUCgx1bnJlYWRfY291bnQYBCABKAUSCwoDcXRzGAUgASgDIl4KFkVuc3VyZVB0c1NlZWRlZFJlcXVlc3QSMgoMY291bnRlcl90eXBlGAEgASgOMhwuaW1wdWxzZS5zeW5jLlB0c0NvdW50ZXJUeXBlEhAKCG93bmVyX2lkGAIgASgDIhkKF0Vuc3VyZVB0c1NlZWRlZFJlc3BvbnNlInsKG1BlcnNpc3RQdHNBbGxvY2F0aW9uUmVxdWVzdBIyCgxjb3VudGVyX3R5cGUYASABKA4yHC5pbXB1bHNlLnN5bmMuUHRzQ291bnRlclR5cGUSEAoIb3duZXJfaWQYAiABKAMSFgoOaXNzdWVkX3Rocm91Z2gYAyABKAMiHgocUGVyc2lzdFB0c0FsbG9jYXRpb25SZXNwb25zZSJmCgZVcGRhdGUSEwoLdXBkYXRlX3R5cGUYASABKAUSDAoEZGF0YRgCIAEoDBILCgNwdHMYAyABKAMSEQoJcHRzX2NvdW50GAQgASgFEgsKA3F0cxgFIAEoAxIMCgRkYXRlGAYgASgDItkBCgpEaWZmZXJlbmNlEi4KBWVtcHR5GAEgASgLMh0uaW1wdWxzZS5zeW5jLkRpZmZlcmVuY2VFbXB0eUgAEiwKBGZ1bGwYAiABKAsyHC5pbXB1bHNlLnN5bmMuRGlmZmVyZW5jZUZ1bGxIABIuCgVzbGljZRgDIAEoCzIdLmltcHVsc2Uuc3luYy5EaWZmZXJlbmNlU2xpY2VIABIzCgh0b29fbG9uZxgEIAEoCzIfLmltcHVsc2Uuc3luYy5EaWZmZXJlbmNlVG9vTG9uZ0gAQggKBnJlc3VsdCIsCg9EaWZmZXJlbmNlRW1wdHkSDAoEZGF0ZRgBIAEoAxILCgNzZXEYAiABKAMiWwoORGlmZmVyZW5jZUZ1bGwSJQoHdXBkYXRlcxgBIAMoCzIULmltcHVsc2Uuc3luYy5VcGRhdGUSIgoFc3RhdGUYAiABKAsyEy5pbXB1bHNlLnN5bmMuU3RhdGUiaQoPRGlmZmVyZW5jZVNsaWNlEiUKB3VwZGF0ZXMYASADKAsyFC5pbXB1bHNlLnN5bmMuVXBkYXRlEi8KEmludGVybWVkaWF0ZV9zdGF0ZRgCIAEoCzITLmltcHVsc2Uuc3luYy5TdGF0ZSIgChFEaWZmZXJlbmNlVG9vTG9uZxILCgNwdHMYASABKAMixQEKEUNoYW5uZWxEaWZmZXJlbmNlEjUKBWVtcHR5GAEgASgLMiQuaW1wdWxzZS5zeW5jLkNoYW5uZWxEaWZmZXJlbmNlRW1wdHlIABIzCgRmdWxsGAIgASgLMiMuaW1wdWxzZS5zeW5jLkNoYW5uZWxEaWZmZXJlbmNlRnVsbEgAEjoKCHRvb19sb25nGAMgASgLMiYuaW1wdWxzZS5zeW5jLkNoYW5uZWxEaWZmZXJlbmNlVG9vTG9uZ0gAQggKBnJlc3VsdCJFChZDaGFubmVsRGlmZmVyZW5jZUVtcHR5EgsKA3B0cxgBIAEoAxINCgVmaW5hbBgCIAEoCBIPCgd0aW1lb3V0GAMgASgFImsKFUNoYW5uZWxEaWZmZXJlbmNlRnVsbBIlCgd1cGRhdGVzGAEgAygLMhQuaW1wdWxzZS5zeW5jLlVwZGF0ZRILCgNwdHMYAiABKAMSDQoFZmluYWwYAyABKAgSDwoHdGltZW91dBgEIAEoBSI4ChhDaGFubmVsRGlmZmVyZW5jZVRvb0xvbmcSCwoDcHRzGAEgASgDEg8KB3RpbWVvdXQYAiABKAUqlQEKDlB0c0NvdW50ZXJUeXBlEiAKHFBUU19DT1VOVEVSX1RZUEVfVU5TUEVDSUZJRUQQABIdChlQVFNfQ09VTlRFUl9UWVBFX1VTRVJfUFRTEAESIAocUFRTX0NPVU5URVJfVFlQRV9DSEFOTkVMX1BUUxACEiAKHFBUU19DT1VOVEVSX1RZUEVfVVNFUl9NU0dfSUQQAyqtFwoKVXBkYXRlVHlwZRIbChdVUERBVEVfVFlQRV9VTlNQRUNJRklFRBAAEh8KG1VQREFURV9UWVBFX1VTRVJfUkVHSVNURVJFRBABEh4KGlVQREFURV9UWVBFX1VTRVJfTE9HR0VEX0lOEAISHwobVVBEQVRFX1RZUEVfVVNFUl9MT0dHRURfT1VUEAMSHAoYVVBEQVRFX1RZUEVfVVNFUl9VUERBVEVEEAQSIwofVVBEQVRFX1RZUEVfVVNFUl9TVEFUVVNfQ0hBTkdFRBAFEiEKHVVQREFURV9UWVBFX1VTRVJfTkFNRV9DSEFOR0VEEAYSHQoZVVBEQVRFX1RZUEVfQ09OVEFDVF9BRERFRBAHEh8KG1VQREFURV9UWVBFX0NPTlRBQ1RfREVMRVRFRBAIEhwKGFVQREFURV9UWVBFX1BFRVJfQkxPQ0tFRBAJEh4KGlVQREFURV9UWVBFX1BFRVJfVU5CTE9DS0VEEAoSHwobVVBEQVRFX1RZUEVfUFJJVkFDWV9VUERBVEVEEAsSIgoeVVBEQVRFX1RZUEVfU0VTU0lPTl9URVJNSU5BVEVEEAwSIQodVVBEQVRFX1RZUEVfTkVXX0FVVEhPUklaQVRJT04QDRIdChlVUERBVEVfVFlQRV9QRUVSX1NFVFRJTkdTEA4SGwoXVVBEQVRFX1RZUEVfTkVXX01FU1NBR0UQZBIcChhVUERBVEVfVFlQRV9FRElUX01FU1NBR0UQZRIfChtVUERBVEVfVFlQRV9ERUxFVEVfTUVTU0FHRVMQZhIcChhVUERBVEVfVFlQRV9SRUFEX0hJU1RPUlkQZxIWChJVUERBVEVfVFlQRV9UWVBJTkcQaBIbChdVUERBVEVfVFlQRV9QSU5fTUVTU0FHRRBpEh4KGlVQREFURV9UWVBFX0RFTEVURV9ISVNUT1JZEGoSHQoZVVBEQVRFX1RZUEVfU0VORF9SRUFDVElPThBuEhkKFVVQREFURV9UWVBFX1BPTExfVk9URRBvEhsKF1VQREFURV9UWVBFX1BPTExfQ0xPU0VEEHASHQoZVVBEQVRFX1RZUEVfRFJBRlRfVVBEQVRFRBBxEh4KGlVQREFURV9UWVBFX1NDSEVEVUxFRF9TRU5UEHISHQoZVVBEQVRFX1RZUEVfUkVBRF9DT05URU5UUxBzEh4KGlVQREFURV9UWVBFX1JFQURfUkVBQ1RJT05TEHQSHQoZVVBEQVRFX1RZUEVfUkVBRF9NRU5USU9OUxB1EiQKIFVQREFURV9UWVBFX01FU1NBR0VfUE9MTF9SRVNVTFRTEHYSGAoUVVBEQVRFX1RZUEVfV0VCX1BBR0UQdxIlCiFVUERBVEVfVFlQRV9DSEFOTkVMX01FU1NBR0VfVklFV1MQeBIoCiRVUERBVEVfVFlQRV9DSEFOTkVMX01FU1NBR0VfRk9SV0FSRFMQeRIgChxVUERBVEVfVFlQRV9ERUxFVEVfU0NIRURVTEVEEHsSHQoYVVBEQVRFX1RZUEVfQ0hBVF9DUkVBVEVEEMgBEh0KGFVQREFURV9UWVBFX0NIQVRfVVBEQVRFRBDJARIiCh1VUERBVEVfVFlQRV9DSEFUX01FTUJFUl9BRERFRBDKARIkCh9VUERBVEVfVFlQRV9DSEFUX01FTUJFUl9SRU1PVkVEEMsBEiEKHFVQREFURV9UWVBFX0NIQU5ORUxfVE9PX0xPTkcQzAESJAofVVBEQVRFX1RZUEVfQ0hBTk5FTF9QQVJUSUNJUEFOVBDNARIiCh1VUERBVEVfVFlQRV9DSEFUX1BBUlRJQ0lQQU5UUxDOARInCiJVUERBVEVfVFlQRV9DSEFUX1BBUlRJQ0lQQU5UX0FETUlOEM8BEiYKIVVQREFURV9UWVBFX1BFTkRJTkdfSk9JTl9SRVFVRVNUUxDRARIhChxVUERBVEVfVFlQRV9QRUVSX0hJU1RPUllfVFRMENIBEh4KGVVQREFURV9UWVBFX0RJQUxPR19QSU5ORUQQrAISHwoaVVBEQVRFX1RZUEVfUElOTkVEX0RJQUxPR1MQrQISIwoeVVBEQVRFX1RZUEVfRElBTE9HX1VOUkVBRF9NQVJLEK4CEh0KGFVQREFURV9UWVBFX0ZPTERFUl9QRUVSUxCvAhIeChlVUERBVEVfVFlQRV9ESUFMT0dfRklMVEVSELACEiQKH1VQREFURV9UWVBFX0RJQUxPR19GSUxURVJfT1JERVIQsQISIAobVVBEQVRFX1RZUEVfTk9USUZZX1NFVFRJTkdTEN4CEiUKIFVQREFURV9UWVBFX1NFUlZJQ0VfTk9USUZJQ0FUSU9OEN8CEiAKG1VQREFURV9UWVBFX1BJTk5FRF9NRVNTQUdFUxDoAhIoCiNVUERBVEVfVFlQRV9QSU5ORURfQ0hBTk5FTF9NRVNTQUdFUxDpAhIWChFVUERBVEVfVFlQRV9TVE9SWRCQAxIdChhVUERBVEVfVFlQRV9SRUFEX1NUT1JJRVMQkQMSHwoaVVBEQVRFX1RZUEVfU1RPUllfUkVBQ1RJT04QkgMSGwoWVVBEQVRFX1RZUEVfUEhPTkVfQ0FMTBD0AxIlCiBVUERBVEVfVFlQRV9QSE9ORV9DQUxMX1NJR05BTElORxD1AxIbChZVUERBVEVfVFlQRV9HUk9VUF9DQUxMEPYDEigKI1VQREFURV9UWVBFX0dST1VQX0NBTExfUEFSVElDSVBBTlRTEPcDEiMKHlVQREFURV9UWVBFX1BJTk5FRF9GT1JVTV9UT1BJQxDYBBIkCh9VUERBVEVfVFlQRV9QSU5ORURfRk9SVU1fVE9QSUNTENkEEh8KGlVQREFURV9UWVBFX0ZBVkVEX1NUSUNLRVJTELwFEiAKG1VQREFURV9UWVBFX1JFQ0VOVF9TVElDS0VSUxC9BRIdChhVUERBVEVfVFlQRV9TVElDS0VSX1NFVFMQvgUSIwoeVVBEQVRFX1RZUEVfU1RJQ0tFUl9TRVRTX09SREVSEL8FEiAKG1VQREFURV9UWVBFX05FV19TVElDS0VSX1NFVBDABRIbChZVUERBVEVfVFlQRV9TQVZFRF9HSUZTEMEFEiEKHFVQREFURV9UWVBFX1JFQ0VOVF9SRUFDVElPTlMQwgUSHgoZVVBEQVRFX1RZUEVfUVVJQ0tfUkVQTElFUxDaBRIgChtVUERBVEVfVFlQRV9ORVdfUVVJQ0tfUkVQTFkQ2wUSIwoeVVBEQVRFX1RZUEVfREVMRVRFX1FVSUNLX1JFUExZENwFEiQKH1VQREFURV9UWVBFX1FVSUNLX1JFUExZX01FU1NBR0UQ3QUSLAonVVBEQVRFX1RZUEVfREVMRVRFX1FVSUNLX1JFUExZX01FU1NBR0VTEN4FEhcKElVQREFURV9UWVBFX0NPTkZJRxCgBhIfChpVUERBVEVfVFlQRV9QRUVSX1dBTExQQVBFUhChBhIgChtVUERBVEVfVFlQRV9CT1RfTUVOVV9CVVRUT04QhAcSHQoYVVBEQVRFX1RZUEVfQk9UX0NPTU1BTkRTEIUHEiMKHlVQREFURV9UWVBFX0JPVF9DQUxMQkFDS19RVUVSWRCGBxIhChxVUERBVEVfVFlQRV9CT1RfSU5MSU5FX1FVRVJZEIcHEiIKHlVQREFURV9UWVBFX1VTRVJfUEhPTkVfQ0hBTkdFRBAPEiEKHVVQREFURV9UWVBFX1VTRVJfRU1PSklfU1RBVFVTEBASIgoeVVBEQVRFX1RZUEVfVVNFUl9QSE9UT19VUERBVEVEEBESKwomVVBEQVRFX1RZUEVfQ0hBTk5FTF9BVkFJTEFCTEVfTUVTU0FHRVMQ0AESJgoiVVBEQVRFX1RZUEVfTUVTU0FHRV9FWFRFTkRFRF9NRURJQRB6EiEKHVVQREFURV9UWVBFX1RSQU5TQ1JJQkVEX0FVRElPEHxCF6oCFEltcHVsc2VNLlByb3Rvcy5TeW5jYgZwcm90bzM");
+  fileDesc("Ch1pbXB1bHNlL3N5bmMvc3luY190eXBlcy5wcm90bxIMaW1wdWxzZS5zeW5jIlIKBVN0YXRlEgsKA3B0cxgBIAEoAxILCgNzZXEYAiABKAMSDAoEZGF0ZRgDIAEoAxIUCgx1bnJlYWRfY291bnQYBCABKAUSCwoDcXRzGAUgASgDIl4KFkVuc3VyZVB0c1NlZWRlZFJlcXVlc3QSMgoMY291bnRlcl90eXBlGAEgASgOMhwuaW1wdWxzZS5zeW5jLlB0c0NvdW50ZXJUeXBlEhAKCG93bmVyX2lkGAIgASgDIhkKF0Vuc3VyZVB0c1NlZWRlZFJlc3BvbnNlInsKG1BlcnNpc3RQdHNBbGxvY2F0aW9uUmVxdWVzdBIyCgxjb3VudGVyX3R5cGUYASABKA4yHC5pbXB1bHNlLnN5bmMuUHRzQ291bnRlclR5cGUSEAoIb3duZXJfaWQYAiABKAMSFgoOaXNzdWVkX3Rocm91Z2gYAyABKAMiHgocUGVyc2lzdFB0c0FsbG9jYXRpb25SZXNwb25zZSJNCiVSZXNlZWRQdHNDb3VudGVyRnJvbUR1cmFibGVMb2dSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAMSEwoLYXBwbHlfcmFpc2UYAiABKAgi/gEKJlJlc2VlZFB0c0NvdW50ZXJGcm9tRHVyYWJsZUxvZ1Jlc3BvbnNlEhcKD2R1cmFibGVfbWF4aW11bRgBIAEoAxIWCg5jb3VudGVyX2JlZm9yZRgCIAEoAxIVCg1jb3VudGVyX2FmdGVyGAMgASgDEhoKEmNvdW50ZXJfd2FzX2Fic2VudBgEIAEoCBIaChJ1cGRhdGVfbG9nX21heGltdW0YBSABKAMSHAoUYWxsb2NhdGlvbl93YXRlcm1hcmsYBiABKAMSFAoMcmFpc2VfdGFyZ2V0GAcgASgDEiAKGHJhaXNlX3JlZnVzZWRfYXRfY2VpbGluZxgIIAEoCCJmCgZVcGRhdGUSEwoLdXBkYXRlX3R5cGUYASABKAUSDAoEZGF0YRgCIAEoDBILCgNwdHMYAyABKAMSEQoJcHRzX2NvdW50GAQgASgFEgsKA3F0cxgFIAEoAxIMCgRkYXRlGAYgASgDItkBCgpEaWZmZXJlbmNlEi4KBWVtcHR5GAEgASgLMh0uaW1wdWxzZS5zeW5jLkRpZmZlcmVuY2VFbXB0eUgAEiwKBGZ1bGwYAiABKAsyHC5pbXB1bHNlLnN5bmMuRGlmZmVyZW5jZUZ1bGxIABIuCgVzbGljZRgDIAEoCzIdLmltcHVsc2Uuc3luYy5EaWZmZXJlbmNlU2xpY2VIABIzCgh0b29fbG9uZxgEIAEoCzIfLmltcHVsc2Uuc3luYy5EaWZmZXJlbmNlVG9vTG9uZ0gAQggKBnJlc3VsdCIsCg9EaWZmZXJlbmNlRW1wdHkSDAoEZGF0ZRgBIAEoAxILCgNzZXEYAiABKAMiWwoORGlmZmVyZW5jZUZ1bGwSJQoHdXBkYXRlcxgBIAMoCzIULmltcHVsc2Uuc3luYy5VcGRhdGUSIgoFc3RhdGUYAiABKAsyEy5pbXB1bHNlLnN5bmMuU3RhdGUiaQoPRGlmZmVyZW5jZVNsaWNlEiUKB3VwZGF0ZXMYASADKAsyFC5pbXB1bHNlLnN5bmMuVXBkYXRlEi8KEmludGVybWVkaWF0ZV9zdGF0ZRgCIAEoCzITLmltcHVsc2Uuc3luYy5TdGF0ZSIgChFEaWZmZXJlbmNlVG9vTG9uZxILCgNwdHMYASABKAMixQEKEUNoYW5uZWxEaWZmZXJlbmNlEjUKBWVtcHR5GAEgASgLMiQuaW1wdWxzZS5zeW5jLkNoYW5uZWxEaWZmZXJlbmNlRW1wdHlIABIzCgRmdWxsGAIgASgLMiMuaW1wdWxzZS5zeW5jLkNoYW5uZWxEaWZmZXJlbmNlRnVsbEgAEjoKCHRvb19sb25nGAMgASgLMiYuaW1wdWxzZS5zeW5jLkNoYW5uZWxEaWZmZXJlbmNlVG9vTG9uZ0gAQggKBnJlc3VsdCJFChZDaGFubmVsRGlmZmVyZW5jZUVtcHR5EgsKA3B0cxgBIAEoAxINCgVmaW5hbBgCIAEoCBIPCgd0aW1lb3V0GAMgASgFImsKFUNoYW5uZWxEaWZmZXJlbmNlRnVsbBIlCgd1cGRhdGVzGAEgAygLMhQuaW1wdWxzZS5zeW5jLlVwZGF0ZRILCgNwdHMYAiABKAMSDQoFZmluYWwYAyABKAgSDwoHdGltZW91dBgEIAEoBSI4ChhDaGFubmVsRGlmZmVyZW5jZVRvb0xvbmcSCwoDcHRzGAEgASgDEg8KB3RpbWVvdXQYAiABKAUqlQEKDlB0c0NvdW50ZXJUeXBlEiAKHFBUU19DT1VOVEVSX1RZUEVfVU5TUEVDSUZJRUQQABIdChlQVFNfQ09VTlRFUl9UWVBFX1VTRVJfUFRTEAESIAocUFRTX0NPVU5URVJfVFlQRV9DSEFOTkVMX1BUUxACEiAKHFBUU19DT1VOVEVSX1RZUEVfVVNFUl9NU0dfSUQQAyqtFwoKVXBkYXRlVHlwZRIbChdVUERBVEVfVFlQRV9VTlNQRUNJRklFRBAAEh8KG1VQREFURV9UWVBFX1VTRVJfUkVHSVNURVJFRBABEh4KGlVQREFURV9UWVBFX1VTRVJfTE9HR0VEX0lOEAISHwobVVBEQVRFX1RZUEVfVVNFUl9MT0dHRURfT1VUEAMSHAoYVVBEQVRFX1RZUEVfVVNFUl9VUERBVEVEEAQSIwofVVBEQVRFX1RZUEVfVVNFUl9TVEFUVVNfQ0hBTkdFRBAFEiEKHVVQREFURV9UWVBFX1VTRVJfTkFNRV9DSEFOR0VEEAYSHQoZVVBEQVRFX1RZUEVfQ09OVEFDVF9BRERFRBAHEh8KG1VQREFURV9UWVBFX0NPTlRBQ1RfREVMRVRFRBAIEhwKGFVQREFURV9UWVBFX1BFRVJfQkxPQ0tFRBAJEh4KGlVQREFURV9UWVBFX1BFRVJfVU5CTE9DS0VEEAoSHwobVVBEQVRFX1RZUEVfUFJJVkFDWV9VUERBVEVEEAsSIgoeVVBEQVRFX1RZUEVfU0VTU0lPTl9URVJNSU5BVEVEEAwSIQodVVBEQVRFX1RZUEVfTkVXX0FVVEhPUklaQVRJT04QDRIdChlVUERBVEVfVFlQRV9QRUVSX1NFVFRJTkdTEA4SGwoXVVBEQVRFX1RZUEVfTkVXX01FU1NBR0UQZBIcChhVUERBVEVfVFlQRV9FRElUX01FU1NBR0UQZRIfChtVUERBVEVfVFlQRV9ERUxFVEVfTUVTU0FHRVMQZhIcChhVUERBVEVfVFlQRV9SRUFEX0hJU1RPUlkQZxIWChJVUERBVEVfVFlQRV9UWVBJTkcQaBIbChdVUERBVEVfVFlQRV9QSU5fTUVTU0FHRRBpEh4KGlVQREFURV9UWVBFX0RFTEVURV9ISVNUT1JZEGoSHQoZVVBEQVRFX1RZUEVfU0VORF9SRUFDVElPThBuEhkKFVVQREFURV9UWVBFX1BPTExfVk9URRBvEhsKF1VQREFURV9UWVBFX1BPTExfQ0xPU0VEEHASHQoZVVBEQVRFX1RZUEVfRFJBRlRfVVBEQVRFRBBxEh4KGlVQREFURV9UWVBFX1NDSEVEVUxFRF9TRU5UEHISHQoZVVBEQVRFX1RZUEVfUkVBRF9DT05URU5UUxBzEh4KGlVQREFURV9UWVBFX1JFQURfUkVBQ1RJT05TEHQSHQoZVVBEQVRFX1RZUEVfUkVBRF9NRU5USU9OUxB1EiQKIFVQREFURV9UWVBFX01FU1NBR0VfUE9MTF9SRVNVTFRTEHYSGAoUVVBEQVRFX1RZUEVfV0VCX1BBR0UQdxIlCiFVUERBVEVfVFlQRV9DSEFOTkVMX01FU1NBR0VfVklFV1MQeBIoCiRVUERBVEVfVFlQRV9DSEFOTkVMX01FU1NBR0VfRk9SV0FSRFMQeRIgChxVUERBVEVfVFlQRV9ERUxFVEVfU0NIRURVTEVEEHsSHQoYVVBEQVRFX1RZUEVfQ0hBVF9DUkVBVEVEEMgBEh0KGFVQREFURV9UWVBFX0NIQVRfVVBEQVRFRBDJARIiCh1VUERBVEVfVFlQRV9DSEFUX01FTUJFUl9BRERFRBDKARIkCh9VUERBVEVfVFlQRV9DSEFUX01FTUJFUl9SRU1PVkVEEMsBEiEKHFVQREFURV9UWVBFX0NIQU5ORUxfVE9PX0xPTkcQzAESJAofVVBEQVRFX1RZUEVfQ0hBTk5FTF9QQVJUSUNJUEFOVBDNARIiCh1VUERBVEVfVFlQRV9DSEFUX1BBUlRJQ0lQQU5UUxDOARInCiJVUERBVEVfVFlQRV9DSEFUX1BBUlRJQ0lQQU5UX0FETUlOEM8BEiYKIVVQREFURV9UWVBFX1BFTkRJTkdfSk9JTl9SRVFVRVNUUxDRARIhChxVUERBVEVfVFlQRV9QRUVSX0hJU1RPUllfVFRMENIBEh4KGVVQREFURV9UWVBFX0RJQUxPR19QSU5ORUQQrAISHwoaVVBEQVRFX1RZUEVfUElOTkVEX0RJQUxPR1MQrQISIwoeVVBEQVRFX1RZUEVfRElBTE9HX1VOUkVBRF9NQVJLEK4CEh0KGFVQREFURV9UWVBFX0ZPTERFUl9QRUVSUxCvAhIeChlVUERBVEVfVFlQRV9ESUFMT0dfRklMVEVSELACEiQKH1VQREFURV9UWVBFX0RJQUxPR19GSUxURVJfT1JERVIQsQISIAobVVBEQVRFX1RZUEVfTk9USUZZX1NFVFRJTkdTEN4CEiUKIFVQREFURV9UWVBFX1NFUlZJQ0VfTk9USUZJQ0FUSU9OEN8CEiAKG1VQREFURV9UWVBFX1BJTk5FRF9NRVNTQUdFUxDoAhIoCiNVUERBVEVfVFlQRV9QSU5ORURfQ0hBTk5FTF9NRVNTQUdFUxDpAhIWChFVUERBVEVfVFlQRV9TVE9SWRCQAxIdChhVUERBVEVfVFlQRV9SRUFEX1NUT1JJRVMQkQMSHwoaVVBEQVRFX1RZUEVfU1RPUllfUkVBQ1RJT04QkgMSGwoWVVBEQVRFX1RZUEVfUEhPTkVfQ0FMTBD0AxIlCiBVUERBVEVfVFlQRV9QSE9ORV9DQUxMX1NJR05BTElORxD1AxIbChZVUERBVEVfVFlQRV9HUk9VUF9DQUxMEPYDEigKI1VQREFURV9UWVBFX0dST1VQX0NBTExfUEFSVElDSVBBTlRTEPcDEiMKHlVQREFURV9UWVBFX1BJTk5FRF9GT1JVTV9UT1BJQxDYBBIkCh9VUERBVEVfVFlQRV9QSU5ORURfRk9SVU1fVE9QSUNTENkEEh8KGlVQREFURV9UWVBFX0ZBVkVEX1NUSUNLRVJTELwFEiAKG1VQREFURV9UWVBFX1JFQ0VOVF9TVElDS0VSUxC9BRIdChhVUERBVEVfVFlQRV9TVElDS0VSX1NFVFMQvgUSIwoeVVBEQVRFX1RZUEVfU1RJQ0tFUl9TRVRTX09SREVSEL8FEiAKG1VQREFURV9UWVBFX05FV19TVElDS0VSX1NFVBDABRIbChZVUERBVEVfVFlQRV9TQVZFRF9HSUZTEMEFEiEKHFVQREFURV9UWVBFX1JFQ0VOVF9SRUFDVElPTlMQwgUSHgoZVVBEQVRFX1RZUEVfUVVJQ0tfUkVQTElFUxDaBRIgChtVUERBVEVfVFlQRV9ORVdfUVVJQ0tfUkVQTFkQ2wUSIwoeVVBEQVRFX1RZUEVfREVMRVRFX1FVSUNLX1JFUExZENwFEiQKH1VQREFURV9UWVBFX1FVSUNLX1JFUExZX01FU1NBR0UQ3QUSLAonVVBEQVRFX1RZUEVfREVMRVRFX1FVSUNLX1JFUExZX01FU1NBR0VTEN4FEhcKElVQREFURV9UWVBFX0NPTkZJRxCgBhIfChpVUERBVEVfVFlQRV9QRUVSX1dBTExQQVBFUhChBhIgChtVUERBVEVfVFlQRV9CT1RfTUVOVV9CVVRUT04QhAcSHQoYVVBEQVRFX1RZUEVfQk9UX0NPTU1BTkRTEIUHEiMKHlVQREFURV9UWVBFX0JPVF9DQUxMQkFDS19RVUVSWRCGBxIhChxVUERBVEVfVFlQRV9CT1RfSU5MSU5FX1FVRVJZEIcHEiIKHlVQREFURV9UWVBFX1VTRVJfUEhPTkVfQ0hBTkdFRBAPEiEKHVVQREFURV9UWVBFX1VTRVJfRU1PSklfU1RBVFVTEBASIgoeVVBEQVRFX1RZUEVfVVNFUl9QSE9UT19VUERBVEVEEBESKwomVVBEQVRFX1RZUEVfQ0hBTk5FTF9BVkFJTEFCTEVfTUVTU0FHRVMQ0AESJgoiVVBEQVRFX1RZUEVfTUVTU0FHRV9FWFRFTkRFRF9NRURJQRB6EiEKHVVQREFURV9UWVBFX1RSQU5TQ1JJQkVEX0FVRElPEHxCF6oCFEltcHVsc2VNLlByb3Rvcy5TeW5jYgZwcm90bzM");
 
 /**
  * @generated from message impulse.sync.State
@@ -127,6 +127,131 @@ export const PersistPtsAllocationResponseSchema: GenMessage<PersistPtsAllocation
   messageDesc(file_impulse_sync_sync_types, 4);
 
 /**
+ * The one account an operator is repairing. No counter_type, because only the user pts counter can
+ * be in the state this repairs. A channel's pts is a plain monotonic INCR the producer reads and
+ * carries on the event, so a channel collision means two producers supplied one number rather than
+ * a counter that fell behind the log -- a different incident, which the channel lane quarantines
+ * under its own reason and which raising a counter would not fix.
+ *
+ * @generated from message impulse.sync.ReseedPtsCounterFromDurableLogRequest
+ */
+export type ReseedPtsCounterFromDurableLogRequest = Message<"impulse.sync.ReseedPtsCounterFromDurableLogRequest"> & {
+  /**
+   * @generated from field: int64 user_id = 1;
+   */
+  userId: bigint;
+
+  /**
+   * False reports what the raise would do and writes nothing -- the default an operator gets,
+   * because the question this tool is reached for first is "is this the account at fault", and an
+   * instrument that mutates what it measures cannot answer it. True performs the repair.
+   *
+   * @generated from field: bool apply_raise = 2;
+   */
+  applyRaise: boolean;
+};
+
+/**
+ * Describes the message impulse.sync.ReseedPtsCounterFromDurableLogRequest.
+ * Use `create(ReseedPtsCounterFromDurableLogRequestSchema)` to create a new message.
+ */
+export const ReseedPtsCounterFromDurableLogRequestSchema: GenMessage<ReseedPtsCounterFromDurableLogRequest> = /*@__PURE__*/
+  messageDesc(file_impulse_sync_sync_types, 5);
+
+/**
+ * Everything the operation observed, so the operator can see whether there was a gap at all and how
+ * large it was without reading the counter themselves at a different instant.
+ *
+ * @generated from message impulse.sync.ReseedPtsCounterFromDurableLogResponse
+ */
+export type ReseedPtsCounterFromDurableLogResponse = Message<"impulse.sync.ReseedPtsCounterFromDurableLogResponse"> & {
+  /**
+   * The greatest pts a durable ROW still owns for this account -- max(update_log.pts,
+   * update_log_fence.pts); 0 when neither table holds one. This is what the reported gap and the
+   * pts_counter_behind_log sample are measured against, because these are the rows a colliding
+   * allocation actually collides with. It is NOT necessarily the value the counter was raised to --
+   * see allocation_watermark. The FENCE is what refuses a colliding write, and it outlives the
+   * payload table: retention drops update_log leaves, nothing deletes a fence row, so on an
+   * aged-out account the payload maximum is 0 while the fence still refuses every allocation.
+   *
+   * @generated from field: int64 durable_maximum = 1;
+   */
+  durableMaximum: bigint;
+
+  /**
+   * The Redis counter before the raise. Below durable_maximum is the defect: the next allocation
+   * would have landed on a pts the durable log already owns.
+   *
+   * @generated from field: int64 counter_before = 2;
+   */
+  counterBefore: bigint;
+
+  /**
+   * The Redis counter after the raise. Never below counter_before -- lowering it would re-issue pts
+   * values clients already hold -- and never below the greatest of durable_maximum and
+   * allocation_watermark.
+   *
+   * @generated from field: int64 counter_after = 3;
+   */
+  counterAfter: bigint;
+
+  /**
+   * True when the counter key is absent entirely. That is a Redis loss with a different remedy
+   * (EnsurePtsSeeded), and this call deliberately repairs nothing in that case.
+   *
+   * @generated from field: bool counter_was_absent = 4;
+   */
+  counterWasAbsent: boolean;
+
+  /**
+   * MAX(pts) of update_log alone; 0 when it holds no rows. Reported beside durable_maximum so an
+   * operator can see when the two disagree, which is exactly the aged-out-payload case above.
+   *
+   * @generated from field: int64 update_log_maximum = 5;
+   */
+  updateLogMaximum: bigint;
+
+  /**
+   * The account's ptsAllocationWatermarks value; 0 when it has no row. The THIRD floor, and often
+   * the highest: it is written ahead of every allocation as issuedThrough + PtsWatermarkOptions.step,
+   * so it stands above every pts this account was ever handed -- INCLUDING the ones that left in an
+   * RPC answer and whose durable row never landed, which appear in neither table above. The counter
+   * is raised to max(durable_maximum, allocation_watermark), so when counter_after sits above
+   * durable_maximum this is where it came from.
+   *
+   * @generated from field: int64 allocation_watermark = 6;
+   */
+  allocationWatermark: bigint;
+
+  /**
+   * The floor the raise chose, reported even when apply_raise was false and nothing was written --
+   * a report-only call answers "is this account at fault" precisely by showing what the repair
+   * WOULD do, so this is the field a report-only caller reads instead of counter_after (which stays
+   * equal to counter_before on that call).
+   *
+   * @generated from field: int64 raise_target = 7;
+   */
+  raiseTarget: bigint;
+
+  /**
+   * True when raise_target sits at or above canon's int32 pts wall and the raise was declined
+   * without writing, whether or not apply_raise asked for it: setting the counter to 2147483647
+   * would make every later reservation for this account fail PTS_OVERFLOW, which is the last
+   * headroom this repair exists to protect, not spend.
+   *
+   * @generated from field: bool raise_refused_at_ceiling = 8;
+   */
+  raiseRefusedAtCeiling: boolean;
+};
+
+/**
+ * Describes the message impulse.sync.ReseedPtsCounterFromDurableLogResponse.
+ * Use `create(ReseedPtsCounterFromDurableLogResponseSchema)` to create a new message.
+ */
+export const ReseedPtsCounterFromDurableLogResponseSchema: GenMessage<ReseedPtsCounterFromDurableLogResponse> = /*@__PURE__*/
+  messageDesc(file_impulse_sync_sync_types, 6);
+
+/**
  * @generated from message impulse.sync.Update
  */
 export type Update = Message<"impulse.sync.Update"> & {
@@ -166,7 +291,7 @@ export type Update = Message<"impulse.sync.Update"> & {
  * Use `create(UpdateSchema)` to create a new message.
  */
 export const UpdateSchema: GenMessage<Update> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_types, 5);
+  messageDesc(file_impulse_sync_sync_types, 7);
 
 /**
  * @generated from message impulse.sync.Difference
@@ -207,7 +332,7 @@ export type Difference = Message<"impulse.sync.Difference"> & {
  * Use `create(DifferenceSchema)` to create a new message.
  */
 export const DifferenceSchema: GenMessage<Difference> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_types, 6);
+  messageDesc(file_impulse_sync_sync_types, 8);
 
 /**
  * @generated from message impulse.sync.DifferenceEmpty
@@ -229,7 +354,7 @@ export type DifferenceEmpty = Message<"impulse.sync.DifferenceEmpty"> & {
  * Use `create(DifferenceEmptySchema)` to create a new message.
  */
 export const DifferenceEmptySchema: GenMessage<DifferenceEmpty> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_types, 7);
+  messageDesc(file_impulse_sync_sync_types, 9);
 
 /**
  * @generated from message impulse.sync.DifferenceFull
@@ -251,7 +376,7 @@ export type DifferenceFull = Message<"impulse.sync.DifferenceFull"> & {
  * Use `create(DifferenceFullSchema)` to create a new message.
  */
 export const DifferenceFullSchema: GenMessage<DifferenceFull> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_types, 8);
+  messageDesc(file_impulse_sync_sync_types, 10);
 
 /**
  * @generated from message impulse.sync.DifferenceSlice
@@ -273,7 +398,7 @@ export type DifferenceSlice = Message<"impulse.sync.DifferenceSlice"> & {
  * Use `create(DifferenceSliceSchema)` to create a new message.
  */
 export const DifferenceSliceSchema: GenMessage<DifferenceSlice> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_types, 9);
+  messageDesc(file_impulse_sync_sync_types, 11);
 
 /**
  * @generated from message impulse.sync.DifferenceTooLong
@@ -290,7 +415,7 @@ export type DifferenceTooLong = Message<"impulse.sync.DifferenceTooLong"> & {
  * Use `create(DifferenceTooLongSchema)` to create a new message.
  */
 export const DifferenceTooLongSchema: GenMessage<DifferenceTooLong> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_types, 10);
+  messageDesc(file_impulse_sync_sync_types, 12);
 
 /**
  * @generated from message impulse.sync.ChannelDifference
@@ -325,7 +450,7 @@ export type ChannelDifference = Message<"impulse.sync.ChannelDifference"> & {
  * Use `create(ChannelDifferenceSchema)` to create a new message.
  */
 export const ChannelDifferenceSchema: GenMessage<ChannelDifference> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_types, 11);
+  messageDesc(file_impulse_sync_sync_types, 13);
 
 /**
  * @generated from message impulse.sync.ChannelDifferenceEmpty
@@ -352,7 +477,7 @@ export type ChannelDifferenceEmpty = Message<"impulse.sync.ChannelDifferenceEmpt
  * Use `create(ChannelDifferenceEmptySchema)` to create a new message.
  */
 export const ChannelDifferenceEmptySchema: GenMessage<ChannelDifferenceEmpty> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_types, 12);
+  messageDesc(file_impulse_sync_sync_types, 14);
 
 /**
  * @generated from message impulse.sync.ChannelDifferenceFull
@@ -384,7 +509,7 @@ export type ChannelDifferenceFull = Message<"impulse.sync.ChannelDifferenceFull"
  * Use `create(ChannelDifferenceFullSchema)` to create a new message.
  */
 export const ChannelDifferenceFullSchema: GenMessage<ChannelDifferenceFull> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_types, 13);
+  messageDesc(file_impulse_sync_sync_types, 15);
 
 /**
  * @generated from message impulse.sync.ChannelDifferenceTooLong
@@ -406,7 +531,7 @@ export type ChannelDifferenceTooLong = Message<"impulse.sync.ChannelDifferenceTo
  * Use `create(ChannelDifferenceTooLongSchema)` to create a new message.
  */
 export const ChannelDifferenceTooLongSchema: GenMessage<ChannelDifferenceTooLong> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_types, 14);
+  messageDesc(file_impulse_sync_sync_types, 16);
 
 /**
  * Durable pts counter class addressed by the EnsurePtsSeeded reserve-path recovery seam

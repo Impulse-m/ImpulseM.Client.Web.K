@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/files/files_service.proto.
  */
 export const file_impulse_files_files_service: GenFile = /*@__PURE__*/
-  fileDesc("CiFpbXB1bHNlL2ZpbGVzL2ZpbGVzX3NlcnZpY2UucHJvdG8SDWltcHVsc2UuZmlsZXMi3gQKDEZpbGVNZXRhZGF0YRIKCgJpZBgBIAEoAxIRCglmaWxlX25hbWUYAiABKAkSEQoJbWltZV90eXBlGAMgASgJEgwKBHNpemUYBCABKAMSEgoFd2lkdGgYBSABKAVIAIgBARITCgZoZWlnaHQYBiABKAVIAYgBARIaCg10aHVtYm5haWxfdXJsGAcgASgJSAKIAQESGQoMZG93bmxvYWRfdXJsGAggASgJSAOIAQESEgoKY3JlYXRlZF9hdBgJIAEoAxITCgthY2Nlc3NfaGFzaBgKIAEoAxIXCgpzaXplc19qc29uGAsgASgJSASIAQESGwoOc3RyaXBwZWRfdGh1bWIYDCABKAxIBYgBARIhChRwcm9jZXNzZWRfYXR0cmlidXRlcxgNIAEoDEgGiAEBEhUKCGNhdGVnb3J5GA4gASgFSAeIAQESEgoFZGNfaWQYDyABKAVICIgBARITCgt1cGxvYWRlZF9ieRgQIAEoAxIeChFjbGllbnRfYXR0cmlidXRlcxgRIAEoDEgJiAEBEhoKDW5vc291bmRfdmlkZW8YEiABKAhICogBAUIICgZfd2lkdGhCCQoHX2hlaWdodEIQCg5fdGh1bWJuYWlsX3VybEIPCg1fZG93bmxvYWRfdXJsQg0KC19zaXplc19qc29uQhEKD19zdHJpcHBlZF90aHVtYkIXChVfcHJvY2Vzc2VkX2F0dHJpYnV0ZXNCCwoJX2NhdGVnb3J5QggKBl9kY19pZEIUChJfY2xpZW50X2F0dHJpYnV0ZXNCEAoOX25vc291bmRfdmlkZW8iVAoNVXBsb2FkZWRQaG90bxIKCgJpZBgBIAEoAxIPCgdmaWxlX2lkGAIgASgDEhIKCmlzX2N1cnJlbnQYAyABKAgSEgoKY3JlYXRlZF9hdBgEIAEoAyLvAwobRmluYWxpemVVcGxvYWRlZEZpbGVSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAMSDwoHZmlsZV9pZBgCIAEoAxIRCglmaWxlX25hbWUYAyABKAkSEQoJbWltZV90eXBlGAQgASgJEi0KCGNhdGVnb3J5GAUgASgOMhsuaW1wdWxzZS5maWxlcy5GaWxlQ2F0ZWdvcnkSEwoLdG90YWxfcGFydHMYBiABKAUSFAoHY2hhdF9pZBgHIAEoA0gAiAEBEiEKFGNsaWVudF90aHVtYl9maWxlX2lkGAggASgDSAGIAQESJQoYY2xpZW50X3RodW1iX3RvdGFsX3BhcnRzGAkgASgFSAKIAQESIwoWY2xpZW50X3RodW1iX2ZpbGVfbmFtZRgKIAEoCUgDiAEBEh4KEWNsaWVudF9hdHRyaWJ1dGVzGAsgASgMSASIAQESGgoNbm9zb3VuZF92aWRlbxgMIAEoCEgFiAEBQgoKCF9jaGF0X2lkQhcKFV9jbGllbnRfdGh1bWJfZmlsZV9pZEIbChlfY2xpZW50X3RodW1iX3RvdGFsX3BhcnRzQhkKF19jbGllbnRfdGh1bWJfZmlsZV9uYW1lQhQKEl9jbGllbnRfYXR0cmlidXRlc0IQCg5fbm9zb3VuZF92aWRlbyIhCg5HZXRGaWxlUmVxdWVzdBIPCgdmaWxlX2lkGAEgASgDIi8KGkRlbGV0ZVByb2ZpbGVQaG90b3NSZXF1ZXN0EhEKCXBob3RvX2lkcxgBIAMoAyIdChtEZWxldGVQcm9maWxlUGhvdG9zUmVzcG9uc2UiRgoUR2V0VXNlclBob3Rvc1JlcXVlc3QSDwoHdXNlcl9pZBgBIAEoAxIOCgZvZmZzZXQYAiABKAUSDQoFbGltaXQYAyABKAUiVAoVR2V0VXNlclBob3Rvc1Jlc3BvbnNlEiwKBnBob3RvcxgBIAMoCzIcLmltcHVsc2UuZmlsZXMuVXBsb2FkZWRQaG90bxINCgVjb3VudBgCIAEoBSLWAQoaSW1wb3J0UmVmZXJlbmNlRmlsZVJlcXVlc3QSDwoHZmlsZV9pZBgCIAEoAxIRCglmaWxlX25hbWUYAyABKAkSEQoJbWltZV90eXBlGAQgASgJEi0KCGNhdGVnb3J5GAUgASgOMhsuaW1wdWxzZS5maWxlcy5GaWxlQ2F0ZWdvcnkSDQoFYnl0ZXMYBiABKAwSHgoRY2xpZW50X2F0dHJpYnV0ZXMYByABKAxIAIgBAUIUChJfY2xpZW50X2F0dHJpYnV0ZXNKBAgBEAJSB3VzZXJfaWQiTQoeR2V0Q29udGFjdFByb2ZpbGVQaG90b3NSZXF1ZXN0EhEKCWNhbGxlcl9pZBgBIAEoAxIYChBjb250YWN0X3VzZXJfaWRzGAIgAygDIqUBChNDb250YWN0UHJvZmlsZVBob3RvEhcKD2NvbnRhY3RfdXNlcl9pZBgBIAEoAxIQCghwaG90b19pZBgCIAEoAxIPCgdmaWxlX2lkGAMgASgDEhMKC2FjY2Vzc19oYXNoGAQgASgDEhsKDnN0cmlwcGVkX3RodW1iGAUgASgMSACIAQESDQoFZGNfaWQYBiABKAVCEQoPX3N0cmlwcGVkX3RodW1iIlUKH0dldENvbnRhY3RQcm9maWxlUGhvdG9zUmVzcG9uc2USMgoGcGhvdG9zGAEgAygLMiIuaW1wdWxzZS5maWxlcy5Db250YWN0UHJvZmlsZVBob3RvIqEBCiJSZXNvbHZlUmVwb3J0ZWRQcm9maWxlUGhvdG9SZXF1ZXN0EhgKEHJlcG9ydGVyX3VzZXJfaWQYASABKAMSGAoQcmVwb3J0ZWRfcGVlcl9pZBgCIAEoAxIaChJyZXBvcnRlZF9wZWVyX2tpbmQYAyABKAUSEAoIcGhvdG9faWQYBCABKAMSGQoRcGhvdG9fYWNjZXNzX2hhc2gYBSABKAMiOgojUmVzb2x2ZVJlcG9ydGVkUHJvZmlsZVBob3RvUmVzcG9uc2USEwoLaXNfcmVzb2x2ZWQYASABKAgqjQEKDEZpbGVDYXRlZ29yeRIMCghET0NVTUVOVBAAEgkKBVBIT1RPEAESCQoFVklERU8QAhIJCgVBVURJTxADEgkKBVZPSUNFEAQSCgoGQVZBVEFSEAUSCwoHU1RJQ0tFUhAGEhQKEFdFQl9QQUdFX1BSRVZJRVcQBxIUChBBVkFUQVJfQU5JTUFUSU9OEAgy4AUKDEZpbGVzU2VydmljZRJfChRGaW5hbGl6ZVVwbG9hZGVkRmlsZRIqLmltcHVsc2UuZmlsZXMuRmluYWxpemVVcGxvYWRlZEZpbGVSZXF1ZXN0GhsuaW1wdWxzZS5maWxlcy5GaWxlTWV0YWRhdGESXQoTSW1wb3J0UmVmZXJlbmNlRmlsZRIpLmltcHVsc2UuZmlsZXMuSW1wb3J0UmVmZXJlbmNlRmlsZVJlcXVlc3QaGy5pbXB1bHNlLmZpbGVzLkZpbGVNZXRhZGF0YRJFCgdHZXRGaWxlEh0uaW1wdWxzZS5maWxlcy5HZXRGaWxlUmVxdWVzdBobLmltcHVsc2UuZmlsZXMuRmlsZU1ldGFkYXRhEmwKE0RlbGV0ZVByb2ZpbGVQaG90b3MSKS5pbXB1bHNlLmZpbGVzLkRlbGV0ZVByb2ZpbGVQaG90b3NSZXF1ZXN0GiouaW1wdWxzZS5maWxlcy5EZWxldGVQcm9maWxlUGhvdG9zUmVzcG9uc2USWgoNR2V0VXNlclBob3RvcxIjLmltcHVsc2UuZmlsZXMuR2V0VXNlclBob3Rvc1JlcXVlc3QaJC5pbXB1bHNlLmZpbGVzLkdldFVzZXJQaG90b3NSZXNwb25zZRJ4ChdHZXRDb250YWN0UHJvZmlsZVBob3RvcxItLmltcHVsc2UuZmlsZXMuR2V0Q29udGFjdFByb2ZpbGVQaG90b3NSZXF1ZXN0Gi4uaW1wdWxzZS5maWxlcy5HZXRDb250YWN0UHJvZmlsZVBob3Rvc1Jlc3BvbnNlEoQBChtSZXNvbHZlUmVwb3J0ZWRQcm9maWxlUGhvdG8SMS5pbXB1bHNlLmZpbGVzLlJlc29sdmVSZXBvcnRlZFByb2ZpbGVQaG90b1JlcXVlc3QaMi5pbXB1bHNlLmZpbGVzLlJlc29sdmVSZXBvcnRlZFByb2ZpbGVQaG90b1Jlc3BvbnNlQhiqAhVJbXB1bHNlTS5Qcm90b3MuRmlsZXNiBnByb3RvMw");
+  fileDesc("CiFpbXB1bHNlL2ZpbGVzL2ZpbGVzX3NlcnZpY2UucHJvdG8SDWltcHVsc2UuZmlsZXMi3gQKDEZpbGVNZXRhZGF0YRIKCgJpZBgBIAEoAxIRCglmaWxlX25hbWUYAiABKAkSEQoJbWltZV90eXBlGAMgASgJEgwKBHNpemUYBCABKAMSEgoFd2lkdGgYBSABKAVIAIgBARITCgZoZWlnaHQYBiABKAVIAYgBARIaCg10aHVtYm5haWxfdXJsGAcgASgJSAKIAQESGQoMZG93bmxvYWRfdXJsGAggASgJSAOIAQESEgoKY3JlYXRlZF9hdBgJIAEoAxITCgthY2Nlc3NfaGFzaBgKIAEoAxIXCgpzaXplc19qc29uGAsgASgJSASIAQESGwoOc3RyaXBwZWRfdGh1bWIYDCABKAxIBYgBARIhChRwcm9jZXNzZWRfYXR0cmlidXRlcxgNIAEoDEgGiAEBEhUKCGNhdGVnb3J5GA4gASgFSAeIAQESEgoFZGNfaWQYDyABKAVICIgBARITCgt1cGxvYWRlZF9ieRgQIAEoAxIeChFjbGllbnRfYXR0cmlidXRlcxgRIAEoDEgJiAEBEhoKDW5vc291bmRfdmlkZW8YEiABKAhICogBAUIICgZfd2lkdGhCCQoHX2hlaWdodEIQCg5fdGh1bWJuYWlsX3VybEIPCg1fZG93bmxvYWRfdXJsQg0KC19zaXplc19qc29uQhEKD19zdHJpcHBlZF90aHVtYkIXChVfcHJvY2Vzc2VkX2F0dHJpYnV0ZXNCCwoJX2NhdGVnb3J5QggKBl9kY19pZEIUChJfY2xpZW50X2F0dHJpYnV0ZXNCEAoOX25vc291bmRfdmlkZW8iVAoNVXBsb2FkZWRQaG90bxIKCgJpZBgBIAEoAxIPCgdmaWxlX2lkGAIgASgDEhIKCmlzX2N1cnJlbnQYAyABKAgSEgoKY3JlYXRlZF9hdBgEIAEoAyLOBgobRmluYWxpemVVcGxvYWRlZEZpbGVSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAMSDwoHZmlsZV9pZBgCIAEoAxIRCglmaWxlX25hbWUYAyABKAkSEQoJbWltZV90eXBlGAQgASgJEi0KCGNhdGVnb3J5GAUgASgOMhsuaW1wdWxzZS5maWxlcy5GaWxlQ2F0ZWdvcnkSEwoLdG90YWxfcGFydHMYBiABKAUSFAoHY2hhdF9pZBgHIAEoA0gAiAEBEiEKFGNsaWVudF90aHVtYl9maWxlX2lkGAggASgDSAGIAQESJQoYY2xpZW50X3RodW1iX3RvdGFsX3BhcnRzGAkgASgFSAKIAQESIwoWY2xpZW50X3RodW1iX2ZpbGVfbmFtZRgKIAEoCUgDiAEBEh4KEWNsaWVudF9hdHRyaWJ1dGVzGAsgASgMSASIAQESGgoNbm9zb3VuZF92aWRlbxgMIAEoCEgFiAEBEhcKCmZvcmNlX2ZpbGUYDSABKAhIBogBARJHCgZtZXRob2QYDiABKA4yNy5pbXB1bHNlLmZpbGVzLkZpbmFsaXplVXBsb2FkZWRGaWxlUmVxdWVzdC5Tb3VyY2VNZXRob2QSGQoMbWQ1X2NoZWNrc3VtGA8gASgJSAeIAQESDgoGaXNfYmlnGBAgASgIIq8BCgxTb3VyY2VNZXRob2QSHQoZU09VUkNFX01FVEhPRF9VTlNQRUNJRklFRBAAEhwKGFNPVVJDRV9NRVRIT0RfU0VORF9NRURJQRABEh4KGlNPVVJDRV9NRVRIT0RfVVBMT0FEX01FRElBEAISIgoeU09VUkNFX01FVEhPRF9TRU5EX01VTFRJX01FRElBEAMSHgoaU09VUkNFX01FVEhPRF9FRElUX01FU1NBR0UQBEIKCghfY2hhdF9pZEIXChVfY2xpZW50X3RodW1iX2ZpbGVfaWRCGwoZX2NsaWVudF90aHVtYl90b3RhbF9wYXJ0c0IZChdfY2xpZW50X3RodW1iX2ZpbGVfbmFtZUIUChJfY2xpZW50X2F0dHJpYnV0ZXNCEAoOX25vc291bmRfdmlkZW9CDQoLX2ZvcmNlX2ZpbGVCDwoNX21kNV9jaGVja3N1bSI8Cg5HZXRGaWxlUmVxdWVzdBIPCgdmaWxlX2lkGAEgASgDEhkKEXJlcXVlc3Rlcl91c2VyX2lkGAIgASgDIi8KGkRlbGV0ZVByb2ZpbGVQaG90b3NSZXF1ZXN0EhEKCXBob3RvX2lkcxgBIAMoAyIdChtEZWxldGVQcm9maWxlUGhvdG9zUmVzcG9uc2UiRgoUR2V0VXNlclBob3Rvc1JlcXVlc3QSDwoHdXNlcl9pZBgBIAEoAxIOCgZvZmZzZXQYAiABKAUSDQoFbGltaXQYAyABKAUiVAoVR2V0VXNlclBob3Rvc1Jlc3BvbnNlEiwKBnBob3RvcxgBIAMoCzIcLmltcHVsc2UuZmlsZXMuVXBsb2FkZWRQaG90bxINCgVjb3VudBgCIAEoBSLWAQoaSW1wb3J0UmVmZXJlbmNlRmlsZVJlcXVlc3QSDwoHZmlsZV9pZBgCIAEoAxIRCglmaWxlX25hbWUYAyABKAkSEQoJbWltZV90eXBlGAQgASgJEi0KCGNhdGVnb3J5GAUgASgOMhsuaW1wdWxzZS5maWxlcy5GaWxlQ2F0ZWdvcnkSDQoFYnl0ZXMYBiABKAwSHgoRY2xpZW50X2F0dHJpYnV0ZXMYByABKAxIAIgBAUIUChJfY2xpZW50X2F0dHJpYnV0ZXNKBAgBEAJSB3VzZXJfaWQiTQoeR2V0Q29udGFjdFByb2ZpbGVQaG90b3NSZXF1ZXN0EhEKCWNhbGxlcl9pZBgBIAEoAxIYChBjb250YWN0X3VzZXJfaWRzGAIgAygDIqUBChNDb250YWN0UHJvZmlsZVBob3RvEhcKD2NvbnRhY3RfdXNlcl9pZBgBIAEoAxIQCghwaG90b19pZBgCIAEoAxIPCgdmaWxlX2lkGAMgASgDEhMKC2FjY2Vzc19oYXNoGAQgASgDEhsKDnN0cmlwcGVkX3RodW1iGAUgASgMSACIAQESDQoFZGNfaWQYBiABKAVCEQoPX3N0cmlwcGVkX3RodW1iIlUKH0dldENvbnRhY3RQcm9maWxlUGhvdG9zUmVzcG9uc2USMgoGcGhvdG9zGAEgAygLMiIuaW1wdWxzZS5maWxlcy5Db250YWN0UHJvZmlsZVBob3RvImgKHlJlc29sdmVQcm9maWxlUGhvdG9GaWxlUmVxdWVzdBIQCghwaG90b19pZBgBIAEoAxIZChFwaG90b19hY2Nlc3NfaGFzaBgCIAEoAxIZChFyZXF1ZXN0ZXJfdXNlcl9pZBgDIAEoAyKhAQoiUmVzb2x2ZVJlcG9ydGVkUHJvZmlsZVBob3RvUmVxdWVzdBIYChByZXBvcnRlcl91c2VyX2lkGAEgASgDEhgKEHJlcG9ydGVkX3BlZXJfaWQYAiABKAMSGgoScmVwb3J0ZWRfcGVlcl9raW5kGAMgASgFEhAKCHBob3RvX2lkGAQgASgDEhkKEXBob3RvX2FjY2Vzc19oYXNoGAUgASgDIjoKI1Jlc29sdmVSZXBvcnRlZFByb2ZpbGVQaG90b1Jlc3BvbnNlEhMKC2lzX3Jlc29sdmVkGAEgASgIIjAKG1JlbmRlckNoYXRQaG90b1dpcmVzUmVxdWVzdBIRCglwaG90b19pZHMYASADKAMiPAoVUmVuZGVyZWRDaGF0UGhvdG9XaXJlEhAKCHBob3RvX2lkGAEgASgDEhEKCXdpcmVfYmxvYhgCIAEoDCJTChxSZW5kZXJDaGF0UGhvdG9XaXJlc1Jlc3BvbnNlEjMKBXdpcmVzGAEgAygLMiQuaW1wdWxzZS5maWxlcy5SZW5kZXJlZENoYXRQaG90b1dpcmUqjQEKDEZpbGVDYXRlZ29yeRIMCghET0NVTUVOVBAAEgkKBVBIT1RPEAESCQoFVklERU8QAhIJCgVBVURJTxADEgkKBVZPSUNFEAQSCgoGQVZBVEFSEAUSCwoHU1RJQ0tFUhAGEhQKEFdFQl9QQUdFX1BSRVZJRVcQBxIUChBBVkFUQVJfQU5JTUFUSU9OEAgyuAcKDEZpbGVzU2VydmljZRJfChRGaW5hbGl6ZVVwbG9hZGVkRmlsZRIqLmltcHVsc2UuZmlsZXMuRmluYWxpemVVcGxvYWRlZEZpbGVSZXF1ZXN0GhsuaW1wdWxzZS5maWxlcy5GaWxlTWV0YWRhdGESXQoTSW1wb3J0UmVmZXJlbmNlRmlsZRIpLmltcHVsc2UuZmlsZXMuSW1wb3J0UmVmZXJlbmNlRmlsZVJlcXVlc3QaGy5pbXB1bHNlLmZpbGVzLkZpbGVNZXRhZGF0YRJFCgdHZXRGaWxlEh0uaW1wdWxzZS5maWxlcy5HZXRGaWxlUmVxdWVzdBobLmltcHVsc2UuZmlsZXMuRmlsZU1ldGFkYXRhEmwKE0RlbGV0ZVByb2ZpbGVQaG90b3MSKS5pbXB1bHNlLmZpbGVzLkRlbGV0ZVByb2ZpbGVQaG90b3NSZXF1ZXN0GiouaW1wdWxzZS5maWxlcy5EZWxldGVQcm9maWxlUGhvdG9zUmVzcG9uc2USWgoNR2V0VXNlclBob3RvcxIjLmltcHVsc2UuZmlsZXMuR2V0VXNlclBob3Rvc1JlcXVlc3QaJC5pbXB1bHNlLmZpbGVzLkdldFVzZXJQaG90b3NSZXNwb25zZRJ4ChdHZXRDb250YWN0UHJvZmlsZVBob3RvcxItLmltcHVsc2UuZmlsZXMuR2V0Q29udGFjdFByb2ZpbGVQaG90b3NSZXF1ZXN0Gi4uaW1wdWxzZS5maWxlcy5HZXRDb250YWN0UHJvZmlsZVBob3Rvc1Jlc3BvbnNlEoQBChtSZXNvbHZlUmVwb3J0ZWRQcm9maWxlUGhvdG8SMS5pbXB1bHNlLmZpbGVzLlJlc29sdmVSZXBvcnRlZFByb2ZpbGVQaG90b1JlcXVlc3QaMi5pbXB1bHNlLmZpbGVzLlJlc29sdmVSZXBvcnRlZFByb2ZpbGVQaG90b1Jlc3BvbnNlEmUKF1Jlc29sdmVQcm9maWxlUGhvdG9GaWxlEi0uaW1wdWxzZS5maWxlcy5SZXNvbHZlUHJvZmlsZVBob3RvRmlsZVJlcXVlc3QaGy5pbXB1bHNlLmZpbGVzLkZpbGVNZXRhZGF0YRJvChRSZW5kZXJDaGF0UGhvdG9XaXJlcxIqLmltcHVsc2UuZmlsZXMuUmVuZGVyQ2hhdFBob3RvV2lyZXNSZXF1ZXN0GisuaW1wdWxzZS5maWxlcy5SZW5kZXJDaGF0UGhvdG9XaXJlc1Jlc3BvbnNlQhiqAhVJbXB1bHNlTS5Qcm90b3MuRmlsZXNiBnByb3RvMw");
 
 /**
  * Metadata for an uploaded file
@@ -236,6 +236,48 @@ export type FinalizeUploadedFileRequest = Message<"impulse.files.FinalizeUploade
    * @generated from field: optional bool nosound_video = 12;
    */
   nosoundVideo?: boolean | undefined;
+
+  /**
+   * inputMediaUploadedDocument#37c9330's force_file: "Force the media file to be uploaded as
+   * document" (.demo/telegram-docs-text/constructor/inputMediaUploadedDocument.md:45-49). The
+   * ONLY lever that keeps an animated GIF a GIF: the server converts image/gif to MPEG4 at
+   * finalization unconditionally ("if the user tries to upload an actual GIF file, it will be
+   * automatically converted to an MPEG4 file by the server", .demo/telegram-docs-text/api/gifs.md:2)
+   * regardless of what attributes were declared, so -- unlike every other media kind, where the
+   * client simply omits the DocumentAttribute it does not want synthesized -- this one cannot be
+   * read off client_attributes.
+   *
+   * @generated from field: optional bool force_file = 13;
+   */
+  forceFile?: boolean | undefined;
+
+  /**
+   * @generated from field: impulse.files.FinalizeUploadedFileRequest.SourceMethod method = 14;
+   */
+  method: FinalizeUploadedFileRequest_SourceMethod;
+
+  /**
+   * inputFile#f52ff27f's md5_checksum: "In case the file's md5-hash was passed, contents of the
+   * file will be checked prior to use" (.demo/telegram-docs-text/constructor/inputFile.md).
+   * messages.sendMedia documents MD5_CHECKSUM_INVALID
+   * (.demo/telegram-docs-text/method/messages.sendMedia.md:511) but nothing upstream of this field
+   * could ever check it. Present only for a SMALL-file inputFile upload that declared one --
+   * inputFileBig (.demo/telegram-docs-text/constructor/inputFileBig.md) carries no md5 field at
+   * all, which is exactly why is_big below has to travel alongside it: an absent md5_checksum
+   * means either "small file, no hash declared" or "big file, which never has one", and only
+   * is_big tells the two apart.
+   *
+   * @generated from field: optional string md5_checksum = 15;
+   */
+  md5Checksum?: string | undefined;
+
+  /**
+   * True when the client staged this upload through upload.saveBigFilePart and referenced it as
+   * inputFileBig rather than inputFile -- see md5_checksum above.
+   *
+   * @generated from field: bool is_big = 16;
+   */
+  isBig: boolean;
 };
 
 /**
@@ -246,6 +288,46 @@ export const FinalizeUploadedFileRequestSchema: GenMessage<FinalizeUploadedFileR
   messageDesc(file_impulse_files_files_service, 2);
 
 /**
+ * Which Telegram method this finalize serves. Meaningful only for selecting the per-method error
+ * when GIF->MPEG4 conversion fails on the input itself; the finalize logic itself is identical
+ * across every caller.
+ *
+ * @generated from enum impulse.files.FinalizeUploadedFileRequest.SourceMethod
+ */
+export enum FinalizeUploadedFileRequest_SourceMethod {
+  /**
+   * @generated from enum value: SOURCE_METHOD_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SOURCE_METHOD_SEND_MEDIA = 1;
+   */
+  SEND_MEDIA = 1,
+
+  /**
+   * @generated from enum value: SOURCE_METHOD_UPLOAD_MEDIA = 2;
+   */
+  UPLOAD_MEDIA = 2,
+
+  /**
+   * @generated from enum value: SOURCE_METHOD_SEND_MULTI_MEDIA = 3;
+   */
+  SEND_MULTI_MEDIA = 3,
+
+  /**
+   * @generated from enum value: SOURCE_METHOD_EDIT_MESSAGE = 4;
+   */
+  EDIT_MESSAGE = 4,
+}
+
+/**
+ * Describes the enum impulse.files.FinalizeUploadedFileRequest.SourceMethod.
+ */
+export const FinalizeUploadedFileRequest_SourceMethodSchema: GenEnum<FinalizeUploadedFileRequest_SourceMethod> = /*@__PURE__*/
+  enumDesc(file_impulse_files_files_service, 2, 0);
+
+/**
  * @generated from message impulse.files.GetFileRequest
  */
 export type GetFileRequest = Message<"impulse.files.GetFileRequest"> & {
@@ -253,6 +335,23 @@ export type GetFileRequest = Message<"impulse.files.GetFileRequest"> & {
    * @generated from field: int64 file_id = 1;
    */
   fileId: bigint;
+
+  /**
+   * The user this read is being made ON BEHALF OF, when a service is acting for one.
+   *
+   * A service token carries no user, so GetFile treats jwtUserId == 0 as "skip the ownership
+   * check" -- correct for peer-independent hydration, and wrong for a caller that took a file id
+   * from a client and is asking about it. Chat-avatar reuse was that caller: it passed the end
+   * user's JWT instead, which the capability gate refused outright, and the fix that works
+   * elsewhere -- drop the header, use the service token -- would have turned it into a cross-user
+   * file read (#396).
+   *
+   * Set it and the read is gated on it. Omitted (0) leaves today's service behaviour untouched,
+   * which is a separate and larger question filed on its own.
+   *
+   * @generated from field: int64 requester_user_id = 2;
+   */
+  requesterUserId: bigint;
 };
 
 /**
@@ -465,6 +564,40 @@ export const GetContactProfilePhotosResponseSchema: GenMessage<GetContactProfile
   messageDesc(file_impulse_files_files_service, 11);
 
 /**
+ * @generated from message impulse.files.ResolveProfilePhotoFileRequest
+ */
+export type ResolveProfilePhotoFileRequest = Message<"impulse.files.ResolveProfilePhotoFileRequest"> & {
+  /**
+   * The photo, as canon's inputPhoto names it: id and access hash together. Both are checked --
+   * the reporting resolver beside this one already checks the hash the same way, and a resolver
+   * that read only the id would accept a bare guessed number.
+   *
+   * @generated from field: int64 photo_id = 1;
+   */
+  photoId: bigint;
+
+  /**
+   * @generated from field: int64 photo_access_hash = 2;
+   */
+  photoAccessHash: bigint;
+
+  /**
+   * The account the photo must belong to. A service token names nobody, so without this the read
+   * would be ungated exactly as GetFile's service arm is.
+   *
+   * @generated from field: int64 requester_user_id = 3;
+   */
+  requesterUserId: bigint;
+};
+
+/**
+ * Describes the message impulse.files.ResolveProfilePhotoFileRequest.
+ * Use `create(ResolveProfilePhotoFileRequestSchema)` to create a new message.
+ */
+export const ResolveProfilePhotoFileRequestSchema: GenMessage<ResolveProfilePhotoFileRequest> = /*@__PURE__*/
+  messageDesc(file_impulse_files_files_service, 12);
+
+/**
  * @generated from message impulse.files.ResolveReportedProfilePhotoRequest
  */
 export type ResolveReportedProfilePhotoRequest = Message<"impulse.files.ResolveReportedProfilePhotoRequest"> & {
@@ -499,7 +632,7 @@ export type ResolveReportedProfilePhotoRequest = Message<"impulse.files.ResolveR
  * Use `create(ResolveReportedProfilePhotoRequestSchema)` to create a new message.
  */
 export const ResolveReportedProfilePhotoRequestSchema: GenMessage<ResolveReportedProfilePhotoRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_files_files_service, 12);
+  messageDesc(file_impulse_files_files_service, 13);
 
 /**
  * @generated from message impulse.files.ResolveReportedProfilePhotoResponse
@@ -516,7 +649,71 @@ export type ResolveReportedProfilePhotoResponse = Message<"impulse.files.Resolve
  * Use `create(ResolveReportedProfilePhotoResponseSchema)` to create a new message.
  */
 export const ResolveReportedProfilePhotoResponseSchema: GenMessage<ResolveReportedProfilePhotoResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_files_files_service, 13);
+  messageDesc(file_impulse_files_files_service, 14);
+
+/**
+ * @generated from message impulse.files.RenderChatPhotoWiresRequest
+ */
+export type RenderChatPhotoWiresRequest = Message<"impulse.files.RenderChatPhotoWiresRequest"> & {
+  /**
+   * The ids chats store as their avatar. Files decides which id space each one is in: an Avatar file
+   * it recorded against a chat is an uploaded chat avatar (the file is the photo), and a
+   * profile_photos row is a user's photo reused through inputChatPhoto.
+   *
+   * @generated from field: repeated int64 photo_ids = 1;
+   */
+  photoIds: bigint[];
+};
+
+/**
+ * Describes the message impulse.files.RenderChatPhotoWiresRequest.
+ * Use `create(RenderChatPhotoWiresRequestSchema)` to create a new message.
+ */
+export const RenderChatPhotoWiresRequestSchema: GenMessage<RenderChatPhotoWiresRequest> = /*@__PURE__*/
+  messageDesc(file_impulse_files_files_service, 15);
+
+/**
+ * @generated from message impulse.files.RenderedChatPhotoWire
+ */
+export type RenderedChatPhotoWire = Message<"impulse.files.RenderedChatPhotoWire"> & {
+  /**
+   * @generated from field: int64 photo_id = 1;
+   */
+  photoId: bigint;
+
+  /**
+   * A serialized photo#fb197a65 (telegram PhotoValue), file_reference empty.
+   *
+   * @generated from field: bytes wire_blob = 2;
+   */
+  wireBlob: Uint8Array;
+};
+
+/**
+ * Describes the message impulse.files.RenderedChatPhotoWire.
+ * Use `create(RenderedChatPhotoWireSchema)` to create a new message.
+ */
+export const RenderedChatPhotoWireSchema: GenMessage<RenderedChatPhotoWire> = /*@__PURE__*/
+  messageDesc(file_impulse_files_files_service, 16);
+
+/**
+ * @generated from message impulse.files.RenderChatPhotoWiresResponse
+ */
+export type RenderChatPhotoWiresResponse = Message<"impulse.files.RenderChatPhotoWiresResponse"> & {
+  /**
+   * One entry per id Files could resolve; an id it could not is absent, never an empty render.
+   *
+   * @generated from field: repeated impulse.files.RenderedChatPhotoWire wires = 1;
+   */
+  wires: RenderedChatPhotoWire[];
+};
+
+/**
+ * Describes the message impulse.files.RenderChatPhotoWiresResponse.
+ * Use `create(RenderChatPhotoWiresResponseSchema)` to create a new message.
+ */
+export const RenderChatPhotoWiresResponseSchema: GenMessage<RenderChatPhotoWiresResponse> = /*@__PURE__*/
+  messageDesc(file_impulse_files_files_service, 17);
 
 /**
  * Category of the file being uploaded
@@ -654,6 +851,33 @@ export const FilesService: GenService<{
     methodKind: "unary";
     input: typeof ResolveReportedProfilePhotoRequestSchema;
     output: typeof ResolveReportedProfilePhotoResponseSchema;
+  },
+  /**
+   * Resolves a PHOTO id to the file behind it, for a named requester.
+   *
+   * Distinct from GetFile because the two take different id spaces and the confusion between them
+   * is a defect this repository has already shipped: inputChatPhoto carries a photo id, GetFile
+   * looks up the files table by primary key, and a photo record takes a fresh id from the generator
+   * while its file keeps its own -- so chat-avatar reuse resolved nothing (#400).
+   *
+   * @generated from rpc impulse.files.FilesService.ResolveProfilePhotoFile
+   */
+  resolveProfilePhotoFile: {
+    methodKind: "unary";
+    input: typeof ResolveProfilePhotoFileRequestSchema;
+    output: typeof FileMetadataSchema;
+  },
+  /**
+   * Renders the photo#fb197a65 a chat avatar is, for the chat's own copy (#712). Files owns the
+   * render -- the size ladder, the stripped size, the video sizes of a reused animated photo -- so
+   * Chats never re-derives any of it; file_reference is left empty because it is minted per viewer.
+   *
+   * @generated from rpc impulse.files.FilesService.RenderChatPhotoWires
+   */
+  renderChatPhotoWires: {
+    methodKind: "unary";
+    input: typeof RenderChatPhotoWiresRequestSchema;
+    output: typeof RenderChatPhotoWiresResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_impulse_files_files_service, 0);
