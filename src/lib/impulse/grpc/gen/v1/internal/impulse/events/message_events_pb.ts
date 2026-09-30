@@ -2133,9 +2133,9 @@ export const MessageUnpinnedSchema: GenMessage<MessageUnpinned> = /*@__PURE__*/
 /**
  * Emitted when a user's typing / recording / uploading status changes.
  * `action` is the internal `impulse.messages.SendMessageAction` enum
- * (0-based, 19 variants — see message_types.proto). Source: Messages/Typing/Commands/SetTypingCommand.cs.
+ * (0-based, 20 variants — see message_types.proto). Source: Messages/Typing/Commands/SetTypingCommand.cs.
  *
- * The wire-facing TDLib oneof discriminator (v1.SendMessageAction, 1-based, 19 variants) and this
+ * The wire-facing TDLib oneof discriminator (v1.SendMessageAction, 1-based, 22 arms) and this
  * internal enum use INDEPENDENT orderings — translation lives in
  * Messages/Typing/TdLibActionMapper.cs and goes by value, never by cast.
  *
@@ -2150,6 +2150,7 @@ export const MessageUnpinnedSchema: GenMessage<MessageUnpinned> = /*@__PURE__*/
  *   draft_random_id     → sendMessageTextDraftAction.random_id
  *   draft_text          → sendMessageTextDraftAction.text.text (TextWithEntities.text)
  *   draft_entities      → sendMessageTextDraftAction.text.entities (TextWithEntities.entities)
+ *   draft_random_id     → also sendMessageStopDraftAction.random_id (layer 229) for the STOP_DRAFT action
  *
  * @generated from message impulse.events.messages.TypingChanged
  */
