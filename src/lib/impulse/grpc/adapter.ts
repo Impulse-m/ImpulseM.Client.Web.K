@@ -22,7 +22,7 @@
 
 import type {DescField, DescMessage, DescService} from '@bufbuild/protobuf';
 import {create, ScalarType} from '@bufbuild/protobuf';
-import {Code, ConnectError, createClient} from '@connectrpc/connect';
+import {Code, ConnectError, createClient, createContextValues} from '@connectrpc/connect';
 
 import Schema from '@lib/mtproto/schema';
 import {formatJSONValue} from '@lib/mtproto/tl_utils';
@@ -31,12 +31,16 @@ import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {captureImpulseSessionToken, clearPendingToken, persistPendingToken, refreshImpulseSession, whenImpulseSessionReady} from '../session';
 import {getServiceAndMethod} from './serviceMap';
 import {
+  bindDeclarationToNewSession,
+  CONNECTION_NOT_INITED,
   getGrpcPendingGeneration,
   getGrpcPendingToken,
   getGrpcSessionToken,
   getGrpcTransport,
   isPendingSessionAllowedMethod,
-  setGrpcPendingToken
+  resetConnectionInited,
+  setGrpcPendingToken,
+  stampedDeclarationGenerationKey
 } from './transport';
 
 const logger = getLogger('grpc-adapter');
@@ -566,7 +570,8 @@ export async function grpcInvoke(
   params: any = {},
   accountNumber: ActiveAccountNumber,
   abortSignal?: AbortSignal,
-  isRetry = false
+  isRetry = false,
+  isReinitRetry = false
 ): Promise<any> {
   const mapping = getServiceAndMethod(method);
   if(!mapping) {
@@ -636,13 +641,18 @@ export async function grpcInvoke(
     Boolean(pendingTokenAtRequestStart) &&
     isPendingSessionAllowedMethod(service.typeName, descMethod.name);
 
+  const contextValues = createContextValues();
   try {
-    const response = await methodFn.call(client, request, {signal: abortSignal});
+    const response = await methodFn.call(client, request, {signal: abortSignal, contextValues});
     const result = protoToTL(response, descMethod.output);
     if(method === 'help.getAppConfig' && result?._ === 'help.appConfig') {
       result.config = formatJSONValue(result.config);
     }
-    await captureImpulseSessionToken(accountNumber, result);
+    if(await captureImpulseSessionToken(accountNumber, result)) {
+      // A new session was created by this call: it holds the declaration only if this call carried it.
+      bindDeclarationToNewSession(accountNumber, contextValues.get(stampedDeclarationGenerationKey));
+    }
+
     return result;
   } catch(err) {
     const apiError = toApiError(err);
@@ -666,12 +676,21 @@ export async function grpcInvoke(
       await clearPendingToken(accountNumber);
     }
 
+    // Canon (tdesktop mtp_instance.cpp:1575-1598): the server asked for the declaration this call
+    // did not carry. Mark the connection not inited and resend the same call once; it is stamped
+    // now because the slot is no longer inited.
+    if(apiError.type === CONNECTION_NOT_INITED && !isReinitRetry) {
+      resetConnectionInited(accountNumber);
+      logger.info('Retrying with the connection declaration', {method, accountNumber});
+      return grpcInvoke(method, params, accountNumber, abortSignal, isRetry, true);
+    }
+
     // The access token expires after AccessTokenExpiryMinutes and every call then
     // comes back AUTH_KEY_UNREGISTERED. Renew once with the refresh token and
     // replay, rather than dropping a signed-in user onto the login screen.
     if(apiError.type === 'AUTH_KEY_UNREGISTERED' && !isRetry && await refreshImpulseSession(accountNumber)) {
       logger.info('Retrying after session refresh', {method, accountNumber});
-      return grpcInvoke(method, params, accountNumber, abortSignal, true);
+      return grpcInvoke(method, params, accountNumber, abortSignal, true, isReinitRetry);
     }
 
     logger.debug('gRPC invocation failed', {

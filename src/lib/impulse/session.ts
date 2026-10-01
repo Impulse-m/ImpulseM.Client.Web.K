@@ -19,13 +19,24 @@
  * is deliberately no module-level "current account" left to reintroduce that bug.
  */
 
-import {createClient} from '@connectrpc/connect';
+import {ConnectError, createClient, createContextValues} from '@connectrpc/connect';
 
 import AccountController from '@lib/accounts/accountController';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getLogger} from '@lib/impulseLogger';
 import {AuthService} from './grpc/gen/v1/internal/impulse/auth/auth_service_pb';
-import {getGrpcPendingGeneration, getGrpcTransport, restoreGrpcPendingToken, setGrpcPendingToken, setGrpcSessionToken, setGrpcUserId} from './grpc/transport';
+import {
+  bindDeclarationOnRefresh,
+  CONNECTION_NOT_INITED,
+  getGrpcPendingGeneration,
+  getGrpcTransport,
+  resetConnectionInited,
+  restoreGrpcPendingToken,
+  setGrpcPendingToken,
+  setGrpcSessionToken,
+  setGrpcUserId,
+  stampedDeclarationGenerationKey
+} from './grpc/transport';
 
 const logger = getLogger('impulse-session');
 
@@ -124,10 +135,13 @@ export function applyImpulseUserId(accountNumber: ActiveAccountNumber, userId: s
  * be forgotten. The caller already knows which account issued the request (it is
  * threaded through from ApiManager.invokeApi via grpcInvoke), so the token is
  * persisted to that slot directly -- there is no ambiguity left to stage.
+ *
+ * Resolves true when this response created a new session (a token was captured), so the caller can
+ * tell which declaration that session was created under.
  */
-export async function captureImpulseSessionToken(accountNumber: ActiveAccountNumber, result: unknown): Promise<void> {
+export async function captureImpulseSessionToken(accountNumber: ActiveAccountNumber, result: unknown): Promise<boolean> {
   if(!result || typeof result !== 'object') {
-    return;
+    return false;
   }
 
   const {session_token: token, refresh_token: refresh} = result as {
@@ -142,7 +156,7 @@ export async function captureImpulseSessionToken(accountNumber: ActiveAccountNum
       logger.warn('Authorization carried no session token', {accountNumber, keys: Object.keys(result as object)});
     }
 
-    return;
+    return false;
   }
 
   if(typeof refresh !== 'string' || !refresh) {
@@ -158,6 +172,7 @@ export async function captureImpulseSessionToken(accountNumber: ActiveAccountNum
   // be shadowed keeps clearImpulseSession-style teardown exhaustive (#675).
   await clearPendingToken(accountNumber);
   await persistTokens(accountNumber, token, refresh);
+  return true;
 }
 
 async function persistTokens(account: ActiveAccountNumber, token: string, refresh: string): Promise<void> {
@@ -243,7 +258,7 @@ export function refreshImpulseSession(accountNumber: ActiveAccountNumber): Promi
     return inFlight;
   }
 
-  const promise = runRefresh(accountNumber).finally(() => {
+  const promise = runRefresh(accountNumber, false).finally(() => {
     refreshInFlightByAccount.delete(accountNumber);
   });
 
@@ -251,7 +266,7 @@ export function refreshImpulseSession(accountNumber: ActiveAccountNumber): Promi
   return promise;
 }
 
-async function runRefresh(accountNumber: ActiveAccountNumber): Promise<boolean> {
+async function runRefresh(accountNumber: ActiveAccountNumber, isReinitRetry: boolean): Promise<boolean> {
   const refreshToken = refreshTokenByAccount.get(accountNumber);
   if(!refreshToken) {
     // The likeliest reason a session cannot be recovered, and it used to return
@@ -263,16 +278,26 @@ async function runRefresh(accountNumber: ActiveAccountNumber): Promise<boolean> 
 
   try {
     const client = createClient(AuthService, getGrpcTransport(accountNumber));
-    const authorization = await client.refreshSession({refreshToken});
+    const contextValues = createContextValues();
+    const authorization = await client.refreshSession({refreshToken}, {contextValues});
     if(!authorization?.sessionToken) {
       logger.warn('Session refresh returned no token', {accountNumber});
       return false;
     }
 
     await applyTokens(accountNumber, authorization.sessionToken, authorization.refreshToken || undefined);
+    // The server binds the declaration on refresh too, when the call carried it.
+    bindDeclarationOnRefresh(accountNumber, contextValues.get(stampedDeclarationGenerationKey));
     logger.info('Session refreshed', {accountNumber});
     return true;
   } catch(err) {
+    // Canon (tdesktop mtp_instance.cpp:1575-1598): the server wants the declaration this refresh did
+    // not carry. Mark not inited and resend once; the retry is stamped.
+    if(!isReinitRetry && ConnectError.from(err).metadata.get('error-code') === CONNECTION_NOT_INITED) {
+      resetConnectionInited(accountNumber);
+      return runRefresh(accountNumber, true);
+    }
+
     logger.warn('Session refresh failed', {accountNumber}, err);
     return false;
   }
@@ -383,6 +408,8 @@ export async function restoreImpulseSession(accountNumber: ActiveAccountNumber):
 export async function clearImpulseSession(accountNumber: ActiveAccountNumber): Promise<void> {
   setGrpcUserId(accountNumber, undefined);
   setGrpcSessionToken(accountNumber, undefined);
+  // The authorization the declaration was bound to is gone; the next session starts uninited.
+  resetConnectionInited(accountNumber);
   refreshTokenByAccount.delete(accountNumber);
   // logOut() is an exhaustive wipe of this slot's credentials — a pending 2FA challenge is one
   // of them (#675), even though it never carried a session on its own.
