@@ -1442,7 +1442,17 @@
 	display: flex;
 	flex-direction: column;
 	margin: 0 auto;
-	min-height: calc(100% - var(--chat-padding-top) - var(--chat-padding-bottom));
+	// --chat-padding-top counts the call and audio strips (they push the topbar down), but the
+	// scroller's real top padding (Chat.recomputePaddings) reserves neither: they slide over the
+	// content. Subtracting them here would shrink the list below the scroller and open a gap under
+	// the last message of a short chat, so they are added back.
+	min-height: calc(
+		100% -
+		var(--chat-padding-top) -
+		var(--chat-padding-bottom) +
+		var(--topbar-floating-call-height) +
+		var(--topbar-floating-audio-height)
+	);
 	justify-content: flex-end;
 	max-width: calc(var(--chat-width) - var(--chat-bubbles-padding) * 2);
 	transition: transform var(--transition-standard-out);
