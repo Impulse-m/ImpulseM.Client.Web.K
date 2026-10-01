@@ -604,12 +604,16 @@ export class ApiFileManager extends AppManager {
 
     set.add(deferred);
 
-    deferred.finally(() => {
+    // * bookkeeping only: `finally` would return a second promise that rejects with the request's
+    // * own error and has no handler, so every FILE_REFERENCE_EXPIRED that the caller refreshes and
+    // * retries was also reported as an unhandled rejection
+    const release = () => {
       set.delete(deferred);
       if(!set.size) {
         this.requestFilePartReferences.delete(reference);
       }
-    });
+    };
+    deferred.then(release, release);
 
     return deferred;
   }
