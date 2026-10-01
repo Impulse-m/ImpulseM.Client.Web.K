@@ -13768,7 +13768,11 @@ export class AppMessagesManager extends AppManager {
     const offsetMessage = offsetId && this.getMessageByPeer(offsetPeerId || peerId, offsetId);
     offsetPeerId ??= offsetMessage?.peerId;
 
-    offsetId = getServerMessageId(offsetId) || 0;
+    // * Number.MAX_SAFE_INTEGER is the "above every message" anchor: the avatar carousel's first
+    // * page (peerProfileAvatars) and the fake current-avatar message (generateFakeAvatarMessage).
+    // * It names no server message; starting from the newest is offset_id 0 in canon, while
+    // * getServerMessageId would turn it into 0xFFFFFFFF, which is no int32 and cannot be sent.
+    offsetId = offsetId === Number.MAX_SAFE_INTEGER ? 0 : (getServerMessageId(offsetId) || 0);
     threadId = historyType === HistoryType.Saved ? threadId : (getServerMessageId(threadId) || 0);
 
     minDate = minDate ? minDate / 1000 | 0 : 0;
