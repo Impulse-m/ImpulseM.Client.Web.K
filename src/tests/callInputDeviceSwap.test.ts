@@ -47,7 +47,7 @@ function makeTrack(kind: 'audio' | 'video' = 'audio'): FakeTrack {
 
 function makeSessionInstance(initialAudioTrack?: FakeTrack) {
   const transport = new FakePhoneCallTransport();
-  const session = new PhoneCallSession({transport, remoteUserId: 7 as UserId});
+  const session = new PhoneCallSession({transport, remoteUserId: 7 as UserId, timeouts: {packetTimeoutMs: 20000, connectTimeoutMs: 45000}});
   transport.emitState('connected');
   if(initialAudioTrack) {
     transport.published.set('microphone', initialAudioTrack);

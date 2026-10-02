@@ -29,6 +29,7 @@ import {LiveKitE2eeUnsupportedError} from '@lib/calls/livekit/liveKitErrors';
 import {LiveKitParamsError, parseLiveKitJoinParams, phoneCallRoomName} from '@lib/calls/livekit/liveKitJoinParams';
 import LiveKitTransport, {assertLiveKitE2eeSupported} from '@lib/calls/livekit/liveKitTransport';
 import PhoneCallSession, {
+  readPhoneCallTimeouts,
   PhoneCallConnectionState,
   PhoneCallOwnKind,
   RemoteMediaState
@@ -542,6 +543,7 @@ export default class CallInstance extends CallInstanceBase<{
 
     // Fail before the browser asks for the microphone: a browser that cannot encrypt must not start a call.
     await assertLiveKitE2eeSupported();
+    const timeouts = readPhoneCallTimeouts(await this.managers.apiManager.getConfig());
     const e2eeKey = await deriveCallMediaKey(this.encryptionKey);
     if(this.isClosing) {
       return;
@@ -549,7 +551,8 @@ export default class CallInstance extends CallInstanceBase<{
 
     const session = new PhoneCallSession({
       transport: new LiveKitTransport(),
-      remoteUserId: this.interlocutorUserId
+      remoteUserId: this.interlocutorUserId,
+      timeouts
     });
     this.session = session;
     this.bindSession(session);

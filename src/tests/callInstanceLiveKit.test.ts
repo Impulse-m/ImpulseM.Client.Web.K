@@ -34,7 +34,6 @@ vi.mock('@lib/calls/livekit/liveKitTransport', async() => {
 import CallInstance from '@lib/calls/callInstance';
 import CALL_STATE from '@lib/calls/callState';
 import {LiveKitE2eeUnsupportedError} from '@lib/calls/livekit/liveKitErrors';
-import {PEER_GONE_HANGUP_MS} from '@lib/calls/livekit/phoneCallSession';
 import FakePhoneCallTransport from './helpers/fakePhoneCallTransport';
 
 class FakeMediaStream {
@@ -74,6 +73,10 @@ function livekitParams(room: string): {_: 'dataJSON', data: string} {
   };
 }
 
+// what help.getConfig answers; the peer-gone grace must be exactly the packet timeout
+const PEER_GONE_HANGUP_MS = 12000;
+const CONFIG = {call_packet_timeout_ms: PEER_GONE_HANGUP_MS, call_connect_timeout_ms: 30000};
+
 const AUTH_KEY: Uint8Array = new Uint8Array(256).map((_, index) => index % 256);
 // SHA-256 of AUTH_KEY, computed independently (see callMediaKey.test.ts)
 const AUTH_KEY_MEDIA_KEY_HEX = '40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880';
@@ -89,7 +92,7 @@ function makeInstance(options?: {isOutgoing?: boolean, video?: boolean}) {
   const instance = new CallInstance({
     isOutgoing: options?.isOutgoing ?? true,
     interlocutorUserId: 7 as UserId,
-    managers: {appCallsManager: {discardCall, computeKey, confirmCall}} as any
+    managers: {appCallsManager: {discardCall, computeKey, confirmCall}, apiManager: {getConfig: vi.fn(async() => CONFIG)}} as any
   });
   instance.id = 'call-42' as any;
   (instance as any).streamManager.stop = vi.fn();
@@ -284,6 +287,36 @@ describe('1:1 call on LiveKit', () => {
     await vi.advanceTimersByTimeAsync(PEER_GONE_HANGUP_MS);
     expect(discardCall).toHaveBeenCalledTimes(1);
     expect(discardCall.mock.calls[0][2]).toEqual({_: 'phoneCallDiscardReasonDisconnect'});
+  });
+
+  it('gives up on a peer that never joins after exactly call_connect_timeout_ms from the config', async() => {
+    vi.useFakeTimers();
+    const {instance, discardCall} = makeInstance();
+    const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
+    await vi.waitFor(() => expect(transport.calls).toContain('publish:microphone'));
+    // waitFor ticks the fake clock; start the wait from a known instant (a reconnect re-arms the join timer)
+    transport.emitState('connected');
+
+    await vi.advanceTimersByTimeAsync(CONFIG.call_connect_timeout_ms - 1);
+    expect(discardCall).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(discardCall).toHaveBeenCalledTimes(1);
+    expect(discardCall.mock.calls[0][2]).toEqual({_: 'phoneCallDiscardReasonDisconnect'});
+  });
+
+  it('ends the call with Disconnect, before any capture, when the config has no call timeouts', async() => {
+    const {instance, discardCall} = makeInstance();
+    (instance as any).managers.apiManager.getConfig.mockResolvedValue({});
+    instance.setPhoneCall({_: 'phoneCall', id: 'call-42', pFlags: {}, custom_parameters: livekitParams('p.call-42')} as any);
+    instance.encryptionKey = AUTH_KEY;
+    instance.dh = {g_a: new Uint8Array([1])} as any;
+
+    instance.joinCall();
+
+    await vi.waitFor(() => expect(discardCall).toHaveBeenCalledTimes(1));
+    expect(mocks.getUserStream).not.toHaveBeenCalled();
+    expect(FakePhoneCallTransport.instances).toHaveLength(0);
   });
 
   it('ends the call with Disconnect when the transport fails for any reason but a room deletion or our own close', async() => {

@@ -14,11 +14,26 @@ import type {
 import type {LiveKitJoinParams} from '@lib/calls/livekit/liveKitJoinParams';
 import {formatPhoneCallIdentity} from '@lib/calls/livekit/liveKitIdentity';
 
-/** How long the peer may be absent from the room before the call is hung up (nothing tells a 1:1 room otherwise: G4). */
-export const PEER_GONE_HANGUP_MS = 20000;
+/**
+ * The call timeouts help.getConfig publishes. `packetTimeoutMs` (call_packet_timeout_ms) is how long the peer may
+ * be absent from the room before the call is hung up (nothing tells a 1:1 room otherwise); `connectTimeoutMs`
+ * (call_connect_timeout_ms) is how long to wait for the peer to appear after we connected.
+ */
+export type PhoneCallTimeouts = {
+  packetTimeoutMs: number,
+  connectTimeoutMs: number
+};
 
-/** How long to wait for the peer to appear in the room after we connected. */
-export const PEER_JOIN_TIMEOUT_MS = 45000;
+/** Reads the timeouts off help.getConfig; a config without them is an error, never a zero. */
+export function readPhoneCallTimeouts(config: {call_packet_timeout_ms?: number, call_connect_timeout_ms?: number}): PhoneCallTimeouts {
+  const packetTimeoutMs = config?.call_packet_timeout_ms;
+  const connectTimeoutMs = config?.call_connect_timeout_ms;
+  if(!(packetTimeoutMs > 0) || !(connectTimeoutMs > 0)) {
+    throw new Error('help.getConfig carries no call_packet_timeout_ms / call_connect_timeout_ms');
+  }
+
+  return {packetTimeoutMs, connectTimeoutMs};
+}
 
 export type PhoneCallConnectionState = 'connecting' | 'connected' | 'failed' | 'roomDeleted' | 'closed';
 
@@ -53,7 +68,7 @@ export type PhoneCallTransport = Pick<
 export type PhoneCallSessionEvents = {
   connectionState: (state: PhoneCallConnectionState, cause?: LiveKitDisconnectCause) => void,
   remoteMediaState: (state: RemoteMediaState) => void,
-  /** The peer was absent from the room for longer than PEER_GONE_HANGUP_MS (or never arrived within PEER_JOIN_TIMEOUT_MS). */
+  /** The peer was absent from the room for longer than the packet timeout (or never arrived within the connect timeout). */
   peerLost: () => void,
   /** A local capture ended on its own (device unplugged, permission revoked). */
   ownTrackEnded: (kind: PhoneCallOwnKind) => void,
@@ -76,6 +91,7 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
   public connectionState: PhoneCallConnectionState = 'connecting';
 
   private readonly transport: PhoneCallTransport;
+  private readonly timeouts: PhoneCallTimeouts;
   private readonly peerIdentity: string;
   private readonly log: ReturnType<typeof logger>;
   private readonly streams: PhoneCallStreams = {};
@@ -92,9 +108,10 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
   };
 
 
-  constructor(options: {transport: PhoneCallTransport, remoteUserId: UserId}) {
+  constructor(options: {transport: PhoneCallTransport, remoteUserId: UserId, timeouts: PhoneCallTimeouts}) {
     super(false);
     this.transport = options.transport;
+    this.timeouts = options.timeouts;
     this.peerIdentity = formatPhoneCallIdentity(options.remoteUserId);
     this.log = logger('CALL-LK');
 
@@ -277,7 +294,7 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
       case 'connected':
         this.refreshConnectionState();
         if(!this.peerPresent) {
-          this.startPeerTimer(PEER_JOIN_TIMEOUT_MS);
+          this.startPeerTimer(this.timeouts.connectTimeoutMs);
         }
         break;
       case 'disconnected':
@@ -298,7 +315,7 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
     if(present) {
       this.clearPeerTimer();
     } else {
-      this.startPeerTimer(PEER_GONE_HANGUP_MS);
+      this.startPeerTimer(this.timeouts.packetTimeoutMs);
     }
 
     this.refreshConnectionState();

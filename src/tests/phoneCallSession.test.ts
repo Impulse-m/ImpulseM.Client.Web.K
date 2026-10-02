@@ -3,8 +3,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 vi.mock('@helpers/dom/safePlay', () => ({default: vi.fn()}));
 
 import PhoneCallSession, {
-  PEER_GONE_HANGUP_MS,
-  PEER_JOIN_TIMEOUT_MS,
+  readPhoneCallTimeouts,
   PhoneCallConnectionState
 } from '@lib/calls/livekit/phoneCallSession';
 import FakePhoneCallTransport from './helpers/fakePhoneCallTransport';
@@ -34,7 +33,7 @@ function stream(kind: 'audio' | 'video'): {stream: MediaStream, track: FakeTrack
 
 function setup() {
   const transport = new FakePhoneCallTransport();
-  const session = new PhoneCallSession({transport, remoteUserId: 7 as UserId});
+  const session = new PhoneCallSession({transport, remoteUserId: 7 as UserId, timeouts: TIMEOUTS});
   const states: string[] = [];
   const events: string[] = [];
   session.addEventListener('connectionState', (state: PhoneCallConnectionState, cause?: string) => {
@@ -45,6 +44,10 @@ function setup() {
   return {transport, session, states, events};
 }
 
+// distinct on purpose: each timer must run on its own configured value
+const PEER_GONE_HANGUP_MS = 7000;
+const PEER_JOIN_TIMEOUT_MS = 31000;
+const TIMEOUTS = {packetTimeoutMs: PEER_GONE_HANGUP_MS, connectTimeoutMs: PEER_JOIN_TIMEOUT_MS};
 const PARAMS = {url: 'wss://lk.example', token: 'jwt', room: 'p.1'};
 
 beforeEach(() => {
@@ -215,5 +218,25 @@ describe('PhoneCallSession', () => {
 
     await expect(starting).rejects.toThrow(/closed while connecting/);
     expect(transport.calls).not.toContain('publish:microphone');
+  });
+});
+
+describe('readPhoneCallTimeouts', () => {
+  it('takes both timeouts from help.getConfig', () => {
+    expect(readPhoneCallTimeouts({call_packet_timeout_ms: 10000, call_connect_timeout_ms: 30000})).toEqual({
+      packetTimeoutMs: 10000,
+      connectTimeoutMs: 30000
+    });
+  });
+
+  it.each([
+    [{}],
+    [{call_packet_timeout_ms: 10000}],
+    [{call_connect_timeout_ms: 30000}],
+    [{call_packet_timeout_ms: 0, call_connect_timeout_ms: 30000}],
+    [{call_packet_timeout_ms: 10000, call_connect_timeout_ms: -1}],
+    [undefined]
+  ])('refuses a config without usable timeouts instead of reading them as zero: %j', (config) => {
+    expect(() => readPhoneCallTimeouts(config as any)).toThrow(/call_packet_timeout_ms/);
   });
 });

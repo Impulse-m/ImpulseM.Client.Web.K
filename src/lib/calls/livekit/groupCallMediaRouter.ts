@@ -5,8 +5,9 @@ import type {LiveKitMediaSource, LiveKitRemoteTrackInfo} from '@lib/calls/liveki
 
 export type RoutedGroupCallTrack = {
   /**
-   * The element and pin key: `participant.source` for the main identity, `presentation.audio_source` for the
-   * presentation one. Both are unique 32-bit ints, so no source groups are needed.
+   * The element and pin key. A camera or screen track (video, and the screen's audio) is keyed by its LiveKit
+   * identity, which the server also hands out as `participant.video.endpoint` / `presentation.endpoint`; the
+   * microphone is keyed by `participant.source`.
    */
   key: string,
   participant: GroupCallParticipant,
@@ -50,12 +51,15 @@ export function findIdentityParticipant(
   return undefined;
 }
 
-/** The element key a participant's `video` / `presentation` tile is rendered under. */
+/**
+ * The element key a participant's `video` / `presentation` tile is rendered under: the row's `endpoint`, which
+ * is exactly the LiveKit identity of the track that feeds the tile. Undefined while the row declares none.
+ */
 export function getParticipantOutputSource(
   participant: GroupCallParticipant,
   type: 'video' | 'presentation'
-): number | undefined {
-  return type === 'video' ? participant.source : participant.presentation?.audio_source;
+): string | undefined {
+  return (type === 'video' ? participant.video : participant.presentation)?.endpoint || undefined;
 }
 
 
@@ -171,9 +175,9 @@ export default class GroupCallMediaRouter {
   }
 
   private route(info: LiveKitRemoteTrackInfo, identity: GroupCallIdentity, participant: GroupCallParticipant): void {
-    const key: number | undefined = identity.isPresentation ? participant.presentation?.audio_source : participant.source;
+    const isVideo: boolean = info.track.kind === 'video';
     const route: RoutedGroupCallTrack = {
-      key: String(key),
+      key: isVideo || identity.isPresentation ? info.identity : String(participant.source),
       participant,
       peerId: identity.peerId,
       identity: info.identity,

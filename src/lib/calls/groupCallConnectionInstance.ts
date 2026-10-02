@@ -1,7 +1,8 @@
 import createSerializedQueue from '@helpers/createSerializedQueue';
 import {nextRandomUint} from '@helpers/random';
 import {DataJSON, InputGroupCall} from '@layer';
-import {GroupCallConnectionType} from '@appManagers/appGroupCallsManager';
+import {GroupCallConnectionType, JoinGroupCallJsonPayload} from '@appManagers/appGroupCallsManager';
+import {JoinSourceGroup, makeCameraSourceGroups, makeScreenSourceGroups} from '@lib/calls/livekit/groupCallSourceGroups';
 import {AppManagers} from '@lib/managers';
 import {logger} from '@lib/logger';
 import type GroupCallInstance from '@lib/calls/groupCallInstance';
@@ -74,7 +75,12 @@ export default class GroupCallConnectionInstance {
     const {groupCall, transport} = this;
     const ssrc: number = this.nextSsrc();
     this.sources = {audio: {source: toImpulseMSource(ssrc)}};
-    const params: DataJSON = {_: 'dataJSON', data: JSON.stringify({ssrc})};
+    const sourceGroups: JoinSourceGroup[] = (this.type === 'main' ? makeCameraSourceGroups : makeScreenSourceGroups)({
+      draw: () => nextRandomUint(32),
+      taken: [ssrc, ...(this.groupCall.connections.main ? [this.groupCall.connections.main.sources.audio?.source >>> 0] : [])]
+    });
+    const payload: JoinGroupCallJsonPayload = {ssrc, 'ssrc-groups': sourceGroups};
+    const params: DataJSON = {_: 'dataJSON', data: JSON.stringify(payload)};
 
     const update = await this.managers.appGroupCallsManager.joinGroupCall(groupCall.id, params, this.options);
 

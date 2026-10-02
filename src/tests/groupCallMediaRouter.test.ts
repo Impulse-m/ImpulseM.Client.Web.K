@@ -16,6 +16,7 @@ function participant(options: {
   id: number,
   source: number,
   presentationSource?: number,
+  video?: boolean,
   left?: boolean,
   self?: boolean
 }): GroupCallParticipant {
@@ -29,8 +30,11 @@ function participant(options: {
     peer,
     date: 0,
     source: options.source,
+    ...(options.video ? {
+      video: {_: 'groupCallParticipantVideo', pFlags: {}, endpoint: identityOf({kind, id: options.id, source: options.source}), source_groups: []}
+    } : {}),
     ...(options.presentationSource !== undefined ? {
-      presentation: {_: 'groupCallParticipantVideo', pFlags: {}, endpoint: `presentation-${options.presentationSource}`, source_groups: [], audio_source: options.presentationSource}
+      presentation: {_: 'groupCallParticipantVideo', pFlags: {}, endpoint: identityOf({kind, id: options.id, source: options.presentationSource, presentation: true}), source_groups: [], audio_source: options.presentationSource}
     } : {})
   } as unknown as GroupCallParticipant;
 }
@@ -97,16 +101,22 @@ describe('findIdentityParticipant', () => {
 });
 
 describe('getParticipantOutputSource', () => {
-  it('is the participant source for the camera and the presentation audio source for the screen', () => {
-    const user = participant({id: 7, source: 100, presentationSource: 200});
-    expect(getParticipantOutputSource(user, 'video')).toBe(100);
-    expect(getParticipantOutputSource(user, 'presentation')).toBe(200);
+  it('is the row endpoint, which is the LiveKit identity of the track, for the camera and the screen', () => {
+    const user = participant({id: 7, source: 100, presentationSource: 200, video: true});
+    expect(getParticipantOutputSource(user, 'video')).toBe('u7.100');
+    expect(getParticipantOutputSource(user, 'presentation')).toBe('u7.200.p');
+    expect(getParticipantOutputSource(user, 'video')).toBe(identityOf({id: 7, source: 100}));
+    expect(getParticipantOutputSource(user, 'presentation')).toBe(identityOf({id: 7, source: 200, presentation: true}));
+  });
+
+  it('is undefined while the row declares no video or presentation', () => {
+    expect(getParticipantOutputSource(participant({id: 8, source: 5}), 'video')).toBeUndefined();
     expect(getParticipantOutputSource(participant({id: 8, source: 5}), 'presentation')).toBeUndefined();
   });
 });
 
 describe('GroupCallMediaRouter', () => {
-  it('routes a user microphone and camera under the participant source', () => {
+  it('routes a user microphone under the participant source and the camera under its identity', () => {
     const user = participant({id: 7, source: 100});
     participants.push(user);
 
@@ -115,7 +125,7 @@ describe('GroupCallMediaRouter', () => {
 
     expect(routed.map((route) => [route.key, route.kind, route.mediaSource, route.participant, route.isPresentation])).toEqual([
       ['100', 'audio', 'microphone', user, false],
-      ['100', 'video', 'camera', user, false]
+      ['u7.100', 'video', 'camera', user, false]
     ]);
     expect(router.getVideoRoutes().map((route) => route.sid)).toEqual(['V']);
   });
@@ -129,15 +139,15 @@ describe('GroupCallMediaRouter', () => {
     expect(routed.map((route) => [route.peerId, route.key])).toEqual([[-55, '1'], [-66, '2']]);
   });
 
-  it('routes a presentation under presentation.audio_source, screen video and screen audio alike', () => {
+  it('routes a presentation under its identity, screen video and screen audio alike', () => {
     participants.push(participant({id: 7, source: 100, presentationSource: 200}));
 
     router.onRemoteTrack(trackInfo({identity: identityOf({id: 7, source: 200, presentation: true}), sid: 'S', source: 'screen'}));
     router.onRemoteTrack(trackInfo({identity: identityOf({id: 7, source: 200, presentation: true}), sid: 'SA', source: 'screenAudio'}));
 
     expect(routed.map((route) => [route.key, route.kind, route.isPresentation])).toEqual([
-      ['200', 'video', true],
-      ['200', 'audio', true]
+      ['u7.200.p', 'video', true],
+      ['u7.200.p', 'audio', true]
     ]);
   });
 
@@ -167,7 +177,7 @@ describe('GroupCallMediaRouter', () => {
     participants[0] = withPresentation;
     router.onParticipantUpdate(withPresentation);
 
-    expect(routed.map((route) => route.key)).toEqual(['200']);
+    expect(routed.map((route) => route.key)).toEqual(['u7.200.p']);
   });
 
   it('drops the tracks of a participant that left and forgets what was parked for it', () => {

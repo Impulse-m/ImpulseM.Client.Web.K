@@ -48,6 +48,8 @@ export type GroupCallConnectionType = 'main' | 'presentation';
  */
 export type JoinGroupCallJsonPayload = {
   ssrc: number;
+  /** The camera (main connection) or screen (presentation connection) source groups; the server emits video only when declared. */
+  'ssrc-groups'?: Array<{semantics: string, sources: number[]}>;
 };
 
 // Upper bound on the conference-roster walk. Purely a stop against a server
@@ -96,7 +98,8 @@ function getJoinSource(params: DataJSON): number {
   }
 }
 
-export type GroupCallOutputSource = 'main' | 'presentation' | number;
+/** `main` / `presentation` for our own tiles, a LiveKit identity (the row's `endpoint`) for a remote one. */
+export type GroupCallOutputSource = 'main' | 'presentation' | string | number;
 
 export interface GroupCallRtmpState {
   channels: GroupCallStreamChannel[];

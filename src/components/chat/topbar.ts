@@ -28,6 +28,7 @@ import {AppEditBotTab, AppEditContactTab} from '@components/solidJsTabs/tabs';
 import IS_GROUP_CALL_SUPPORTED from '@environment/groupCallSupport';
 import IS_CALL_SUPPORTED from '@environment/callSupport';
 import {CallType} from '@lib/calls/types';
+import isCallAvailable from '@lib/calls/helpers/callAvailability';
 import showMutePopup from '@components/popups/mute';
 import {AppManagers} from '@lib/managers';
 import hasRights from '@appManagers/utils/chats/hasRights';
@@ -411,7 +412,7 @@ export default class ChatTopbar {
     const userId = this.peerId.toUserId();
     const userFull = await this.managers.appProfileManager.getCachedFullUser(userId);
 
-    return !!userFull && !!(type === 'voice' ? userFull.pFlags.phone_calls_available : userFull.pFlags.video_calls_available);
+    return isCallAvailable(userFull, type);
   };
 
   private verifyIfCanReportChat = () => {

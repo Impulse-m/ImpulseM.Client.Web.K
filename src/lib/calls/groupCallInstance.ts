@@ -164,7 +164,7 @@ export default class GroupCallInstance extends CallInstanceBase<{
   private pinnedSources: Array<GroupCallOutputSource>;
   // the rows the media router resolves LiveKit identities against, kept in step by onParticipantUpdate
   private participantRows = new Map<PeerId, GroupCallParticipant>();
-  private outputSourcesByPeer = new Map<PeerId, number[]>();
+  private outputSourcesByPeer = new Map<PeerId, string[]>();
   private mediaRouter: GroupCallMediaRouter;
   private speakingPeerIds = new Set<PeerId>();
   private hadAutoPinnedSources: Set<GroupCallOutputSource>;
@@ -2628,8 +2628,8 @@ export default class GroupCallInstance extends CallInstanceBase<{
     }
 
     if(participant.presentation && !hasLeft) {
-      const source = participant.presentation.audio_source;
-      if(!this.hadAutoPinnedSources.has(source)) {
+      const source = participant.presentation.endpoint;
+      if(source && !this.hadAutoPinnedSources.has(source)) {
         this.hadAutoPinnedSources.add(source);
         this.pinSource(participant.pFlags.self ? 'presentation' : source);
       }
@@ -2708,14 +2708,16 @@ export default class GroupCallInstance extends CallInstanceBase<{
     }
 
     // The tiles a participant can have are keyed by source: the camera by `source`, the screen by the
-    // presentation's `audio_source`. A tile that disappeared from the row is unpinned.
-    const outputSources: number[] = [];
+    // presentation's `endpoint`. A tile that disappeared from the row is unpinned.
+    const outputSources: string[] = [];
     if(!hasLeft) {
-      if(participant.video) outputSources.push(getParticipantOutputSource(participant, 'video'));
-      if(participant.presentation) outputSources.push(getParticipantOutputSource(participant, 'presentation'));
+      for(const type of ['video', 'presentation'] as const) {
+        const source = getParticipantOutputSource(participant, type);
+        if(source) outputSources.push(source);
+      }
     }
 
-    const oldSources: number[] = this.outputSourcesByPeer.get(peerId) || [];
+    const oldSources: string[] = this.outputSourcesByPeer.get(peerId) || [];
     for(const oldSource of oldSources) {
       if(!outputSources.includes(oldSource)) {
         this.unpinSource(oldSource);
@@ -2735,14 +2737,14 @@ export default class GroupCallInstance extends CallInstanceBase<{
   }
 
   // Per-participant volume and "muted by me" go to that participant's own audio elements: the microphone
-  // under `source`, the screen audio under the presentation's `audio_source`.
+  // under `source`, the screen audio under the presentation's `endpoint`.
   private applyParticipantAudioState(participant: GroupCallParticipant): void {
     const volume: number = (participant.volume ?? GROUP_CALL_PARTICIPANT_VOLUME_UNIT) / GROUP_CALL_PARTICIPANT_VOLUME_UNIT;
     const muted: boolean = !!participant.pFlags.muted_by_you;
-    const sources: number[] = [participant.source];
-    if(participant.presentation) sources.push(participant.presentation.audio_source);
+    const sources: string[] = [String(participant.source)];
+    if(participant.presentation?.endpoint) sources.push(participant.presentation.endpoint);
     for(const source of sources) {
-      this.setOutputAudioState({source: String(source), volume, muted});
+      this.setOutputAudioState({source, volume, muted});
     }
   }
 

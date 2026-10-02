@@ -79,8 +79,35 @@ describe('GroupCallConnectionInstance.join', () => {
     const [callId, params, options] = joinGroupCall.mock.calls[0] as unknown as [string, any, any];
     expect(callId).toBe('700');
     expect(params._).toBe('dataJSON');
-    expect(Object.keys(JSON.parse(params.data))).toEqual(['ssrc']);
+    expect(Object.keys(JSON.parse(params.data))).toEqual(['ssrc', 'ssrc-groups']);
     expect(options).toMatchObject({type: 'main'});
+  });
+
+  it('declares camera source groups on the main connection, distinct from its own source', async() => {
+    const {connection, joinGroupCall} = makeConnection({audio: track('audio')});
+
+    await connection.join();
+
+    const payload = JSON.parse(((joinGroupCall.mock.calls[0] as unknown[])[1] as any).data);
+    const groups = payload['ssrc-groups'] as Array<{semantics: string, sources: number[]}>;
+    expect(groups.map((group) => group.semantics)).toEqual(['SIM', 'FID', 'FID', 'FID']);
+    expect(groups.length).toBeLessThanOrEqual(8);
+    const sources = groups.flatMap((group) => group.sources);
+    expect(sources.every((source) => Number.isInteger(source) && source >= 1 && source <= 0xFFFFFFFF)).toBe(true);
+    expect(sources).not.toContain(payload.ssrc);
+  });
+
+  it('declares screen source groups on the presentation connection, apart from the main sources', async() => {
+    const mainSource = toImpulseMSource(123456);
+    const {connection, joinGroupCall} = makeConnection({type: 'presentation', mainSource});
+
+    await connection.join();
+
+    const payload = JSON.parse(((joinGroupCall.mock.calls[0] as unknown[])[1] as any).data);
+    expect(payload['ssrc-groups']).toHaveLength(1);
+    expect(payload['ssrc-groups'][0].semantics).toBe('FID');
+    expect(payload['ssrc-groups'][0].sources).not.toContain(123456);
+    expect(payload['ssrc-groups'][0].sources).not.toContain(payload.ssrc);
   });
 
   it('connects with the coordinates of the answer, subscribing on the main connection', async() => {

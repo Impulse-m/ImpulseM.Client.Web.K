@@ -98,12 +98,8 @@ test.describe('LiveKit calls', () => {
     const senderId = await sender.ownPeerId();
     const recipientId = await recipient.ownPeerId();
 
-    // The topbar Call button is shown only when UserFull.phone_calls_available is set, and this backend never
-    // sets it (users.getFullUser answers no flags at all), so the button stays hidden. The call is started
-    // through the very method the button's click calls (ChatTopbar.onCallClick -> appImManager.callUser).
-    await sender.page.evaluate(async(userId) => {
-      await (window as any).appImManager.callUser(Number(userId), 'voice');
-    }, recipientId);
+    // The topbar Call button is offered only when the server flags the user (userFull.phone_calls_available).
+    await sender.page.locator('.chat-utils').getByRole('button', {name: 'Call', exact: true}).click({timeout: connectTimeoutMs});
     await recipient.page.locator('.popup-call').getByRole('button', {name: 'Accept'}).click({timeout: connectTimeoutMs});
 
     await Promise.all([
