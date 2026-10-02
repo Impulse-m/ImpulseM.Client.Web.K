@@ -84,6 +84,9 @@ type RealtimeConnection = {
   connection: Centrifuge | undefined,
   subscriptionSet: RealtimeSubscriptions | undefined,
   openChannelId: ChatId | undefined,
+  // The group call this slot is joined to, if any: its `call:{id}` lane carries the in-call messages,
+  // and for a channel call its `channel:{id}` lane is pinned in the subscription set.
+  call: RealtimeCall | undefined,
   latestTabStates: TabState[],
   subscriptions: Map<string, Subscription>,
   // Channel lanes whose opaque actor tag is still being fetched: the tags filter is part of the
@@ -92,6 +95,11 @@ type RealtimeConnection = {
   sink: RealtimeUpdateSink | undefined,
   spinUpInProgress: boolean,
   lastSpinUpAt: number | undefined
+};
+
+export type RealtimeCall = {
+  callId: string,
+  channelId: ChatId | undefined
 };
 
 const connectionsByAccount = new Map<ActiveAccountNumber, RealtimeConnection>();
@@ -104,6 +112,7 @@ function connectionFor(accountNumber: ActiveAccountNumber): RealtimeConnection {
       connection: undefined,
       subscriptionSet: undefined,
       openChannelId: undefined,
+      call: undefined,
       latestTabStates: [],
       subscriptions: new Map<string, Subscription>(),
       pendingChannelLanes: new Set<string>(),
@@ -161,6 +170,7 @@ export function startImpulseRealtime(userId: string | undefined, accountNumber: 
   record.lastSpinUpAt = Date.now();
   record.activeUserId = userId;
   record.subscriptionSet = new RealtimeSubscriptions(userId);
+  record.subscriptionSet.pin(record.call?.channelId);
   record.spinUpInProgress = true;
 
   spinUp(accountNumber, userId).catch((err: unknown) => {
@@ -191,9 +201,36 @@ export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
   record.openChannelId = undefined;
   record.connection = undefined;
   record.activeUserId = undefined;
-  // sink and latestTabStates deliberately survive teardown: apiManager re-arms the sink on the
+  // call, sink and latestTabStates deliberately survive teardown: apiManager re-arms the sink on the
   // next bring-up (startRealtimeBringUp), and a reconnect for the same slot should keep the tab
   // lanes it already knew -- exactly as the singleton did before it went per-account.
+}
+
+/**
+ * Reads the realtime lanes of the group call this slot joined (undefined: it left, or the call closed):
+ * `call:{id}`, which the subscribe proxy opens to the call's participants only and re-asks while
+ * subscribed, carries updateGroupCallMessage / updateDeleteGroupCallMessages; and, for a channel call,
+ * its `channel:{id}` lane is kept subscribed whatever the dialog window holds. The state outlives a
+ * socket teardown, so a reconnect brings the lanes back.
+ */
+export function setImpulseRealtimeCall(accountNumber: ActiveAccountNumber, call: RealtimeCall | undefined): void {
+  const record = connectionFor(accountNumber);
+  const previous = record.call;
+  record.call = call;
+
+  if(previous && previous.callId !== call?.callId) {
+    applySubscriptionDiff(accountNumber, {subscribe: [], unsubscribe: [callLaneName(previous.callId)]});
+  }
+  if(call && record.connection) {
+    createSubscription(accountNumber, callLaneName(call.callId));
+  }
+  if(record.subscriptionSet) {
+    applySubscriptionDiff(accountNumber, record.subscriptionSet.pin(call?.channelId));
+  }
+}
+
+function callLaneName(callId: string): string {
+  return `call:${callId}`;
 }
 
 export function setImpulseRealtimeTabs(states: TabState[]): void {
@@ -361,6 +398,10 @@ async function spinUp(accountNumber: ActiveAccountNumber, userId: string): Promi
   applyTabStates(accountNumber);
   for(const selectedChannel of record.subscriptionSet?.getChannels() ?? [channel]) {
     createSubscription(accountNumber, selectedChannel);
+  }
+
+  if(record.call) {
+    createSubscription(accountNumber, callLaneName(record.call.callId));
   }
 
   centrifuge.connect();

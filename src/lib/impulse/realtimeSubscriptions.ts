@@ -8,6 +8,7 @@ export type RealtimeSubscriptionDiff = {
 export class RealtimeSubscriptions {
   private readonly userChannel: string;
   private openChannelId: ChatId | undefined;
+  private pinnedChannelId: ChatId | undefined;
   private visibleChannelIds = new Set<ChatId>();
   private recentChannelIds: ChatId[] = [];
   private subscribedChannels = new Set<string>();
@@ -44,6 +45,17 @@ export class RealtimeSubscriptions {
     return this.reconcile();
   }
 
+  /**
+   * Holds `channel:{id}` for as long as the account is in that channel's group call, outside the
+   * MaxChannelSubscriptions window: the call's updateGroupCall / updateGroupCallParticipants ride the
+   * channel's shared lane, and a window that rotated it out under a busy dialog list would drop them.
+   * Pass undefined to release it; it then competes for a slot like any other lane.
+   */
+  public pin(channelId: ChatId | undefined): RealtimeSubscriptionDiff {
+    this.pinnedChannelId = channelId;
+    return this.reconcile();
+  }
+
   public getChannels(): string[] {
     return [...this.subscribedChannels];
   }
@@ -66,6 +78,10 @@ export class RealtimeSubscriptions {
     const nextChannels = new Set<string>([this.userChannel]);
     for(const channelId of rankedChannelIds.slice(0, MaxChannelSubscriptions)) {
       nextChannels.add(`channel:${channelId}`);
+    }
+
+    if(this.pinnedChannelId !== undefined) {
+      nextChannels.add(`channel:${this.pinnedChannelId}`);
     }
 
     const subscribe = [...nextChannels].filter((channel) => !this.subscribedChannels.has(channel));

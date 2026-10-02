@@ -107,6 +107,7 @@ function makeController() {
     getGroupCallParticipants: vi.fn(async() => []),
     checkGroupCall: vi.fn(async(): Promise<number[]> => []),
     leaveGroupCall: vi.fn(async() => {}),
+    setRealtimeCall: vi.fn(async(_chatId: ChatId, _groupCallId: unknown, _active: boolean) => {}),
     hangUp: vi.fn(async() => {})
   };
   const log = Object.assign(vi.fn(), {
@@ -160,6 +161,20 @@ describe('GroupCallsController join', () => {
     expect(connection.join).toHaveBeenCalledTimes(1);
     expect(controller.groupCall).toBe(instance);
     expect(audioAsset.playWithTimeout).toHaveBeenCalledWith({name: 'connect', loop: true}, 2500);
+  });
+
+  it('reads the realtime lanes of the call while in it and leaves them when the call closes, not on a rejoin', async() => {
+    const {controller, appGroupCallsManager} = makeController();
+    const {instance} = await joinCall(controller);
+    expect(appGroupCallsManager.setRealtimeCall).toHaveBeenCalledTimes(1);
+    expect(appGroupCallsManager.setRealtimeCall).toHaveBeenLastCalledWith(CHAT_ID, INPUT.id, true);
+
+    await controller.joinGroupCall(CHAT_ID, INPUT.id as any, true, true);
+    expect(appGroupCallsManager.setRealtimeCall).toHaveBeenCalledTimes(1);
+
+    const GROUP_CALL_STATE_CLOSED = (await import('@lib/calls/groupCallState')).default.CLOSED;
+    instance.dispatchEvent('state', GROUP_CALL_STATE_CLOSED);
+    expect(appGroupCallsManager.setRealtimeCall).toHaveBeenLastCalledWith(CHAT_ID, INPUT.id, false);
   });
 
   it('is joined, announced and fed the roster when the transport connects, and only once', async() => {

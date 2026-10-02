@@ -205,6 +205,9 @@ export class GroupCallsController extends EventListenerBase<{
           if(this.currentGroupCall === currentGroupCall && state === GROUP_CALL_STATE.CLOSED) {
             this.setCurrentGroupCall(null);
             this.stopConnectingSound();
+            void this.managers.appGroupCallsManager.setRealtimeCall(chatId, groupCallId, false).catch((err) => {
+              log.warn('leaving the call lanes failed', err);
+            });
             this.audioAsset.play({name: 'end'});
             rootScope.dispatchEvent('chat_update', currentGroupCall.chatId);
           }
@@ -234,6 +237,12 @@ export class GroupCallsController extends EventListenerBase<{
 
       this.startConnectingSound();
       await connectionInstance.join();
+      if(!rejoin) {
+        // The participant row exists once the join is accepted, and the call lane is open to participants only.
+        void this.managers.appGroupCallsManager.setRealtimeCall(chatId, groupCallId, true).catch((err) => {
+          log.warn('subscribing to the call lanes failed', err);
+        });
+      }
     } catch(err) {
       // The microphone (and camera) were captured before this join started
       // and nothing owns them yet when it fails here — the instance is not

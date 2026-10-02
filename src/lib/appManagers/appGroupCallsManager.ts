@@ -8,6 +8,7 @@
 import type {GroupCallConnectionOptions} from '@lib/calls/groupCallConnectionInstance';
 import safeReplaceObject from '@helpers/object/safeReplaceObject';
 import {nextRandomInt32} from '@helpers/random';
+import {setImpulseRealtimeCall} from '@lib/impulse/realtime';
 import {Chat, ChatFull, DataJSON, GroupCall, GroupCallParticipant, GroupCallStreamChannel, InputFileLocation, InputGroupCall, Peer, PhoneGroupCall, PhoneGroupParticipants, PhoneJoinGroupCall, PhoneJoinGroupCallPresentation, Update, Updates} from '@layer';
 import {FOLDER_ID_ALL, NULL_PEER_ID} from '@appManagers/constants';
 import {AppManager} from '@appManagers/manager';
@@ -1072,6 +1073,20 @@ export class AppGroupCallsManager extends AppManager {
       // it because only local application of the returned updates failed.
       this.log.error('terminate group call update processing failed after RPC acceptance', error);
     }
+  }
+
+  /**
+   * Reads (or stops reading, with `active` false) the realtime lanes of a call the account is joined to:
+   * `call:{id}` for the in-call messages, and the channel's own lane for a supergroup or channel call.
+   */
+  public setRealtimeCall(chatId: ChatId, groupCallId: GroupCallId, active: boolean): void {
+    setImpulseRealtimeCall(
+      this.getAccountNumber(),
+      active ? {
+        callId: String(groupCallId),
+        channelId: this.appChatsManager.isChannel(chatId) ? chatId : undefined
+      } : undefined
+    );
   }
 
   public async leaveGroupCall(call: InputGroupCall, source: number): Promise<void> {
