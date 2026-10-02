@@ -12,6 +12,9 @@ import {AppManager} from '@appManagers/manager';
 import AccountController from '@lib/accounts/accountController';
 import bytesToHex from '@helpers/bytes/bytesToHex';
 import {getEnvironment} from '@environment/utils';
+import {setConnectionDeclaration} from '@lib/impulse/grpc/transport';
+
+const TimezoneRoundingSeconds = 900;
 
 export class NetworkerFactory extends AppManager {
   private networkers: MTPNetworker[] = [];
@@ -27,6 +30,8 @@ export class NetworkerFactory extends AppManager {
   }
 
   protected after() {
+    this.publishConnectionDeclaration();
+
     this.rootScope.addEventListener('settings_updated', ({key, settings}) => {
       if(key === 'settings.customDeviceModel') {
         this.setDeviceModel(settings.customDeviceModel);
@@ -47,18 +52,43 @@ export class NetworkerFactory extends AppManager {
   }
 
   // * what every networker is made with
+  private getInitConnectionParams() {
+    return {
+      id: App.id,
+      deviceModel: this.customDeviceModel || getEnvironment().USER_AGENT || 'Unknown UserAgent',
+      systemVersion: navigator.platform || 'Unknown Platform',
+      version: App.version + (App.isMainDomain ? ' ' + App.suffix : ''),
+      systemLangCode: navigator.language || 'en',
+      langPack: App.langPack,
+      langCode: this.language
+    };
+  }
+
+  /**
+   * The same values the MTProto networker wraps its first query in, handed to the gRPC transport
+   * for this account slot (the networker's own wrapper is unused there). tz_offset is seconds east
+   * of UTC rounded to 15 minutes, like tdesktop's initConnection params
+   * (session_private.cpp:555-573); the browser offset already lies inside its -12h..+14h range.
+   */
+  private publishConnectionDeclaration() {
+    const params = this.getInitConnectionParams();
+    setConnectionDeclaration(this.getAccountNumber(), {
+      apiId: params.id,
+      deviceModel: params.deviceModel,
+      systemVersion: params.systemVersion,
+      appVersion: params.version,
+      systemLangCode: params.systemLangCode,
+      langPack: params.langPack,
+      langCode: params.langCode,
+      tzOffset: Math.round(-new Date().getTimezoneOffset() * 60 / TimezoneRoundingSeconds) * TimezoneRoundingSeconds
+    });
+  }
+
+  // * what every networker is made with
   private getCommonOptions() {
     return {
       timeManager: this.timeManager,
-      getInitConnectionParams: () => ({
-        id: App.id,
-        deviceModel: this.customDeviceModel || getEnvironment().USER_AGENT || 'Unknown UserAgent',
-        systemVersion: navigator.platform || 'Unknown Platform',
-        version: App.version + (App.isMainDomain ? ' ' + App.suffix : ''),
-        systemLangCode: navigator.language || 'en',
-        langPack: App.langPack,
-        langCode: this.language
-      }),
+      getInitConnectionParams: () => this.getInitConnectionParams(),
       getBaseDcId: () => this.apiManager.getBaseDcId(),
       createLogger: this.createLogger.bind(this)
     };
@@ -127,6 +157,7 @@ export class NetworkerFactory extends AppManager {
     }
 
     this.language = langCode;
+    this.publishConnectionDeclaration();
     this.resetConnectionInited();
   }
 
@@ -141,6 +172,7 @@ export class NetworkerFactory extends AppManager {
     }
 
     this.customDeviceModel = deviceModel;
+    this.publishConnectionDeclaration();
     this.resetConnectionInited();
   }
 

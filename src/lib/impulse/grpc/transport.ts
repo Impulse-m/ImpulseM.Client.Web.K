@@ -21,12 +21,16 @@
  * the account number as an explicit parameter.
  */
 
-import type {Interceptor, Transport} from '@connectrpc/connect';
+import {create} from '@bufbuild/protobuf';
+import {createClient, createContextKey, encodeBinaryHeader} from '@connectrpc/connect';
+import type {Interceptor, StreamRequest, Transport, UnaryRequest} from '@connectrpc/connect';
 import {createGrpcWebTransport} from '@connectrpc/connect-web';
 
 import {backendHttpOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import {AuthService} from './gen/v1/internal/impulse/auth/auth_service_pb';
+import {ConnectionDeclarationSchema} from './gen/v1/internal/impulse/auth/auth_types_pb';
 
 const logger = getLogger('grpc-transport');
 
@@ -52,6 +56,50 @@ const logger = getLogger('grpc-transport');
  */
 const QR_EXPORTER_TICKET_HEADER = 'x-impulse-qr-exporter-ticket';
 
+/*
+ * The connection declaration (canon initConnection#c1cd5ea9).
+ *
+ * MTProto wraps the first query of an uninitialised connection in initConnection; this transport
+ * has no such connection, so the same values travel as the binary metadata entry below on every
+ * call of a slot whose own `connectionInited` flag is false (canon needsLayer, tdesktop
+ * session_private.cpp:586), and as AuthService.InitConnection once the slot has a session to bind
+ * them to. The values come from the same place the MTProto networker reads them
+ * (networkerFactory.getInitConnectionParams) -- this module only carries them.
+ */
+const INIT_CONNECTION_HEADER = 'x-impulse-init-connection-bin';
+
+// A failed InitConnection is retried by a later call, never sooner than this, so a server that
+// cannot answer it does not get one extra request per ordinary call.
+const INIT_CONNECTION_RETRY_BACKOFF_MS = 30_000;
+
+export const CONNECTION_NOT_INITED = 'CONNECTION_NOT_INITED';
+
+export type ConnectionDeclarationValues = {
+  apiId: number,
+  deviceModel: string,
+  systemVersion: string,
+  appVersion: string,
+  systemLangCode: string,
+  langPack: string,
+  langCode: string,
+  // Seconds east of UTC (initConnection params.tz_offset); undefined leaves params unset.
+  tzOffset?: number
+};
+
+/**
+ * Written by the auth interceptor into the call's context values when it stamped the declaration
+ * on that call: the declaration generation it stamped. The caller reads it back after the call
+ * to learn which values a session-creating response was created under.
+ */
+export const stampedDeclarationGenerationKey = createContextKey<number | undefined>(undefined, {
+  description: 'declaration generation stamped on this call'
+});
+
+export type InitConnectionSender = (
+  accountNumber: ActiveAccountNumber,
+  declaration: ConnectionDeclarationValues
+) => Promise<unknown>;
+
 type AccountCredentials = {
   userId: string | undefined,
   sessionToken: string | undefined,
@@ -65,7 +113,17 @@ type AccountCredentials = {
   // response arrives, so a response belonging to an attempt something newer has since superseded
   // (a fresh sendCode, a logout, a completed session) can be told apart from a current one — the
   // request-attempt correlation #675 revision2 requires, without a new framework.
-  pendingGeneration: number
+  pendingGeneration: number,
+  // The declared values and their wire form; undefined until the owner of the values publishes them.
+  declaration: ConnectionDeclarationValues | undefined,
+  declarationHeader: string | undefined,
+  // Bumped whenever the declared values change or the binding is invalidated, so a response or
+  // handshake that belongs to an older declaration cannot mark the current one as bound.
+  declarationGeneration: number,
+  // Canon `connectionInited`: true once the server holds the current values for this slot.
+  connectionInited: boolean,
+  handshakeInFlight: boolean,
+  handshakeFailedAt: number | undefined
 };
 
 const credentialsByAccount = new Map<ActiveAccountNumber, AccountCredentials>();
@@ -78,7 +136,13 @@ function credentialsFor(accountNumber: ActiveAccountNumber): AccountCredentials 
       sessionToken: undefined,
       qrExporterTicket: undefined,
       pendingToken: undefined,
-      pendingGeneration: 0
+      pendingGeneration: 0,
+      declaration: undefined,
+      declarationHeader: undefined,
+      declarationGeneration: 0,
+      connectionInited: false,
+      handshakeInFlight: false,
+      handshakeFailedAt: undefined
     };
     credentialsByAccount.set(accountNumber, credentials);
   }
@@ -162,6 +226,161 @@ export function isPendingSessionAllowedMethod(serviceTypeName: string, methodNam
   return PENDING_SESSION_ALLOWED_METHODS.has(`${serviceTypeName}/${methodName}`);
 }
 
+function toDeclarationMessage(values: ConnectionDeclarationValues) {
+  return create(ConnectionDeclarationSchema, {
+    apiId: values.apiId,
+    deviceModel: values.deviceModel,
+    systemVersion: values.systemVersion,
+    appVersion: values.appVersion,
+    systemLangCode: values.systemLangCode,
+    langPack: values.langPack,
+    langCode: values.langCode,
+    params: values.tzOffset === undefined ? undefined : {tzOffset: values.tzOffset}
+  });
+}
+
+function declarationKey(values: ConnectionDeclarationValues | undefined): string {
+  return values === undefined ? '' : JSON.stringify([
+    values.apiId,
+    values.deviceModel,
+    values.systemVersion,
+    values.appVersion,
+    values.systemLangCode,
+    values.langPack,
+    values.langCode,
+    values.tzOffset ?? null
+  ]);
+}
+
+/**
+ * Publishes the values this slot declares. A value that differs from the published one (a device
+ * rename, a language change) clears the slot's connectionInited flag, which is how the change
+ * reaches the server: every call carries the new declaration until it is bound again.
+ */
+export function setConnectionDeclaration(
+  accountNumber: ActiveAccountNumber,
+  values: ConnectionDeclarationValues
+): void {
+  const credentials = credentialsFor(accountNumber);
+  if(declarationKey(credentials.declaration) === declarationKey(values)) {
+    return;
+  }
+
+  credentials.declaration = values;
+  credentials.declarationHeader = encodeBinaryHeader(toDeclarationMessage(values), ConnectionDeclarationSchema);
+  credentials.declarationGeneration += 1;
+  credentials.connectionInited = false;
+  credentials.handshakeFailedAt = undefined;
+}
+
+export function isGrpcConnectionInited(accountNumber: ActiveAccountNumber): boolean {
+  return credentialsFor(accountNumber).connectionInited;
+}
+
+/**
+ * Forgets that the server holds this slot's declaration: on logout (the authorization it was bound
+ * to is gone) and on CONNECTION_NOT_INITED (canon: mark not inited, resend with the declaration).
+ */
+export function resetConnectionInited(accountNumber: ActiveAccountNumber): void {
+  const credentials = credentialsFor(accountNumber);
+  credentials.declarationGeneration += 1;
+  credentials.connectionInited = false;
+  credentials.handshakeFailedAt = undefined;
+}
+
+/**
+ * A call created a NEW session (signIn, signUp, checkPassword, QR import, passkey, ...). When that
+ * call carried the current declaration the server stored it on the new authorization, so the slot
+ * is bound; when it carried nothing or an outdated one, the new session holds no declaration and
+ * the slot is not inited until AuthService.InitConnection binds it.
+ */
+export function bindDeclarationToNewSession(
+  accountNumber: ActiveAccountNumber,
+  stampedGeneration: number | undefined
+): void {
+  const credentials = credentialsFor(accountNumber);
+  credentials.connectionInited = stampedGeneration !== undefined &&
+    stampedGeneration === credentials.declarationGeneration;
+}
+
+/** A successful refresh that carried the current declaration is as good as InitConnection. */
+export function bindDeclarationOnRefresh(
+  accountNumber: ActiveAccountNumber,
+  stampedGeneration: number | undefined
+): void {
+  const credentials = credentialsFor(accountNumber);
+  if(stampedGeneration !== undefined && stampedGeneration === credentials.declarationGeneration) {
+    credentials.connectionInited = true;
+  }
+}
+
+function sendInitConnection(
+  accountNumber: ActiveAccountNumber,
+  declaration: ConnectionDeclarationValues
+): Promise<unknown> {
+  return createClient(AuthService, getGrpcTransport(accountNumber)).initConnection({
+    declaration: toDeclarationMessage(declaration)
+  });
+}
+
+/**
+ * Sends AuthService.InitConnection for a signed-in slot that is not inited. Never awaited by the
+ * call that triggered it, deduplicated per slot, and only marks the slot inited when neither the
+ * declared values nor the session changed while it was in flight.
+ */
+function startHandshake(accountNumber: ActiveAccountNumber, send: InitConnectionSender): void {
+  const credentials = credentialsFor(accountNumber);
+  const declaration = credentials.declaration;
+  const generation = credentials.declarationGeneration;
+  const sessionToken = credentials.sessionToken;
+  credentials.handshakeInFlight = true;
+
+  void (async(): Promise<void> => {
+    try {
+      await send(accountNumber, declaration);
+      if(
+        credentials.declarationGeneration === generation &&
+        credentials.sessionToken === sessionToken
+      ) {
+        credentials.connectionInited = true;
+      }
+    } catch(err) {
+      credentials.handshakeFailedAt = Date.now();
+      logger.warn('InitConnection failed', {account: accountNumber}, err);
+    } finally {
+      credentials.handshakeInFlight = false;
+    }
+  })();
+}
+
+function stampDeclaration(
+  accountNumber: ActiveAccountNumber,
+  req: Pick<UnaryRequest | StreamRequest, 'header' | 'contextValues' | 'service' | 'method'>,
+  send: InitConnectionSender
+): void {
+  const credentials = credentialsFor(accountNumber);
+  if(credentials.connectionInited || credentials.declaration === undefined) {
+    return;
+  }
+
+  req.header.set(INIT_CONNECTION_HEADER, credentials.declarationHeader);
+  req.contextValues.set(stampedDeclarationGenerationKey, credentials.declarationGeneration);
+
+  const isHandshakeCall = req.service.typeName === AuthService.typeName &&
+    req.method.name === 'InitConnection';
+  if(
+    credentials.sessionToken &&
+    !isHandshakeCall &&
+    !credentials.handshakeInFlight &&
+    (
+      credentials.handshakeFailedAt === undefined ||
+      Date.now() - credentials.handshakeFailedAt >= INIT_CONNECTION_RETRY_BACKOFF_MS
+    )
+  ) {
+    startHandshake(accountNumber, send);
+  }
+}
+
 /**
  * gRPC-web puts trailers in the response body, so they arrive on `trailer` once the
  * whole unary response has been read. Headers are checked too: the value is the same
@@ -177,7 +396,10 @@ function captureQrExporterTicket(accountNumber: ActiveAccountNumber, response: {
   }
 }
 
-function createAuthInterceptor(accountNumber: ActiveAccountNumber): Interceptor {
+export function createAuthInterceptor(
+  accountNumber: ActiveAccountNumber,
+  send: InitConnectionSender = sendInitConnection
+): Interceptor {
   return (next) => async(req) => {
     const credentials = credentialsFor(accountNumber);
     if(credentials.userId) {
@@ -201,6 +423,8 @@ function createAuthInterceptor(accountNumber: ActiveAccountNumber): Interceptor 
     if(credentials.qrExporterTicket) {
       req.header.set(QR_EXPORTER_TICKET_HEADER, credentials.qrExporterTicket);
     }
+
+    stampDeclaration(accountNumber, req, send);
 
     const startedAt = performance.now();
     try {

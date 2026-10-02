@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/auth/auth_types.proto.
  */
 export const file_impulse_auth_auth_types: GenFile = /*@__PURE__*/
-  fileDesc("Ch1pbXB1bHNlL2F1dGgvYXV0aF90eXBlcy5wcm90bxIMaW1wdWxzZS5hdXRoIrsBCghTZW50Q29kZRIwCgdyZWd1bGFyGAEgASgLMh0uaW1wdWxzZS5hdXRoLlNlbnRDb2RlUmVndWxhckgAEjAKB3N1Y2Nlc3MYAiABKAsyHS5pbXB1bHNlLmF1dGguU2VudENvZGVTdWNjZXNzSAASQQoQcGF5bWVudF9yZXF1aXJlZBgDIAEoCzIlLmltcHVsc2UuYXV0aC5TZW50Q29kZVBheW1lbnRSZXF1aXJlZEgAQggKBnJlc3VsdCLiAQoPU2VudENvZGVSZWd1bGFyEigKBHR5cGUYASABKA4yGi5pbXB1bHNlLmF1dGguU2VudENvZGVUeXBlEhcKD3Bob25lX2NvZGVfaGFzaBgCIAEoCRItCgluZXh0X3R5cGUYAyABKA4yGi5pbXB1bHNlLmF1dGguU2VudENvZGVUeXBlEg8KB3RpbWVvdXQYBCABKAUSTAoZbm90aWZpY2F0aW9uX2Rlc3RpbmF0aW9ucxgFIAMoCzIpLmltcHVsc2UuYXV0aC5Db2RlTm90aWZpY2F0aW9uRGVzdGluYXRpb24iRQoPU2VudENvZGVTdWNjZXNzEjIKDWF1dGhvcml6YXRpb24YASABKAsyGy5pbXB1bHNlLmF1dGguQXV0aG9yaXphdGlvbiJJChdTZW50Q29kZVBheW1lbnRSZXF1aXJlZBIVCg1zdG9yZV9wcm9kdWN0GAEgASgJEhcKD3Bob25lX2NvZGVfaGFzaBgCIAEoCSIyChtDb2RlTm90aWZpY2F0aW9uRGVzdGluYXRpb24SEwoLZGVzdGluYXRpb24YASABKAkiwwEKEUVtYWlsVmVyaWZpY2F0aW9uEjMKBGNvZGUYASABKAsyIy5pbXB1bHNlLmF1dGguRW1haWxWZXJpZmljYXRpb25Db2RlSAASNwoGZ29vZ2xlGAIgASgLMiUuaW1wdWxzZS5hdXRoLkVtYWlsVmVyaWZpY2F0aW9uR29vZ2xlSAASNQoFYXBwbGUYAyABKAsyJC5pbXB1bHNlLmF1dGguRW1haWxWZXJpZmljYXRpb25BcHBsZUgAQgkKB3ZhcmlhbnQiJQoVRW1haWxWZXJpZmljYXRpb25Db2RlEgwKBGNvZGUYASABKAkiKAoXRW1haWxWZXJpZmljYXRpb25Hb29nbGUSDQoFdG9rZW4YASABKAkiJwoWRW1haWxWZXJpZmljYXRpb25BcHBsZRINCgV0b2tlbhgBIAEoCSL+AQoPQXV0aG9yaXphdGlvbk9rEhUKDXNlc3Npb25fdG9rZW4YASABKAkSFQoNcmVmcmVzaF90b2tlbhgCIAEoCRIPCgd1c2VyX2lkGAMgASgDEiIKGmlzX3NldHVwX3Bhc3N3b3JkX3JlcXVpcmVkGAQgASgIEh4KFm90aGVyd2lzZV9yZWxvZ2luX2RheXMYBSABKAUSGQoRZnV0dXJlX2F1dGhfdG9rZW4YBiABKAwSGQoMdG1wX3Nlc3Npb25zGAcgASgFSACIAQESIQoEdXNlchgIIAEoCzITLmltcHVsc2UudXNlcnMuVXNlckIPCg1fdG1wX3Nlc3Npb25zItEBCg1BdXRob3JpemF0aW9uEg8KB3VzZXJfaWQYASABKAMSHwoXc2V0dXBfcGFzc3dvcmRfcmVxdWlyZWQYAiABKAgSGQoMdG1wX3Nlc3Npb25zGAMgASgFSACIAQESHgoRZnV0dXJlX2F1dGhfdG9rZW4YBCABKAxIAYgBARIVCg1zZXNzaW9uX3Rva2VuGAUgASgJEhUKDXJlZnJlc2hfdG9rZW4YBiABKAlCDwoNX3RtcF9zZXNzaW9uc0IUChJfZnV0dXJlX2F1dGhfdG9rZW4iLAoKTG9naW5Ub2tlbhIPCgdleHBpcmVzGAEgASgFEg0KBXRva2VuGAIgASgMIqsCCgtTZXNzaW9uSW5mbxIMCgRoYXNoGAEgASgDEg8KB2N1cnJlbnQYAiABKAgSFAoMb2ZmaWNpYWxfYXBwGAMgASgIEhgKEHBhc3N3b3JkX3BlbmRpbmcYBCABKAgSFAoMZGV2aWNlX21vZGVsGAUgASgJEhAKCHBsYXRmb3JtGAYgASgJEhYKDnN5c3RlbV92ZXJzaW9uGAcgASgJEg4KBmFwaV9pZBgIIAEoBRIQCghhcHBfbmFtZRgJIAEoCRITCgthcHBfdmVyc2lvbhgKIAEoCRIUCgxkYXRlX2NyZWF0ZWQYCyABKAMSEwoLZGF0ZV9hY3RpdmUYDCABKAMSCgoCaXAYDSABKAkSDwoHY291bnRyeRgOIAEoCRIOCgZyZWdpb24YDyABKAkitwMKDlBhc3N3b3JkQ29uZmlnEhQKDGhhc19wYXNzd29yZBgBIAEoCBIUCgxoYXNfcmVjb3ZlcnkYAiABKAgSEQoEaGludBgDIAEoCUgAiAEBEiYKGWVtYWlsX3VuY29uZmlybWVkX3BhdHRlcm4YBCABKAlIAYgBARIgChNsb2dpbl9lbWFpbF9wYXR0ZXJuGAUgASgJSAKIAQESGgoSY3VycmVudF9hbGdvX3NhbHQxGAogASgMEhoKEmN1cnJlbnRfYWxnb19zYWx0MhgLIAEoDBIWCg5jdXJyZW50X2FsZ29fZxgMIAEoBRIWCg5jdXJyZW50X2FsZ29fcBgNIAEoDBINCgVzcnBfQhgOIAEoDBIOCgZzcnBfaWQYDyABKAMSFgoObmV3X2FsZ29fc2FsdDEYFCABKAwSFgoObmV3X2FsZ29fc2FsdDIYFSABKAwSEgoKbmV3X2FsZ29fZxgWIAEoBRISCgpuZXdfYWxnb19wGBcgASgMQgcKBV9oaW50QhwKGl9lbWFpbF91bmNvbmZpcm1lZF9wYXR0ZXJuQhYKFF9sb2dpbl9lbWFpbF9wYXR0ZXJuIj4KFUlucHV0Q2hlY2tQYXNzd29yZFNSUBIOCgZzcnBfaWQYASABKAMSCQoBQRgCIAEoDBIKCgJNMRgDIAEoDCI9ChdNaW50U2VydmljZVRva2VuUmVxdWVzdBISCgpzZXJ2aWNlX2lkGAEgASgJEg4KBnNlY3JldBgCIAEoCSI9ChhNaW50U2VydmljZVRva2VuUmVzcG9uc2USDQoFdG9rZW4YASABKAkSEgoKZXhwaXJlc19hdBgCIAEoAyIwCh1NaW50SW1wZXJzb25hdGlvblRva2VuUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgDIkMKHk1pbnRJbXBlcnNvbmF0aW9uVG9rZW5SZXNwb25zZRINCgV0b2tlbhgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgDKvwCCgxTZW50Q29kZVR5cGUSHgoaU0VOVF9DT0RFX1RZUEVfVU5TUEVDSUZJRUQQABIWChJTRU5UX0NPREVfVFlQRV9BUFAQARIWChJTRU5UX0NPREVfVFlQRV9TTVMQAhIXChNTRU5UX0NPREVfVFlQRV9DQUxMEAMSHQoZU0VOVF9DT0RFX1RZUEVfRkxBU0hfQ0FMTBAEEh4KGlNFTlRfQ09ERV9UWVBFX01JU1NFRF9DQUxMEAUSHQoZU0VOVF9DT0RFX1RZUEVfRU1BSUxfQ09ERRAGEicKI1NFTlRfQ09ERV9UWVBFX1NFVFVQX0VNQUlMX1JFUVVJUkVEEAcSHwobU0VOVF9DT0RFX1RZUEVfRlJBR01FTlRfU01TEAgSHwobU0VOVF9DT0RFX1RZUEVfRklSRUJBU0VfU01TEAkSGwoXU0VOVF9DT0RFX1RZUEVfU01TX1dPUkQQChIdChlTRU5UX0NPREVfVFlQRV9TTVNfUEhSQVNFEAsqYQoIQ29kZVR5cGUSGQoVQ09ERV9UWVBFX1VOU1BFQ0lGSUVEEAASEQoNQ09ERV9UWVBFX1NNUxABEhIKDkNPREVfVFlQRV9DQUxMEAISEwoPQ09ERV9UWVBFX0VNQUlMEANCF6oCFEltcHVsc2VNLlByb3Rvcy5BdXRoYgZwcm90bzM", [file_impulse_users_user_types]);
+  fileDesc("Ch1pbXB1bHNlL2F1dGgvYXV0aF90eXBlcy5wcm90bxIMaW1wdWxzZS5hdXRoIrsBCghTZW50Q29kZRIwCgdyZWd1bGFyGAEgASgLMh0uaW1wdWxzZS5hdXRoLlNlbnRDb2RlUmVndWxhckgAEjAKB3N1Y2Nlc3MYAiABKAsyHS5pbXB1bHNlLmF1dGguU2VudENvZGVTdWNjZXNzSAASQQoQcGF5bWVudF9yZXF1aXJlZBgDIAEoCzIlLmltcHVsc2UuYXV0aC5TZW50Q29kZVBheW1lbnRSZXF1aXJlZEgAQggKBnJlc3VsdCLiAQoPU2VudENvZGVSZWd1bGFyEigKBHR5cGUYASABKA4yGi5pbXB1bHNlLmF1dGguU2VudENvZGVUeXBlEhcKD3Bob25lX2NvZGVfaGFzaBgCIAEoCRItCgluZXh0X3R5cGUYAyABKA4yGi5pbXB1bHNlLmF1dGguU2VudENvZGVUeXBlEg8KB3RpbWVvdXQYBCABKAUSTAoZbm90aWZpY2F0aW9uX2Rlc3RpbmF0aW9ucxgFIAMoCzIpLmltcHVsc2UuYXV0aC5Db2RlTm90aWZpY2F0aW9uRGVzdGluYXRpb24iRQoPU2VudENvZGVTdWNjZXNzEjIKDWF1dGhvcml6YXRpb24YASABKAsyGy5pbXB1bHNlLmF1dGguQXV0aG9yaXphdGlvbiJJChdTZW50Q29kZVBheW1lbnRSZXF1aXJlZBIVCg1zdG9yZV9wcm9kdWN0GAEgASgJEhcKD3Bob25lX2NvZGVfaGFzaBgCIAEoCSIyChtDb2RlTm90aWZpY2F0aW9uRGVzdGluYXRpb24SEwoLZGVzdGluYXRpb24YASABKAkiwwEKEUVtYWlsVmVyaWZpY2F0aW9uEjMKBGNvZGUYASABKAsyIy5pbXB1bHNlLmF1dGguRW1haWxWZXJpZmljYXRpb25Db2RlSAASNwoGZ29vZ2xlGAIgASgLMiUuaW1wdWxzZS5hdXRoLkVtYWlsVmVyaWZpY2F0aW9uR29vZ2xlSAASNQoFYXBwbGUYAyABKAsyJC5pbXB1bHNlLmF1dGguRW1haWxWZXJpZmljYXRpb25BcHBsZUgAQgkKB3ZhcmlhbnQiJQoVRW1haWxWZXJpZmljYXRpb25Db2RlEgwKBGNvZGUYASABKAkiKAoXRW1haWxWZXJpZmljYXRpb25Hb29nbGUSDQoFdG9rZW4YASABKAkiJwoWRW1haWxWZXJpZmljYXRpb25BcHBsZRINCgV0b2tlbhgBIAEoCSL+AQoPQXV0aG9yaXphdGlvbk9rEhUKDXNlc3Npb25fdG9rZW4YASABKAkSFQoNcmVmcmVzaF90b2tlbhgCIAEoCRIPCgd1c2VyX2lkGAMgASgDEiIKGmlzX3NldHVwX3Bhc3N3b3JkX3JlcXVpcmVkGAQgASgIEh4KFm90aGVyd2lzZV9yZWxvZ2luX2RheXMYBSABKAUSGQoRZnV0dXJlX2F1dGhfdG9rZW4YBiABKAwSGQoMdG1wX3Nlc3Npb25zGAcgASgFSACIAQESIQoEdXNlchgIIAEoCzITLmltcHVsc2UudXNlcnMuVXNlckIPCg1fdG1wX3Nlc3Npb25zItEBCg1BdXRob3JpemF0aW9uEg8KB3VzZXJfaWQYASABKAMSHwoXc2V0dXBfcGFzc3dvcmRfcmVxdWlyZWQYAiABKAgSGQoMdG1wX3Nlc3Npb25zGAMgASgFSACIAQESHgoRZnV0dXJlX2F1dGhfdG9rZW4YBCABKAxIAYgBARIVCg1zZXNzaW9uX3Rva2VuGAUgASgJEhUKDXJlZnJlc2hfdG9rZW4YBiABKAlCDwoNX3RtcF9zZXNzaW9uc0IUChJfZnV0dXJlX2F1dGhfdG9rZW4iLAoKTG9naW5Ub2tlbhIPCgdleHBpcmVzGAEgASgFEg0KBXRva2VuGAIgASgMIqsCCgtTZXNzaW9uSW5mbxIMCgRoYXNoGAEgASgDEg8KB2N1cnJlbnQYAiABKAgSFAoMb2ZmaWNpYWxfYXBwGAMgASgIEhgKEHBhc3N3b3JkX3BlbmRpbmcYBCABKAgSFAoMZGV2aWNlX21vZGVsGAUgASgJEhAKCHBsYXRmb3JtGAYgASgJEhYKDnN5c3RlbV92ZXJzaW9uGAcgASgJEg4KBmFwaV9pZBgIIAEoBRIQCghhcHBfbmFtZRgJIAEoCRITCgthcHBfdmVyc2lvbhgKIAEoCRIUCgxkYXRlX2NyZWF0ZWQYCyABKAMSEwoLZGF0ZV9hY3RpdmUYDCABKAMSCgoCaXAYDSABKAkSDwoHY291bnRyeRgOIAEoCRIOCgZyZWdpb24YDyABKAkitwMKDlBhc3N3b3JkQ29uZmlnEhQKDGhhc19wYXNzd29yZBgBIAEoCBIUCgxoYXNfcmVjb3ZlcnkYAiABKAgSEQoEaGludBgDIAEoCUgAiAEBEiYKGWVtYWlsX3VuY29uZmlybWVkX3BhdHRlcm4YBCABKAlIAYgBARIgChNsb2dpbl9lbWFpbF9wYXR0ZXJuGAUgASgJSAKIAQESGgoSY3VycmVudF9hbGdvX3NhbHQxGAogASgMEhoKEmN1cnJlbnRfYWxnb19zYWx0MhgLIAEoDBIWCg5jdXJyZW50X2FsZ29fZxgMIAEoBRIWCg5jdXJyZW50X2FsZ29fcBgNIAEoDBINCgVzcnBfQhgOIAEoDBIOCgZzcnBfaWQYDyABKAMSFgoObmV3X2FsZ29fc2FsdDEYFCABKAwSFgoObmV3X2FsZ29fc2FsdDIYFSABKAwSEgoKbmV3X2FsZ29fZxgWIAEoBRISCgpuZXdfYWxnb19wGBcgASgMQgcKBV9oaW50QhwKGl9lbWFpbF91bmNvbmZpcm1lZF9wYXR0ZXJuQhYKFF9sb2dpbl9lbWFpbF9wYXR0ZXJuIj4KFUlucHV0Q2hlY2tQYXNzd29yZFNSUBIOCgZzcnBfaWQYASABKAMSCQoBQRgCIAEoDBIKCgJNMRgDIAEoDCI9ChdNaW50U2VydmljZVRva2VuUmVxdWVzdBISCgpzZXJ2aWNlX2lkGAEgASgJEg4KBnNlY3JldBgCIAEoCSI9ChhNaW50U2VydmljZVRva2VuUmVzcG9uc2USDQoFdG9rZW4YASABKAkSEgoKZXhwaXJlc19hdBgCIAEoAyIwCh1NaW50SW1wZXJzb25hdGlvblRva2VuUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgDIkMKHk1pbnRJbXBlcnNvbmF0aW9uVG9rZW5SZXNwb25zZRINCgV0b2tlbhgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgDIogCChVDb25uZWN0aW9uRGVjbGFyYXRpb24SDgoGYXBpX2lkGAEgASgFEhQKDGRldmljZV9tb2RlbBgCIAEoCRIWCg5zeXN0ZW1fdmVyc2lvbhgDIAEoCRITCgthcHBfdmVyc2lvbhgEIAEoCRIYChBzeXN0ZW1fbGFuZ19jb2RlGAUgASgJEhEKCWxhbmdfcGFjaxgGIAEoCRIRCglsYW5nX2NvZGUYByABKAkSLAoFcHJveHkYCCABKAsyHS5pbXB1bHNlLmF1dGguQ29ubmVjdGlvblByb3h5Ei4KBnBhcmFtcxgJIAEoCzIeLmltcHVsc2UuYXV0aC5Db25uZWN0aW9uUGFyYW1zIjAKD0Nvbm5lY3Rpb25Qcm94eRIPCgdhZGRyZXNzGAEgASgJEgwKBHBvcnQYAiABKAUiOAoQQ29ubmVjdGlvblBhcmFtcxIWCgl0el9vZmZzZXQYASABKAVIAIgBAUIMCgpfdHpfb2Zmc2V0IlEKFUluaXRDb25uZWN0aW9uUmVxdWVzdBI4CgtkZWNsYXJhdGlvbhgBIAEoCzIjLmltcHVsc2UuYXV0aC5Db25uZWN0aW9uRGVjbGFyYXRpb24iGAoWSW5pdENvbm5lY3Rpb25SZXNwb25zZSIhCh9HZXRDb25uZWN0aW9uRGVjbGFyYXRpb25SZXF1ZXN0IlwKIEdldENvbm5lY3Rpb25EZWNsYXJhdGlvblJlc3BvbnNlEjgKC2RlY2xhcmF0aW9uGAEgASgLMiMuaW1wdWxzZS5hdXRoLkNvbm5lY3Rpb25EZWNsYXJhdGlvbir8AgoMU2VudENvZGVUeXBlEh4KGlNFTlRfQ09ERV9UWVBFX1VOU1BFQ0lGSUVEEAASFgoSU0VOVF9DT0RFX1RZUEVfQVBQEAESFgoSU0VOVF9DT0RFX1RZUEVfU01TEAISFwoTU0VOVF9DT0RFX1RZUEVfQ0FMTBADEh0KGVNFTlRfQ09ERV9UWVBFX0ZMQVNIX0NBTEwQBBIeChpTRU5UX0NPREVfVFlQRV9NSVNTRURfQ0FMTBAFEh0KGVNFTlRfQ09ERV9UWVBFX0VNQUlMX0NPREUQBhInCiNTRU5UX0NPREVfVFlQRV9TRVRVUF9FTUFJTF9SRVFVSVJFRBAHEh8KG1NFTlRfQ09ERV9UWVBFX0ZSQUdNRU5UX1NNUxAIEh8KG1NFTlRfQ09ERV9UWVBFX0ZJUkVCQVNFX1NNUxAJEhsKF1NFTlRfQ09ERV9UWVBFX1NNU19XT1JEEAoSHQoZU0VOVF9DT0RFX1RZUEVfU01TX1BIUkFTRRALKmEKCENvZGVUeXBlEhkKFUNPREVfVFlQRV9VTlNQRUNJRklFRBAAEhEKDUNPREVfVFlQRV9TTVMQARISCg5DT0RFX1RZUEVfQ0FMTBACEhMKD0NPREVfVFlQRV9FTUFJTBADQheqAhRJbXB1bHNlTS5Qcm90b3MuQXV0aGIGcHJvdG8z", [file_impulse_users_user_types]);
 
 /**
  * Canon TL `auth.sentCode` family — 3 distinct constructors mapped to a oneof.
@@ -663,6 +663,181 @@ export type MintImpersonationTokenResponse = Message<"impulse.auth.MintImpersona
  */
 export const MintImpersonationTokenResponseSchema: GenMessage<MintImpersonationTokenResponse> = /*@__PURE__*/
   messageDesc(file_impulse_auth_auth_types, 18);
+
+/**
+ * initConnection#c1cd5ea9 (.demo/tdesktop/Telegram/SourceFiles/mtproto/scheme/api.tl), the
+ * client's declaration of itself (.demo/telegram-docs-text/method/initConnection.md).
+ *
+ * Canon wraps the first query of an uninitialised connection in initConnection and saves the
+ * values "in conjunction with an authorization key" (.demo/telegram-docs-text/api/invoking.md:31).
+ * This transport has no MTProto connection, so the same message travels two ways:
+ *   - as the binary metadata entry x-impulse-init-connection-bin on every call the client makes
+ *     while its own connection-inited flag is false -- the wrapper, applying to the query it rides
+ *     on (pre-auth calls, and the session-creating call that stores it on the new authorization);
+ *   - as the body of AuthService.InitConnection, which binds it to the caller's own authorization.
+ * Field numbers follow the TL field order; proxy and params are canon's flags.0 and flags.1.
+ *
+ * @generated from message impulse.auth.ConnectionDeclaration
+ */
+export type ConnectionDeclaration = Message<"impulse.auth.ConnectionDeclaration"> & {
+  /**
+   * @generated from field: int32 api_id = 1;
+   */
+  apiId: number;
+
+  /**
+   * @generated from field: string device_model = 2;
+   */
+  deviceModel: string;
+
+  /**
+   * @generated from field: string system_version = 3;
+   */
+  systemVersion: string;
+
+  /**
+   * @generated from field: string app_version = 4;
+   */
+  appVersion: string;
+
+  /**
+   * @generated from field: string system_lang_code = 5;
+   */
+  systemLangCode: string;
+
+  /**
+   * @generated from field: string lang_pack = 6;
+   */
+  langPack: string;
+
+  /**
+   * @generated from field: string lang_code = 7;
+   */
+  langCode: string;
+
+  /**
+   * @generated from field: impulse.auth.ConnectionProxy proxy = 8;
+   */
+  proxy?: ConnectionProxy | undefined;
+
+  /**
+   * @generated from field: impulse.auth.ConnectionParams params = 9;
+   */
+  params?: ConnectionParams | undefined;
+};
+
+/**
+ * Describes the message impulse.auth.ConnectionDeclaration.
+ * Use `create(ConnectionDeclarationSchema)` to create a new message.
+ */
+export const ConnectionDeclarationSchema: GenMessage<ConnectionDeclaration> = /*@__PURE__*/
+  messageDesc(file_impulse_auth_auth_types, 19);
+
+/**
+ * inputClientProxy#75588b3f -- the MTProto proxy the client connected through.
+ *
+ * @generated from message impulse.auth.ConnectionProxy
+ */
+export type ConnectionProxy = Message<"impulse.auth.ConnectionProxy"> & {
+  /**
+   * @generated from field: string address = 1;
+   */
+  address: string;
+
+  /**
+   * @generated from field: int32 port = 2;
+   */
+  port: number;
+};
+
+/**
+ * Describes the message impulse.auth.ConnectionProxy.
+ * Use `create(ConnectionProxySchema)` to create a new message.
+ */
+export const ConnectionProxySchema: GenMessage<ConnectionProxy> = /*@__PURE__*/
+  messageDesc(file_impulse_auth_auth_types, 20);
+
+/**
+ * initConnection's params:flags.1?JSONValue. Canon supports one key, tz_offset, "the timezone
+ * offset in seconds" (.demo/telegram-docs-text/method/initConnection.md).
+ *
+ * @generated from message impulse.auth.ConnectionParams
+ */
+export type ConnectionParams = Message<"impulse.auth.ConnectionParams"> & {
+  /**
+   * @generated from field: optional int32 tz_offset = 1;
+   */
+  tzOffset?: number | undefined;
+};
+
+/**
+ * Describes the message impulse.auth.ConnectionParams.
+ * Use `create(ConnectionParamsSchema)` to create a new message.
+ */
+export const ConnectionParamsSchema: GenMessage<ConnectionParams> = /*@__PURE__*/
+  messageDesc(file_impulse_auth_auth_types, 21);
+
+/**
+ * @generated from message impulse.auth.InitConnectionRequest
+ */
+export type InitConnectionRequest = Message<"impulse.auth.InitConnectionRequest"> & {
+  /**
+   * @generated from field: impulse.auth.ConnectionDeclaration declaration = 1;
+   */
+  declaration?: ConnectionDeclaration | undefined;
+};
+
+/**
+ * Describes the message impulse.auth.InitConnectionRequest.
+ * Use `create(InitConnectionRequestSchema)` to create a new message.
+ */
+export const InitConnectionRequestSchema: GenMessage<InitConnectionRequest> = /*@__PURE__*/
+  messageDesc(file_impulse_auth_auth_types, 22);
+
+/**
+ * @generated from message impulse.auth.InitConnectionResponse
+ */
+export type InitConnectionResponse = Message<"impulse.auth.InitConnectionResponse"> & {
+};
+
+/**
+ * Describes the message impulse.auth.InitConnectionResponse.
+ * Use `create(InitConnectionResponseSchema)` to create a new message.
+ */
+export const InitConnectionResponseSchema: GenMessage<InitConnectionResponse> = /*@__PURE__*/
+  messageDesc(file_impulse_auth_auth_types, 23);
+
+/**
+ * @generated from message impulse.auth.GetConnectionDeclarationRequest
+ */
+export type GetConnectionDeclarationRequest = Message<"impulse.auth.GetConnectionDeclarationRequest"> & {
+};
+
+/**
+ * Describes the message impulse.auth.GetConnectionDeclarationRequest.
+ * Use `create(GetConnectionDeclarationRequestSchema)` to create a new message.
+ */
+export const GetConnectionDeclarationRequestSchema: GenMessage<GetConnectionDeclarationRequest> = /*@__PURE__*/
+  messageDesc(file_impulse_auth_auth_types, 24);
+
+/**
+ * declaration is unset when the caller's authorization was never declared.
+ *
+ * @generated from message impulse.auth.GetConnectionDeclarationResponse
+ */
+export type GetConnectionDeclarationResponse = Message<"impulse.auth.GetConnectionDeclarationResponse"> & {
+  /**
+   * @generated from field: impulse.auth.ConnectionDeclaration declaration = 1;
+   */
+  declaration?: ConnectionDeclaration | undefined;
+};
+
+/**
+ * Describes the message impulse.auth.GetConnectionDeclarationResponse.
+ * Use `create(GetConnectionDeclarationResponseSchema)` to create a new message.
+ */
+export const GetConnectionDeclarationResponseSchema: GenMessage<GetConnectionDeclarationResponse> = /*@__PURE__*/
+  messageDesc(file_impulse_auth_auth_types, 25);
 
 /**
  * @generated from enum impulse.auth.SentCodeType
