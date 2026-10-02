@@ -347,6 +347,16 @@ async function spinUp(accountNumber: ActiveAccountNumber, userId: string): Promi
     logger.warn('Realtime disconnected', {channel, code: ctx?.code, reason: ctx?.reason});
   });
 
+  // The connection token subscribes the connection, server-side, to its own `session:{user}:{session}`
+  // lane: what is addressed to ONE session alone arrives there (a 1:1 call's phoneCallAccepted for the
+  // caller, the active phoneCall with its LiveKit coordinates for the callee). A Subscription object only
+  // sees the lanes this client asked for; publications of server-side subscriptions are delivered on the
+  // client itself, and with no handler here they were read off the socket and dropped, so a call never
+  // got past ringing.
+  centrifuge.on('publication', (ctx: any) => {
+    handleEnvelope(accountNumber, ctx?.data as Envelope, ctx?.channel ?? '');
+  });
+
   record.connection = centrifuge;
   applyTabStates(accountNumber);
   for(const selectedChannel of record.subscriptionSet?.getChannels() ?? [channel]) {

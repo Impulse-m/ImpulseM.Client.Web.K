@@ -74,7 +74,6 @@ const mocks = vi.hoisted(() => {
       this.dispatch('state', this.connectionState);
     }
 
-    public onUpdatePhoneCallSignalingData(): void {}
 
     public get isClosing(): boolean {
       return this.connectionState === 5 || this.connectionState === 6;
@@ -118,6 +117,7 @@ vi.mock('@lib/logger', () => ({logger: () => mocks.log}));
 vi.mock('@lib/rootScope', () => ({default: mocks.rootScope}));
 
 import CALL_STATE from '@lib/calls/callState';
+import {LIVEKIT_CALL_PROTOCOL_VERSION} from '@lib/calls/livekit/getCallProtocol';
 import {CallsController} from '@lib/calls/callsController';
 
 const MY_ID = 77;
@@ -133,7 +133,7 @@ function requested(over: Record<string, unknown> = {}) {
     participant_id: MY_ID,
     date: Math.floor(Date.now() / 1000),
     g_a_hash: new Uint8Array(32),
-    protocol: {_: 'phoneCallProtocol', library_versions: ['13.0.0']},
+    protocol: {_: 'phoneCallProtocol', library_versions: [LIVEKIT_CALL_PROTOCOL_VERSION]},
     pFlags: {},
     ...over
   };
@@ -144,7 +144,7 @@ function accepted(over: Record<string, unknown> = {}) {
     _: 'phoneCallAccepted',
     id: CALL_ID,
     g_b: new Uint8Array(256).fill(3),
-    protocol: {_: 'phoneCallProtocol', library_versions: ['13.0.0']},
+    protocol: {_: 'phoneCallProtocol', library_versions: [LIVEKIT_CALL_PROTOCOL_VERSION]},
     pFlags: {},
     ...over
   };
@@ -324,6 +324,24 @@ describe('CallsController incoming request', () => {
     expect(mocks.createdInstances).toHaveLength(0);
     expect(managers.appCallsManager.receivedCall).not.toHaveBeenCalled();
     expect(managers.appCallsManager.discardCall).not.toHaveBeenCalled();
+  });
+
+  it('treats a tgcalls-only caller as incompatible: nothing it speaks is LiveKit', async() => {
+    const {incompatible, managers} = makeController();
+
+    await dispatch(requested({
+      pFlags: {video: false},
+      protocol: {_: 'phoneCallProtocol', library_versions: ['13.0.0']}
+    }));
+
+    expect(mocks.createdInstances).toHaveLength(0);
+    expect(managers.appCallsManager.discardCall).toHaveBeenCalledWith(
+      CALL_ID,
+      0,
+      {_: 'phoneCallDiscardReasonDisconnect'},
+      false
+    );
+    expect(incompatible).toHaveBeenCalledWith(CALLER_ID);
   });
 
   it('ends a request from a caller that speaks no protocol version this client does', async() => {

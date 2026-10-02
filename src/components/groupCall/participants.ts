@@ -230,6 +230,7 @@ export default class GroupCallParticipantsElement {
   private managers: AppManagers;
   private scrollable: Scrollable;
   private destroyed = false;
+  private speakingPeerIds = new Set<PeerId>();
   private instanceGeneration = 0;
   private rowMutationGeneration = 0;
   private rowMutationGenerations = new Map<PeerId, number>();
@@ -277,6 +278,16 @@ export default class GroupCallParticipantsElement {
       if(this.instance.id === groupCallId) {
         this.updateParticipant(participant);
       }
+    });
+
+    // The "speaking" status follows LiveKit's active speakers: only the rows whose state flipped are redrawn.
+    listenerSetter.add(rootScope)('group_call_speaking', ({groupCallId, peerIds}) => {
+      if(this.instance.id !== groupCallId) return;
+      const next = new Set(peerIds);
+      const changed = [...new Set([...this.speakingPeerIds, ...next])]
+      .filter((peerId) => this.speakingPeerIds.has(peerId) !== next.has(peerId));
+      this.speakingPeerIds = next;
+      changed.filter((peerId) => this.sortedList.has(peerId)).forEach((peerId) => this.refreshRow(peerId));
     });
 
     // Members that the e2e blockchain authorises but the SFU roster omits. They

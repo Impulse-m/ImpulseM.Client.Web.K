@@ -49,7 +49,10 @@ export default class GroupCallParticipantsList extends SortedList<SortedParticip
 
           element.dom.listEl.classList.toggle('is-with-access', withAccess);
           element.mutedIcon.setState(state);
-          element.status.setState(state, participant, withAccess);
+          element.status.setState(state, participant, {
+            withAccess,
+            isSpeaking: this.instance.isSpeaking(element.id)
+          });
         } catch(err) {
           if(!this.destroyed && this.generation === generation && this.get(element.id) === element) {
             console.error('group call participant row update failed', err);

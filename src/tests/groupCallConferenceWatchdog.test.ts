@@ -37,8 +37,8 @@ function makeInstance() {
     apiUpdatesManager: {processUpdateMessage: () => {}}
   };
   const instance = new GroupCallInstance({id: '777' as any, chatId: 0 as any, managers});
-  // connectionState getter reads connections.main.connection.iceConnectionState.
-  (instance as any).connections = {main: {connection: {iceConnectionState: 'connected'}}};
+  // the connectionState getter reads the main connection's transport state.
+  (instance as any).connections = {main: {transportState: 'connected', transport: {disconnectCause: undefined}}};
   (instance as any).e2e = {}; // truthy = conference mode
   (instance as any).groupCall = FAKE_CALL;
   // Isolate the watchdog→recovery wiring from the pollers' own internals.
@@ -138,7 +138,8 @@ describe('GroupCallInstance — conference-sync watchdog', () => {
 
   it('does nothing while the connection is closed', async() => {
     const {instance, getGroupCallFull} = makeInstance();
-    (instance as any).connections.main.connection.iceConnectionState = 'closed';
+    (instance as any).connections.main.transportState = 'disconnected';
+    (instance as any).connections.main.transport.disconnectCause = 'client';
     (instance as any).lastChainPollAt = performance.now() - 16000;
     (instance as any).lastParticipantsRefreshAt = performance.now() - 16000;
 

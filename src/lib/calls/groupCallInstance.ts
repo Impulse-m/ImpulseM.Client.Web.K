@@ -1,15 +1,14 @@
 import type {AppGroupCallsManager, GroupCallConnectionType, GroupCallId, GroupCallOutputSource} from '@appManagers/appGroupCallsManager';
-import {IS_SAFARI} from '@environment/userAgent';
 import indexOfAndSplice from '@helpers/array/indexOfAndSplice';
 import safeAssign from '@helpers/object/safeAssign';
 import pause from '@helpers/schedulers/pause';
 import throttle from '@helpers/schedulers/throttle';
-import {GroupCall, GroupCallParticipant, InputGroupCall} from '@layer';
+import {GroupCall, GroupCallParticipant, GroupCallParticipantVideo, InputGroupCall} from '@layer';
 import {logger} from '@lib/logger';
 import {NULL_PEER_ID} from '@appManagers/constants';
 import rootScope from '@lib/rootScope';
-import CallInstanceBase, {TryAddTrackOptions} from '@lib/calls/callInstanceBase';
-import GroupCallConnectionInstance from '@lib/calls/groupCallConnectionInstance';
+import CallInstanceBase from '@lib/calls/callInstanceBase';
+import GroupCallConnectionInstance, {GroupCallConnectionOptions} from '@lib/calls/groupCallConnectionInstance';
 import GROUP_CALL_STATE from '@lib/calls/groupCallState';
 import getScreenConstraints from '@lib/calls/helpers/getScreenConstraints';
 import getScreenStream from '@lib/calls/helpers/getScreenStream';
@@ -17,21 +16,19 @@ import getStream from '@lib/calls/helpers/getStream';
 import getVideoConstraints from '@lib/calls/helpers/getVideoConstraints';
 import {findGroupCallChainUpdate, getUpdatesList, groupCallToInput} from '@lib/calls/helpers/groupCallUpdates';
 import stopTrack from '@lib/calls/helpers/stopTrack';
-import localConferenceDescription, {ConferenceEntry} from '@lib/calls/localConferenceDescription';
-import {WebRTCLineType} from '@lib/calls/sdpBuilder';
 import StreamManager, {waitForMediaTrackReplacements} from '@lib/calls/streamManager';
-import {Ssrc} from '@lib/calls/types';
 import getPeerId from '@appManagers/utils/peers/getPeerId';
 import {AppManagers} from '@lib/managers';
-import {generateSelfVideo, makeSsrcFromParticipant, makeSsrcsFromParticipant} from '@lib/calls/groupCallsController';
 import type {EncryptWorkerHost} from '@lib/calls/e2e/encryptWorkerHost';
 import type {CallStatusSnapshot} from '@lib/calls/e2e/encryptWorkerProtocol';
 import {
   conferenceUserIdToPeerId,
   findChainOnlyMembers
 } from '@lib/calls/e2e/conferenceMembership';
-import {GROUP_CALL_PARTICIPANTS_LOAD_LIMIT} from '@lib/calls/constants';
-import {fromImpulseMSource, normalizeSsrc} from '@lib/calls/utils';
+import {GROUP_CALL_PARTICIPANT_VOLUME_UNIT} from '@lib/calls/constants';
+import GroupCallMediaRouter, {getParticipantOutputSource, RoutedGroupCallTrack} from '@lib/calls/livekit/groupCallMediaRouter';
+import {parseGroupCallIdentity} from '@lib/calls/livekit/liveKitIdentity';
+import type {LiveKitMediaSource} from '@lib/calls/livekit/liveKitTransport';
 import createSerializedQueue from '@helpers/createSerializedQueue';
 import notifyAllowedToSpeak from '@components/groupCall/allowedToSpeakCue';
 
@@ -47,10 +44,6 @@ const getGroupScreenConstraints = () => getScreenConstraints(true);
 // is alive, the watchdog forces recovery. Comfortably past the poll cadences
 // (chain 1.5s, participants 5s) so transient network hiccups don't trip it.
 const E2E_SYNC_STALL_MS = 15000;
-// Ceiling on active ssrc -> user_id mappings, lifetime conference media
-// allocations and the legacy call's m-lines alike. Each source is
-// server-chosen and costs a transceiver + decoder; real calls are far smaller.
-const MAX_E2E_SSRC_ENTRIES = 1024;
 // Consecutive incomplete roster polls before we surface it. The roster poll is
 // on a 5s timer, so this is ~15s of a server refusing to say who is in the call.
 const INCOMPLETE_ROSTER_POLLS_BEFORE_REPORT = 3;
@@ -62,10 +55,6 @@ const INCOMPLETE_ROSTER_POLLS_BEFORE_REPORT = 3;
 // state is likewise a rebuilt call. Without this cap the watchdog re-ran the
 // same unproductive refresh every tick for the rest of the call.
 const UNPRODUCTIVE_SYNC_RECOVERIES_BEFORE_REJOIN = 3;
-// How many group_state membership changes may re-arm a parked unmapped-SSRC
-// resolution. Bounds a genuinely foreign identity to a handful of targeted
-// lookups over the call's lifetime while covering any realistic chain lag.
-const MAX_E2E_MEMBERSHIP_RESOLUTION_RETRIES = 3;
 // How long a server-accepted unmute stays armed waiting for a self row that
 // confirms it. A stale muted row can land mid-RPC and win the post-RPC check;
 // without the armed intent the server would keep listing us as unmuted while
@@ -88,64 +77,6 @@ const MEDIA_TEARDOWN_RETRY_BASE_MS = 250;
 // low indexes needed to restore continuity.
 const MAX_E2E_PENDING_CHAIN_BLOCKS = 256;
 
-// Every SSRC a participant can actually send on, not just the primary.
-//
-// `generateSsrc` collapses a video source_group list down to
-// `sourceGroups[0].sources[0]`, so registering `ssrc.source` alone covered ONE
-// of a simulcast sender's layers. The SFU switches layers on its own (see
-// maybeUpdateRemoteVideoConstraints) and retransmits over the FID/RTX SSRCs, so
-// frames routinely arrive on a source that was never mapped — and the recv
-// transform is fail-closed, which turns "the relay picked another layer" into
-// silence or a frozen tile with an `unmapped SSRC` breadcrumb. Map the whole
-// group: every layer and every retransmission SSRC belongs to the same sender,
-// so they all verify against the same key.
-export function e2eSourcesOf(ssrc: Ssrc): number[] {
-  const sources: number[] = [];
-  const add = (source: number) => {
-    if(source && !sources.includes(source)) sources.push(source);
-  };
-
-  add(ssrc.source);
-  for(const group of ssrc.sourceGroups || []) {
-    for(const source of group.sources || []) add(source);
-  }
-
-  return sources;
-}
-
-// Conference roster rows are snapshots from independent push/poll paths and a
-// later-arriving row may be older and thinner than one already applied. Build a
-// monotonic per-peer source view: only an explicit `left` proves that a source
-// stopped belonging to the peer. This also keeps pressure sweeps from deleting
-// the verification-key mapping of a still-live omitted stream.
-function mergeE2eParticipantSsrcs(previous: Ssrc[], announced: Ssrc[]): Ssrc[] {
-  const merged = previous.slice();
-  for(const current of announced) {
-    const index = merged.findIndex(({source, type}) => source === current.source && type === current.type);
-    if(index === -1) {
-      merged.push(current);
-      continue;
-    }
-
-    const old = merged[index];
-    const sourceGroups = (old.sourceGroups || []).slice();
-    for(const group of current.sourceGroups || []) {
-      const duplicate = sourceGroups.some((candidate) =>
-        candidate.semantics === group.semantics &&
-        candidate.sources.length === group.sources.length &&
-        candidate.sources.every((source, sourceIndex) => source === group.sources[sourceIndex])
-      );
-      if(!duplicate) sourceGroups.push(group);
-    }
-    merged[index] = {
-      ...old,
-      ...current,
-      sourceGroups: sourceGroups.length ? sourceGroups : undefined
-    };
-  }
-
-  return merged;
-}
 // How often the watchdog checks for the stall above.
 const E2E_WATCHDOG_INTERVAL_MS = 5000;
 
@@ -169,6 +100,17 @@ const CONFERENCE_PRUNE_RETRY_MS = 15000;
 // keeps rejecting the removal while the identity keeps holding the call key is
 // exactly the case the user needs told about.
 const CONFERENCE_PRUNE_FAILURES_BEFORE_REPORT = 3;
+
+// The camera row of our own participant. The server owns the real one (endpoint included); this is what the
+// local row shows until it arrives.
+function makeSelfVideo(): GroupCallParticipantVideo {
+  return {
+    _: 'groupCallParticipantVideo',
+    pFlags: {},
+    endpoint: '',
+    source_groups: []
+  };
+}
 
 function mediaCleanupError(message: string, operationError: unknown, cleanupError: unknown): Error {
   const error = new Error(message);
@@ -194,9 +136,6 @@ export default class GroupCallInstance extends CallInstanceBase<{
 }> {
   public id: GroupCallId;
   public chatId: ChatId;
-  public handleUpdateGroupCallParticipants: boolean;
-  public updatingSdp: boolean;
-  public isSpeakingMap: Map<any, any>;
   public connections: {[k in GroupCallConnectionType]?: GroupCallConnectionInstance};
   public groupCall: GroupCall;
   public participant: GroupCallParticipant;
@@ -217,32 +156,17 @@ export default class GroupCallInstance extends CallInstanceBase<{
   private e2eFatalError: Error | undefined;
   // Latest snapshot from the worker (height, group state, emoji fingerprint).
   public e2eStatus?: CallStatusSnapshot;
-  // ssrc → e2e user_id mapping. Populated from SFU signaling so the recv
-  // RTCRtpScriptTransform knows who sent each frame for Ed25519 verify.
-  public e2eUserBySsrc: Map<number, bigint> = new Map();
-  // Cumulative remote ConferenceEntry/transceiver allocations. Inactive
-  // entries remain in the SDP, so an active-map cap alone does not bound churn.
-  private e2eAllocatedRecvEntries: Set<number> = new Set();
-  private e2eSourceResolutions = new Map<number, {
-    attempts: number,
-    retry: boolean,
-    // The row WAS returned but its user was not yet in the e2e group_state —
-    // a deterministic "chain block still in flight" miss, not a failed lookup.
-    // Parked instead of terminal; each membership change re-arms one retry
-    // (bounded by membershipRetries so a never-joining identity cannot retry
-    // forever).
-    awaitingMembership?: boolean,
-    membershipRetries?: number
-  }>();
-  private e2eSourceResolutionPromise: Promise<void> | undefined;
-
-  // Set by the transport controller once ICE is connected. Keep the public
+  // Set by the transport controller once the LiveKit connection is up. Keep the public
   // property for existing callers, but emit through its setter so UI readiness
   // cannot miss the exact transition from negotiating to joined.
   private _joined = false;
 
   private pinnedSources: Array<GroupCallOutputSource>;
-  private participantsSsrcs: Map<PeerId, Ssrc[]>;
+  // the rows the media router resolves LiveKit identities against, kept in step by onParticipantUpdate
+  private participantRows = new Map<PeerId, GroupCallParticipant>();
+  private outputSourcesByPeer = new Map<PeerId, number[]>();
+  private mediaRouter: GroupCallMediaRouter;
+  private speakingPeerIds = new Set<PeerId>();
   private hadAutoPinnedSources: Set<GroupCallOutputSource>;
   private dispatchPinnedThrottled: () => void;
   private startVideoSharingPromise: Promise<void>;
@@ -259,14 +183,16 @@ export default class GroupCallInstance extends CallInstanceBase<{
   private adminMediaTeardownPromise: Promise<void>;
   private adminMediaTeardownGeneration = 0;
   private adminMediaBlocked = false;
+  private rowAdminBlocked = false;
+  private permissionBlocked = false;
   private selfParticipantRevision = 0;
   // Monotonic clock of a server-accepted unmute still waiting for capture to
   // open (see changeSelfMuted / UNMUTE_INTENT_TTL_MS). Undefined = no intent.
   private pendingUnmuteIntentAt: number | undefined;
   private selfMuteTransitionTail = createSerializedQueue();
   private selfParticipantEditTail = createSerializedQueue();
-  private remoteNegotiationPending = false;
   private fatalHangUpStarted = false;
+  private hungUp = false;
   private lifecycleGeneration = 0;
   private observedInputAudioTracks = new WeakSet<MediaStreamTrack>();
 
@@ -275,7 +201,6 @@ export default class GroupCallInstance extends CallInstanceBase<{
   constructor(options: {
     id: GroupCallInstance['id'],
     chatId: GroupCallInstance['chatId'],
-    isSpeakingMap?: GroupCallInstance['isSpeakingMap'],
     connections?: GroupCallInstance['connections'],
     managers: AppManagers
   }) {
@@ -291,12 +216,13 @@ export default class GroupCallInstance extends CallInstanceBase<{
       this.connections = {};
     }
 
-    if(!this.isSpeakingMap) {
-      this.isSpeakingMap = new Map();
-    }
-
     this.pinnedSources = [];
-    this.participantsSsrcs = new Map();
+    this.mediaRouter = new GroupCallMediaRouter({
+      getParticipants: () => this.participantRows.values(),
+      getSelfPeerId: () => this.participant ? getPeerId(this.participant.peer) : undefined,
+      onTrackRouted: (route) => this.onTrackRouted(route),
+      onTrackDropped: (route) => this.onTrackDropped(route)
+    });
     this.hadAutoPinnedSources = new Set();
     this.dispatchPinnedThrottled = throttle(() => {
       this.dispatchEvent('pinned', this.pinnedSource);
@@ -327,9 +253,6 @@ export default class GroupCallInstance extends CallInstanceBase<{
     this.e2eOutboundFlushRequested = false;
     this.e2eChainPending[0].clear();
     this.e2eChainPending[1].clear();
-    this.e2eAllocatedRecvEntries.clear();
-    this.e2eSourceResolutions.clear();
-    this.e2eSourceResolutionPromise = undefined;
     // Terminate the e2e worker so its Web Worker thread exits. Best-effort —
     // the controller may have already done so via its own state listener,
     // but a double-terminate is harmless (encryptWorkerHost guards).
@@ -340,6 +263,9 @@ export default class GroupCallInstance extends CallInstanceBase<{
     this.e2eActive = false;
     this.e2eActivating = false;
     this.pendingUnmuteIntentAt = undefined;
+    this.mediaRouter.clear();
+    this.participantRows.clear();
+    this.outputSourcesByPeer.clear();
     super.cleanup();
   }
 
@@ -407,37 +333,6 @@ export default class GroupCallInstance extends CallInstanceBase<{
       // Before/during activation the join transaction owns rollback. Let
       // activateE2e reject into it instead of racing it with a second leave.
       if(this.e2eActive && !this.e2eActivating) this.hangUpAfterFatalFailure();
-    });
-
-    // Recv-transform breadcrumb (deduped worker-side). A sustained `unmapped`
-    // is the "seen but not heard" failure: an inbound SSRC the e2e map never
-    // learned, so its frames stay encrypted → silence. `mappedUser` shows what
-    // WE pushed for that SSRC — '(none)' starts a targeted participant lookup
-    // below because the media path can beat the ordinary roster update.
-    worker.addEventListener('recvDiag', (ev) => {
-      const source = normalizeSsrc(ev.ssrc);
-      const mappedUser = this.e2eUserBySsrc.get(source);
-      this.log.warn(
-        'e2e recv diagnostic:', ev.reason, ev.sustained ? '(SUSTAINED)' : '',
-        'ssrc', source,
-        'mappedUser', mappedUser !== undefined ? mappedUser.toString() : '(none)',
-        ev.message || ''
-      );
-      if(ev.reason === 'unmapped') {
-        // Audio/video SSRCs can appear before their participant row reaches the
-        // roster. Resolve exactly this source through phone.getGroupParticipants
-        // instead of permanently classifying it as foreign and dropping it.
-        this.resolveUnmappedE2eSource(source, !!ev.sustained);
-      } else if(ev.sustained) {
-        this.reportConferenceBug(
-          'inbound media failed to decrypt (stale key?)',
-          {
-            ssrc: source,
-            mappedUser: mappedUser !== undefined ? mappedUser.toString() : null,
-            message: ev.message
-          }
-        );
-      }
     });
 
     // Inbound chain delivery — sub_chain_id 0 is the block chain, 1 is the
@@ -593,23 +488,7 @@ export default class GroupCallInstance extends CallInstanceBase<{
     .join(',');
     if(members === this.prevConferenceMembers) return;
     this.prevConferenceMembers = members;
-    this.kickE2eMembershipResolutions();
     void this.refreshConferenceParticipants();
-  }
-
-  // Re-arm parked unmapped-SSRC resolutions once the e2e group_state gains
-  // members — the condition their targeted lookup deterministically failed on.
-  private kickE2eMembershipResolutions(): void {
-    let kicked = false;
-    for(const state of this.e2eSourceResolutions.values()) {
-      if(!state.awaitingMembership) continue;
-      state.awaitingMembership = false;
-      state.membershipRetries = (state.membershipRetries ?? 0) + 1;
-      state.attempts = 1;
-      state.retry = true;
-      kicked = true;
-    }
-    if(kicked) this.drainE2eSourceResolutions();
   }
 
   // Conference participant reconciliation (see refreshConferenceParticipants).
@@ -646,8 +525,6 @@ export default class GroupCallInstance extends CallInstanceBase<{
   private pruningConferenceMembers = false;
   private lastPruneAttemptAt: number | undefined;
   private consecutivePruneFailures = 0;
-  // Set once the media path could not be secured — see failE2eTransform.
-  private failedE2eTransform = false;
   // Recovery triggers can arrive concurrently from the worker, chain polling,
   // roster refresh, pruning and verification broadcast. Request one
   // controller-owned rejoin and stop this instance's traffic immediately.
@@ -1214,14 +1091,6 @@ export default class GroupCallInstance extends CallInstanceBase<{
     this.log.error('CONFERENCE BUG —', reason, payload);
   }
 
-  // Public surface for the controller's media-transport watchdog
-  // (groupCallsController): ICE reached `connected` but the RTCPeerConnection
-  // never did, i.e. the DTLS handshake didn't complete, so no audio/video ever
-  // flows. Reuses the same user-visible breadcrumb + ring-buffer log path.
-  public reportMediaTransportStall(details: Record<string, unknown>): void {
-    this.reportConferenceBug('media transport stalled — ICE connected but DTLS did not complete (no audio/video)', details);
-  }
-
   // Re-hydrate `groupCall` (the dependency both pollers silently bail on) and
   // re-kick them. Re-seeds the manager cache from our own copy first, because
   // once the manager loses the call `getGroupCallInput` throws and getGroupCallFull
@@ -1510,442 +1379,6 @@ export default class GroupCallInstance extends CallInstanceBase<{
     });
   }
 
-  // Attach a recv transform to ONE receiver. Used by the pre-emptive
-  // `addTransceiver` path in groupCallsController — receivers must have
-  // their transform attached BEFORE the codec produces a frame, or Chrome
-  // silently bypasses them (the parallel createEncodedStreams API throws
-  // "Too late to create encoded streams" for the same condition).
-  public attachE2eRecvTransform(
-    receiver: RTCRtpReceiver,
-    kind: 'audio' | 'video',
-    channelId = 0
-  ): void {
-    if(!this.e2e || (receiver as any).transform) return;
-    try {
-      receiver.transform = this.e2e.newRtcScriptTransform({direction: 'recv', channelId, kind});
-    } catch(err) {
-      this.failE2eTransform('recv', err);
-    }
-  }
-
-  /**
-   * Fallback for a remote track whose receiver never got a recv transform at
-   * transceiver-creation time (the normal attach point — see onParticipantUpdate).
-   *
-   * Attaching one now is best-effort ONLY: Chrome binds the decoder before the
-   * `track` event fires and silently bypasses a transform attached after that,
-   * so frames from this receiver may never pass through our decryption at all.
-   * That is security-relevant, not just broken audio — media the relay puts on
-   * an SSRC it never signalled would reach the decoder without being
-   * authenticated. The bypass isn't observable from here, so at least make the
-   * condition loud instead of silent.
-   */
-  public attachE2eRecvTransformLate(receiver: RTCRtpReceiver, kind: 'audio' | 'video'): void {
-    // Attached at creation time — the expected path, nothing to say.
-    if(!this.e2e || (receiver as any).transform) return;
-
-    // The decoder may already be consuming this receiver, so a late transform
-    // assignment cannot establish the badge's authentication claim. Stop the
-    // track synchronously, then use the same fail-closed instance path as an
-    // exception during pre-attachment.
-    receiver.track?.stop();
-    this.failE2eTransform(
-      'recv',
-      new Error(`inbound ${kind} track appeared before its e2e transform was attached`)
-    );
-  }
-
-  // A conference whose media path is missing our transforms is not end-to-end
-  // encrypted, whatever the badge in the header says: outbound frames would
-  // reach the SFU as plaintext, and inbound frames would reach the decoder
-  // unauthenticated. There is no safe degraded mode, so an attach failure ends
-  // the call rather than quietly downgrading it — the previous behaviour was to
-  // log and carry on, which shipped the user's microphone in the clear.
-  //
-  // Leaving (not discarding) is the proportionate response: our client can't
-  // secure its own media, but everyone else's call is unaffected. Deferred a
-  // microtask because this fires from inside the sender/transceiver setup loop,
-  // which must not have the connections torn down under it.
-  private failE2eTransform(direction: 'send' | 'recv', err: unknown): void {
-    this.log.error(`attachE2e${direction === 'send' ? 'Send' : 'Recv'}Transform`, err);
-    this.reportConferenceBug(
-      'end-to-end encryption could not be attached to the media path — leaving the call',
-      {direction, error: (err as Error)?.message || String(err)}
-    );
-    // Attach runs per sender/receiver, so one broken environment fails it many
-    // times over; tear down once.
-    if(this.failedE2eTransform) return;
-    this.failedE2eTransform = true;
-    queueMicrotask(() => this.hangUpAfterFatalFailure());
-  }
-
-  // Attach a send transform to ONE sender. Called from the streamManager's
-  // `onSenderCreated` hook so we slot the transform between addTransceiver
-  // and replaceTrack — the only window where Chrome will accept it without
-  // silently dropping frames.
-  public attachE2eSendTransform(
-    sender: RTCRtpSender,
-    kind: 'audio' | 'video',
-    channelId = 0
-  ): void {
-    if(!this.e2e || (sender as any).transform) return;
-    try {
-      sender.transform = this.e2e.newRtcScriptTransform({direction: 'send', channelId, kind});
-    } catch(err) {
-      this.failE2eTransform('send', err);
-    }
-  }
-
-  // ssrc ↔ user_id mapping is populated externally as the SFU signals
-  // participants. Push the full table to the worker so its recv transform
-  // can dispatch each frame by `frame.getMetadata().synchronizationSource`.
-  // `sync = false` lets registerE2eUserSsrcGroup batch a whole source group
-  // into ONE worker sync — the sync serializes the ENTIRE table into the
-  // worker's rpc queue (behind crypto ops), so per-source syncs turned one
-  // camera participant into ~8 back-to-back full-table posts at join time.
-  public registerE2eUserSsrc(userId: bigint, ssrc: number, sync = true): boolean {
-    const normalized = fromImpulseMSource(ssrc);
-    const current = this.e2eUserBySsrc.get(normalized);
-    if(current === userId) return true;
-
-    // Only NEW keys are capped, and the check runs before anything is mutated.
-    // A rebind cannot grow the map, so capping it there would abandon the
-    // update half-applied — moving the entry's peerId and then returning before
-    // the map write — which is precisely the two-structures-disagree state the
-    // rebind below exists to prevent.
-    if(current === undefined && this.e2eUserBySsrc.size >= MAX_E2E_SSRC_ENTRIES) {
-      // Reclaim dead mappings before refusing a legitimate new one — otherwise
-      // a long call that churns sources would wedge permanently at the ceiling.
-      this.sweepE2eSsrcs();
-    }
-
-    if(current === undefined && this.e2eUserBySsrc.size >= MAX_E2E_SSRC_ENTRIES) {
-      this.reportConferenceBug(
-        'the call server announced more media streams than this call can hold',
-        {ssrc: normalized, size: this.e2eUserBySsrc.size}
-      );
-      return false;
-    }
-
-    // Two structures are built from this same untrusted input and they must
-    // never disagree: this map decides which Ed25519 key verifies the frame,
-    // while the ConferenceEntry for the SSRC carries the peerId that decides
-    // whose tile renders it. The entry is created once and was never re-bound,
-    // so a server pointing a second participant at a live SSRC used to leave
-    // X's genuine, correctly-verified media rendering under Y's name — the
-    // frame is authentic, the attribution is not. Move both together.
-    if(current !== undefined) {
-      // Look the entry up by the RAW source. `entriesBySource` is keyed by the
-      // signed int32 ImpulseM sends, while this map is keyed unsigned (the recv
-      // transform reads an unsigned SSRC off the frame metadata). Normalising
-      // before the lookup missed every source with the high bit set, so the
-      // rebind below silently never ran for half the SSRC space.
-      const entry = this.description?.getEntryBySource(ssrc);
-      if(entry) {
-        this.description.setEntryPeerId(entry, conferenceUserIdToPeerId(userId));
-      }
-
-      // Reassigning a live SSRC is not something an honest SFU does; the
-      // rebinding above keeps us consistent either way, but leave a breadcrumb.
-      this.reportConferenceBug(
-        'the call server moved one media stream to a different participant',
-        {ssrc: normalized, from: current.toString(), to: userId.toString()}
-      );
-    }
-
-    this.e2eUserBySsrc.set(normalized, userId);
-    if(sync) this.syncSsrcMapToWorker();
-    return true;
-  }
-
-  // Reserve every primary/SIM/FID source for one server-announced media entry
-  // before its ConferenceEntry, transceiver and script transform are created.
-  // A per-source check could accept half a simulcast group at the ceiling,
-  // leaving an allocated decoder whose RTX/layer frames can never authenticate.
-  private registerE2eUserSsrcGroup(userId: bigint, ssrc: Ssrc): boolean {
-    const sources = e2eSourcesOf(ssrc);
-    if(!sources.length) {
-      this.reportConferenceBug('the call server announced a media stream with no valid SSRC', {type: ssrc.type});
-      return false;
-    }
-
-    const countNewSources = () => sources.reduce(
-      (count, source) => count + (this.e2eUserBySsrc.has(fromImpulseMSource(source)) ? 0 : 1),
-      0
-    );
-    if(this.e2eUserBySsrc.size + countNewSources() > MAX_E2E_SSRC_ENTRIES) {
-      this.sweepE2eSsrcs();
-    }
-    if(this.e2eUserBySsrc.size + countNewSources() > MAX_E2E_SSRC_ENTRIES) {
-      this.reportConferenceBug(
-        'the call server announced more media streams than this call can hold',
-        {ssrc: fromImpulseMSource(ssrc.source), sources: sources.length, size: this.e2eUserBySsrc.size}
-      );
-      return false;
-    }
-
-    const normalizedPrimary = fromImpulseMSource(ssrc.source);
-    const indexedEntry = this.description?.getEntryBySource(ssrc.source);
-    const exactEntry = indexedEntry?.type === ssrc.type ? indexedEntry :
-      this.description?.findEntry((entry) => entry.source === ssrc.source && entry.type === ssrc.type);
-    if(indexedEntry && indexedEntry !== exactEntry && indexedEntry.direction !== 'inactive') {
-      this.reportConferenceBug(
-        'the call server assigned one active SSRC to both audio and video',
-        {ssrc: normalizedPrimary, from: indexedEntry.type, to: ssrc.type}
-      );
-      return false;
-    }
-
-    // One RTP m-line is allocated per (primary SSRC, media kind). Encoding the
-    // kind into the key keeps the lifetime cap honest when the SFU legitimately
-    // reuses an inactive audio SSRC for video, or vice versa.
-    const allocationKey = normalizedPrimary * 2 + (ssrc.type === 'video' ? 1 : 0);
-    if(!exactEntry && !this.e2eAllocatedRecvEntries.has(allocationKey) &&
-      this.e2eAllocatedRecvEntries.size >= MAX_E2E_SSRC_ENTRIES) {
-      this.reportConferenceBug(
-        'the call server exhausted the conference media allocation limit',
-        {ssrc: normalizedPrimary, allocations: this.e2eAllocatedRecvEntries.size}
-      );
-      return false;
-    }
-
-    // One worker sync for the whole group — including the early-failure path,
-    // which must still publish the sources already inserted.
-    let changed = false;
-    try {
-      for(const source of sources) {
-        const before = this.e2eUserBySsrc.get(fromImpulseMSource(source));
-        if(!this.registerE2eUserSsrc(userId, source, false)) return false;
-        if(before !== userId) changed = true;
-      }
-    } finally {
-      if(changed) this.syncSsrcMapToWorker();
-    }
-    if(!exactEntry) this.e2eAllocatedRecvEntries.add(allocationKey);
-    return true;
-  }
-
-  // Drop mappings that belong to no participant we currently know about.
-  //
-  // Runs only when the table is under pressure, and against the UNION of every
-  // participant's sources rather than one row, so a single stale update can
-  // never un-map a live stream. That is the difference that matters: an
-  // over-eager prune costs silence for the rest of the call, while a delayed
-  // one only costs a few map entries.
-  private sweepE2eSsrcs(): void {
-    if(this.e2eUserBySsrc.size < MAX_E2E_SSRC_ENTRIES) {
-      return;
-    }
-
-    const live = new Set<number>();
-    for(const ssrcs of this.participantsSsrcs.values()) {
-      for(const ssrc of ssrcs) {
-        for(const source of e2eSourcesOf(ssrc)) live.add(fromImpulseMSource(source));
-      }
-    }
-
-    let changed = false;
-    for(const source of [...this.e2eUserBySsrc.keys()]) {
-      if(!live.has(source) && this.e2eUserBySsrc.delete(source)) changed = true;
-    }
-
-    if(changed) this.syncSsrcMapToWorker();
-  }
-
-  // Does this SSRC belong to a participant the roster has told us about?
-  //
-  // Distinguishes "we failed to map a real participant" (our bug) from "the
-  // relay is sending media from someone who is not in the call" (correctly
-  // dropped). Checks the per-participant source lists rather than the key map,
-  // since the key map is exactly what is suspected of being incomplete.
-  private isKnownParticipantSource(source: number): boolean {
-    for(const ssrcs of this.participantsSsrcs.values()) {
-      for(const ssrc of ssrcs) {
-        if(e2eSourcesOf(ssrc).some((candidate) => fromImpulseMSource(candidate) === source)) return true;
-      }
-    }
-
-    return false;
-  }
-
-  private resolveUnmappedE2eSource(source: number, sustained: boolean): void {
-    source = normalizeSsrc(source);
-    if(!this.e2e || !this.e2eActive || this.isClosing || this.e2eUserBySsrc.has(source)) return;
-
-    let state = this.e2eSourceResolutions.get(source);
-    if(!state) {
-      if(this.e2eSourceResolutions.size >= MAX_E2E_SSRC_ENTRIES) {
-        this.reportConferenceBug(
-          'the call server announced too many unknown media streams to resolve safely',
-          {sources: this.e2eSourceResolutions.size}
-        );
-        return;
-      }
-      // A sustained diagnostic can arrive after the one-shot state was already
-      // released following its negative lookup. Count that earlier lookup so
-      // the sustained event schedules exactly the one permitted retry.
-      state = {attempts: sustained ? 1 : 0, retry: sustained};
-      this.e2eSourceResolutions.set(source, state);
-    }
-    if(sustained) state.retry = true;
-    this.drainE2eSourceResolutions();
-  }
-
-  private drainE2eSourceResolutions(): void {
-    if(this.e2eSourceResolutionPromise || !this.e2e || !this.e2eActive || this.isClosing) return;
-
-    const sources: number[] = [];
-    for(const [source, state] of this.e2eSourceResolutions) {
-      if(this.e2eUserBySsrc.has(source)) {
-        this.e2eSourceResolutions.delete(source);
-        continue;
-      }
-      if(state.attempts >= 2 || (state.attempts > 0 && !state.retry)) continue;
-
-      // Keep a sustained signal received during the first request as the
-      // permission for one immediate retry. Consuming a retry request happens
-      // only when the second attempt is actually selected.
-      if(state.attempts > 0) state.retry = false;
-      ++state.attempts;
-      sources.push(source);
-      if(sources.length >= GROUP_CALL_PARTICIPANTS_LOAD_LIMIT) break;
-    }
-    if(!sources.length) return;
-
-    const generation = this.lifecycleGeneration;
-    const callId = this.id;
-    // Sources whose row WAS returned but whose user is not yet in the e2e
-    // group_state — the chain block is still in flight. Burning the attempt
-    // budget on this deterministic "too early" miss wrote real participants
-    // off forever; park them for the membership-change kick instead.
-    const membershipPending = new Set<number>();
-    const request = this.managers.appGroupCallsManager.getGroupCallParticipantsBySources(callId, sources)
-    .then(async(participants) => {
-      if(generation !== this.lifecycleGeneration || !this.e2e || !this.e2eActive || this.isClosing) return;
-
-      const memberIds = new Set(
-        (this.e2eStatus?.groupState?.participants || []).map((participant) => participant.userId.toString())
-      );
-      const selfUserId = this.selfUserId?.toString();
-      const requestedSources = new Set(sources);
-      const claims = new Map<number, GroupCallParticipant[]>();
-      for(const participant of participants) {
-        if(participant.pFlags.left || participant.pFlags.self || participant.peer?._ !== 'peerUser') continue;
-        const userId = String(participant.peer.user_id);
-        if(userId === selfUserId) continue;
-        const membershipMissing = !memberIds.has(userId);
-
-        const claimed = new Set<number>();
-        for(const ssrc of makeSsrcsFromParticipant(participant)) {
-          for(const participantSource of e2eSourcesOf(ssrc)) {
-            const normalized = fromImpulseMSource(participantSource);
-            if(requestedSources.has(normalized)) claimed.add(normalized);
-          }
-        }
-
-        if(membershipMissing) {
-          for(const source of claimed) membershipPending.add(source);
-          continue;
-        }
-
-        for(const source of claimed) {
-          const candidates = claims.get(source) || [];
-          candidates.push(participant);
-          claims.set(source, candidates);
-        }
-      }
-
-      const resolvedParticipants = new Set<GroupCallParticipant>();
-      for(const source of sources) {
-        const candidates = claims.get(source) || [];
-        if(candidates.length > 1) {
-          this.reportConferenceBug(
-            'the call server assigned one unknown media stream to multiple e2e members',
-            {ssrc: source, peers: candidates.map(({peer}) => peer._ === 'peerUser' ? String(peer.user_id) : peer._)}
-          );
-          this.e2eSourceResolutions.delete(source);
-        } else if(candidates.length === 1) {
-          resolvedParticipants.add(candidates[0]);
-        }
-      }
-
-      for(const participant of resolvedParticipants) {
-        if(generation !== this.lifecycleGeneration || !this.e2e || !this.e2eActive || this.isClosing) return;
-        const participantSources = makeSsrcsFromParticipant(participant)
-        .flatMap((ssrc) => e2eSourcesOf(ssrc).map((participantSource) => fromImpulseMSource(participantSource)));
-        const requestedSourceWasMapped = () => participantSources.some((participantSource) => {
-          return requestedSources.has(participantSource) && this.e2eUserBySsrc.has(participantSource);
-        });
-        // The ordinary roster path may have resolved this source while the
-        // targeted RPC was in flight. That newer binding wins; publishing this
-        // response could otherwise reassign its key/tile to a stale row.
-        if(requestedSourceWasMapped()) continue;
-        await this.managers.appGroupCallsManager.saveApiParticipant(callId, participant);
-        if(generation !== this.lifecycleGeneration || !this.e2e || !this.e2eActive || this.isClosing) return;
-        if(requestedSourceWasMapped()) continue;
-        // Manager events normally route this row back through the controller.
-        // Apply it directly only if that event has not installed the mapping by
-        // the time the proxy resolves, so the first decrypted frame does not
-        // depend on cross-worker event timing.
-        if(participantSources.some((participantSource) =>
-          requestedSources.has(participantSource) && !this.e2eUserBySsrc.has(participantSource))) {
-          this.onParticipantUpdate(participant);
-        }
-      }
-    })
-    .catch((err) => {
-      if(generation === this.lifecycleGeneration) {
-        if(this.requestConferenceRecoveryForForbidden('source-resolution-forbidden', err)) return;
-        this.log.warn('conference source resolution failed', {ssrcs: sources}, err);
-      }
-    })
-    .finally(() => {
-      if(generation === this.lifecycleGeneration && this.e2e && this.e2eActive && !this.isClosing) {
-        for(const source of sources) {
-          const state = this.e2eSourceResolutions.get(source);
-          if(!state) continue;
-          if(this.e2eUserBySsrc.has(source)) {
-            this.e2eSourceResolutions.delete(source);
-          } else if(membershipPending.has(source) && (state.membershipRetries ?? 0) < MAX_E2E_MEMBERSHIP_RESOLUTION_RETRIES) {
-            // The server names an owner for this source; only their chain block
-            // hasn't applied locally yet. Park until the group_state gains
-            // members instead of writing the stream off.
-            state.awaitingMembership = true;
-            state.retry = false;
-          } else if(state.attempts >= 2) {
-            this.reportConferenceBug(
-              this.isKnownParticipantSource(source) ?
-                'inbound media undecryptable — a participant we know is not in the key map (seen but not heard)' :
-                'the call server is forwarding media from an identity that is not in this call — dropping it',
-              {ssrc: source, attempts: state.attempts}
-            );
-            this.e2eSourceResolutions.delete(source);
-          } else if(!state.retry) {
-            // A first-sighting miss with no sustained signal is complete. Keep
-            // no tombstone: otherwise one-frame foreign SSRCs permanently fill
-            // the bounded table and block resolution of later real streams.
-            this.e2eSourceResolutions.delete(source);
-          }
-        }
-      }
-      if(this.e2eSourceResolutionPromise !== request) return;
-      this.e2eSourceResolutionPromise = undefined;
-      if(generation === this.lifecycleGeneration) this.drainE2eSourceResolutions();
-    });
-    this.e2eSourceResolutionPromise = request;
-  }
-
-  // Replace the SSRC table on the worker side. Cheap enough on every
-  // change — the table is small (one entry per active participant).
-  private syncSsrcMapToWorker(): void {
-    if(!this.e2e) return;
-    const entries: Array<[number, bigint]> = [];
-    for(const [ssrc, userId] of this.e2eUserBySsrc) entries.push([ssrc, userId]);
-    void this.e2e.setSsrcUsers(entries).catch((err) => {
-      this.log.warn('syncSsrcMapToWorker failed', err);
-    });
-  }
-
   // Convenience: build an InputGroupCall from our cached groupCall payload.
   // Returns undefined for discarded calls (no access_hash).
   public toInputGroupCall(): InputGroupCall | undefined {
@@ -1954,23 +1387,37 @@ export default class GroupCallInstance extends CallInstanceBase<{
     return groupCallToInput(c);
   }
 
-  get connectionState() {
-    // Optional: `connections.main` only exists from createConnectionInstance
-    // onward, but the conference pollers start earlier — attachE2e kicks them
-    // off, and `worker.init` emits its first `status` (→ roster refresh →
-    // membership reconciliation) before the connection is built. Dereferencing
-    // blindly threw a TypeError there, which surfaced as an unhandled rejection
-    // in the poller and skipped the FIRST reconciliation of the call. Undefined
-    // reads as "not closed" below and as CONNECTING in `state`, which is what
-    // that window actually is.
-    return this.connections.main?.connection?.iceConnectionState;
+  /**
+   * The LiveKit connection of the main media, in the vocabulary the call UI reads: `undefined` before the
+   * connection exists, `connecting` until it is up (and while it reconnects), `closed` once it is gone.
+   */
+  get connectionState(): 'connecting' | 'connected' | 'closed' | undefined {
+    const connection = this.connections.main;
+    if(!connection) {
+      return undefined;
+    }
+
+    switch(connection.transportState) {
+      case 'connected':
+        return 'connected';
+      case 'disconnected':
+        // a connection that was lost is not the end of the call while a rejoin may still replace it
+        return this.hungUp || connection.transport.disconnectCause === 'client' ? 'closed' : 'connecting';
+      default:
+        return 'connecting';
+    }
+  }
+
+  /** The call is over locally: a lost connection no longer reads as "reconnecting". */
+  public markHungUp(): void {
+    this.hungUp = true;
   }
 
   get state() {
     const {connectionState} = this;
     if(connectionState === 'closed') {
       return GROUP_CALL_STATE.CLOSED;
-    } else if(connectionState !== 'connected' && (!IS_SAFARI || connectionState !== 'completed')) {
+    } else if(connectionState !== 'connected') {
       return GROUP_CALL_STATE.CONNECTING;
     } else {
       const {participant} = this;
@@ -2073,25 +1520,41 @@ export default class GroupCallInstance extends CallInstanceBase<{
     return this.connections.main.streamManager;
   }
 
-  public get description(): localConferenceDescription {
-    return this.connections.main.description;
-  }
-
   public pinSource(source: GroupCallOutputSource) {
     indexOfAndSplice(this.pinnedSources, source);
     this.pinnedSources.push(source);
+    this.applyRemoteVideoQuality();
     this.dispatchPinnedThrottled();
   }
 
   public unpinSource(source: GroupCallOutputSource) {
     this.hadAutoPinnedSources.delete(source);
     indexOfAndSplice(this.pinnedSources, source);
+    this.applyRemoteVideoQuality();
     this.dispatchPinnedThrottled();
   }
 
   public unpinAll() {
     this.pinnedSources.length = 0;
+    this.applyRemoteVideoQuality();
     this.dispatchPinnedThrottled();
+  }
+
+  /** The pinned tile is received in high quality, every other remote video in medium. */
+  private applyRemoteVideoQuality(): void {
+    const transport = this.connections.main?.transport;
+    if(!transport) {
+      return;
+    }
+
+    const pinned = this.pinnedSource;
+    for(const route of this.mediaRouter.getVideoRoutes()) {
+      transport.setRemoteVideoQuality({
+        identity: route.identity,
+        source: route.mediaSource,
+        quality: pinned !== undefined && route.key === String(pinned) ? 'high' : 'medium'
+      });
+    }
   }
 
   public async getParticipantByPeerId(peerId: PeerId) {
@@ -2202,8 +1665,8 @@ export default class GroupCallInstance extends CallInstanceBase<{
       const connectionType: GroupCallConnectionType = type === 'video' ? 'main' : 'presentation';
       source = connectionType;
     } else {
-      const codec = participant[type];
-      source = codec.source_groups[0].sources[0];
+      source = getParticipantOutputSource(participant, type);
+      if(source === undefined) return;
     }
 
     const element = this.getElement(source) as HTMLVideoElement;
@@ -2217,7 +1680,7 @@ export default class GroupCallInstance extends CallInstanceBase<{
   public createConnectionInstance(options: {
     streamManager: StreamManager,
     type: GroupCallConnectionType,
-    options: GroupCallConnectionInstance['options'],
+    options: GroupCallConnectionOptions,
   }) {
     const connection = this.connections[options.type] = new GroupCallConnectionInstance({
       groupCall: this,
@@ -2227,8 +1690,91 @@ export default class GroupCallInstance extends CallInstanceBase<{
     });
     if(options.type === 'main') {
       this.observeInputAudioTrack(options.streamManager.inputStream.getAudioTracks()[0]);
+      this.bindMainTransport(connection);
     }
     return connection;
+  }
+
+  // Everything remote arrives on the main connection: tracks go to the media router.
+  private bindMainTransport(connection: GroupCallConnectionInstance): void {
+    const {transport} = connection;
+    const isCurrent = () => this.connections.main === connection;
+    transport.addEventListener('remoteTrack', (info) => {
+      if(isCurrent()) this.mediaRouter.onRemoteTrack(info);
+    });
+    transport.addEventListener('remoteTrackRemoved', (info) => {
+      if(isCurrent()) this.mediaRouter.onRemoteTrackRemoved(info);
+    });
+    transport.addEventListener('activeSpeakers', (identities) => {
+      if(isCurrent()) this.onActiveSpeakers(identities);
+    });
+    transport.addEventListener('publishPermission', ({canPublish}) => {
+      if(isCurrent()) this.onPublishPermission(canPublish);
+    });
+    transport.addEventListener('state', (state) => {
+      // the token can already forbid publishing at join (forced mute): reconcile with it once connected
+      const permission = state === 'connected' && isCurrent() ? transport.getPublishPermission() : undefined;
+      if(permission) this.onPublishPermission(permission.canPublish);
+    });
+  }
+
+  /** Whether LiveKit currently reports `peerId` as speaking (a presentation never speaks for its owner). */
+  public isSpeaking(peerId: PeerId): boolean {
+    return this.speakingPeerIds.has(peerId);
+  }
+
+  private onActiveSpeakers(identities: string[]): void {
+    const peerIds = new Set<PeerId>();
+    for(const identity of identities) {
+      const parsed = parseGroupCallIdentity(identity);
+      if(parsed && !parsed.isPresentation) {
+        peerIds.add(parsed.peerId);
+      }
+    }
+
+    const changed = peerIds.size !== this.speakingPeerIds.size ||
+      [...peerIds].some((peerId) => !this.speakingPeerIds.has(peerId));
+    if(!changed) {
+      return;
+    }
+
+    this.speakingPeerIds = peerIds;
+    rootScope.dispatchEvent('group_call_speaking', {groupCallId: this.id, peerIds: [...peerIds]});
+  }
+
+  private clearSpeaking(): void {
+    if(this.speakingPeerIds.size) {
+      this.speakingPeerIds = new Set();
+      rootScope.dispatchEvent('group_call_speaking', {groupCallId: this.id, peerIds: []});
+    }
+  }
+
+  /** Forgets everything rendered for remote participants (a rejoin re-delivers it on the new connection). */
+  public resetRemoteMedia(): void {
+    for(const route of this.mediaRouter.getRoutes()) {
+      this.removeOutputTrack(route.key, route.kind);
+    }
+
+    this.mediaRouter.clear();
+    this.clearSpeaking();
+  }
+
+  // The microphone track's enabled flag is the local mute; the transport mirrors it so the server and the
+  // other participants see the track muted as well.
+  public setMuted(muted?: boolean): void {
+    super.setMuted(muted);
+
+    const connectionInstance = this.connections.main;
+    if(!connectionInstance) {
+      return;
+    }
+
+    const audioTrack = connectionInstance.streamManager?.inputStream?.getAudioTracks?.()[0];
+    void connectionInstance.syncMicrophone(!audioTrack?.enabled).catch((err) => {
+      // the local capture is already cut (or opened): a failed sync must not leave the UI believing
+      // otherwise, so it is only reported
+      this.log.warn('syncing the microphone mute to the server failed', err);
+    });
   }
 
   public changeRaiseHand(raise: boolean) {
@@ -2324,22 +1870,11 @@ export default class GroupCallInstance extends CallInstanceBase<{
       });
     };
 
-    connectionInstance.connection.addEventListener('negotiationneeded', () => {
-      if(this.connections.presentation !== connectionInstance || this.isClosing) return;
-      void connectionInstance.requestNegotiation().catch((err) => {
-        recover('screen sharing renegotiation failed', err);
-      });
-    });
-    connectionInstance.connection.addEventListener('connectionstatechange', () => {
-      const {connectionState} = connectionInstance.connection;
-      if(connectionState === 'failed' || connectionState === 'closed') {
-        recover(`screen sharing transport ${connectionState}`);
-      }
-    });
-    connectionInstance.connection.addEventListener('iceconnectionstatechange', () => {
-      const {iceConnectionState} = connectionInstance.connection;
-      if(iceConnectionState === 'failed' || iceConnectionState === 'closed') {
-        recover(`screen sharing ICE transport ${iceConnectionState}`);
+    connectionInstance.transport.addEventListener('state', (state, cause) => {
+      // 'client' is our own close; everything else (network loss, the token being refused, removal from
+      // the room) leaves the screen without a transport while the capture is still alive
+      if(state === 'disconnected' && cause !== 'client') {
+        recover(`screen sharing transport lost (${cause})`);
       }
     });
   }
@@ -2394,15 +1929,13 @@ export default class GroupCallInstance extends CallInstanceBase<{
         type: 'presentation',
         options: {type: 'presentation'}
       });
-      replacement.createPeerConnection();
-      replacement.createDescription();
-      await replacement.appendInputStreamWithE2e();
-      await replacement.negotiate();
+      await replacement.join();
+      await replacement.publishScreen(streamManager.inputStream);
 
       if(generation !== this.screenSharingGeneration ||
          this.connections.presentation !== replacement ||
          !this.isMediaRuntimeReady) {
-        throw new Error('Screen sharing recovery was cancelled during negotiation');
+        throw new Error('Screen sharing recovery was cancelled while reconnecting');
       }
       this.bindPresentationRuntimeRecovery(replacement);
       this.dispatchEvent('state', this.state);
@@ -2440,11 +1973,16 @@ export default class GroupCallInstance extends CallInstanceBase<{
       stopTrack(track);
       connectionInstance.streamManager.removeTrack(track);
     }
-    await connectionInstance.streamManager.appendToConference(
-      connectionInstance.description,
-      undefined,
-      true
-    );
+
+    // a stopped capture must stop being sent as well: the camera of the main connection, or the screen of
+    // the presentation one
+    if(connectionInstance.type === 'presentation') {
+      await connectionInstance.unpublish('screen');
+      await connectionInstance.unpublish('screenAudio');
+    } else if(tracks.some((track) => track.kind === 'video')) {
+      await connectionInstance.unpublish('camera');
+    }
+
     this.dispatchEvent('state', this.state);
   }
 
@@ -2482,20 +2020,17 @@ export default class GroupCallInstance extends CallInstanceBase<{
         }
       });
 
-      connectionInstance.createPeerConnection();
-
       videoTrack.addEventListener('ended', () => {
         if(this.connections.presentation) { // maybe user has stopped screensharing through browser's ui
           void this.stopScreenSharing().catch((err) => this.log.error('stop screen sharing after capture ended', err));
         }
       }, {once: true});
 
-      connectionInstance.createDescription();
+      await connectionInstance.join();
       await connectionInstance.addInputVideoStream(stream);
-      await connectionInstance.negotiate();
 
       if(generation !== this.screenSharingGeneration || !this.isMediaRuntimeReady) {
-        throw new Error('Screen sharing request was cancelled during negotiation');
+        throw new Error('Screen sharing request was cancelled while connecting');
       }
       this.bindPresentationRuntimeRecovery(connectionInstance);
     } catch(err) {
@@ -2598,10 +2133,9 @@ export default class GroupCallInstance extends CallInstanceBase<{
       if(!stream.getVideoTracks()[0]) throw new Error('Camera capture did not provide a video track');
       connectionInstance = this.connections.main;
       await connectionInstance.addInputVideoStream(stream);
-      await connectionInstance.requestNegotiation();
 
       if(generation !== this.videoSharingGeneration || !this.isMediaRuntimeReady) {
-        throw new Error('Camera sharing request was cancelled during negotiation');
+        throw new Error('Camera sharing request was cancelled while publishing');
       }
 
       participantEditStarted = true;
@@ -2721,31 +2255,43 @@ export default class GroupCallInstance extends CallInstanceBase<{
 
   // CallInstanceBase hook for mid-call device swap. Walks every connection
   // we own (main + presentation) so screen-sharing keeps working when the
-  // user picks a different camera while presenting. Quietly skips
-  // connections that aren't up yet — the next negotiation will pick up the
-  // new track from streamManager.appendToConference instead.
+  // user picks a different camera while presenting. A connection that does not
+  // send `oldTrack` is skipped: a later publish picks up the new capture from
+  // the stream manager.
   protected async replaceSenderTrack(
     kind: 'audio' | 'video',
     oldTrack: MediaStreamTrack,
     newTrack: MediaStreamTrack
   ): Promise<void> {
     if(kind === 'audio') this.observeInputAudioTrack(newTrack);
+    const sources: LiveKitMediaSource[] = kind === 'audio' ? ['microphone'] : ['camera', 'screen'];
     const replacements: Promise<void>[] = [];
     for(const type in this.connections) {
       const connectionInstance = this.connections[type as GroupCallConnectionType];
-      const connection = connectionInstance?.connection;
-      if(!connection) continue;
-      for(const sender of connection.getSenders()) {
-        if(sender.track === oldTrack) {
-          replacements.push(sender.replaceTrack(newTrack));
-        }
+      if(!connectionInstance) continue;
+      for(const source of sources) {
+        replacements.push(connectionInstance.replaceTrack({source, oldTrack, newTrack}).then((): void => undefined));
       }
     }
     await waitForMediaTrackReplacements(replacements);
   }
 
+  // CallInstanceBase hook: a capture that arrives after the join (the microphone requested on the first
+  // unmute, say) is published on the main connection.
+  protected async publishInputStream(stream: MediaStream): Promise<void> {
+    const connectionInstance = this.connections.main;
+    const audio = stream.getAudioTracks()[0];
+    if(connectionInstance && audio) {
+      this.observeInputAudioTrack(audio);
+      await connectionInstance.syncMicrophone(!audio.enabled, audio);
+    }
+  }
 
   public async hangUp(discard = false, rejoin = false, isDiscarded = false) {
+    if(!rejoin) {
+      this.markHungUp();
+    }
+
     const presentationCleanup = this.stopScreenSharing();
     for(const type in this.connections) {
       const connection = this.connections[type as GroupCallConnectionType];
@@ -2872,30 +2418,6 @@ export default class GroupCallInstance extends CallInstanceBase<{
     }
   }
 
-  public tryAddTrack(options: Omit<TryAddTrackOptions, 'streamManager'>) {
-    const {description} = this;
-    const source = super.tryAddTrack(options);
-
-    if(options.type === 'output') {
-      const entry = description.getEntryBySource(+source);
-      const lifecycleGeneration = this.lifecycleGeneration;
-      void this.getParticipantByPeerId(entry.peerId).then((participant) => {
-        if(lifecycleGeneration !== this.lifecycleGeneration ||
-           this.isClosing ||
-           this.connections.main?.description !== description) {
-          return;
-        }
-        if(participant) {
-          rootScope.dispatchEvent('group_call_participant', {groupCallId: this.id, participant});
-        }
-      }).catch((err) => {
-        this.log.warn('output track participant hydration failed', err);
-      });
-    }
-
-    return source;
-  }
-
   public async editParticipant(participant: GroupCallParticipant, options: Partial<{
     muted: boolean,
     volume: number,
@@ -2977,7 +2499,7 @@ export default class GroupCallInstance extends CallInstanceBase<{
       if(isUpdatingMeInCurrentCall) {
         if(options.videoStopped !== undefined) {
           if(options.videoStopped) delete participant.video;
-          else participant.video = generateSelfVideo(this.connections.main.sources.video);
+          else participant.video = makeSelfVideo();
         }
 
         this.dispatchEvent('state', this.state);
@@ -3013,23 +2535,100 @@ export default class GroupCallInstance extends CallInstanceBase<{
     return this.selfParticipantEditTail.enqueue(invoke);
   }
 
-  private isOwnSendEntry(entry: ConferenceEntry): boolean {
-    const isSending = (direction: RTCRtpTransceiverDirection) => direction === 'sendonly' || direction === 'sendrecv';
-    return isSending(entry.direction) ||
-      isSending(entry.originalDirection) ||
-      (!!rootScope.myId && entry.peerId === rootScope.myId);
+  // The self row (`can_self_unmute`) and the LiveKit publish permission are two views of the same admin
+  // decision; media stays blocked while either of them says so.
+  private get isAdminBlocked(): boolean {
+    return this.rowAdminBlocked || this.permissionBlocked;
+  }
+
+  // An admin lifted our forced mute. The row still says `muted`, so we stay muted — the cue is what tells
+  // the user the microphone button works again (tdesktop notifyAboutAllowedToSpeak, gated on having joined
+  // exactly like `_hadJoinedState`). The microphone goes out again, silent, so unmuting is a flag flip.
+  private onAdminMediaBlockLifted(): void {
+    if(this.joined) {
+      notifyAllowedToSpeak();
+    }
+
+    const connectionInstance = this.connections.main;
+    const audioTrack = connectionInstance?.streamManager?.inputStream?.getAudioTracks?.()[0];
+    if(connectionInstance && audioTrack) {
+      void connectionInstance.syncMicrophone(true, audioTrack).catch((err) => {
+        this.log.warn('republishing the microphone after the forced mute was lifted failed', err);
+      });
+    }
+  }
+
+  // Include acquisitions/negotiations that have not published a track or participant row yet. stop*
+  // increments the matching generation immediately, so their late continuations release capture instead of
+  // starting media after the admin mute.
+  private scheduleAdminMediaTeardown(options: {participant?: GroupCallParticipant, changed: boolean}): void {
+    const {participant, changed} = options;
+    const stopScreen = !!this.startScreenSharingPromise ||
+      this.isSharingScreen ||
+      this.pendingPresentationLeaves.size > 0 ||
+      !!participant?.presentation;
+    const stopVideo = !!this.startVideoSharingPromise ||
+      this.isSharingVideo ||
+      !!participant?.video;
+    if((stopScreen || stopVideo) && (!this.adminMediaTeardownPromise || changed)) {
+      const generation = this.adminMediaTeardownGeneration;
+      const previousTeardown = this.adminMediaTeardownPromise;
+      const teardown = (async() => {
+        if(previousTeardown) await previousTeardown.catch(() => {});
+        if(generation !== this.adminMediaTeardownGeneration || !this.adminMediaBlocked) return;
+        await this.enforceAdminMediaTeardown(stopScreen, stopVideo, generation);
+      })();
+      const trackedTeardown = teardown.finally(() => {
+        if(this.adminMediaTeardownPromise === trackedTeardown) {
+          this.adminMediaTeardownPromise = undefined;
+        }
+      });
+      this.adminMediaTeardownPromise = trackedTeardown;
+    }
+  }
+
+  /**
+   * LiveKit changed what we may publish (the server applies a forced mute as a permission change). Revoked:
+   * the same fail-closed path as an admin mute row — capture cut, camera and screen torn down. Granted
+   * again: the cue, and the microphone back out silent.
+   */
+  public onPublishPermission(canPublish: boolean): void {
+    if(this.isClosing) {
+      return;
+    }
+
+    this.permissionBlocked = !canPublish;
+    const blocked = this.isAdminBlocked;
+    if(blocked === this.adminMediaBlocked) {
+      return;
+    }
+
+    this.adminMediaBlocked = blocked;
+    ++this.adminMediaTeardownGeneration;
+    if(blocked) {
+      this.pendingUnmuteIntentAt = undefined;
+      this.setMuted(true);
+      this.scheduleAdminMediaTeardown({participant: this.participant, changed: true});
+    } else {
+      this.onAdminMediaBlockLifted();
+    }
+
+    this.dispatchEvent('state', this.state);
   }
 
   public onParticipantUpdate(participant: GroupCallParticipant) {
     const connectionInstance = this.connections.main;
-    const {connection, description} = connectionInstance;
 
     const peerId = getPeerId(participant.peer);
     const hasLeft = !!participant.pFlags.left;
-    const oldSsrcs = this.participantsSsrcs.get(peerId) || [];
+    if(hasLeft) {
+      this.participantRows.delete(peerId);
+    } else {
+      this.participantRows.set(peerId, participant);
+    }
 
     if(participant.presentation && !hasLeft) {
-      const {source} = makeSsrcFromParticipant(participant, 'video', participant.presentation.source_groups, participant.presentation.endpoint);
+      const source = participant.presentation.audio_source;
       if(!this.hadAutoPinnedSources.has(source)) {
         this.hadAutoPinnedSources.add(source);
         this.pinSource(participant.pFlags.self ? 'presentation' : source);
@@ -3056,17 +2655,15 @@ export default class GroupCallInstance extends CallInstanceBase<{
         return;
       }
 
-      const adminMediaBlocked = !participant.pFlags.can_self_unmute;
+      this.rowAdminBlocked = !participant.pFlags.can_self_unmute;
+      // the stricter of the row and the LiveKit publish permission
+      const adminMediaBlocked = this.isAdminBlocked;
       const adminMediaBlockChanged = this.adminMediaBlocked !== adminMediaBlocked;
       if(adminMediaBlockChanged) {
         this.adminMediaBlocked = adminMediaBlocked;
         ++this.adminMediaTeardownGeneration;
-        if(!adminMediaBlocked && this.joined) {
-          // An admin lifted our forced mute. The row still says `muted`, so we
-          // stay muted (below) — the cue is what tells the user the microphone
-          // button works again (tdesktop notifyAboutAllowedToSpeak, gated on
-          // having joined exactly like `_hadJoinedState`).
-          notifyAllowedToSpeak();
+        if(!adminMediaBlocked) {
+          this.onAdminMediaBlockLifted();
         }
       }
 
@@ -3076,32 +2673,7 @@ export default class GroupCallInstance extends CallInstanceBase<{
 
       let mute = false;
       if(adminMediaBlocked) {
-        // Include acquisitions/negotiations that have not published a track or
-        // participant row yet. stop* increments the matching generation
-        // immediately, so their late continuations release capture instead of
-        // starting media after the admin mute.
-        const stopScreen = !!this.startScreenSharingPromise ||
-          this.isSharingScreen ||
-          this.pendingPresentationLeaves.size > 0 ||
-          !!participant.presentation;
-        const stopVideo = !!this.startVideoSharingPromise ||
-          this.isSharingVideo ||
-          !!participant.video;
-        if((stopScreen || stopVideo) && (!this.adminMediaTeardownPromise || adminMediaBlockChanged)) {
-          const generation = this.adminMediaTeardownGeneration;
-          const previousTeardown = this.adminMediaTeardownPromise;
-          const teardown = (async() => {
-            if(previousTeardown) await previousTeardown.catch(() => {});
-            if(generation !== this.adminMediaTeardownGeneration || !this.adminMediaBlocked) return;
-            await this.enforceAdminMediaTeardown(stopScreen, stopVideo, generation);
-          })();
-          const trackedTeardown = teardown.finally(() => {
-            if(this.adminMediaTeardownPromise === trackedTeardown) {
-              this.adminMediaTeardownPromise = undefined;
-            }
-          });
-          this.adminMediaTeardownPromise = trackedTeardown;
-        }
+        this.scheduleAdminMediaTeardown({participant, changed: adminMediaBlockChanged});
         mute = true;
       } else if(participant.pFlags.muted) {
         mute = true;
@@ -3135,200 +2707,61 @@ export default class GroupCallInstance extends CallInstanceBase<{
       return;
     }
 
-    let ssrcs = hasLeft ? [] : makeSsrcsFromParticipant(participant);
-
-    // A remote row naming one of OUR send sources used to rebind that entry to
-    // the remote peer and, once the row stopped listing it, set it inactive —
-    // the next answer then rejected our own audio m-line. Our send entries
-    // never belong to anyone else, so drop such a source here, before it can
-    // reach the key map, the SDP or this participant's remembered set (which
-    // is what the `left` pass below inactivates).
-    ssrcs = ssrcs.filter((ssrc) => {
-      const entry = description.getEntryBySource(ssrc.source);
-      if(!entry || !this.isOwnSendEntry(entry)) return true;
-      this.reportConferenceBug(
-        'the call server assigned our own media stream to another participant',
-        {source: ssrc.source, type: ssrc.type, to: peerId}
-      );
-      return false;
-    });
-
-    // For e2e conferences: map every SFU SSRC for this participant to their
-    // ImpulseM user_id so recv RTCRtpScriptTransform handlers can look up
-    // the correct Ed25519 public key for signature verification. The
-    // TdE2E "user_id" IS the ImpulseM user_id — same value namespace.
-    if(this.e2e && participant.peer?._ === 'peerUser') {
-      const userId = BigInt(participant.peer.user_id);
-      if(hasLeft) {
-        let changed = false;
-        for(const ssrc of oldSsrcs) {
-          for(const source of e2eSourcesOf(ssrc)) {
-            const normalized = fromImpulseMSource(source);
-            if(this.e2eUserBySsrc.get(normalized) === userId && this.e2eUserBySsrc.delete(normalized)) {
-              changed = true;
-            }
-          }
-        }
-        if(changed) this.syncSsrcMapToWorker();
-      } else {
-        // Register what this update announces. Deliberately do NOT prune the
-        // sources it omits: a participant row is not a reliable statement of
-        // the peer's CURRENT sources. `saveApiParticipant` overwrites the cache
-        // wholesale (safeReplaceObject) with no staleness check, so a roster
-        // page computed before a "video on" push lands here after it and omits
-        // that source. Differencing against such a row un-mapped a live SSRC,
-        // and an unmapped SSRC is dropped by the recv transform — the peer is
-        // seen but never heard, for the rest of the call. Explicit `left`
-        // removes the accumulated set; until then the hard
-        // MAX_E2E_SSRC_ENTRIES cap bounds adversarial churn.
-        // Capacity is checked for the whole source group before the SDP loop
-        // below. Rejected entries never allocate a ConferenceEntry,
-        // transceiver, receiver or script transform.
-        ssrcs = ssrcs.filter((ssrc) => this.registerE2eUserSsrcGroup(userId, ssrc));
-      }
-    } else if(this.e2e && !hasLeft && ssrcs.length) {
-      // A conference frame can only be authenticated against a ImpulseM user
-      // from the e2e group state. Do not allocate decoders for an identity that
-      // cannot ever be installed in the worker's SSRC map.
-      this.reportConferenceBug('the call server announced conference media for a non-user peer', {peerId});
-      ssrcs = [];
-    }
-
-    if(this.e2e && !hasLeft) {
-      ssrcs = mergeE2eParticipantSsrcs(oldSsrcs, ssrcs);
-    }
-
+    // The tiles a participant can have are keyed by source: the camera by `source`, the screen by the
+    // presentation's `audio_source`. A tile that disappeared from the row is unpinned.
+    const outputSources: number[] = [];
     if(!hasLeft) {
-      this.participantsSsrcs.set(peerId, ssrcs);
+      if(participant.video) outputSources.push(getParticipantOutputSource(participant, 'video'));
+      if(participant.presentation) outputSources.push(getParticipantOutputSource(participant, 'presentation'));
+    }
+
+    const oldSources: number[] = this.outputSourcesByPeer.get(peerId) || [];
+    for(const oldSource of oldSources) {
+      if(!outputSources.includes(oldSource)) {
+        this.unpinSource(oldSource);
+      }
+    }
+
+    if(outputSources.length) {
+      this.outputSourcesByPeer.set(peerId, outputSources);
     } else {
-      this.participantsSsrcs.delete(peerId);
+      this.outputSourcesByPeer.delete(peerId);
     }
 
-    // const TEST_OLD = false;
-
-    const modifiedTypes: Set<WebRTCLineType> = new Set();
-    oldSsrcs.forEach((oldSsrc) => {
-      const oldSource = oldSsrc.source;
-      const newSsrc = ssrcs.find((ssrc) => ssrc.source === oldSource && ssrc.type === oldSsrc.type);
-      if(!newSsrc) {
-        // A numeric SSRC can be reused across media kinds after its old m-line
-        // becomes inactive. Removing an audio entry must not unpin the new
-        // video entry that now owns that same number; removing video still
-        // retires its pin as usual.
-        if(oldSsrc.type === 'video' || !ssrcs.some((ssrc) => ssrc.source === oldSource)) {
-          this.unpinSource(oldSource);
-        }
-
-        const oldEntry = description.getEntryBySource(oldSource);
-        if(oldEntry && oldEntry.direction !== 'inactive') {
-          oldEntry.setDirection('inactive');
-          modifiedTypes.add(oldEntry.type);
-        }
-      }
-    });
-
-    ssrcs.forEach((ssrc) => {
-      const indexedEntry = description.getEntryBySource(ssrc.source);
-      let entry = indexedEntry?.type === ssrc.type ? indexedEntry :
-        description.findEntry((candidate) => candidate.source === ssrc.source && candidate.type === ssrc.type);
-      if(indexedEntry && indexedEntry !== entry && indexedEntry.direction !== 'inactive') {
-        this.reportConferenceBug(
-          'the call server assigned one active SSRC to both audio and video',
-          {source: ssrc.source, from: indexedEntry.type, to: ssrc.type}
-        );
-        return;
-      }
-      if(entry) {
-        if(indexedEntry !== entry) {
-          description.setEntrySource(entry, ssrc.sourceGroups || ssrc.source);
-        }
-        // An entry for this SSRC already exists. It may belong to someone else:
-        // either the SFU recycled a source after its previous owner left (the
-        // entry is kept, only set inactive), or it is claiming one live
-        // participant's stream for another. Either way the entry must follow
-        // the identity the key map now uses, or the tile renders under the
-        // previous owner's name while frames are verified against the new
-        // one's key. Re-bind rather than silently inheriting the stale peerId.
-        if(entry.peerId !== peerId) {
-          if(entry.direction !== 'inactive') {
-            // Recycling an INACTIVE source is ordinary; moving a live one
-            // between participants is not something an honest SFU does.
-            this.reportConferenceBug(
-              'the call server assigned one media stream to two participants',
-              {source: ssrc.source, from: entry.peerId, to: peerId}
-            );
-          }
-
-          description.setEntryPeerId(entry, peerId);
-        }
-
-        if(entry.direction === 'inactive') {
-          entry.setDirection(entry.originalDirection);
-          modifiedTypes.add(entry.type);
-        }
-
-        return;
-      }
-
-      // Conference sources are capped up front in registerE2eUserSsrcGroup;
-      // this is the same bound on the legacy SFU path, where nothing else
-      // limited how many decoders one participant list could demand.
-      if(description.entries.length >= MAX_E2E_SSRC_ENTRIES) {
-        this.reportConferenceBug(
-          'the call server announced more media streams than this call can hold',
-          {source: ssrc.source, entries: description.entries.length}
-        );
-        return;
-      }
-
-      entry = description.createEntry(ssrc.type);
-      description.setEntrySource(entry, ssrc.sourceGroups || ssrc.source);
-      description.setEntryPeerId(entry, peerId);
-
-      // if(TEST_OLD) {
-      //   description.bundleMids.push(entry.mid);
-      //   entry.setDirection('recvonly');
-      // } else {
-      ssrc.type === 'video' && entry.setEndpoint(ssrc.endpoint);
-      entry.createTransceiver(connection, {direction: 'recvonly'});
-
-      // Conference (e2e) only: attach the receive-side RTCRtpScriptTransform
-      // RIGHT NOW — in the gap between createTransceiver and the next
-      // negotiate() that binds the decoder. This is the only window Chrome
-      // accepts a recv transform, mirroring the sender-side constraint.
-      // Attaching it later (in the connection's `track` event, after the
-      // decoder has produced its first frame) makes Chrome silently bypass it
-      // — frames reach the decoder still encrypted and the peer hears noise
-      // (the long-standing "recv pumps ~5 frames then halts" symptom). One
-      // transceiver per SSRC (this loop) ⇒ one decoder + one transform per
-      // remote stream, exactly like the legacy SFU path: the server signals
-      // only SSRCs, we mint the m-lines. No-op for legacy voice chats —
-      // attachE2eRecvTransform returns early unless `this.e2e` is set.
-      this.attachE2eRecvTransform(entry.transceiver.receiver, entry.type === 'video' ? 'video' : 'audio');
-      // }
-
-      modifiedTypes.add(entry.type);
-    });
-
-    /* if(TEST_OLD) {
-      this.setRemoteOffer({
-        connection,
-        description,
-        ssrcs
-      });
-    } else  */if(modifiedTypes.size || this.remoteNegotiationPending) {
-      if(modifiedTypes.has('video')) {
-        connectionInstance.updateConstraints = true;
-      }
-
-      this.remoteNegotiationPending = true;
-      void connectionInstance.requestNegotiation().then(() => {
-        if(this.connections.main === connectionInstance) {
-          this.remoteNegotiationPending = false;
-        }
-      }, (err) => {
-        this.log.error('remote participant renegotiation failed', err);
-      });
+    this.mediaRouter.onParticipantUpdate(participant);
+    if(!hasLeft) {
+      this.applyParticipantAudioState(participant);
     }
+  }
+
+  // Per-participant volume and "muted by me" go to that participant's own audio elements: the microphone
+  // under `source`, the screen audio under the presentation's `audio_source`.
+  private applyParticipantAudioState(participant: GroupCallParticipant): void {
+    const volume: number = (participant.volume ?? GROUP_CALL_PARTICIPANT_VOLUME_UNIT) / GROUP_CALL_PARTICIPANT_VOLUME_UNIT;
+    const muted: boolean = !!participant.pFlags.muted_by_you;
+    const sources: number[] = [participant.source];
+    if(participant.presentation) sources.push(participant.presentation.audio_source);
+    for(const source of sources) {
+      this.setOutputAudioState({source: String(source), volume, muted});
+    }
+  }
+
+  // The router's sink: a routed track gets its element and the participant is re-announced so the tile and
+  // the status row pick it up.
+  private onTrackRouted(route: RoutedGroupCallTrack): void {
+    this.tryAddTrack({
+      stream: new MediaStream([route.track]),
+      track: route.track,
+      type: 'output',
+      source: route.key
+    });
+    this.applyParticipantAudioState(route.participant);
+    this.applyRemoteVideoQuality();
+    rootScope.dispatchEvent('group_call_participant', {groupCallId: this.id, participant: route.participant});
+  }
+
+  private onTrackDropped(route: RoutedGroupCallTrack): void {
+    this.removeOutputTrack(route.key, route.kind);
+    rootScope.dispatchEvent('group_call_participant', {groupCallId: this.id, participant: route.participant});
   }
 }

@@ -125,13 +125,7 @@ export class RtmpCallsController extends EventListenerBase<{
   }
 
   private getJoinPayload(ssrc: number): DataJSON {
-    const innerData: JoinGroupCallJsonPayload = {
-      'fingerprints': [],
-      'pwd': '',
-      'ssrc': ssrc,
-      'ssrc-groups': [],
-      'ufrag': ''
-    };
+    const innerData: JoinGroupCallJsonPayload = {ssrc};
 
     return {
       _: 'dataJSON',
@@ -259,7 +253,7 @@ export class RtmpCallsController extends EventListenerBase<{
       type: 'main',
       // Preserve the exact call identity used by this recovery so a late accepted
       // join can be compensated even after caches/currentCall have moved on.
-      e2eCallInput: currentCall.inputCall
+      callInput: currentCall.inputCall
     });
 
     if(this.currentCall !== currentCall || this.currentCallGeneration !== generation) {

@@ -5,12 +5,9 @@
  *    RPC, and `invoke` rejects outright once that flag is set — so the message
  *    was never posted and the key wipe the method documents never ran. The
  *    thread dies either way; the explicit zeroing is the point of the RPC.
- *  - ConferenceEntry.setSource accepted a source group with no sources,
- *    installing `undefined` as the entry's source and as a Map key.
  */
 
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {ConferenceEntry} from '@lib/calls/localConferenceDescription';
 
 // Minimal Worker stand-in: jsdom has none, and we only care what gets posted.
 class FakeWorker {
@@ -557,33 +554,5 @@ describe('encrypt.worker key ownership', () => {
     } finally {
       restore();
     }
-  });
-});
-
-describe('ConferenceEntry.setSource', () => {
-  it('refuses a source group carrying no sources', () => {
-    const entry = new ConferenceEntry('0', 'audio');
-    // The server picks these arrays. An empty one used to yield
-    // `entry.source === undefined`, which then became a Map key in
-    // entriesBySource — one bucket every such entry overwrites.
-    const groups = [{_: 'groupCallParticipantVideoSourceGroup', semantics: 'FID', sources: []} as any];
-    entry.setSource(groups);
-    expect(entry.source).toBeUndefined();
-    // `source` is undefined either way — what distinguishes the fix is that the
-    // entry is left UNCONFIGURED rather than half-configured with a source group
-    // it has no source for.
-    expect(entry.sourceGroups).toBeUndefined();
-  });
-
-  it('accepts a real source', () => {
-    const entry = new ConferenceEntry('0', 'video');
-    entry.setSource([{_: 'groupCallParticipantVideoSourceGroup', semantics: 'FID', sources: [4242]} as any]);
-    expect(entry.source).toBe(4242);
-  });
-
-  it('accepts a bare numeric source', () => {
-    const entry = new ConferenceEntry('0', 'audio');
-    entry.setSource(7);
-    expect(entry.source).toBe(7);
   });
 });

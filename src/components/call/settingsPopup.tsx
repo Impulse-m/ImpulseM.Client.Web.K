@@ -17,7 +17,7 @@ import {
   CallDeviceRow,
   useCallDeviceSettings
 } from '@components/call/callDeviceSettings';
-import {IS_NOISE_SUPPRESSION_SUPPORTED} from '@lib/calls/p2P/utils';
+import {IS_NOISE_SUPPRESSION_SUPPORTED} from '@lib/calls/helpers/getUserStream';
 import {changeCallDevice} from '@lib/calls/applyDeviceToActiveCall';
 import type CallInstance from '@lib/calls/callInstance';
 import CALL_STATE from '@lib/calls/callState';

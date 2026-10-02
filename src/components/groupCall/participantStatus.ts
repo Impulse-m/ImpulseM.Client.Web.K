@@ -17,13 +17,21 @@ export default class GroupCallParticipantStatusElement {
   }
 
   /**
-   * @param withAccess the participant is on the call's e2e blockchain but absent
+   * @param options.withAccess the participant is on the call's e2e blockchain but absent
    * from the SFU roster — it holds the current shared key without being
    * connected to the media. tdesktop renders the same row as a plain listener
    * with no status icon (`lng_group_call_blockchain_only_status`,
    * calls_group_members_row.cpp:702) and never shows `about` for it.
+   * @param options.isSpeaking LiveKit reports the participant as speaking right now. An unmuted participant
+   * is "speaking" only while that holds and "listening" while silent; a muted one carries a screen-reader-only
+   * "muted" after "listening" so the two silent states do not read the same.
    */
-  public setState(state: GROUP_CALL_PARTICIPANT_MUTED_STATE, participant: GroupCallParticipant, withAccess?: boolean) {
+  public setState(
+    state: GROUP_CALL_PARTICIPANT_MUTED_STATE,
+    participant: GroupCallParticipant,
+    options: {withAccess?: boolean, isSpeaking?: boolean} = {}
+  ) {
+    const {withAccess, isSpeaking} = options;
     const states = GROUP_CALL_PARTICIPANT_MUTED_STATE;
     const icons = withAccess ? [] : this.withIcons.filter((type) => !!participant[type]).map((type) => {
       const iconClassName: Icon = `${type === 'presentation' ? 'listscreenshare_filled' : 'videocamera_filled'}`;
@@ -31,7 +39,7 @@ export default class GroupCallParticipantStatusElement {
       return i;
     });
 
-    let element2: HTMLElement, actionClassName: string;
+    let element2: HTMLElement, actionClassName: string, srState: HTMLElement | undefined;
     if(withAccess) {
       element2 = i18n('VoiceChat.Status.Listening');
       actionClassName = 'is-listening';
@@ -39,8 +47,8 @@ export default class GroupCallParticipantStatusElement {
       element2 = i18n('VoiceChat.Status.MutedForYou');
       actionClassName = 'is-muted';
     } else if(state === states.UNMUTED) {
-      element2 = i18n('VoiceChat.Status.Speaking');
-      actionClassName = 'is-speaking';
+      element2 = i18n(isSpeaking ? 'VoiceChat.Status.Speaking' : 'VoiceChat.Status.Listening');
+      actionClassName = isSpeaking ? 'is-speaking' : 'is-listening';
     } else if(state === states.HAND) {
       element2 = i18n('VoiceChat.Status.WantsSpeak');
       actionClassName = 'is-waiting';
@@ -50,11 +58,17 @@ export default class GroupCallParticipantStatusElement {
     } else {
       element2 = i18n('VoiceChat.Status.Listening');
       actionClassName = 'is-listening';
+      if(state === states.MUTED || state === states.MUTED_BY_ADMIN) {
+        srState = document.createElement('span');
+        srState.classList.add('sr-only');
+        srState.append(' ', i18n('VoiceChat.Status.Muted'));
+      }
     }
 
     const span = document.createElement('span');
     span.classList.add(className, actionClassName);
     span.append(...icons, element2);
+    srState && span.append(srState);
 
     replaceContent(this.container, span);
   }

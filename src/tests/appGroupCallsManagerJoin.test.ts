@@ -1,8 +1,8 @@
 /*
- * Unit tests for AppGroupCallsManager.joinGroupCall — focused on the
- * `resolvedCallId` / `resolvedAccessHash` promotion the controller depends on
- * for invite-link / invite-message joins (where the placeholder instance.id
- * needs to be rewritten once the server echoes back the real id+access_hash).
+ * Unit tests for AppGroupCallsManager.joinGroupCall — the accepted-join
+ * metadata the connection depends on (the exact call identity for rollback and
+ * the access hash the join actually returned) and the compensation when local
+ * processing of an accepted join fails.
  */
 
 import {describe, expect, it, vi} from 'vitest';
@@ -21,7 +21,6 @@ import {
 import deferred from './helpers/deferred';
 
 type JoinOptions = Parameters<AppGroupCallsManager['joinGroupCall']>[2];
-type CreateOptions = Parameters<AppGroupCallsManager['createConferenceCall']>[1];
 
 
 // Build a fake `updateGroupCallConnection` reply, optionally accompanied by
@@ -35,7 +34,7 @@ function buildUpdatesReply(includeGroupCall: {
     {
       _: 'updateGroupCallConnection',
       pFlags: {},
-      params: {_: 'dataJSON', data: '{"answer":"sdp"}'}
+      params: {_: 'dataJSON', data: '{"livekit":{"url":"wss://lk.example","token":"t","room":"g.42"}}'}
     }
   ];
   if(includeGroupCall) {
@@ -193,24 +192,22 @@ function makeManager(opts: {
   return manager;
 }
 
-const params: DataJSON = {_: 'dataJSON', data: '{"offer":"sdp"}'};
+const params: DataJSON = {_: 'dataJSON', data: '{"ssrc":4294967295}'};
 
 const baseOptions: JoinOptions = {
   type: 'main',
   isMuted: true,
   joinVideo: false,
-  e2eCallInput: {_: 'inputGroupCallSlug', slug: 'fake-slug-for-test'},
-  e2eExpectedCallInput: {
+  callInput: {
     _: 'inputGroupCall',
     id: '12345678901',
-    access_hash: '99887766554433'
+    access_hash: 'stale-hash'
   }
 };
 
 describe('AppGroupCallsManager.joinGroupCall — resolvedCallId / resolvedAccessHash promotion', () => {
   it('attaches resolvedCallId + resolvedAccessHash when updates contain updateGroupCall', async() => {
     const reply = buildUpdatesReply({callId: '12345678901', accessHash: '99887766554433'});
-    reply.updates.push(chainUpdate('12345678901', 1));
     const manager = makeManager({apiResponse: reply});
 
     const update = await manager.joinGroupCall('placeholder-id', params, baseOptions);
@@ -229,9 +226,8 @@ describe('AppGroupCallsManager.joinGroupCall — resolvedCallId / resolvedAccess
     const reply = buildUpdatesReply(null);
     const manager = makeManager({apiResponse: reply});
 
-    // For the legacy case the controller must already know the id, so we
-    // wouldn't be using `e2eCallInput`. Use the id-form input + a synthetic
-    // group_call cache entry so `getGroupCallInput` succeeds.
+    // The controller already knows the id here: use a synthetic group_call
+    // cache entry so `getGroupCallInput` succeeds.
     (manager as any).groupCalls = new Map<string, GroupCall>([
       ['42', {
         _: 'groupCall',
@@ -256,223 +252,11 @@ describe('AppGroupCallsManager.joinGroupCall — resolvedCallId / resolvedAccess
     expect((update as any).acceptedCallInput).toEqual({_: 'inputGroupCall', id: '42', access_hash: '7'});
   });
 
-  it('fails closed and rolls back a slug join resolved only by a discarded call', async() => {
-    const reply = buildUpdatesReply({callId: 'discarded-id', accessHash: 'discarded-hash', discarded: true});
-    const manager = makeManager({apiResponse: reply});
-
-    await expect(manager.joinGroupCall('placeholder-id', params, baseOptions))
-    .rejects.toThrow('accepted non-canonical call did not match its preview identity');
-
-    expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(2, 'phone.leaveGroupCall', {
-      call: baseOptions.e2eCallInput,
-      source: 0
-    });
-  });
-
-  it('does not use a lone unrelated updateGroupCall as slug resolution', async() => {
-    const reply = buildUpdatesReply({callId: 'unrelated', accessHash: 'unrelated-hash'});
-    const manager = makeManager({apiResponse: reply});
-    const joinParams: DataJSON = {_: 'dataJSON', data: '{"ssrc":777}'};
-
-    await expect(manager.joinGroupCall('placeholder-id', joinParams, baseOptions))
-    .rejects.toThrow('accepted non-canonical call did not match its preview identity');
-
-    expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(2, 'phone.leaveGroupCall', {
-      call: baseOptions.e2eCallInput,
-      source: 777
-    });
-  });
-
-  it('rolls back a slug join when the response has no canonical call update', async() => {
-    const reply = buildUpdatesReply(null);
-    const manager = makeManager({apiResponse: reply});
-
-    await expect(manager.joinGroupCall('placeholder-id', params, baseOptions))
-    .rejects.toThrow('accepted non-canonical call did not match its preview identity');
-
-    expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(2, 'phone.leaveGroupCall', {
-      call: baseOptions.e2eCallInput,
-      source: 0
-    });
-  });
-
-  it('forwards `e2eCallInput` straight through as the `call` field (no synth from id)', async() => {
-    // The whole point of `e2eCallInput`: invitee paths (slug / inviteMessage)
-    // don't yet have an access_hash, so the manager must pass the override to
-    // the server rather than calling `getGroupCallInput` with the placeholder
-    // id (which would throw 'Group call not found').
-    const reply = buildUpdatesReply({callId: 'resolved-1', accessHash: 'resolved-hash'});
-    reply.updates.push(chainUpdate('resolved-1', 1));
-
-    // Sniff the request that the apiManager mock receives.
-    let sniffedRequest: any;
-    const manager = new AppGroupCallsManager();
-    Object.assign(manager as any, {
-      apiManager: {
-        invokeApi: async(_method: string, params: any) => {
-          sniffedRequest = params;
-          return reply;
-        }
-      },
-      apiUpdatesManager: {
-        processUpdateMessage: (updates: Updates) => {
-          const list = updates._ === 'updates' || updates._ === 'updatesCombined' ? updates.updates : [];
-          for(const update of list) {
-            if(update._ === 'updateGroupCall') manager.saveGroupCall(update.call);
-          }
-        }
-      },
-      appPeersManager: {getInputPeerSelf: () => ({_: 'inputPeerSelf'})},
-      // construct() isn't run here; mirror the maps joinGroupCall resets.
-      conferenceRosterFetches: new Map(),
-      nextOffsets: new Map(),
-      participantFetchGenerations: new Map(),
-      participantVersions: new Map(),
-      participants: new Map(),
-      groupCalls: new Map(),
-      rootScope: {dispatchEvent: vi.fn()},
-      log: Object.assign(() => {}, {warn: () => {}, error: () => {}, info: () => {}, debug: () => {}})
-    });
-
-    const inviteMessageInput = {_: 'inputGroupCallInviteMessage' as const, msg_id: 9999};
-    await manager.joinGroupCall('placeholder-id', params, {
-      type: 'main',
-      isMuted: true,
-      joinVideo: false,
-      e2eCallInput: inviteMessageInput,
-      e2eExpectedCallInput: {
-        _: 'inputGroupCall',
-        id: 'resolved-1',
-        access_hash: 'resolved-hash'
-      }
-    });
-
-    expect(sniffedRequest.call).toEqual(inviteMessageInput);
-  });
-
-  it('resolves a slug from the call linked by its chain update and excludes unrelated chains', async() => {
-    const resolved = activeGroupCall('200', 'hash-200');
-    const relevantChain = chainUpdate(200, 1);
-    const unrelatedChain = chainUpdate('300', 2);
-    const reply: Updates.updatesCombined = {
-      _: 'updatesCombined',
-      updates: [
-        {
-          _: 'updateGroupCallConnection',
-          pFlags: {},
-          params: {_: 'dataJSON', data: '{"answer":"sdp"}'}
-        },
-        groupCallUpdate(resolved),
-        unrelatedChain,
-        relevantChain
-      ],
-      users: [],
-      chats: [],
-      date: 0,
-      seq_start: 0,
-      seq: 0
-    };
-    const manager = makeManager({apiResponse: reply});
-
-    const update = await manager.joinGroupCall('placeholder-id', params, {
-      ...baseOptions,
-      e2eExpectedCallInput: {_: 'inputGroupCall', id: '200', access_hash: 'hash-200'}
-    }) as any;
-
-    expect(update.resolvedCallId).toBe('200');
-    expect(update.resolvedAccessHash).toBe('hash-200');
-    expect(update.resolvedChainUpdates).toEqual([relevantChain]);
-  });
-
-  it.each([
-    {order: 'older then newer', markers: [1, 2]},
-    {order: 'newer then older', markers: [2, 1]}
-  ])('rejects matching same-subchain chain updates in $order order before processing them', async({markers}) => {
-    const resolved = activeGroupCall('200', 'hash-200');
-    const ambiguousChains = markers.map((marker) => chainUpdate('200', marker));
-    const reply: Updates.updatesCombined = {
-      _: 'updatesCombined',
-      updates: [{
-        _: 'updateGroupCallConnection',
-        pFlags: {},
-        params: {_: 'dataJSON', data: '{"answer":"sdp"}'}
-      }, groupCallUpdate(resolved), ...ambiguousChains],
-      users: [],
-      chats: [],
-      date: 0,
-      seq_start: 0,
-      seq: 0
-    };
-    const rollbackReply: Updates.updates = {
-      _: 'updates',
-      updates: [],
-      users: [],
-      chats: [],
-      date: 0,
-      seq: 0
-    };
-    const manager = makeManager({apiResponse: reply});
-    (manager as any).apiManager.invokeApi
-    .mockResolvedValueOnce(reply)
-    .mockResolvedValueOnce(rollbackReply);
-
-    await expect(manager.joinGroupCall('placeholder-id', params, {
-      ...baseOptions,
-      e2eExpectedCallInput: {_: 'inputGroupCall', id: '200', access_hash: 'hash-200'}
-    })).rejects.toThrow(
-      'joinGroupCall: multiple matching updateGroupCallChainBlocks entries for subchain 0 in updatesCombined'
-    );
-
-    expect((manager as any).apiUpdatesManager.processUpdateMessage).toHaveBeenCalledTimes(1);
-    expect((manager as any).apiUpdatesManager.processUpdateMessage).toHaveBeenCalledWith(rollbackReply);
-    expect((manager as any).apiUpdatesManager.processUpdateMessage).not.toHaveBeenCalledWith(reply);
-    expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(2, 'phone.leaveGroupCall', {
-      call: {_: 'inputGroupCall', id: '200', access_hash: 'hash-200'},
-      source: 0
-    });
-  });
-
-  it('rejects mixed canonical call updates instead of guessing the slug resolution', async() => {
-    const unrelated = activeGroupCall('100', 'hash-100');
-    const resolved = activeGroupCall('200', 'hash-200');
-    const reply = buildUpdatesReply(null);
-    reply.updates.push(
-      groupCallUpdate(unrelated),
-      groupCallUpdate(resolved),
-      chainUpdate('200', 1)
-    );
-    const manager = makeManager({apiResponse: reply});
-
-    await expect(manager.joinGroupCall('placeholder-id', params, baseOptions))
-    .rejects.toThrow('accepted non-canonical call did not match its preview identity');
-
-    expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(2, 'phone.leaveGroupCall', {
-      call: baseOptions.e2eCallInput,
-      source: 0
-    });
-  });
-
-  it('does not infer slug identity from an internally-consistent foreign update pair', async() => {
-    const reply = buildUpdatesReply({callId: 'foreign', accessHash: 'foreign-hash'});
-    reply.updates.push(chainUpdate('foreign', 1));
-    const manager = makeManager({apiResponse: reply});
-    const options: JoinOptions = {
-      type: 'main',
-      e2eCallInput: {_: 'inputGroupCallSlug', slug: 'revocable-authorization'}
-    };
-
-    await expect(manager.joinGroupCall('placeholder-id', params, options))
-    .rejects.toThrow('accepted non-canonical call did not match its preview identity');
-
-    expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(1, 'phone.joinGroupCall',
-      expect.objectContaining({call: options.e2eCallInput}));
-  });
-
   it('extracts updateGroupCallConnection from updateShort safely', async() => {
     const connectionUpdate: Update.updateGroupCallConnection = {
       _: 'updateGroupCallConnection',
       pFlags: {},
-      params: {_: 'dataJSON', data: '{"answer":"sdp"}'}
+      params: {_: 'dataJSON', data: '{"livekit":{"url":"wss://lk.example","token":"t","room":"g.42"}}'}
     };
     const manager = makeManager({
       apiResponse: {_: 'updateShort', update: connectionUpdate, date: 0}
@@ -485,7 +269,7 @@ describe('AppGroupCallsManager.joinGroupCall — resolvedCallId / resolvedAccess
     ));
     const update = await manager.joinGroupCall('42', params, {
       type: 'main',
-      e2eCallInput: canonicalInput
+      callInput: canonicalInput
     });
 
     expect(update).toBe(connectionUpdate);
@@ -500,8 +284,9 @@ describe('AppGroupCallsManager.joinGroupCall — resolvedCallId / resolvedAccess
     ).rejects.toThrow('joinGroupCall: no updateGroupCallConnection in updatesTooLong');
 
     expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(2, 'phone.leaveGroupCall', {
-      call: baseOptions.e2eCallInput,
-      source: 0
+      call: baseOptions.callInput,
+      // the join declared 4294967295; a leave names the signed source, like groupCallParticipant.source
+      source: -1
     });
   });
 
@@ -521,7 +306,7 @@ describe('AppGroupCallsManager.joinGroupCall — resolvedCallId / resolvedAccess
 
     await expect(manager.joinGroupCall('42', joinParams, {
       type: 'main',
-      e2eCallInput: canonicalInput
+      callInput: canonicalInput
     })).rejects.toBe(processingError);
 
     expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(2, 'phone.leaveGroupCall', {
@@ -558,174 +343,13 @@ describe('AppGroupCallsManager.joinGroupCall — resolvedCallId / resolvedAccess
 
     await expect(manager.joinGroupCall(requested.id, params, {
       type: 'main',
-      e2eCallInput: requested
+      callInput: requested
     })).rejects.toBe(processingError);
 
     expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(2, 'phone.leaveGroupCall', {
       call: {_: 'inputGroupCall', id: requested.id, access_hash: finalHash},
-      source: 0
+      source: -1
     });
-  });
-});
-
-describe('AppGroupCallsManager.createConferenceCall', () => {
-  const createOptions: CreateOptions = {
-    type: 'main',
-    isMuted: true,
-    joinVideo: false,
-    e2ePublicKey: new Uint8Array(32).fill(7),
-    e2eBlock: new Uint8Array([8, 9])
-  };
-
-  it('creates and joins atomically, then normalizes the accepted response', async() => {
-    const created = activeGroupCall('700', 'hash-700');
-    const relevantChain = chainUpdate('700', 1);
-    const foreignChain = chainUpdate('701', 2);
-    const reply = buildUpdatesReply(null);
-    reply.updates.push(groupCallUpdate(created), relevantChain, foreignChain);
-    const manager = makeManager({apiResponse: reply});
-
-    const update = await manager.createConferenceCall(params, createOptions) as any;
-
-    expect((manager as any).apiManager.invokeApi).toHaveBeenCalledWith(
-      'phone.createConferenceCall',
-      {
-        muted: true,
-        video_stopped: true,
-        join: true,
-        random_id: expect.any(Number),
-        public_key: createOptions.e2ePublicKey,
-        block: createOptions.e2eBlock,
-        params
-      }
-    );
-    expect(update.acceptedCallInput).toEqual({
-      _: 'inputGroupCall',
-      id: created.id,
-      access_hash: created.access_hash
-    });
-    expect(update.resolvedGroupCall).toBe(created);
-    expect(update.resolvedChainUpdates).toEqual([relevantChain]);
-    expect((manager as any).apiUpdatesManager.processUpdateMessage).toHaveBeenCalledWith(reply);
-  });
-
-  it.each([
-    {hashes: ['old-hash', 'new-hash'], expectedHash: 'new-hash'},
-    {hashes: ['new-hash', 'old-hash'], expectedHash: 'old-hash'}
-  ])('uses the final active update identity for hashes $hashes', async({hashes, expectedHash}) => {
-    const reply = buildUpdatesReply(null);
-    reply.updates.push(...hashes.map((accessHash) => {
-      return groupCallUpdate(activeGroupCall('700', accessHash));
-    }));
-    const manager = makeManager({apiResponse: reply});
-
-    const update = await manager.createConferenceCall(params, createOptions) as any;
-
-    expect(update.acceptedCallInput).toEqual({
-      _: 'inputGroupCall',
-      id: '700',
-      access_hash: expectedHash
-    });
-    expect(update.resolvedAccessHash).toBe(expectedHash);
-    expect(update.resolvedGroupCall.access_hash).toBe(expectedHash);
-  });
-
-  it.each([
-    {label: 'active then discarded', discardedFirst: false},
-    {label: 'discarded then active', discardedFirst: true}
-  ])('rejects a response whose authoritative call is terminal: $label', async({discardedFirst}) => {
-    const active = activeGroupCall('700', 'hash-700');
-    const discarded: GroupCall.groupCallDiscarded = {
-      _: 'groupCallDiscarded',
-      id: active.id,
-      access_hash: active.access_hash,
-      duration: 0
-    };
-    const reply = buildUpdatesReply(null);
-    const lifecycleUpdates: Update.updateGroupCall[] = [
-      {_: 'updateGroupCall', pFlags: {}, call: discarded},
-      groupCallUpdate(active)
-    ];
-    if(!discardedFirst) lifecycleUpdates.reverse();
-    reply.updates.push(...lifecycleUpdates);
-    const manager = makeManager({apiResponse: reply});
-
-    await expect(manager.createConferenceCall(params, createOptions)).rejects.toThrow(
-      'createConferenceCall: accepted group call is not active after update processing'
-    );
-
-    expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(2, 'phone.discardGroupCall', {
-      call: {_: 'inputGroupCall', id: active.id, access_hash: active.access_hash}
-    });
-  });
-
-  it.each([
-    {
-      label: 'missing',
-      connections: [] as Update.updateGroupCallConnection[],
-      message: 'no updateGroupCallConnection'
-    },
-    {
-      label: 'duplicate',
-      connections: [
-        {_: 'updateGroupCallConnection', pFlags: {}, params},
-        {_: 'updateGroupCallConnection', pFlags: {}, params}
-      ] as Update.updateGroupCallConnection[],
-      message: 'multiple updateGroupCallConnection'
-    }
-  ])('discards the exact accepted call after a $label connection response', async({connections, message}) => {
-    const created = activeGroupCall('700', 'hash-700');
-    const reply: Updates.updates = {
-      _: 'updates',
-      updates: [groupCallUpdate(created), ...connections],
-      users: [],
-      chats: [],
-      date: 0,
-      seq: 0
-    };
-    const rollbackReply = buildUpdatesReply(null);
-    const manager = makeManager({apiResponse: reply});
-    (manager as any).apiManager.invokeApi
-    .mockResolvedValueOnce(reply)
-    .mockResolvedValueOnce(rollbackReply);
-
-    await expect(manager.createConferenceCall(params, createOptions)).rejects.toThrow(message);
-
-    expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(2, 'phone.discardGroupCall', {
-      call: {_: 'inputGroupCall', id: created.id, access_hash: created.access_hash}
-    });
-    expect((manager as any).apiUpdatesManager.processUpdateMessage).not.toHaveBeenCalledWith(reply);
-  });
-
-  it('discards after local processing fails and preserves that original error', async() => {
-    const created = activeGroupCall('700', 'hash-700');
-    const reply = buildUpdatesReply(null);
-    reply.updates.push(groupCallUpdate(created));
-    const rollbackReply = buildUpdatesReply(null);
-    const processingError = new Error('accepted create processing failed');
-    const manager = makeManager({apiResponse: reply});
-    (manager as any).apiManager.invokeApi
-    .mockResolvedValueOnce(reply)
-    .mockResolvedValueOnce(rollbackReply);
-    (manager as any).apiUpdatesManager.processUpdateMessage
-    .mockImplementationOnce(() => { throw processingError; });
-
-    await expect(manager.createConferenceCall(params, createOptions)).rejects.toBe(processingError);
-
-    expect((manager as any).apiManager.invokeApi).toHaveBeenNthCalledWith(2, 'phone.discardGroupCall', {
-      call: {_: 'inputGroupCall', id: created.id, access_hash: created.access_hash}
-    });
-  });
-
-  it('does not compensate a create RPC that was never accepted', async() => {
-    const rpcError = new Error('create rejected');
-    const manager = makeManager({apiResponse: {_: 'updatesTooLong'}});
-    (manager as any).apiManager.invokeApi.mockRejectedValueOnce(rpcError);
-
-    await expect(manager.createConferenceCall(params, createOptions)).rejects.toBe(rpcError);
-
-    expect((manager as any).apiManager.invokeApi).toHaveBeenCalledTimes(1);
-    expect((manager as any).apiUpdatesManager.processUpdateMessage).not.toHaveBeenCalled();
   });
 });
 

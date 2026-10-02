@@ -1,93 +1,49 @@
 import {describe, expect, it, vi} from 'vitest';
-
-vi.mock('@lib/calls/groupCallsController', () => ({
-  default: {reserveConferenceTransition: vi.fn()}
-}));
-
 import {CallTransitionCoordinator} from '@lib/calls/callTransitionCoordinator';
 import deferred from './helpers/deferred';
 
-
-function makeCoordinator() {
-  let reservations = 0;
-  const reserve = vi.fn(() => {
-    ++reservations;
-    let released = false;
-    return Promise.resolve(() => {
-      if(released) return;
-      released = true;
-      --reservations;
-    });
-  });
-  const coordinator = new CallTransitionCoordinator(reserve);
-  return {coordinator, reserve, reservations: () => reservations};
-}
-
 describe('call transition coordinator', () => {
-  it.each([
-    'P2P callUser',
-    'legacy group call',
-    'RTMP live stream'
-  ])('reserves before the %s transition awaits and holds through completion', async() => {
-    const {coordinator, reserve, reservations} = makeCoordinator();
-    const pending = deferred();
-    let started = false;
-
-    const transition = coordinator.run(async() => {
-      started = true;
-      await pending.promise;
-    });
-
-    expect(reserve).toHaveBeenCalledTimes(1);
-    expect(reservations()).toBe(1);
-    await vi.waitFor(() => expect(started).toBe(true));
-    expect(reservations()).toBe(1);
-
-    pending.resolve();
-    await transition;
-    expect(reservations()).toBe(0);
-  });
-
-  it('serializes every transition while reserving queued work immediately', async() => {
-    const {coordinator, reservations} = makeCoordinator();
+  it('runs transitions one at a time, in the order they were queued', async() => {
+    const coordinator = new CallTransitionCoordinator();
     const created = deferred();
     const joined = deferred();
-    let createStarted = false;
-    let joinStarted = false;
+    const order: string[] = [];
 
     const createTransition = coordinator.run(async() => {
-      createStarted = true;
+      order.push('create:start');
       await created.promise;
+      order.push('create:end');
     });
     const joinTransition = coordinator.run(async() => {
-      joinStarted = true;
+      order.push('join:start');
       await joined.promise;
+      order.push('join:end');
     });
 
-    expect(reservations()).toBe(2);
-    await vi.waitFor(() => expect(createStarted).toBe(true));
-    expect(joinStarted).toBe(false);
-
+    await vi.waitFor(() => expect(order).toEqual(['create:start']));
     created.resolve();
     await createTransition;
-    await vi.waitFor(() => expect(joinStarted).toBe(true));
-    expect(reservations()).toBe(1);
-
+    await vi.waitFor(() => expect(order).toEqual(['create:start', 'create:end', 'join:start']));
     joined.resolve();
     await joinTransition;
-    expect(reservations()).toBe(0);
+    expect(order).toEqual(['create:start', 'create:end', 'join:start', 'join:end']);
   });
 
-  it('releases after an aborted transition', async() => {
-    const {coordinator, reservations} = makeCoordinator();
+  it('hands back what the transition returned', async() => {
+    const coordinator = new CallTransitionCoordinator();
+    await expect(coordinator.run(async() => 42)).resolves.toBe(42);
+  });
+
+  it('keeps going after an aborted transition and reports the abort to its own caller', async() => {
+    const coordinator = new CallTransitionCoordinator();
     const error = new Error('transition aborted');
 
-    const transition = coordinator.run(async() => {
+    const aborted = coordinator.run(async() => {
       throw error;
     });
+    const next = coordinator.run(async() => 'next');
 
-    expect(reservations()).toBe(1);
-    await expect(transition).rejects.toBe(error);
-    expect(reservations()).toBe(0);
+    await expect(aborted).rejects.toBe(error);
+    await expect(next).resolves.toBe('next');
   });
 });

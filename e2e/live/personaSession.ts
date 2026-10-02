@@ -1,7 +1,7 @@
 import {readFileSync} from 'fs';
 import {join} from 'path';
 
-import {Browser, BrowserContext, chromium, Page, expect} from '@playwright/test';
+import {Browser, BrowserContext, BrowserContextOptions, chromium, Page, expect} from '@playwright/test';
 
 import type {ActiveAccountNumber} from '../../src/lib/accounts/types';
 import {loginCodeFor, Persona} from '../../src/tests/liveharness/personas';
@@ -121,11 +121,17 @@ export class PersonaSession {
   public static async open(
     browser: Browser,
     persona: Persona,
-    options: {blockServiceWorkers?: boolean, inProcessWorker?: boolean} = {}
+    options: {
+      blockServiceWorkers?: boolean,
+      inProcessWorker?: boolean,
+      /** Extra context options (the calls lane grants the microphone and camera this way). */
+      contextOptions?: BrowserContextOptions
+    } = {}
   ): Promise<PersonaSession> {
-    const context = await browser.newContext(
-      options.blockServiceWorkers ? {serviceWorkers: 'block'} : {}
-    );
+    const context = await browser.newContext({
+      ...options.contextOptions,
+      ...(options.blockServiceWorkers ? {serviceWorkers: 'block'} : {})
+    });
     const page = await context.newPage();
     const consoleClean = await ConsoleCleanInvariant.attach(page, persona.firstName);
     const session = new PersonaSession(persona, context, page, consoleClean);

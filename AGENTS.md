@@ -300,6 +300,14 @@ const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: tr
 const stream = await getStream({video, audio});
 ```
 
+Calls run on LiveKit (`src/lib/calls/livekit/`). The code hands LiveKit tracks it captured itself, with
+`LocalParticipant.publishTrack(mediaStreamTrack, {source})` and `LocalTrack.replaceTrack(track, {userProvidedTrack: true})`.
+LiveKit's own device helpers (`setMicrophoneEnabled`, `setCameraEnabled`, `setScreenShareEnabled`, `createLocalTracks`,
+`switchActiveDevice`) open the devices themselves and are banned; `liveKitNeverCapturesMedia.test.ts` fails on them.
+A 1:1 call's media is end-to-end encrypted with a key derived from the call's DH auth key
+(`livekit/callMediaKey.ts` documents the exact recipe, a cross-client contract) and the call refuses to start in a browser
+that cannot encrypt it — there is no plaintext fallback.
+
 For the standard call-tuned video/audio constraints (which already inject the selected device), build them with `getVideoConstraints()` / `getAudioConstraints()` from the same folder; otherwise pass your own constraints and `getStream` handles acquisition + device fallback.
 
 ### Object URLs (`blob:`)

@@ -5,10 +5,10 @@
  * https://github.com/evgeny-nadymov/telegram-react/blob/master/LICENSE
  */
 
-import type GroupCallConnectionInstance from '@lib/calls/groupCallConnectionInstance';
+import type {GroupCallConnectionOptions} from '@lib/calls/groupCallConnectionInstance';
 import safeReplaceObject from '@helpers/object/safeReplaceObject';
-import {nextRandomUint} from '@helpers/random';
-import {Chat, ChatFull, DataJSON, GroupCall, GroupCallParticipant, GroupCallParticipantVideoSourceGroup, GroupCallStreamChannel, InputFileLocation, InputGroupCall, Peer, PhoneGroupCall, PhoneGroupParticipants, PhoneJoinGroupCall, PhoneJoinGroupCallPresentation, Update, Updates} from '@layer';
+import {nextRandomInt32} from '@helpers/random';
+import {Chat, ChatFull, DataJSON, GroupCall, GroupCallParticipant, GroupCallStreamChannel, InputFileLocation, InputGroupCall, Peer, PhoneGroupCall, PhoneGroupParticipants, PhoneJoinGroupCall, PhoneJoinGroupCallPresentation, Update, Updates} from '@layer';
 import {FOLDER_ID_ALL, NULL_PEER_ID} from '@appManagers/constants';
 import {AppManager} from '@appManagers/manager';
 import getPeerId from '@appManagers/utils/peers/getPeerId';
@@ -42,16 +42,12 @@ export type MyGroupCall = GroupCall | Exclude<
 
 export type GroupCallConnectionType = 'main' | 'presentation';
 
+/**
+ * The `params` of phone.joinGroupCall / phone.joinGroupCallPresentation: the unsigned 32-bit source the
+ * client declares for this connection. The LiveKit coordinates come back in the answer.
+ */
 export type JoinGroupCallJsonPayload = {
-  fingerprints: {
-    fingerprint: string;
-    setup: string;
-    hash: string;
-  }[];
-  pwd: string;
   ssrc: number;
-  'ssrc-groups': GroupCallParticipantVideoSourceGroup.groupCallParticipantVideoSourceGroup[];
-  ufrag: string;
 };
 
 // Upper bound on the conference-roster walk. Purely a stop against a server
@@ -87,19 +83,14 @@ type ResolvedGroupCallConnection = Update.updateGroupCallConnection & {
   acceptedCallInput: InputGroupCall,
   resolvedCallId?: GroupCallId,
   resolvedAccessHash?: GroupCall.groupCall['access_hash'],
-  resolvedGroupCall?: GroupCall.groupCall,
-  resolvedChainUpdates?: Update.updateGroupCallChainBlocks[]
+  resolvedGroupCall?: GroupCall.groupCall
 };
 
-type MainGroupCallConnectionOptions = Extract<
-  GroupCallConnectionInstance['options'],
-  {type: 'main'}
->;
-
+// The source a leave names is the signed one, like `groupCallParticipant.source`; the join declares it unsigned.
 function getJoinSource(params: DataJSON): number {
   try {
-    const source = (JSON.parse(params.data) as {ssrc?: unknown}).ssrc;
-    return typeof(source) === 'number' && Number.isSafeInteger(source) ? source : 0;
+    const source = (JSON.parse(params.data) as Partial<JoinGroupCallJsonPayload>).ssrc;
+    return typeof(source) === 'number' && Number.isSafeInteger(source) ? toImpulseMSource(source) : 0;
   } catch{
     return 0;
   }
@@ -642,7 +633,7 @@ export class AppGroupCallsManager extends AppManager {
   public async createGroupCall(chatId: ChatId, scheduleDate?: number, title?: string, rtmp = false) {
     const updates = await this.apiManager.invokeApi('phone.createGroupCall', {
       peer: this.appPeersManager.getInputPeerById(chatId.toPeerId(true)),
-      random_id: nextRandomUint(32),
+      random_id: nextRandomInt32(),
       schedule_date: scheduleDate,
       title,
       rtmp_stream: rtmp
@@ -1085,6 +1076,11 @@ export class AppGroupCallsManager extends AppManager {
     this.processGroupCallTermination(call, updates);
   }
 
+  /** Which of `sources` the server still has registered for us in `call`. */
+  public checkGroupCall(call: InputGroupCall, sources: number[]): Promise<number[]> {
+    return this.apiManager.invokeApi('phone.checkGroupCall', {call, sources});
+  }
+
   public async discardGroupCall(call: InputGroupCall): Promise<void> {
     const updates = await this.apiManager.invokeApi('phone.discardGroupCall', {call});
     this.processGroupCallTermination(call, updates);
@@ -1098,77 +1094,20 @@ export class AppGroupCallsManager extends AppManager {
     return this.leaveGroupCall(call, discard);
   }
 
-  public async createConferenceCall(
-    params: DataJSON,
-    options: MainGroupCallConnectionOptions
-  ): Promise<ResolvedGroupCallConnection> {
-    if(!options.e2ePublicKey || !options.e2eBlock) {
-      throw new Error('createConferenceCall: missing conference key material');
-    }
-
-    const updates = await this.apiManager.invokeApi('phone.createConferenceCall', {
-      muted: options.isMuted,
-      video_stopped: !options.joinVideo,
-      join: true,
-      random_id: nextRandomUint(32),
-      public_key: options.e2ePublicKey,
-      block: options.e2eBlock,
-      params
-    });
-    const acceptedCallInput = getInputGroupCallFromUpdates(updates);
-
-    try {
-      const connectionUpdate = this.getGroupCallConnectionUpdate(updates, 'createConferenceCall');
-      if(!acceptedCallInput) {
-        throw new Error('createConferenceCall: no unique active group call in response');
-      }
-      const groupCallUpdate = findResolvedGroupCallUpdate(updates, acceptedCallInput);
-      if(!groupCallUpdate) {
-        throw new Error('createConferenceCall: accepted group call update disappeared');
-      }
-      this.invalidateParticipantFetches(acceptedCallInput.id);
-      return this.processAcceptedGroupCallConnection(
-        updates,
-        connectionUpdate,
-        acceptedCallInput,
-        groupCallUpdate,
-        'createConferenceCall'
-      );
-    } catch(error) {
-      if(acceptedCallInput) {
-        try {
-          await this.discardGroupCall(acceptedCallInput);
-        } catch(rollbackError) {
-          this.log.warn('createConferenceCall: accepted create rollback failed', rollbackError);
-        }
-      }
-      throw error;
-    }
-  }
-
   public async joinGroupCall(
     groupCallId: GroupCallId,
     params: DataJSON,
-    options: GroupCallConnectionInstance['options']
+    options: GroupCallConnectionOptions
   ): Promise<ResolvedGroupCallConnection> {
-    // Conference invitees may not have a cached id+access_hash yet — they pass
-    // `inputGroupCallSlug` or `inputGroupCallInviteMessage` instead. Honour
-    // the override when set; the join response carries the real
-    // updateGroupCall(id, access_hash) which the rest of the app picks up.
-    const groupCallInput = (options.type === 'main' && options.e2eCallInput) ?
-      options.e2eCallInput :
+    const groupCallInput = (options.type === 'main' && options.callInput) ?
+      options.callInput :
       this.getGroupCallInput(groupCallId);
     let invalidatedParticipantFetchCallId: GroupCallId | undefined;
-    if(options.type === 'main') {
-      const expectedCallInput = groupCallInput._ === 'inputGroupCall' ?
-        groupCallInput :
-        options.e2eExpectedCallInput;
-      if(expectedCallInput?._ === 'inputGroupCall') {
-        // Invalidate the previous connection before the rejoin RPC starts: an
-        // old page can resolve while that RPC is still in flight.
-        this.invalidateParticipantFetches(expectedCallInput.id);
-        invalidatedParticipantFetchCallId = expectedCallInput.id;
-      }
+    if(options.type === 'main' && groupCallInput._ === 'inputGroupCall') {
+      // Invalidate the previous connection before the rejoin RPC starts: an
+      // old page can resolve while that RPC is still in flight.
+      this.invalidateParticipantFetches(groupCallInput.id);
+      invalidatedParticipantFetchCallId = groupCallInput.id;
     }
     let promise: Promise<Updates>;
     if(options.type === 'main') {
@@ -1179,12 +1118,6 @@ export class AppGroupCallsManager extends AppManager {
         muted: options.isMuted,
         video_stopped: !options.joinVideo
       };
-
-      // Conference (TdE2E) extras — only set when the caller drove the join
-      // through the e2e path. Server distinguishes a conference join by the
-      // presence of both fields.
-      if(options.e2ePublicKey) request.public_key = options.e2ePublicKey;
-      if(options.e2eBlock) request.block = options.e2eBlock;
 
       promise = this.apiManager.invokeApi('phone.joinGroupCall', request);
       this.log(`[api] joinGroupCall id=${groupCallId}`, request);
@@ -1202,14 +1135,7 @@ export class AppGroupCallsManager extends AppManager {
     let acceptedCallInput = groupCallInput;
     try {
       const connectionUpdate = this.getGroupCallConnectionUpdate(updates, 'joinGroupCall');
-      // A canonical request already proves its identity. Slug/message requests
-      // keep their revocable authorization, while the separately supplied
-      // preview identity is the only canonical call they may promote to.
-      const expectedCallInput = options.type === 'main' ? options.e2eExpectedCallInput : undefined;
-      const groupCallUpdate = findResolvedGroupCallUpdate(updates, groupCallInput, expectedCallInput);
-      if(groupCallInput._ !== 'inputGroupCall' && !groupCallUpdate) {
-        throw new Error('joinGroupCall: accepted non-canonical call did not match its preview identity');
-      }
+      const groupCallUpdate = findResolvedGroupCallUpdate(updates, groupCallInput);
       if(groupCallUpdate) acceptedCallInput = groupCallToInput(groupCallUpdate.call);
 
       if(options.type === 'main' && acceptedCallInput._ === 'inputGroupCall' &&
@@ -1241,7 +1167,7 @@ export class AppGroupCallsManager extends AppManager {
 
   private getGroupCallConnectionUpdate(
     updates: Updates,
-    operation: 'createConferenceCall' | 'joinGroupCall'
+    operation: 'joinGroupCall'
   ): Update.updateGroupCallConnection {
     const connectionUpdates = getUpdatesList(updates).filter(
       (item): item is Update.updateGroupCallConnection => item._ === 'updateGroupCallConnection'
@@ -1260,24 +1186,8 @@ export class AppGroupCallsManager extends AppManager {
     connectionUpdate: Update.updateGroupCallConnection,
     acceptedCallInput: InputGroupCall,
     groupCallUpdate: Update.updateGroupCall & {call: GroupCall.groupCall},
-    operation: 'createConferenceCall' | 'joinGroupCall'
+    operation: 'joinGroupCall'
   ): ResolvedGroupCallConnection {
-    const updatesList = getUpdatesList(updates);
-    const resolvedChainUpdates = updatesList.filter(
-      (item): item is Update.updateGroupCallChainBlocks => {
-        return item._ === 'updateGroupCallChainBlocks' && sameInputGroupCall(item.call, acceptedCallInput);
-      }
-    );
-    const resolvedSubChains = new Set<number>();
-    for(const chainUpdate of resolvedChainUpdates) {
-      if(resolvedSubChains.has(chainUpdate.sub_chain_id)) {
-        throw new Error(
-          `${operation}: multiple matching updateGroupCallChainBlocks entries for subchain ${chainUpdate.sub_chain_id} in ${updates._}`
-        );
-      }
-      resolvedSubChains.add(chainUpdate.sub_chain_id);
-    }
-
     this.apiUpdatesManager.processUpdateMessage(updates);
 
     if(acceptedCallInput._ !== 'inputGroupCall') {
@@ -1291,8 +1201,8 @@ export class AppGroupCallsManager extends AppManager {
 
     const extended = connectionUpdate as ResolvedGroupCallConnection;
     // Cloneable acceptance metadata crosses the manager proxy boundary. The
-    // controller uses it for compensation if worker commit, SDP parsing or
-    // setRemoteDescription fails after this method returns.
+    // controller uses it for compensation if reading the coordinates or
+    // connecting fails after this method returns.
     extended.acceptedCallInput = resolvedCallInput;
     if(groupCallUpdate) {
       // Keep the id in its native (fetchLong) form — number for small ids,
@@ -1300,9 +1210,6 @@ export class AppGroupCallsManager extends AppManager {
       extended.resolvedCallId = cachedGroupCall.id;
       extended.resolvedAccessHash = cachedGroupCall.access_hash;
       extended.resolvedGroupCall = cachedGroupCall;
-    }
-    if(resolvedChainUpdates.length) {
-      extended.resolvedChainUpdates = resolvedChainUpdates;
     }
     return extended;
   }
@@ -1470,7 +1377,7 @@ export class AppGroupCallsManager extends AppManager {
    */
   public async createConferenceCallLink(): Promise<{call: InputGroupCall.inputGroupCall, link: string}> {
     const updates = await this.apiManager.invokeApi('phone.createConferenceCall', {
-      random_id: nextRandomUint(32)
+      random_id: nextRandomInt32()
     });
 
     const call = getInputGroupCallFromUpdates(updates);

@@ -8,7 +8,6 @@ import getStream from '@lib/calls/helpers/getStream';
 import getStreamCached from '@lib/calls/helpers/getStreamCached';
 import getVideoConstraints from '@lib/calls/helpers/getVideoConstraints';
 import stopTrack from '@lib/calls/helpers/stopTrack';
-import LocalConferenceDescription from '@lib/calls/localConferenceDescription';
 import StreamManager, {StreamItem} from '@lib/calls/streamManager';
 import shouldMirrorVideoTrack from '@lib/calls/helpers/shouldMirrorVideoTrack';
 import {appSettings} from '@stores/appSettings';
@@ -17,7 +16,7 @@ export type TryAddTrackOptions = {
   stream: MediaStream,
   track: MediaStreamTrack,
   type: StreamItem['type'],
-  source?: string
+  source: string
 };
 
 type MediaDeviceChangeKind = 'audio' | 'video' | 'output';
@@ -163,7 +162,6 @@ export default abstract class CallInstanceBase<E extends EventListenerListeners>
   }
 
   public abstract get streamManager(): StreamManager;
-  public abstract get description(): LocalConferenceDescription;
   public abstract toggleMuted(): Promise<void>;
 
   public cleanup() {
@@ -185,14 +183,6 @@ export default abstract class CallInstanceBase<E extends EventListenerListeners>
     super.cleanup();
   }
 
-  public onTrack(event: RTCTrackEvent) {
-    this.tryAddTrack({
-      stream: event.streams[0],
-      track: event.track,
-      type: 'output'
-    });
-  }
-
   public saveInputVideoStream(stream: MediaStream, type?: string) {
     const track = stream.getVideoTracks()[0];
     this.tryAddTrack({
@@ -203,11 +193,14 @@ export default abstract class CallInstanceBase<E extends EventListenerListeners>
     });
   }
 
-  public tryAddTrack({stream, track, type, source}: TryAddTrackOptions) {
-    if(!source) {
-      source = StreamManager.getSource(stream, type);
-    }
-
+  /**
+   * Registers one track and gives it a media element.
+   *
+   * `source` is mandatory: the caller names the participant/endpoint the track belongs to. Output audio gets
+   * its own `<audio>` element keyed `audio:{source}` (not a shared mix) so volume and "muted by you" apply to
+   * one participant; video elements are keyed by `source`.
+   */
+  public tryAddTrack({stream, track, type, source}: TryAddTrackOptions): string {
     this.log('tryAddTrack', stream, track, type, source);
 
     const isOutput = type === 'output';
@@ -217,7 +210,7 @@ export default abstract class CallInstanceBase<E extends EventListenerListeners>
     const tagName = track.kind as StreamItem['kind'];
     const isVideo = tagName === 'video';
 
-    const elementEndpoint = isVideo ? source : tagName;
+    const elementEndpoint = isVideo ? source : CallInstanceBase.getAudioElementKey(source);
     let element = elements.get(elementEndpoint);
 
     if(isVideo) {
@@ -229,10 +222,15 @@ export default abstract class CallInstanceBase<E extends EventListenerListeners>
     }
 
     if(isOutput) {
-      streamManager.addTrack(stream, track, type);
+      streamManager.addTrack(stream, track, type, source);
     }
 
-    const useStream = isVideo ? stream : streamManager.outputStream;
+    if(!isVideo && !isOutput) {
+      // our own microphone is never played back to us
+      return source;
+    }
+
+    const useStream = isVideo ? stream : new MediaStream([track]);
     if(!element) {
       element = document.createElement(tagName);
       element.autoplay = true;
@@ -275,11 +273,10 @@ export default abstract class CallInstanceBase<E extends EventListenerListeners>
       // }
     }
 
-    // The shared audio element is created and play()-primed before it has a
-    // source. Assigning srcObject afterwards does not reliably restart it,
-    // especially when a remote track appears muted and starts producing frames
-    // only after async negotiation/decryption. Always play after the source is
-    // installed, and retry once when that first track becomes live.
+    // A freshly attached source does not reliably start on its own, especially
+    // when a remote track appears muted and starts producing frames only after
+    // async negotiation/decryption. Always play after the source is installed,
+    // and retry once when that first track becomes live.
     safePlay(element);
     if(track.muted) {
       track.addEventListener('unmute', () => {
@@ -290,6 +287,51 @@ export default abstract class CallInstanceBase<E extends EventListenerListeners>
     }
 
     return source;
+  }
+
+  /**
+   * Drops what is rendered for one remote source: its stream-manager items and its media element(s) —
+   * `audio:{source}` and/or the video element keyed `source`, or just one of them when `kind` is given.
+   */
+  public removeOutputTrack(source: string, kind?: 'audio' | 'video'): void {
+    const {elements, streamManager} = this;
+    const keys: string[] = [];
+    if(kind !== 'video') keys.push(CallInstanceBase.getAudioElementKey(source));
+    if(kind !== 'audio') keys.push(source);
+    for(const key of keys) {
+      const element: HTMLMediaElement | undefined = elements.get(key);
+      if(!element) {
+        continue;
+      }
+
+      const stream = element.srcObject;
+      if(stream instanceof MediaStream) {
+        stream.getTracks().forEach((track) => streamManager.removeTrack(track));
+      }
+
+      element.srcObject = null;
+      element.remove();
+      elements.delete(key);
+    }
+  }
+
+  /**
+   * Applies a participant's volume (0..1) and "muted by me" to that participant's own audio element.
+   * Returns false when the source has no audio element yet.
+   */
+  public setOutputAudioState(options: {source: string, volume: number, muted: boolean}): boolean {
+    const element: HTMLMediaElement | undefined = this.elements.get(CallInstanceBase.getAudioElementKey(options.source));
+    if(!element) {
+      return false;
+    }
+
+    element.volume = Math.min(1, Math.max(0, options.volume));
+    element.muted = options.muted;
+    return true;
+  }
+
+  public static getAudioElementKey(source: string): string {
+    return `audio:${source}`;
   }
 
   public setMuted(muted?: boolean) {
@@ -636,6 +678,12 @@ export default abstract class CallInstanceBase<E extends EventListenerListeners>
     newTrack: MediaStreamTrack
   ): MaybePromise<void>;
 
+  // Hands a freshly captured stream to the transport. Overridden by calls that send input over a
+  // connection; a call that has no connection yet (a preview) keeps it in the stream manager only.
+  protected publishInputStream(stream: MediaStream): Promise<void> {
+    return Promise.resolve();
+  }
+
   protected async onInputStream(stream: MediaStream): Promise<void> {
     if(!this.isClosing) {
       const videoTracks = stream.getVideoTracks();
@@ -643,13 +691,11 @@ export default abstract class CallInstanceBase<E extends EventListenerListeners>
         this.saveInputVideoStream(stream, 'main');
       }
 
-      const {streamManager, description} = this;
+      const {streamManager} = this;
       streamManager.addStream(stream, 'input');
 
       try {
-        if(description) {
-          await streamManager.appendToConference(description, undefined, true);
-        }
+        await this.publishInputStream(stream);
       } catch(err) {
         stream.getTracks().forEach((track) => {
           streamManager.removeTrack(track);
@@ -658,7 +704,7 @@ export default abstract class CallInstanceBase<E extends EventListenerListeners>
         throw err;
       }
 
-      // cleanup() may have run while sender.replaceTrack was pending. Its
+      // cleanup() may have run while the publish was pending. Its
       // first stop pass cannot cover a stream registered after that pass, so
       // release explicitly before this async continuation returns.
       if(this.isClosing) {

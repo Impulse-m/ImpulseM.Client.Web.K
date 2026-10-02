@@ -30,14 +30,15 @@ function makeInstance() {
     apiUpdatesManager: {processUpdateMessage: vi.fn()}
   };
   const main: any = {
-    connection: {iceConnectionState: 'connected'},
+    transportState: 'connected',
+    transport: {disconnectCause: undefined as string | undefined, addEventListener: vi.fn()},
     streamManager: {
       inputStream: {getAudioTracks: () => [audioTrack], getVideoTracks: (): unknown[] => []},
       hasInputTrackKind: vi.fn(() => false),
       stop: vi.fn()
     },
-    description: {},
     sources: {audio: {source: 1}},
+    syncMicrophone: vi.fn(async() => {}),
     closeConnectionAndStream: vi.fn()
   };
   const instance = new GroupCallInstance({id: 'self-row' as any, chatId: 0 as any, managers});
@@ -85,7 +86,8 @@ describe('GroupCallInstance self participant row', () => {
   it('ignores a self left row while our own leave is already closing the connection', () => {
     const {instance, main, hangUp} = makeInstance();
     instances.push(instance);
-    main.connection.iceConnectionState = 'closed';
+    main.transportState = 'disconnected';
+    main.transport.disconnectCause = 'client';
 
     instance.onParticipantUpdate(selfRow({left: true, can_self_unmute: true}));
 

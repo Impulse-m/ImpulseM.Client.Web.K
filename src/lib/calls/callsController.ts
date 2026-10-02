@@ -26,7 +26,7 @@ import {toastNew} from '@components/toast';
 import getConferenceInviteErrorLangKey from '@lib/calls/conferenceInviteError';
 import callTransitionCoordinator from '@lib/calls/callTransitionCoordinator';
 import {groupCallToInput} from '@lib/calls/helpers/groupCallUpdates';
-import {CALL_PROTOCOL_LIBRARY_VERSIONS} from '@lib/calls/p2P/getCallProtocol';
+import {CALL_PROTOCOL_LIBRARY_VERSIONS} from '@lib/calls/livekit/getCallProtocol';
 import {CALL_REQUEST_TIMEOUT, CALL_WAITING_RING_VOLUME} from '@lib/calls/constants';
 
 export class CallsController extends EventListenerBase<{
@@ -89,15 +89,6 @@ export class CallsController extends EventListenerBase<{
           this.log.error('call update failure cleanup failed', hangUpError, call);
         });
       });
-    });
-
-    rootScope.addEventListener('call_signaling', ({callId, data}) => {
-      const instance = this.instances.get(callId);
-      if(instance?.id !== callId) {
-        return;
-      }
-
-      instance.onUpdatePhoneCallSignalingData(data);
     });
 
     // Conference chain delivery (sub_chain_id 0 = blocks, 1 = broadcasts)
@@ -320,7 +311,7 @@ export class CallsController extends EventListenerBase<{
     return true;
   }
 
-  // This client speaks exactly the tgcalls versions in getCallProtocol; a peer
+  // This client speaks exactly the LiveKit protocol version in getCallProtocol; a peer
   // whose list has none of them cannot be connected to whatever happens next.
   private isProtocolCompatible(protocol: PhoneCallProtocol) {
     return !!protocol?.library_versions?.some((version) => CALL_PROTOCOL_LIBRARY_VERSIONS.includes(version));

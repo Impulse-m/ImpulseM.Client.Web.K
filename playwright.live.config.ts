@@ -35,7 +35,34 @@ export default defineConfig({
       // reported incident's own browser/route) — it belongs to firefox-archive120 below only,
       // so this line is what keeps the ordinary chromium live suite provably unchanged rather
       // than silently gaining a second, unrelated 120 MiB-over-the-network test.
-      testIgnore: '**/archive120Upload.live.spec.ts'
+      testIgnore: ['**/archive120Upload.live.spec.ts', '**/calls.live.spec.ts']
+    },
+    {
+      // The calls lane: LiveKit media between two real browsers on the live stack. Chromium feeds a
+      // synthetic microphone and camera (a beep and a test pattern), so the media is never silent;
+      // the permissions are granted per context by the spec (pairContextOptions). The scenario
+      // carries its own env gate (IMPULSE_LIVE_LIVEKIT) because it needs a real LiveKit project
+      // behind the dev stack, which the rest of the live suite does not.
+      name: 'chromium-calls',
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']}
+      },
+      testMatch: '**/calls.live.spec.ts'
+    },
+    {
+      // The same scenarios in Firefox (calls are allowed there): fake devices through its prefs.
+      name: 'firefox-calls',
+      use: {
+        ...devices['Desktop Firefox'],
+        launchOptions: {
+          firefoxUserPrefs: {
+            'media.navigator.streams.fake': true,
+            'media.navigator.permission.disabled': true
+          }
+        }
+      },
+      testMatch: '**/calls.live.spec.ts'
     },
     {
       // Selected explicitly with --project=firefox-archive120; never picked up by a bare

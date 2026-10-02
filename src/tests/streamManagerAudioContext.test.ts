@@ -121,6 +121,17 @@ describe('StreamManager audio context lifecycle', () => {
     expect((manager as any).items).toHaveLength(0);
   });
 
+  it('closes a context that is still closing only once: a second stop must not be rejected with InvalidStateError', () => {
+    const {manager, context} = makeManager();
+    // a real context reports `running` until close() has actually completed
+    context.close = vi.fn(() => new Promise<void>(() => {}));
+
+    manager.stop();
+    manager.stop();
+
+    expect(context.close).toHaveBeenCalledTimes(1);
+  });
+
   it('does not build an analyser on a closed context', () => {
     const {manager, context, addAudio} = makeManager();
     manager.stop();

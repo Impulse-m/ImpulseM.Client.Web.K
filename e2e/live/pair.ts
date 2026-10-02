@@ -1,4 +1,4 @@
-import {test as base, expect} from '@playwright/test';
+import {BrowserContextOptions, test as base, expect} from '@playwright/test';
 
 import {ephemeralPersona} from '../../src/tests/liveharness/personas';
 import {PersonaSession} from './personaSession';
@@ -21,12 +21,19 @@ export type PersonaPair = {
 };
 
 
-export const test = base.extend<{pair: PersonaPair}>({
-  pair: async({browser}, use, testInfo) => {
+export const test = base.extend<{pair: PersonaPair, pairContextOptions: BrowserContextOptions}>({
+  // Options of both personas' browser contexts; a scenario sets them with test.use({pairContextOptions}).
+  pairContextOptions: [{}, {option: true}],
+
+  pair: async({browser, pairContextOptions}, use, testInfo) => {
     // The label doubles as the persona's first name and is typed into the sign-up UI, which
     // caps names at 70 chars — testId keeps it short while still unique per scenario.
-    const sender = await PersonaSession.open(browser, ephemeralPersona(`sender-${testInfo.testId}`));
-    const recipient = await PersonaSession.open(browser, ephemeralPersona(`recipient-${testInfo.testId}`));
+    // Firefox has no `permissions` context option: its fake devices need none (the project's prefs).
+    const contextOptions: BrowserContextOptions = browser.browserType().name() === 'firefox' ?
+      {...pairContextOptions, permissions: undefined} :
+      pairContextOptions;
+    const sender = await PersonaSession.open(browser, ephemeralPersona(`sender-${testInfo.testId}`), {contextOptions});
+    const recipient = await PersonaSession.open(browser, ephemeralPersona(`recipient-${testInfo.testId}`), {contextOptions});
 
     try {
       await Promise.all([

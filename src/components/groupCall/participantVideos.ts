@@ -48,6 +48,20 @@ export default class GroupCallParticipantsVideoElement extends ControlsHover {
       }
     });
 
+    // a tile shows its participant's speaking status too
+    let speakingPeerIds = new Set<PeerId>();
+    listenerSetter.add(rootScope)('group_call_speaking', ({groupCallId, peerIds}) => {
+      if(this.instance.id !== groupCallId) return;
+      const next = new Set(peerIds);
+      const changed = [...new Set([...speakingPeerIds, ...next])].filter((peerId) => speakingPeerIds.has(peerId) !== next.has(peerId));
+      speakingPeerIds = next;
+      changed.filter((peerId) => this.participantsElements.has(peerId)).forEach((peerId) => {
+        void this.instance.getParticipantByPeerId(peerId).then((participant) => {
+          participant && this.participantsElements.get(peerId)?.forEach((element) => element.updateParticipant(participant));
+        }).catch((err) => console.error('group call tile speaking update failed', err));
+      });
+    });
+
     listenerSetter.add(this.instance)('pinned', (source) => {
       this.participantsElements.forEach((map) => {
         map.forEach((element) => {

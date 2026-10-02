@@ -11,6 +11,11 @@ export function nextRandomUint(bits: 8 | 16 | 32) {
   return array[0];
 }
 
+/** A random signed 32-bit integer: the range of a TL `int` (the wire refuses anything above 2^31 - 1). */
+export function nextRandomInt32(): number {
+  return nextRandomUint(32) | 0;
+}
+
 export function randomLong() {
   return '' + nextRandomUint(32) + nextRandomUint(32) % 0xFFFFFF;
 }

@@ -112,8 +112,6 @@
     "@bufbuild/protobuf": "^2.14.0",
     "@connectrpc/connect": "^2.1.2",
     "@connectrpc/connect-web": "^2.1.2",
-    "centrifuge": "^5.7.1",
-    "loglevel": "^1.9.2",
     "@tiptap/core": "3.28.0",
     "@tiptap/extension-bold": "3.28.0",
     "@tiptap/extension-code-block": "3.28.0",
@@ -127,6 +125,9 @@
     "@tiptap/extension-underline": "3.28.0",
     "@tiptap/extensions": "3.28.0",
     "@tiptap/pm": "3.28.0",
+    "centrifuge": "^5.7.1",
+    "livekit-client": "2.22.3",
+    "loglevel": "^1.9.2",
     "temml": "^0.13.3"
   }
 }

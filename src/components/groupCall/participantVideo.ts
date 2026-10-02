@@ -128,7 +128,9 @@ export default class GroupCallParticipantVideoElement {
     const state = getGroupCallParticipantMutedState(participant);
 
     this.groupCallParticipantMutedIcon.setState(state);
-    this.groupCallParticipantStatus.setState(state, participant);
+    this.groupCallParticipantStatus.setState(state, participant, {
+      isSpeaking: this.instance.isSpeaking(getPeerId(participant.peer))
+    });
   }
 
   public destroy() {

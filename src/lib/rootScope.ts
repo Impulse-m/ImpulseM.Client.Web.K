@@ -200,10 +200,11 @@ export type BroadcastEvents = {
 
   'group_call_update': GroupCall,
   'group_call_participant': {groupCallId: GroupCallId, participant: GroupCallParticipant},
+  // the peers LiveKit currently reports as speaking (the complete set, not a delta)
+  'group_call_speaking': {groupCallId: GroupCallId, peerIds: PeerId[]},
   // 'group_call_video_track_added': {instance: GroupCallInstance}
 
   'call_update': PhoneCall,
-  'call_signaling': {callId: CallId, data: Uint8Array},
   'group_call_chain_blocks': {callId: GroupCallId, subChainId: number, blocks: Uint8Array[], nextOffset: number},
 
   'rtmp_call_update': RtmpCallInstance,

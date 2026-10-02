@@ -1,0 +1,325 @@
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  appSettings: {callDevices: {speakerId: ''}},
+  assertE2eeSupported: vi.fn(),
+  getUserStream: vi.fn(),
+  invokeCrypto: vi.fn(),
+  toastNew: vi.fn()
+}));
+
+vi.mock('@helpers/dom/safePlay', () => ({default: vi.fn()}));
+vi.mock('@environment/webpSupport', () => ({default: true}));
+vi.mock('@components/toast', () => ({toastNew: mocks.toastNew}));
+vi.mock('@lib/calls/helpers/getAudioConstraints', () => ({default: () => ({})}));
+vi.mock('@lib/calls/helpers/getStream', () => ({default: vi.fn()}));
+vi.mock('@lib/calls/helpers/getUserStream', async(importOriginal) => {
+  const actual = await importOriginal<typeof import('@lib/calls/helpers/getUserStream')>();
+  return {...actual, getUserStream: mocks.getUserStream};
+});
+vi.mock('@lib/calls/helpers/getStreamCached', () => ({default: () => vi.fn()}));
+vi.mock('@lib/calls/helpers/stopTrack', () => ({default: (track: {stop: () => void}) => track.stop()}));
+vi.mock('@lib/calls/localConferenceDescription', () => ({default: class LocalConferenceDescription {}}));
+vi.mock('@lib/calls/streamManager', () => ({default: class StreamManager {
+  public stop(): void {}
+}}));
+vi.mock('@lib/calls/callsController', () => ({default: {dispatchEvent: vi.fn()}}));
+vi.mock('@lib/apiManagerProxy', () => ({default: {invokeCrypto: mocks.invokeCrypto}}));
+vi.mock('@stores/appSettings', () => ({appSettings: mocks.appSettings}));
+vi.mock('@lib/calls/livekit/liveKitTransport', async() => {
+  const {default: FakePhoneCallTransport} = await import('./helpers/fakePhoneCallTransport');
+  return {default: FakePhoneCallTransport, assertLiveKitE2eeSupported: mocks.assertE2eeSupported};
+});
+
+import CallInstance from '@lib/calls/callInstance';
+import CALL_STATE from '@lib/calls/callState';
+import {LiveKitE2eeUnsupportedError} from '@lib/calls/livekit/liveKitErrors';
+import {PEER_GONE_HANGUP_MS} from '@lib/calls/livekit/phoneCallSession';
+import FakePhoneCallTransport from './helpers/fakePhoneCallTransport';
+
+class FakeMediaStream {
+  public readonly tracks: MediaStreamTrack[];
+
+  constructor(tracks: MediaStreamTrack[] = []) {
+    this.tracks = tracks;
+  }
+
+  public getTracks(): MediaStreamTrack[] {
+    return this.tracks;
+  }
+
+  public getAudioTracks(): MediaStreamTrack[] {
+    return this.tracks.filter((track) => track.kind === 'audio');
+  }
+
+  public getVideoTracks(): MediaStreamTrack[] {
+    return this.tracks.filter((track) => track.kind === 'video');
+  }
+}
+
+function track(kind: 'audio' | 'video'): MediaStreamTrack & {stop: ReturnType<typeof vi.fn>} {
+  return {
+    kind,
+    enabled: true,
+    muted: false,
+    stop: vi.fn(),
+    addEventListener: vi.fn()
+  } as unknown as MediaStreamTrack & {stop: ReturnType<typeof vi.fn>};
+}
+
+function livekitParams(room: string): {_: 'dataJSON', data: string} {
+  return {
+    _: 'dataJSON',
+    data: JSON.stringify({livekit: {url: 'wss://lk.example', token: 'jwt', room}})
+  };
+}
+
+const AUTH_KEY: Uint8Array = new Uint8Array(256).map((_, index) => index % 256);
+// SHA-256 of AUTH_KEY, computed independently (see callMediaKey.test.ts)
+const AUTH_KEY_MEDIA_KEY_HEX = '40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880';
+
+function hex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte: number) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function makeInstance(options?: {isOutgoing?: boolean, video?: boolean}) {
+  const discardCall = vi.fn().mockResolvedValue(undefined);
+  const computeKey = vi.fn().mockResolvedValue({key: AUTH_KEY, key_fingerprint: 'fp'});
+  const confirmCall = vi.fn();
+  const instance = new CallInstance({
+    isOutgoing: options?.isOutgoing ?? true,
+    interlocutorUserId: 7 as UserId,
+    managers: {appCallsManager: {discardCall, computeKey, confirmCall}} as any
+  });
+  instance.id = 'call-42' as any;
+  (instance as any).streamManager.stop = vi.fn();
+  mocks.invokeCrypto.mockResolvedValue([]);
+  return {instance, discardCall, computeKey, confirmCall, video: !!options?.video};
+}
+
+function lastTransport(): FakePhoneCallTransport {
+  return FakePhoneCallTransport.instances[FakePhoneCallTransport.instances.length - 1];
+}
+
+async function joinWith(instance: CallInstance, call: Record<string, unknown>): Promise<FakePhoneCallTransport> {
+  instance.setPhoneCall({_: 'phoneCall', id: 'call-42', pFlags: {}, ...call} as any);
+  instance.encryptionKey = AUTH_KEY;
+  instance.dh = {g_a: new Uint8Array([1])} as any;
+  instance.joinCall();
+  await vi.waitFor(() => expect(lastTransport()?.calls).toContain('connect'));
+  return lastTransport();
+}
+
+beforeEach(() => {
+  vi.stubGlobal('MediaStream', FakeMediaStream);
+  vi.clearAllMocks();
+  FakePhoneCallTransport.instances = [];
+  mocks.assertE2eeSupported.mockReset().mockResolvedValue(undefined);
+  mocks.getUserStream.mockReset().mockImplementation(async(kind: string) => {
+    return new FakeMediaStream([track(kind === 'audio' ? 'audio' : 'video')]);
+  });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
+
+describe('1:1 call on LiveKit', () => {
+  it('connects with the coordinates of the call, an E2EE key from the DH auth key and autoSubscribe', async() => {
+    const {instance} = makeInstance();
+    const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
+
+    const [params, options] = transport.connectArgs as [any, any];
+    expect(params).toMatchObject({url: 'wss://lk.example', token: 'jwt', room: 'p.call-42'});
+    expect(options.autoSubscribe).toBe(true);
+    expect(hex(options.e2eeKey)).toBe(AUTH_KEY_MEDIA_KEY_HEX);
+    await vi.waitFor(() => expect(transport.calls).toContain('publish:microphone'));
+    expect(mocks.assertE2eeSupported).toHaveBeenCalledTimes(1);
+    instance.cleanup();
+  });
+
+  it.each([
+    ['no parameters at all', undefined],
+    ['parameters without a livekit section', {_: 'dataJSON', data: '{"ssrc":5}'}],
+    ['coordinates of another room', livekitParams('p.other')]
+  ])('tells the user and ends the call with Disconnect on %s', async(_title, custom_parameters) => {
+    const {instance, discardCall} = makeInstance();
+    instance.setPhoneCall({_: 'phoneCall', id: 'call-42', pFlags: {}, custom_parameters} as any);
+    instance.encryptionKey = AUTH_KEY;
+    instance.dh = {g_a: new Uint8Array([1])} as any;
+
+    instance.joinCall();
+
+    await vi.waitFor(() => expect(discardCall).toHaveBeenCalledTimes(1));
+    expect(mocks.toastNew).toHaveBeenCalledWith({langPackKey: 'Call.LiveKitUnavailable'});
+    expect(discardCall.mock.calls[0][2]).toEqual({_: 'phoneCallDiscardReasonDisconnect'});
+    expect(FakePhoneCallTransport.instances).toHaveLength(0);
+    expect(mocks.getUserStream).not.toHaveBeenCalled();
+  });
+
+  it('fails visibly, before asking for the microphone, when the browser cannot encrypt media', async() => {
+    mocks.assertE2eeSupported.mockRejectedValue(new LiveKitE2eeUnsupportedError());
+    const {instance, discardCall} = makeInstance();
+    instance.setPhoneCall({_: 'phoneCall', id: 'call-42', pFlags: {}, custom_parameters: livekitParams('p.call-42')} as any);
+    instance.encryptionKey = AUTH_KEY;
+    instance.dh = {g_a: new Uint8Array([1])} as any;
+
+    instance.joinCall();
+
+    await vi.waitFor(() => expect(discardCall).toHaveBeenCalledTimes(1));
+    expect(mocks.toastNew).toHaveBeenCalledWith({langPackKey: 'Call.E2eeUnsupported'});
+    expect(discardCall.mock.calls[0][2]).toEqual({_: 'phoneCallDiscardReasonDisconnect'});
+    expect(FakePhoneCallTransport.instances).toHaveLength(0);
+    expect(mocks.getUserStream).not.toHaveBeenCalled();
+  });
+
+  it('takes the coordinates from the confirmCall answer before the call update arrives', async() => {
+    const {instance, confirmCall} = makeInstance({isOutgoing: true});
+    // the state the caller holds when the callee accepted: no coordinates yet
+    instance.setPhoneCall({_: 'phoneCallAccepted', id: 'call-42', g_b: new Uint8Array([5]), pFlags: {}} as any);
+    instance.dh = {a: new Uint8Array([1]), g_a: new Uint8Array([2]), p: new Uint8Array([3])} as any;
+    confirmCall.mockResolvedValue({
+      _: 'phoneCall',
+      id: 'call-42',
+      pFlags: {},
+      custom_parameters: livekitParams('p.call-42')
+    });
+
+    await instance.confirmCall();
+
+    await vi.waitFor(() => expect(lastTransport()?.calls).toContain('connect'));
+    expect((lastTransport().connectArgs as any[])[0]).toMatchObject({room: 'p.call-42', token: 'jwt'});
+    expect(mocks.toastNew).not.toHaveBeenCalled();
+    instance.cleanup();
+  });
+
+  it('starts the camera as well for a video call', async() => {
+    const {instance} = makeInstance();
+    const transport = await joinWith(instance, {
+      pFlags: {video: true},
+      custom_parameters: livekitParams('p.call-42')
+    });
+
+    await vi.waitFor(() => expect(transport.calls).toContain('publish:camera'));
+    expect(transport.calls.indexOf('publish:microphone')).toBeLessThan(transport.calls.indexOf('publish:camera'));
+    instance.cleanup();
+  });
+
+  it('is connecting until the peer is in the room, then connected', async() => {
+    const {instance} = makeInstance();
+    const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
+    await vi.waitFor(() => expect(transport.calls).toContain('publish:microphone'));
+    expect(instance.connectionState).toBe(CALL_STATE.CONNECTING);
+
+    transport.dispatchEvent('remoteParticipant', {identity: 'u7', present: true});
+    expect(instance.connectionState).toBe(CALL_STATE.CONNECTED);
+    expect(instance.connectedAt).toBeDefined();
+
+    transport.emitState('reconnecting');
+    expect(instance.connectionState).toBe(CALL_STATE.CONNECTING);
+    transport.emitState('connected');
+    expect(instance.connectionState).toBe(CALL_STATE.CONNECTED);
+    instance.cleanup();
+  });
+
+  it('maps the peer microphone, camera and screen into the remote media state', async() => {
+    const {instance} = makeInstance();
+    const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
+    transport.dispatchEvent('remoteParticipant', {identity: 'u7', present: true});
+    expect(instance.getMediaState('output')).toBeUndefined();
+
+    const remote = (source: 'microphone' | 'camera' | 'screen', muted = false) => transport.dispatchEvent('remoteTrack', {
+      identity: 'u7',
+      sid: `TR_${source}`,
+      source,
+      track: track(source === 'microphone' ? 'audio' : 'video'),
+      muted
+    });
+
+    remote('microphone');
+    expect(instance.getMediaState('output')).toMatchObject({muted: false, videoState: 'inactive', screencastState: 'inactive'});
+
+    remote('camera');
+    remote('screen');
+    expect(instance.getMediaState('output')).toMatchObject({muted: false, videoState: 'active', screencastState: 'active'});
+    expect(instance.getVideoElement('output')).toBeInstanceOf(HTMLVideoElement);
+
+    transport.dispatchEvent('remoteTrackMuted', {identity: 'u7', source: 'microphone', muted: true});
+    transport.dispatchEvent('remoteTrackMuted', {identity: 'u7', source: 'camera', muted: true});
+    expect(instance.getMediaState('output')).toMatchObject({muted: true, videoState: 'inactive', screencastState: 'active'});
+
+    transport.dispatchEvent('remoteTrackRemoved', {identity: 'u7', sid: 'TR_screen', source: 'screen'});
+    expect(instance.getMediaState('output')).toMatchObject({screencastState: 'inactive'});
+    instance.cleanup();
+  });
+
+  it('ignores media of any identity other than the peer', async() => {
+    const {instance} = makeInstance();
+    const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
+
+    transport.dispatchEvent('remoteTrack', {identity: 'u999', sid: 'TR_x', source: 'microphone', track: track('audio'), muted: false});
+
+    expect(instance.getMediaState('output')).toBeUndefined();
+    instance.cleanup();
+  });
+
+  it('hangs up with Disconnect only after the peer has been gone for the grace period', async() => {
+    vi.useFakeTimers();
+    const {instance, discardCall} = makeInstance();
+    const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
+    await vi.waitFor(() => expect(transport.calls).toContain('publish:microphone'));
+    transport.dispatchEvent('remoteParticipant', {identity: 'u7', present: true});
+
+    transport.dispatchEvent('remoteParticipant', {identity: 'u7', present: false});
+    await vi.advanceTimersByTimeAsync(PEER_GONE_HANGUP_MS - 1);
+    expect(discardCall).not.toHaveBeenCalled();
+
+    // the peer comes back inside the grace period: nothing happens, and the timer is spent
+    transport.dispatchEvent('remoteParticipant', {identity: 'u7', present: true});
+    await vi.advanceTimersByTimeAsync(PEER_GONE_HANGUP_MS * 2);
+    expect(discardCall).not.toHaveBeenCalled();
+
+    transport.dispatchEvent('remoteParticipant', {identity: 'u7', present: false});
+    await vi.advanceTimersByTimeAsync(PEER_GONE_HANGUP_MS);
+    expect(discardCall).toHaveBeenCalledTimes(1);
+    expect(discardCall.mock.calls[0][2]).toEqual({_: 'phoneCallDiscardReasonDisconnect'});
+  });
+
+  it('ends the call with Disconnect when the transport fails for any reason but a room deletion or our own close', async() => {
+    const {instance, discardCall} = makeInstance();
+    const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
+    await vi.waitFor(() => expect(transport.calls).toContain('publish:microphone'));
+
+    transport.emitState('disconnected', 'network');
+
+    await vi.waitFor(() => expect(discardCall).toHaveBeenCalledTimes(1));
+    expect(discardCall.mock.calls[0][2]).toEqual({_: 'phoneCallDiscardReasonDisconnect'});
+  });
+
+  it('does not send a discard when the server deleted the room', async() => {
+    const {instance, discardCall} = makeInstance();
+    const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
+    await vi.waitFor(() => expect(transport.calls).toContain('publish:microphone'));
+
+    transport.emitState('disconnected', 'roomDeleted');
+
+    await vi.waitFor(() => expect(instance.connectionState).toBe(CALL_STATE.CLOSED));
+    expect(discardCall).not.toHaveBeenCalled();
+    expect(transport.disconnectCount).toBe(1);
+  });
+
+  it('a hangup releases the microphone and the transport once', async() => {
+    const {instance, discardCall} = makeInstance();
+    const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
+    await vi.waitFor(() => expect(transport.calls).toContain('publish:microphone'));
+    const micTrack = (await mocks.getUserStream.mock.results[0].value).getTracks()[0];
+
+    await instance.hangUp('phoneCallDiscardReasonHangup');
+    await instance.hangUp('phoneCallDiscardReasonHangup');
+
+    expect(discardCall).toHaveBeenCalledTimes(1);
+    expect(micTrack.stop).toHaveBeenCalledTimes(1);
+    expect(transport.disconnectCount).toBe(1);
+  });
+});

@@ -57,7 +57,13 @@ export type BootOptions = {
    * (RealtimeWireObserver) — installing after boot returns would race the realtime spin-up
    * that after() kicks off during createManagers.
    */
-  afterEnvInstalled?: () => void
+  afterEnvInstalled?: () => void,
+  /**
+   * Overrides of the browser-parity environment (browserParityEnvironment). The default leaves the
+   * call managers off (IS_CALL_SUPPORTED / IS_GROUP_CALL_SUPPORTED false), so a scenario that drives
+   * calls turns them on here, before the managers read the flags in their `after()`.
+   */
+  environment?: Record<string, unknown>
 };
 
 export type LiveHelpers = {
@@ -120,7 +126,7 @@ async function installBootPrelude(gatewayOrigin: string, options?: BootOptions):
   DeferredIsUsingPasscode.resolveDeferred(false);
 
   const {setEnvironment} = await import('@environment/utils');
-  setEnvironment(browserParityEnvironment() as any);
+  setEnvironment({...browserParityEnvironment(), ...options?.environment} as any);
 
   const MTProtoMessagePort = (await import('@lib/mainWorker/mainMessagePort')).default;
   new MTProtoMessagePort<false>(false);

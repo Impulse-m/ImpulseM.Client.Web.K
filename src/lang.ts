@@ -4094,6 +4094,8 @@ const lang = {
   'AutoDownloadSettings.LastDelimeter': ' and ',
   'Bio.Description': 'Any details such as age, occupation or city.\nExample: 23 y.o. designer from San Francisco',
   'Call.Accept': 'Accept',
+  'Call.LiveKitUnavailable': 'The call could not be connected. Try again later.',
+  'Call.E2eeUnsupported': 'This browser cannot encrypt call media, so the call cannot start. Open it in a supported browser or app.',
   'Call.Decline': 'Decline',
   'Call.End': 'End',
   'Call.Camera': 'Camera',

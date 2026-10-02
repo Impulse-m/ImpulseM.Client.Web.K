@@ -1,6 +1,6 @@
 import {getEnvironment} from '@environment/utils';
 import safeReplaceObject from '@helpers/object/safeReplaceObject';
-import {nextRandomUint} from '@helpers/random';
+import {nextRandomInt32} from '@helpers/random';
 import {
   InputGroupCall,
   InputPhoneCall,
@@ -32,11 +32,6 @@ export class AppCallsManager extends AppManager {
     this.apiUpdatesManager.addMultipleEventsListeners({
       updatePhoneCall: (update) => {
         this.saveCall(update.phone_call);
-      },
-
-      updatePhoneCallSignalingData: (update) => {
-        this.log('signaling data', update.phone_call_id, update.data?.length);
-        this.rootScope.dispatchEvent('call_signaling', {callId: update.phone_call_id, data: update.data});
       },
 
       // Conference call chain delivery — both new blocks and emoji broadcasts
@@ -80,7 +75,7 @@ export class AppCallsManager extends AppManager {
 
     // A ringing request must reach exactly one tab (one popup, one ringtone):
     // the least idle tab of this account. Every later state of the call goes
-    // to ALL tabs of the account, like call_signaling — only the tab that owns
+    // to ALL tabs of the account — only the tab that owns
     // the CallInstance acts on it, the rest ignore an unknown call id. Routing
     // those by idle time as well lost phoneCallDiscarded / phoneCall whenever
     // the user focused another tab mid-call: the ringing tab rang out the full
@@ -170,14 +165,6 @@ export class AppCallsManager extends AppManager {
     });
   }
 
-  public sendSignalingData(callId: CallId, data: Uint8Array) {
-    this.log('sendSignalingData', callId, {bytes: data.length});
-    return this.apiManager.invokeApi('phone.sendSignalingData', {
-      peer: this.getCallInput(callId),
-      data
-    });
-  }
-
   // Acknowledges an incoming request: until a device sends this the caller
   // sees "waiting", not "ringing". tdesktop sends it before it rings
   // (calls_call.cpp startIncoming), tdlib right on phoneCallRequested.
@@ -194,7 +181,7 @@ export class AppCallsManager extends AppManager {
       user_id: this.appUsersManager.getUserInput(userId),
       protocol: protocol,
       video: video,
-      random_id: nextRandomUint(32),
+      random_id: nextRandomInt32(),
       g_a_hash: g_a_hash
     });
 

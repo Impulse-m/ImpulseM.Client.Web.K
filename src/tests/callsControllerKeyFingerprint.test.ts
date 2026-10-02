@@ -50,7 +50,6 @@ const mocks = vi.hoisted(() => {
     }
 
     public overrideConnectionState(): void {}
-    public onUpdatePhoneCallSignalingData(): void {}
 
     public get isClosing(): boolean {
       return false;

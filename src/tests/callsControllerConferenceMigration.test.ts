@@ -65,7 +65,6 @@ const mocks = vi.hoisted(() => {
 
     public setHangUpTimeout(): void {}
     public clearHangUpTimeout(): void {}
-    public onUpdatePhoneCallSignalingData(): void {}
 
     public async hangUp(...args: unknown[]): Promise<void> {
       this.hangUpCalls.push(args);
