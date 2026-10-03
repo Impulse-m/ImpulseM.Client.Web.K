@@ -20,8 +20,6 @@ const IS_MUTED = true;
 
 // A connection that stayed up this long is healthy: a failure after it gets its one rejoin again.
 const REJOIN_RESET_MS = 60000;
-// How long a deleted room waits for the call's own discard update before the call is torn down locally.
-const ROOM_DELETED_TEARDOWN_MS = 5000;
 
 export type ConferenceJoinOptions = {
   input: InputGroupCall;
@@ -306,8 +304,7 @@ export class GroupCallsController extends EventListenerBase<{
    * What a lost main connection becomes. LiveKit already resumed and re-authenticated on its own before it
    * reports `disconnected`, so what is left is final for that connection:
    * - our own close: nothing;
-   * - the same identity connected elsewhere, or the room deleted: the call is over here (the room goes
-   *   with the call's discard, which is waited for);
+   * - the same identity connected elsewhere, or the room deleted: the call is over here;
    * - removed from the room: asked whether the server still lists our source; if it does not and our own
    *   row says we left, the call is left, otherwise one rejoin;
    * - anything else (network, an unreachable or refusing server): one rejoin; the second loss leaves.
@@ -330,13 +327,14 @@ export class GroupCallsController extends EventListenerBase<{
       }
 
       case 'roomDeleted': {
-        window.setTimeout(() => {
-          if(this.currentGroupCall === instance && instance.connections.main === connection && !instance.isClosing) {
-            void instance.hangUp(false, false, true).catch((err) => {
-              this.log.warn('local teardown after the room was deleted failed', err);
-            });
-          }
-        }, ROOM_DELETED_TEARDOWN_MS);
+        // Only the server deletes a call's room, and only when it ends the call. Nothing is sent from here (the
+        // teardown is local, no leave RPC), so there is no reason to wait for the call's own discard update: that
+        // update is applied by the manager whenever it arrives, and finds the call already left.
+        if(this.currentGroupCall === instance && instance.connections.main === connection && !instance.isClosing) {
+          void instance.hangUp(false, false, true).catch((err) => {
+            this.log.warn('local teardown after the room was deleted failed', err);
+          });
+        }
         return;
       }
 

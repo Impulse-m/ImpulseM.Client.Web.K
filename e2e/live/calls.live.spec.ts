@@ -107,6 +107,18 @@ test.describe('LiveKit calls', () => {
       expectMediaFlowing(recipient.page, 'phone', {remoteIdentity: new RegExp(`^u${senderId}$`), e2ee: true})
     ]);
 
+    // What the recipient hears from here on, and the call it will see end
+    await recipient.page.evaluate(() => {
+      const played: string[] = [];
+      const play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function(this: HTMLMediaElement): Promise<void> {
+        played.push(this.currentSrc || this.src);
+        return play.call(this);
+      };
+      (window as any).__playedSounds = played;
+      (window as any).__watchedCall = (window as any).callsController.currentCall;
+    });
+
     await sender.page.evaluate(async() => {
       await (window as any).callsController.currentCall.hangUp('phoneCallDiscardReasonHangup');
     });
@@ -115,6 +127,14 @@ test.describe('LiveKit calls', () => {
       () => recipient.page.evaluate(() => !(window as any).callsController?.currentCall),
       {message: 'the recipient still has a call after the sender hung up', timeout: connectTimeoutMs}
     ).toBe(true);
+
+    // The peer hanging up is not our reconnect: the connecting loop never played, the call ended as a hang-up
+    const ended = await recipient.page.evaluate(() => ({
+      sounds: ((window as any).__playedSounds as string[]).map((src) => src.split('/').pop()),
+      reason: (window as any).__watchedCall.discardReason?._
+    }));
+    expect(ended.sounds, 'sounds the recipient played while the sender hung up').not.toContain('voip_connecting.mp3');
+    expect(ended.reason, 'how the call ended on the recipient').toBe('phoneCallDiscardReasonHangup');
   });
 
   test('group call: both join unmuted, each hears the other, and the call ends cleanly', async({pair}) => {

@@ -20,6 +20,9 @@ export const RTMP_UNIFIED_QUALITY = GroupCallVideoQuality.Full;
 // past which an incoming conference invitation is no longer offered.
 export const CALL_REQUEST_TIMEOUT = 45e3;
 
+/** How long a hang-up waits for phone.discardCall before it drops the media room anyway (tdesktop calls_call.cpp). */
+export const CALL_DISCARD_TEARDOWN_CAP_MS = 5000;
+
 // A second incoming call rings while another call is up (call waiting) —
 // audible, but quiet enough not to drown the conversation.
 export const CALL_WAITING_RING_VOLUME = 0.3;

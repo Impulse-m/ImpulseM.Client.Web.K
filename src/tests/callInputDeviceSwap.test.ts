@@ -779,9 +779,17 @@ describe('media session failure cleanup', () => {
     vi.stubGlobal('MediaStream', class {});
     const ownAudioTrack = makeTrack();
     const ownVideoTrack = makeTrack('video');
-    const discardCall = vi.fn().mockResolvedValue(undefined);
     const {session, transport} = makeSessionInstance(ownAudioTrack);
     session.adoptOwnStream({kind: 'video', stream: makeStream(ownVideoTrack)});
+    // what the world looked like when the discard went out: capture already stopped, room still up
+    const atDiscard: {audioStops: number, videoStops: number, disconnects: number}[] = [];
+    const discardCall = vi.fn(async() => {
+      atDiscard.push({
+        audioStops: ownAudioTrack.stop.mock.calls.length,
+        videoStops: ownVideoTrack.stop.mock.calls.length,
+        disconnects: transport.disconnectCount
+      });
+    });
     const instance = Object.assign(Object.create(CallInstance.prototype), {
       connectedAt: Date.now() - 1000,
       id: 'failed-call',
@@ -804,9 +812,10 @@ describe('media session failure cleanup', () => {
       {_: 'phoneCallDiscardReasonDisconnect'},
       true
     );
+    expect(atDiscard).toEqual([{audioStops: 1, videoStops: 1, disconnects: 0}]);
+    await vi.waitFor(() => expect(transport.disconnectCount).toBe(1));
     expect(ownAudioTrack.stop).toHaveBeenCalledTimes(1);
     expect(ownVideoTrack.stop).toHaveBeenCalledTimes(1);
-    expect(transport.disconnectCount).toBe(1);
     expect((instance as any).session).toBeUndefined();
   });
 

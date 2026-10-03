@@ -385,28 +385,33 @@ describe('GroupCallsController lost connection policy', () => {
     expect(instance.hangUp).toHaveBeenCalledWith(false, false, true);
   });
 
-  it('waits for the discard of the call after the room was deleted, then tears down locally', async() => {
-    vi.useFakeTimers();
-    const {transport, instance} = await connected();
+  it('ends the call at once when the room was deleted, with no connecting sound and no timer', async() => {
+    const {transport, instance, controller} = await connected();
+    const connecting = vi.spyOn(controller, 'startConnectingSound');
 
     transport.emitState('disconnected', 'roomDeleted');
-    await vi.advanceTimersByTimeAsync(4999);
-    expect(instance.hangUp).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(1);
 
     expect(instance.hangUp).toHaveBeenCalledTimes(1);
     expect(instance.hangUp).toHaveBeenCalledWith(false, false, true);
+    expect(connecting).not.toHaveBeenCalled();
   });
 
   it('does not tear down twice when the discard got there first', async() => {
-    vi.useFakeTimers();
     const {transport, instance} = await connected();
 
-    transport.emitState('disconnected', 'roomDeleted');
     instance.isClosing = true;
-    await vi.advanceTimersByTimeAsync(10000);
+    transport.emitState('disconnected', 'roomDeleted');
 
     expect(instance.hangUp).not.toHaveBeenCalled();
+  });
+
+  it('does not play the connecting sound when a participant leaves the room', async() => {
+    const {transport, controller} = await connected();
+    const connecting = vi.spyOn(controller, 'startConnectingSound');
+
+    transport.dispatchEvent('remoteParticipant', {identity: 'u9.1', present: false} as any);
+
+    expect(connecting).not.toHaveBeenCalled();
   });
 
   describe('removed from the room', () => {

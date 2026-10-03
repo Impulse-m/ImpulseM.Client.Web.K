@@ -29,6 +29,8 @@ import {groupCallToInput} from '@lib/calls/helpers/groupCallUpdates';
 import {CALL_PROTOCOL_LIBRARY_VERSIONS} from '@lib/calls/livekit/getCallProtocol';
 import {CALL_REQUEST_TIMEOUT, CALL_WAITING_RING_VOLUME} from '@lib/calls/constants';
 
+const MAX_AWAITING_DISCARD = 8;
+
 export class CallsController extends EventListenerBase<{
   instance: (details: {hasCurrent: boolean, instance: CallInstance}) => void,
   accepting: (instance: CallInstance) => void, // это костыль. используется при параллельном вызове, чтобы заменить звонок в topbarCall
@@ -50,6 +52,7 @@ export class CallsController extends EventListenerBase<{
   private sortedInstances: Array<CallInstance>;
   private tempId: number;
   private migratingCalls = new WeakSet<CallInstance>();
+  private awaitingDiscard = new Map<CallId, CallInstance>();
 
   public construct(managers: AppManagers) {
     this.managers = managers;
@@ -95,7 +98,25 @@ export class CallsController extends EventListenerBase<{
     // is handled by `GroupCallInstance.attachE2e` for the active instance.
   }
 
+  // A call that ended here because its room was deleted is still owed its phoneCallDiscarded (reason, duration,
+  // rating flag). The set is bounded; an entry leaves when its discard arrives.
+  private rememberAwaitingDiscard(instance: CallInstance): void {
+    this.awaitingDiscard.set(instance.id, instance);
+    if(this.awaitingDiscard.size > MAX_AWAITING_DISCARD) {
+      this.awaitingDiscard.delete(this.awaitingDiscard.keys().next().value);
+    }
+  }
+
   private async handleCallUpdate(call: PhoneCall): Promise<void> {
+    const ended = this.awaitingDiscard.get(call.id);
+    if(ended) {
+      if(call._ === 'phoneCallDiscarded') {
+        this.awaitingDiscard.delete(call.id);
+        ended.applyLateDiscard(call);
+      }
+      return;
+    }
+
     const instance = this.instances.get(call.id);
 
     if(instance?.isClosing && call._ !== 'phoneCallDiscarded') {
@@ -417,6 +438,9 @@ export class CallsController extends EventListenerBase<{
       if(state === CALL_STATE.CLOSED) {
         this.instances.delete(call.id);
         indexOfAndSplice(this.sortedInstances, call);
+        if(call.isAwaitingDiscard) {
+          this.rememberAwaitingDiscard(call);
+        }
       } else {
         insertInDescendSortedArray(this.sortedInstances, call, 'sortIndex');
       }
@@ -426,7 +450,10 @@ export class CallsController extends EventListenerBase<{
       }
 
       const hasConnected = call.connectedAt !== undefined;
-      if(state === CALL_STATE.EXCHANGING_KEYS || (state === CALL_STATE.CONNECTING && hasConnected)) {
+      // Only the key exchange has a client-side deadline. A connected call that loses OUR transport waits for
+      // LiveKit's own reconnect to succeed or fail (a failure hangs up with Disconnect); the peer's absence is
+      // decided by the packet timeout in the session, never by a fixed timer here.
+      if(state === CALL_STATE.EXCHANGING_KEYS) {
         call.setHangUpTimeout(CALL_REQUEST_TIMEOUT, 'phoneCallDiscardReasonDisconnect');
       } else {
         call.clearHangUpTimeout();

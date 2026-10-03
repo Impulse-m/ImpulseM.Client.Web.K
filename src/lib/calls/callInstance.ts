@@ -22,7 +22,7 @@ import getAudioConstraints from '@lib/calls/helpers/getAudioConstraints';
 import {getStreamTrack, getUserStream, stopStream, StreamType} from '@lib/calls/helpers/getUserStream';
 import shouldMirrorVideoTrack from '@lib/calls/helpers/shouldMirrorVideoTrack';
 import CALL_STATE from '@lib/calls/callState';
-import {GROUP_CALL_AMPLITUDE_ANALYSE_INTERVAL_MS} from '@lib/calls/constants';
+import {CALL_DISCARD_TEARDOWN_CAP_MS, GROUP_CALL_AMPLITUDE_ANALYSE_INTERVAL_MS} from '@lib/calls/constants';
 import getCallProtocol from '@lib/calls/livekit/getCallProtocol';
 import {callMediaKeyMaterial} from '@lib/calls/livekit/callMediaKey';
 import {LiveKitE2eeUnsupportedError} from '@lib/calls/livekit/liveKitErrors';
@@ -79,6 +79,7 @@ export default class CallInstance extends CallInstanceBase<{
   private managers: AppManagers;
   private hangUpTimeout: number;
   private hangUpStarted = false;
+  private awaitingDiscard = false;
 
   private joined: boolean;
   private sessionState: PhoneCallConnectionState | undefined;
@@ -735,16 +736,58 @@ export default class CallInstance extends CallInstanceBase<{
 
     const hasVideo = this.isSharingVideo || this.isSharingScreen;
 
+    // tdesktop's order (calls_call.cpp): the call shows as ended and what we capture stops at once, the discard is
+    // sent, and only then is the media room dropped -- when the discard settled, or after a cap if it hangs.
+    this.awaitingDiscard = !!discardedByOtherParty && !discardReason;
     this.overrideConnectionState(CALL_STATE.CLOSED);
+    this.session?.releaseCapture();
 
+    if(!discardReason || discardedByOtherParty) {
+      this.closeSession();
+      return;
+    }
+
+    try {
+      await this.sendDiscard({reason: discardReason, hasVideo});
+    } finally {
+      this.closeSession();
+    }
+  }
+
+  /** The call ended here because the room was deleted, and the server's phoneCallDiscarded has not arrived yet. */
+  public get isAwaitingDiscard(): boolean {
+    return this.awaitingDiscard;
+  }
+
+  /** Takes in the phoneCallDiscarded that follows a deleted room: its reason, duration and rating flag. No sound, no RPC. */
+  public applyLateDiscard(call: PhoneCall.phoneCallDiscarded): void {
+    this.awaitingDiscard = false;
+    this.setPhoneCall(call);
+    this.discardReason ||= call.reason;
+  }
+
+  private async sendDiscard(options: {reason: PhoneCallDiscardReason, hasVideo: boolean}): Promise<void> {
+    const sent: Promise<void> = Promise.resolve(
+      this.managers.appCallsManager.discardCall(this.id, this.duration, options.reason, options.hasVideo)
+    );
+    let timer: number | undefined;
+    const capped: Promise<void> = new Promise<void>((resolve) => {
+      timer = ctx.setTimeout(resolve, CALL_DISCARD_TEARDOWN_CAP_MS);
+    });
+    // past the cap the RPC is no longer awaited, but its failure must still not go unhandled
+    sent.catch((err: unknown) => this.log.warn('phone.discardCall failed', err));
+    try {
+      await Promise.race([sent, capped]);
+    } finally {
+      ctx.clearTimeout(timer);
+    }
+  }
+
+  private closeSession(): void {
     try {
       this.stopPhoneCall();
     } catch(err) {
       this.log.error('stopPhoneCall error', err);
-    }
-
-    if(discardReason && !discardedByOtherParty) {
-      await this.managers.appCallsManager.discardCall(this.id, this.duration, discardReason, hasVideo);
     }
   }
 

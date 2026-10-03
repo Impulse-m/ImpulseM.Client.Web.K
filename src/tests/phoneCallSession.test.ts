@@ -74,7 +74,7 @@ describe('PhoneCallSession', () => {
     expect(session.isOwnActive('presentation')).toBe(false);
   });
 
-  it('is connecting until the peer shows up, connected with the peer, connecting again if it leaves', async() => {
+  it('is connecting until the peer shows up, connected with the peer, and stays connected when it leaves', async() => {
     const {session, transport, states} = setup();
     await session.start({params: PARAMS, e2eeKey: new Uint8Array(32), audio: stream('audio').stream});
     expect(states).toEqual([]);
@@ -82,7 +82,7 @@ describe('PhoneCallSession', () => {
     transport.dispatchEvent('remoteParticipant', {identity: 'u7', present: true});
     transport.dispatchEvent('remoteParticipant', {identity: 'u7', present: false});
 
-    expect(states).toEqual(['connected', 'connecting']);
+    expect(states).toEqual(['connected']);
     session.close();
   });
 

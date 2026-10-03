@@ -35,6 +35,11 @@ export function readPhoneCallTimeouts(config: {call_packet_timeout_ms?: number, 
   return {packetTimeoutMs, connectTimeoutMs};
 }
 
+/**
+ * What the call UI and its sounds follow. `connecting` is ours alone: the first connection, or our own
+ * transport reconnecting. The peer leaving the room never is: once the call has connected it stays `connected`,
+ * silently, while the packet timeout (peerLost) and the server (phoneCallDiscarded) decide the call's fate.
+ */
 export type PhoneCallConnectionState = 'connecting' | 'connected' | 'failed' | 'roomDeleted' | 'closed';
 
 export type PhoneCallOwnKind = 'audio' | 'video' | 'presentation';
@@ -97,7 +102,10 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
   private readonly streams: PhoneCallStreams = {};
   private readonly remoteTracks = new Map<LiveKitMediaSource, {track: MediaStreamTrack, muted: boolean}>();
   private peerPresent = false;
+  // Once the call connected, the peer's absence is not a reconnect of ours (see PhoneCallConnectionState).
+  private hasConnected = false;
   private closed = false;
+  private captureReleased = false;
   private peerTimer: number | undefined;
   private remoteMediaState: RemoteMediaState = {
     isBatteryLow: false,
@@ -204,8 +212,8 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
   /** Records `stream` as our current capture of `kind` and releases the previous one. */
   public adoptOwnStream(options: {kind: PhoneCallOwnKind, stream: MediaStream | undefined}): void {
     const {kind, stream} = options;
-    if(this.closed) {
-      // close() already released everything; a capture handed over after that must not outlive the call
+    if(this.closed || this.captureReleased) {
+      // the capture was already released; a capture handed over after that must not outlive the call
       stopStream(stream);
       return;
     }
@@ -230,6 +238,19 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
     return this.transport.getDiagnostics();
   }
 
+  /**
+   * Stops sending what we capture, at once: the call is ending and nothing of ours may keep going out while the
+   * discard is on its way (tdesktop stops the microphone and camera first, then discards, then drops the room).
+   * The transport stays up until close().
+   */
+  public releaseCapture(): void {
+    this.captureReleased = true;
+    for(const kind of ['audio', 'video', 'presentation'] as const) {
+      stopStream(this.getOwn(kind));
+      this.setOwn(kind, undefined);
+    }
+  }
+
   /** Idempotent. Releases every capture and the transport; no state is emitted for the close. */
   public close(): void {
     if(this.closed) {
@@ -239,11 +260,7 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
     this.closed = true;
     this.clearPeerTimer();
     this.transport.disconnect();
-    for(const kind of ['audio', 'video', 'presentation'] as const) {
-      stopStream(this.getOwn(kind));
-      this.setOwn(kind, undefined);
-    }
-
+    this.releaseCapture();
     this.audioElement.srcObject = null;
     this.remoteTracks.clear();
     this.streams.audio = this.streams.video = this.streams.presentation = undefined;
@@ -255,10 +272,14 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
     transport.addEventListener('state', (state: LiveKitTransportState, cause?: LiveKitDisconnectCause) => {
       this.onTransportState(state, cause);
     });
-    transport.addEventListener('remoteParticipant', ({identity, present}) => {
+    transport.addEventListener('remoteParticipant', ({identity, present, reason}) => {
       if(identity !== this.peerIdentity) {
         this.log.warn('ignoring an unexpected participant in a 1:1 room');
         return;
+      }
+
+      if(!present) {
+        this.log('the peer left the room', {reason});
       }
 
       this.onPeerPresence(present);
@@ -294,7 +315,7 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
       case 'connected':
         this.refreshConnectionState();
         if(!this.peerPresent) {
-          this.startPeerTimer(this.timeouts.connectTimeoutMs);
+          this.startPeerTimer(this.hasConnected ? this.timeouts.packetTimeoutMs : this.timeouts.connectTimeoutMs);
         }
         break;
       case 'disconnected':
@@ -326,7 +347,12 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
       return;
     }
 
-    this.setConnectionState(this.transport.state === 'connected' && this.peerPresent ? 'connected' : 'connecting');
+    const isConnected: boolean = this.transport.state === 'connected' && (this.peerPresent || this.hasConnected);
+    if(isConnected) {
+      this.hasConnected = true;
+    }
+
+    this.setConnectionState(isConnected ? 'connected' : 'connecting');
   }
 
   private setConnectionState(state: PhoneCallConnectionState, cause?: LiveKitDisconnectCause): void {

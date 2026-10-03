@@ -76,7 +76,8 @@ export type LiveKitTransportEvents = {
   remoteTrack: (info: LiveKitRemoteTrackInfo) => void,
   remoteTrackRemoved: (info: {identity: string, sid: string, source: LiveKitMediaSource}) => void,
   remoteTrackMuted: (info: {identity: string, source: LiveKitMediaSource, muted: boolean}) => void,
-  remoteParticipant: (info: {identity: string, present: boolean}) => void,
+  /** `reason` is the server's account of why a participant left; it is for logs only and never changes the call. */
+  remoteParticipant: (info: {identity: string, present: boolean, reason?: LiveKitDisconnectReason}) => void,
   activeSpeakers: (identities: string[]) => void,
   publishPermission: (permission: LiveKitPublishPermission) => void,
   encryptionError: (error: Error) => void
@@ -300,9 +301,9 @@ export default class LiveKitTransport extends EventListenerBase<LiveKitTransport
     room.on(Event.ParticipantConnected, (participant: RemoteParticipant) => this.whileLive(() => {
       this.announceParticipant(participant);
     }));
-    room.on(Event.ParticipantDisconnected, (participant: RemoteParticipant) => this.whileLive(() => {
+    room.on(Event.ParticipantDisconnected, (participant: RemoteParticipant, reason?: LiveKitDisconnectReason) => this.whileLive(() => {
       this.announcedParticipants.delete(participant.identity);
-      this.dispatchEvent('remoteParticipant', {identity: participant.identity, present: false});
+      this.dispatchEvent('remoteParticipant', {identity: participant.identity, present: false, reason});
     }));
     room.on(Event.TrackPublished, (publication: RemoteTrackPublication, participant: RemoteParticipant) => this.whileLive(() => {
       this.unsubscribeIfUnwanted(publication, participant);
@@ -519,8 +520,9 @@ export function causeOfDisconnectReason(lk: LiveKitModule, reason: LiveKitDiscon
   switch(reason) {
     case Reason.CLIENT_INITIATED:
       return 'client';
+    // Only ROOM_DELETED is the server ending the call (it deletes a call's room as it discards the call).
+    // ROOM_CLOSED is any other close of the room, so it is a lost connection like the rest.
     case Reason.ROOM_DELETED:
-    case Reason.ROOM_CLOSED:
       return 'roomDeleted';
     case Reason.PARTICIPANT_REMOVED:
       return 'removed';
@@ -531,6 +533,7 @@ export function causeOfDisconnectReason(lk: LiveKitModule, reason: LiveKitDiscon
     case Reason.JOIN_FAILURE:
     case Reason.MIGRATION:
     case Reason.SIGNAL_CLOSE:
+    case Reason.ROOM_CLOSED:
       return 'network';
     default:
       return 'unknown';

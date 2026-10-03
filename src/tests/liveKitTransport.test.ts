@@ -67,7 +67,7 @@ describe('LiveKitTransport', () => {
   it.each([
     [DisconnectReason.CLIENT_INITIATED, 'client'],
     [DisconnectReason.ROOM_DELETED, 'roomDeleted'],
-    [DisconnectReason.ROOM_CLOSED, 'roomDeleted'],
+    [DisconnectReason.ROOM_CLOSED, 'network'],
     [DisconnectReason.PARTICIPANT_REMOVED, 'removed'],
     [DisconnectReason.DUPLICATE_IDENTITY, 'duplicateIdentity'],
     [DisconnectReason.SERVER_SHUTDOWN, 'network'],
