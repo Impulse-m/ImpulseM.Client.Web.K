@@ -24,7 +24,7 @@ import shouldMirrorVideoTrack from '@lib/calls/helpers/shouldMirrorVideoTrack';
 import CALL_STATE from '@lib/calls/callState';
 import {GROUP_CALL_AMPLITUDE_ANALYSE_INTERVAL_MS} from '@lib/calls/constants';
 import getCallProtocol from '@lib/calls/livekit/getCallProtocol';
-import {deriveCallMediaKey} from '@lib/calls/livekit/callMediaKey';
+import {callMediaKeyMaterial} from '@lib/calls/livekit/callMediaKey';
 import {LiveKitE2eeUnsupportedError} from '@lib/calls/livekit/liveKitErrors';
 import {LiveKitParamsError, parseLiveKitJoinParams, phoneCallRoomName} from '@lib/calls/livekit/liveKitJoinParams';
 import LiveKitTransport, {assertLiveKitE2eeSupported} from '@lib/calls/livekit/liveKitTransport';
@@ -544,7 +544,7 @@ export default class CallInstance extends CallInstanceBase<{
     // Fail before the browser asks for the microphone: a browser that cannot encrypt must not start a call.
     await assertLiveKitE2eeSupported();
     const timeouts = readPhoneCallTimeouts(await this.managers.apiManager.getConfig());
-    const e2eeKey = await deriveCallMediaKey(this.encryptionKey);
+    const e2eeKey = callMediaKeyMaterial(this.encryptionKey);
     if(this.isClosing) {
       return;
     }

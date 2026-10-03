@@ -78,8 +78,8 @@ const PEER_GONE_HANGUP_MS = 12000;
 const CONFIG = {call_packet_timeout_ms: PEER_GONE_HANGUP_MS, call_connect_timeout_ms: 30000};
 
 const AUTH_KEY: Uint8Array = new Uint8Array(256).map((_, index) => index % 256);
-// SHA-256 of AUTH_KEY, computed independently (see callMediaKey.test.ts)
-const AUTH_KEY_MEDIA_KEY_HEX = '40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880';
+// The media key material is the auth key itself, all 256 bytes (see callMediaKey.test.ts)
+const AUTH_KEY_MEDIA_KEY_HEX: string = Array.from(AUTH_KEY, (byte: number) => byte.toString(16).padStart(2, '0')).join('');
 
 function hex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte: number) => byte.toString(16).padStart(2, '0')).join('');
@@ -129,7 +129,7 @@ afterEach(() => {
 });
 
 describe('1:1 call on LiveKit', () => {
-  it('connects with the coordinates of the call, an E2EE key from the DH auth key and autoSubscribe', async() => {
+  it('connects with the coordinates of the call, the DH auth key as E2EE key material and autoSubscribe', async() => {
     const {instance} = makeInstance();
     const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
 
