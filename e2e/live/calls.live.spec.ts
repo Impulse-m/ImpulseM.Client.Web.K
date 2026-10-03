@@ -137,32 +137,83 @@ test.describe('LiveKit calls', () => {
     expect(ended.reason, 'how the call ended on the recipient').toBe('phoneCallDiscardReasonHangup');
   });
 
-  test('group call: both join unmuted, each hears the other, and the call ends cleanly', async({pair}) => {
-    const {sender, recipient} = pair;
-    const senderId = await sender.ownPeerId();
-    const recipientId = await recipient.ownPeerId();
+  for(const kind of ['basic group', 'supergroup'] as const) {
+    test(`${kind} call: both join unmuted, each hears the other, each sees the other's camera tile, and the call ends cleanly`, async({pair}) => {
+      const {sender, recipient} = pair;
+      const senderId = await sender.ownPeerId();
+      const recipientId = await recipient.ownPeerId();
 
-    const {chatId, callId} = await sender.page.evaluate(async(userId) => {
-      const w = window as any;
-      const {chatId: createdChatId} = await w.rootScope.managers.appChatsManager.createChat(`calls-${Date.now()}`, [Number(userId)]);
-      const call = await w.rootScope.managers.appGroupCallsManager.createGroupCall(createdChatId);
-      await w.groupCallController.joinGroupCall(createdChatId, call.id, false);
-      return {chatId: createdChatId, callId: call.id};
-    }, recipientId);
+      const {chatId, callId} = await sender.page.evaluate(async({userId, groupKind}) => {
+        const w = window as any;
+        const chats = w.rootScope.managers.appChatsManager;
+        const title = `calls-${Date.now()}`;
+        let createdChatId: number;
+        if(groupKind === 'supergroup') {
+          createdChatId = await chats.createChannel({megagroup: true, title, about: ''});
+          await chats.inviteToChannel(createdChatId, [Number(userId)]);
+        } else {
+          createdChatId = (await chats.createChat(title, [Number(userId)])).chatId;
+        }
+        const call = await w.rootScope.managers.appGroupCallsManager.createGroupCall(createdChatId);
+        await w.groupCallController.joinGroupCall(createdChatId, call.id, false);
+        return {chatId: createdChatId, callId: call.id};
+      }, {userId: recipientId, groupKind: kind});
 
-    await recipient.page.evaluate(async({joinChatId, joinCallId}) => {
-      const w = window as any;
-      // the group reaches the recipient through its updates; the join needs the call, not the dialog
-      await w.groupCallController.joinGroupCall(joinChatId, joinCallId, false);
-    }, {joinChatId: chatId, joinCallId: callId});
+      await recipient.page.evaluate(async({joinChatId, joinCallId}) => {
+        const w = window as any;
+        // the group reaches the recipient through its updates; the join needs the call, not the dialog
+        await w.groupCallController.joinGroupCall(joinChatId, joinCallId, false);
+      }, {joinChatId: chatId, joinCallId: callId});
 
-    await Promise.all([
-      expectMediaFlowing(sender.page, 'group', {remoteIdentity: new RegExp(`^u${recipientId}\\.\\d+$`), e2ee: false}),
-      expectMediaFlowing(recipient.page, 'group', {remoteIdentity: new RegExp(`^u${senderId}\\.\\d+$`), e2ee: false})
-    ]);
+      await Promise.all([
+        expectMediaFlowing(sender.page, 'group', {remoteIdentity: new RegExp(`^u${recipientId}\\.\\d+$`), e2ee: false}),
+        expectMediaFlowing(recipient.page, 'group', {remoteIdentity: new RegExp(`^u${senderId}\\.\\d+$`), e2ee: false})
+      ]);
 
-    await Promise.all([sender.page, recipient.page].map((page) => page.evaluate(async() => {
-      await (window as any).groupCallController.groupCall.hangUp();
-    })));
-  });
+      // Each side turns its camera on; the other must get a camera tile whose participant row names the publisher's
+      // LiveKit identity as video.endpoint (the server emits video only because the join declared source groups).
+      await Promise.all([sender.page, recipient.page].map((page) => page.evaluate(async() => {
+        await (window as any).groupCallController.groupCall.startVideoSharing();
+      })));
+      for(const [watcher, publisherId] of [[sender, recipientId], [recipient, senderId]] as const) {
+        const identity = new RegExp(`^u${publisherId}\\.\\d+$`);
+        await expect.poll(async() => {
+          return watcher.page.evaluate(async(id) => {
+            const call = (window as any).groupCallController.groupCall;
+            const rows = await call.participants;
+            const row: any = [...rows.values()].find((candidate: any) => String(candidate.peer?.user_id) === id);
+            const diagnostics = await call.connections.main.transport.getDiagnostics();
+            const track = diagnostics.remoteTracks.find((candidate: any) => candidate.kind === 'video' && candidate.source === 'camera');
+            const endpoint: string | undefined = row?.video?.endpoint;
+            return {
+              endpoint,
+              trackIdentity: track?.identity,
+              sourceGroups: row?.video?.source_groups?.length ?? 0,
+              tile: !!endpoint && !!call.getElement(endpoint)
+            };
+          }, publisherId);
+        }, {
+          message: `the camera of user ${publisherId} never became a tile with video.endpoint equal to its identity`,
+          timeout: connectTimeoutMs
+        }).toMatchObject({
+          endpoint: expect.stringMatching(identity),
+          trackIdentity: expect.stringMatching(identity),
+          tile: true
+        });
+        const final = await watcher.page.evaluate(async(id) => {
+          const rows = await (window as any).groupCallController.groupCall.participants;
+          const row: any = [...rows.values()].find((candidate: any) => String(candidate.peer?.user_id) === id);
+          const track = (await (window as any).groupCallController.groupCall.connections.main.transport.getDiagnostics())
+          .remoteTracks.find((candidate: any) => candidate.kind === 'video');
+          return {endpoint: row.video.endpoint, trackIdentity: track.identity, groups: row.video.source_groups.length};
+        }, publisherId);
+        expect(final.endpoint, 'video.endpoint is exactly the publisher identity of the subscribed camera track').toBe(final.trackIdentity);
+        expect(final.groups, 'the row carries the declared source groups').toBeGreaterThan(0);
+      }
+
+      await Promise.all([sender.page, recipient.page].map((page) => page.evaluate(async() => {
+        await (window as any).groupCallController.groupCall.hangUp();
+      })));
+    });
+  }
 });
