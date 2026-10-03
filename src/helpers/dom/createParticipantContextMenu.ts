@@ -10,6 +10,9 @@ import {Middleware} from '@helpers/middleware';
 import {ButtonMenuItemOptionsVerifiable} from '@components/buttonMenu';
 import {handleMissingInvitees} from '@components/addChatUsers';
 import {isParticipantAdmin, isParticipantCreator} from '@lib/appManagers/utils/chats/isParticipantAdmin';
+import {getMemberTag, getMemberTagAccess, MemberTagAccess} from '@appManagers/utils/chats/memberTagRights';
+import showMemberTagPopup, {getMemberTagActionLangKey} from '@components/popups/memberTag';
+import wrapPeerTitle from '@components/wrappers/peerTitle';
 
 type Participant = ChannelParticipant | ChatParticipant;
 
@@ -50,7 +53,8 @@ export default function createParticipantContextMenu(options: {
     isBroadcast: boolean,
     isBanned: boolean,
     canChangePermissions: boolean,
-    canManageAdmins: boolean;
+    canManageAdmins: boolean,
+    memberTagAccess: MemberTagAccess | undefined;
 
   const openPermissions = (isAdmin?: boolean) => {
     openUserPermissionsTab(slider, chatId, participant, isAdmin);
@@ -99,6 +103,22 @@ export default function createParticipantContextMenu(options: {
           participant as ChannelParticipant,
           rootScope.myId
         )
+    }, {
+      icon: 'edit',
+      text: getMemberTagActionLangKey({access: memberTagAccess ?? 'other', hasTag: !!getMemberTag(participant)}),
+      onClick: async() => {
+        showMemberTagPopup({
+          chatId,
+          userId: participantPeerId.toUserId(),
+          currentTag: getMemberTag(participant),
+          access: memberTagAccess,
+          userTitle: await wrapPeerTitle({peerId: participantPeerId}),
+          onSaved: (tag) => {
+            (participant as ChatParticipant.chatParticipant).rank = tag || undefined;
+          }
+        });
+      },
+      verify: () => !bannedParticipantAdapter && memberTagAccess !== undefined
     }, {
       icon: 'restrict',
       text: 'KickFromSupergroup',
@@ -178,6 +198,11 @@ export default function createParticipantContextMenu(options: {
 
       target.classList.add('menu-open');
       isBanned = canChangePermissions && participant._ === 'channelParticipantBanned' && participant.pFlags.left;
+      memberTagAccess = bannedParticipantAdapter ? undefined : getMemberTagAccess({
+        chat,
+        participant,
+        myId: rootScope.myId
+      });
       buttons.splice(0, Infinity, ...getButtons());
       return onOpen?.();
     },

@@ -1448,6 +1448,12 @@ export class AppProfileManager extends AppManager {
     }
 
     participant.rank = update.rank || undefined;
+    // open chats re-render the headers of that member's messages at once
+    this.rootScope.dispatchEvent('chat_participant_rank', {
+      chatId: update.chat_id,
+      userId: update.user_id,
+      rank: update.rank
+    });
   });
 
   private onUpdateUserTyping = (update: Update.updateUserTyping | Update.updateChatUserTyping | Update.updateChannelUserTyping) => {

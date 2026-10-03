@@ -1,0 +1,23 @@
+@use "../../shared" as *;
+
+.popup-member-tag {
+  --popup-width: 26.25rem;
+
+  .popup-member-tag-body {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    padding: 0 1.5rem;
+
+    .input-field {
+      width: 100%;
+      margin-top: .5rem;
+    }
+
+    .popup-description {
+      margin: 0;
+      text-align: start;
+      color: var(--secondary-text-color);
+    }
+  }
+}

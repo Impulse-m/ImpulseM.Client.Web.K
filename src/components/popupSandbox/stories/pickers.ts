@@ -110,6 +110,14 @@ defineStories('Pickers', [
     }
   },
   {
+    id: 'memberTag',
+    title: 'Member tag',
+    open: async(ctx) => {
+      const {default: showMemberTagPopup} = await import('@components/popups/memberTag');
+      showMemberTagPopup({chatId: 1 as ChatId, userId: 1 as UserId, currentTag: 'Dean', access: 'self', onSaved: noop});
+    }
+  },
+  {
     id: 'createPoll',
     title: 'New poll',
     open: async(ctx) => {

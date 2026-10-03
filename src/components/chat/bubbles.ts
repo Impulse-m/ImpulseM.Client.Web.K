@@ -133,6 +133,7 @@ import getSelectionElementFromTarget from '@components/chat/getSelectionElementF
 import getMediaDurationFromMessage from '@appManagers/utils/messages/getMediaDurationFromMessage';
 import getParticipantRank from '@appManagers/utils/chats/getParticipantRank';
 import wrapParticipantRank from '@components/wrappers/participantRank';
+import applyMemberRankUpdate from '@components/chat/bubbleParts/applyMemberRankUpdate';
 import internalLinkProcessor from '@lib/internalLinkProcessor';
 import wrapPeerTitle from '@components/wrappers/peerTitle';
 import getPeerActiveUsernames from '@appManagers/utils/peers/getPeerActiveUsernames';
@@ -2481,6 +2482,43 @@ export default class ChatBubbles {
           });
         });
       }
+    });
+
+    // updateChatParticipantRank (basic groups only): the new tag shows in the open chat as it arrives
+    this.listenerSetter.add(rootScope)('chat_participant_rank', async({chatId, userId}) => {
+      if(!this.canShowRanks || !this.ranks || this.peerId !== chatId.toPeerId(true)) {
+        return;
+      }
+
+      const middleware = this.getMiddleware();
+      const memberPeerId = userId.toPeerId();
+      let rank: ReturnType<typeof getParticipantRank>;
+      try {
+        rank = getParticipantRank(await this.managers.appProfileManager.getParticipant(chatId, memberPeerId));
+      } catch(err) {
+        this.log.warn('no participant for a rank update', err);
+      }
+
+      if(!middleware() || !this.ranks) {
+        return;
+      }
+
+      applyMemberRankUpdate({
+        ranks: this.ranks,
+        memberPeerId,
+        rank,
+        renderedFullMids: this.getRenderedHistory('desc'),
+        getFromId: (peerId, mid) => this.chat.getMessageByPeer(peerId, mid)?.fromId,
+        getBubble: (fullMid) => this.getBubble(fullMid),
+        rerender: (fullMid, bubble) => {
+          const {peerId, mid} = splitFullMid(fullMid);
+          this.safeRenderMessage({
+            message: this.chat.getMessageByPeer(peerId, mid) as Message.messageService,
+            reverse: true,
+            bubble
+          });
+        }
+      });
     });
 
     !DO_NOT_UPDATE_MESSAGE_VIEWS && this.listenerSetter.add(rootScope)('messages_views', (arr) => {
@@ -10991,7 +11029,9 @@ export default class ChatBubbles {
         // (!fwdFromId || (message.post_author && !this.chat.getPostAuthor(message)))
       ) {
         const processRank = () => {
-          const rank = this.ranks.get(message.fromId);
+          // a supergroup member's tag rides the message (api/rank.md: message.from_rank); a basic group's and an
+          // admin's role come from the participants
+          const rank = (message as Message.message).from_rank || this.ranks.get(message.fromId);
           if(!rank && !(message as Message.message).from_boosts_applied) {
             return;
           }

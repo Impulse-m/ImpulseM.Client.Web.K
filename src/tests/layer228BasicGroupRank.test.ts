@@ -88,6 +88,8 @@ describe('basic group admin tags', () => {
 });
 
 describe('updateChatParticipantRank', () => {
+  const dispatched = vi.fn();
+
   function makeProfile(participants: ChatParticipant[]) {
     const chatFull: ChatFull.chatFull = {
       _: 'chatFull',
@@ -98,7 +100,7 @@ describe('updateChatParticipantRank', () => {
     const manager = new AppProfileManager();
     Object.assign(manager as any, {
       getCachedProfileByPeerId: () => chatFull,
-      rootScope: {dispatchEvent: vi.fn()},
+      rootScope: {dispatchEvent: dispatched},
       appPeersManager: {},
       chatsFull: {}
     });
@@ -117,6 +119,15 @@ describe('updateChatParticipantRank', () => {
     expect(participants[1].rank).toBeUndefined();
     expect((chatFull.participants as any)._).toBe('chatParticipants');
     expect(chatFull._).toBe('chatFull');
+  });
+
+  test('announces the change so an open chat re-renders the headers of that member at once', () => {
+    dispatched.mockClear();
+    const {manager} = makeProfile([{_: 'chatParticipant', user_id: USER_ID, inviter_id: 1, date: 0}]);
+
+    (manager as any).onUpdateChatParticipantRank({_: 'updateChatParticipantRank', chat_id: CHAT_ID, user_id: USER_ID, rank: 'Dean', version: 2});
+
+    expect(dispatched).toHaveBeenCalledWith('chat_participant_rank', {chatId: CHAT_ID, userId: USER_ID, rank: 'Dean'});
   });
 
   test('an empty rank clears the tag', () => {

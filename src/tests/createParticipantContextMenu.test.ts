@@ -23,6 +23,17 @@ vi.mock('@helpers/dom/findUpClassName', () => ({
   default: (target: HTMLElement) => target
 }));
 
+vi.mock('@components/popups/memberTag', () => ({
+  default: vi.fn(),
+  getMemberTagActionLangKey: ({access, hasTag}: {access: string, hasTag: boolean}) => {
+    return `MemberTag.${hasTag ? 'Edit' : 'Add'}${access === 'self' ? 'My' : 'Member'}`;
+  }
+}));
+
+vi.mock('@components/wrappers/peerTitle', () => ({
+  default: vi.fn()
+}));
+
 vi.mock('@components/addChatUsers', () => ({
   handleMissingInvitees: vi.fn()
 }));
@@ -157,5 +168,48 @@ describe('createParticipantContextMenu', () => {
     ]);
     expect(mocks.getChat).toHaveBeenCalledWith(chatId);
     expect(mocks.hasRights).toHaveBeenCalledTimes(2);
+  });
+
+  describe('member tag action', () => {
+    const memberId = (30 as UserId).toPeerId(false);
+    const myId = (1 as UserId).toPeerId(false);
+
+    async function buttonsFor(chat: any, participantsById: Array<[PeerId, any]>, peerId: PeerId) {
+      mocks.getChat.mockResolvedValue({_: 'channel', id: chatId, access_hash: '1', title: 'Chat', photo: {_: 'chatPhotoEmpty'}, date: 1, ...chat});
+      const target = document.createElement('div');
+      target.classList.add('chatlist-chat');
+      target.dataset.peerId = '' + peerId;
+      createParticipantContextMenu({
+        listenTo: document.createElement('div'),
+        slider: {} as any,
+        chatId,
+        participants: new Map(participantsById)
+      });
+      return (await openContextMenu(target)).map((button: any) => button.text);
+    }
+
+    const plain = (userId: UserId, rank?: string) => ({_: 'channelParticipant', user_id: userId, date: 1, rank});
+
+    it('offers an admin with manage_ranks the tag of another member, worded by whether it has one', async() => {
+      const chat = {pFlags: {megagroup: true}, admin_rights: {_: 'chatAdminRights', pFlags: {manage_ranks: true}}};
+      expect(await buttonsFor(chat, [[memberId, plain(30 as UserId)]], memberId)).toContain('MemberTag.AddMember');
+      expect(await buttonsFor(chat, [[memberId, plain(30 as UserId, 'Dean')]], memberId)).toContain('MemberTag.EditMember');
+    });
+
+    it('offers a plain member their own tag, and nothing for another member', async() => {
+      const chat = {pFlags: {megagroup: true}};
+      expect(await buttonsFor(chat, [[myId, plain(1 as UserId)], [memberId, plain(30 as UserId)]], myId)).toContain('MemberTag.AddMy');
+      const forOther = await buttonsFor(chat, [[myId, plain(1 as UserId)], [memberId, plain(30 as UserId)]], memberId);
+      expect(forOther.some((text: string) => text.startsWith('MemberTag'))).toBe(false);
+    });
+
+    it('withholds even the own tag when edit_rank is banned by default or for them', async() => {
+      const byDefault = {pFlags: {megagroup: true}, default_banned_rights: {_: 'chatBannedRights', until_date: 0, pFlags: {edit_rank: true}}};
+      const forThem = {pFlags: {megagroup: true}, banned_rights: {_: 'chatBannedRights', until_date: 0, pFlags: {edit_rank: true}}};
+      for(const chat of [byDefault, forThem]) {
+        const texts = await buttonsFor(chat, [[myId, plain(1 as UserId)]], myId);
+        expect(texts.some((text: string) => text.startsWith('MemberTag'))).toBe(false);
+      }
+    });
   });
 });
