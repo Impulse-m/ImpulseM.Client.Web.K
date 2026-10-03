@@ -6095,7 +6095,9 @@ export default class ChatBubbles {
       this.canShowRanks = false;
 
       // a welcome message is signed by nobody's role (Android drops the admin tag there)
-      let canShowRanks = this.chat.isMegagroup && this.chat.type !== ChatType.Welcome, chatId = this.peerId.toChatId();
+      // a basic group has tags too (ChatParticipant.rank, api/rank.md), not only a supergroup
+      const isBasicGroup = this.chat.isAnyGroup && !this.chat.isMegagroup && !this.chat.isBroadcast;
+      let canShowRanks = (this.chat.isMegagroup || isBasicGroup) && this.chat.type !== ChatType.Welcome, chatId = this.peerId.toChatId();
       if(this.chat.type === ChatType.Saved && !this.chat.threadId.isUser()) {
         const chat = apiManagerProxy.getChat(chatId = this.chat.threadId.toChatId());
         canShowRanks = chat?._ === 'channel';
@@ -6107,7 +6109,8 @@ export default class ChatBubbles {
 
         const promise = this.managers.acknowledged.appProfileManager.getParticipants({
           id: chatId,
-          filter: {_: 'channelParticipantsAdmins'},
+          // a basic group's participants all sit in its chatFull, and any of them may carry a tag
+          filter: isBasicGroup ? {_: 'channelParticipantsRecent'} : {_: 'channelParticipantsAdmins'},
           limit: 100
         });
         const ackedResult = await m(promise);
@@ -6120,7 +6123,9 @@ export default class ChatBubbles {
           this.ranks = new Map();
           participants.forEach((participant) => {
             const rank = getParticipantRank(participant);
-            this.ranks.set(participant.user_id.toPeerId(), rank);
+            if(rank || !isBasicGroup) {
+              this.ranks.set(participant.user_id.toPeerId(), rank);
+            }
           });
 
           getHeavyAnimationPromise().then(() => {

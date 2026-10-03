@@ -12,6 +12,7 @@ import {ChannelAdminLogEvent, ChannelParticipant, ChannelsCreateChannel, Channel
 import {AppManager} from '@appManagers/manager';
 import hasRights from '@appManagers/utils/chats/hasRights';
 import getParticipantPeerId from '@appManagers/utils/chats/getParticipantPeerId';
+import {isParticipantAdmin} from '@appManagers/utils/chats/isParticipantAdmin';
 import {AppStoragesManager} from '@appManagers/appStoragesManager';
 import getServerMessageId from '@appManagers/utils/messageId/getServerMessageId';
 import {randomLong} from '@helpers/random';
@@ -846,37 +847,50 @@ export class AppChatsManager extends AppManager {
     const peerId = getParticipantPeerId(participant);
     const userId = peerId.toUserId();
     const makingAdmin = Object.keys(rights.pFlags).length > 0;
-    const canStickToLegacy = !rank && (!makingAdmin || deepEqual(rights, CHAT_LEGACY_ADMIN_RIGHTS));
+    // A basic group has one admin flag and a tag of its own (messages.editChatParticipantRank): neither is a reason
+    // to leave it. Only rights a basic group cannot express (anything but the legacy set) are supergroup-only.
+    const canStayBasicGroup = !makingAdmin || deepEqual(rights, CHAT_LEGACY_ADMIN_RIGHTS);
 
-    if(!wasChannel && canStickToLegacy) {
+    if(!wasChannel && canStayBasicGroup) {
+      const currentParticipant = typeof(participant) === 'object' ? participant : undefined;
+      const isAdminNow = currentParticipant ? isParticipantAdmin(currentParticipant) : undefined;
+      const hasAdminChanged = isAdminNow === undefined || isAdminNow !== makingAdmin;
       const editChatAdmin = () => this.apiManager.invokeApi('messages.editChatAdmin', {
         chat_id: id,
         user_id: this.appUsersManager.getUserInput(userId),
         is_admin: makingAdmin
       });
 
-      try {
-        await editChatAdmin();
-      } catch(err) {
-        if(!makingAdmin || (err as ApiError)?.type !== 'USER_NOT_PARTICIPANT') {
-          throw err;
+      if(hasAdminChanged) {
+        try {
+          await editChatAdmin();
+        } catch(err) {
+          if(!makingAdmin || (err as ApiError)?.type !== 'USER_NOT_PARTICIPANT') {
+            throw err;
+          }
+
+          const missingInvitees = await this.addChatUser(id, userId);
+          if(missingInvitees.length) {
+            throw err;
+          }
+
+          await editChatAdmin();
         }
 
-        const missingInvitees = await this.addChatUser(id, userId);
-        if(missingInvitees.length) {
-          throw err;
-        }
-
-        await editChatAdmin();
+        this.apiUpdatesManager.processLocalUpdate({
+          _: 'updateChatParticipantAdmin',
+          chat_id: id,
+          user_id: userId,
+          is_admin: makingAdmin,
+          version: 0
+        });
       }
 
-      this.apiUpdatesManager.processLocalUpdate({
-        _: 'updateChatParticipantAdmin',
-        chat_id: id,
-        user_id: userId,
-        is_admin: makingAdmin,
-        version: 0
-      });
+      // The tag: with a known participant only when it differs; for a bare peer id only when one is given
+      const currentRank: string | undefined = (currentParticipant as ChatParticipant | undefined)?.rank;
+      if(currentParticipant ? rank !== (currentRank || '') : !!rank) {
+        await this.editChatParticipantRank(id, userId, rank);
+      }
 
       return id;
     }
@@ -919,6 +933,31 @@ export class AppChatsManager extends AppManager {
 
     this.onChatUpdatedForce(id, updates);
     return returnParticipant ? update.new_participant : id;
+  }
+
+  /**
+   * Sets the tag of a member (messages.editChatParticipantRank, api/rank.md): in a basic group it lives in
+   * ChatParticipant.rank and changes arrive as updateChatParticipantRank, so the cache is updated here the same way.
+   * Admins with manage_ranks may set anyone's, everyone else only their own where the rights allow edit_rank.
+   */
+  public async editChatParticipantRank(id: ChatId, userId: UserId, rank: string): Promise<void> {
+    await this.apiManager.invokeApi('messages.editChatParticipantRank', {
+      peer: this.appPeersManager.getInputPeerById(id.toPeerId(true)),
+      participant: this.appPeersManager.getInputPeerById(userId.toPeerId(false)),
+      rank
+    }).then((updates) => {
+      this.apiUpdatesManager.processUpdateMessage(updates);
+    });
+
+    if(!this.isChannel(id) && !this.isCommunity(id)) {
+      this.apiUpdatesManager.processLocalUpdate({
+        _: 'updateChatParticipantRank',
+        chat_id: id,
+        user_id: userId,
+        rank,
+        version: 0
+      });
+    }
   }
 
   public editPhoto(id: ChatId, upload?: InputFile | ChatPhotoUpload) {

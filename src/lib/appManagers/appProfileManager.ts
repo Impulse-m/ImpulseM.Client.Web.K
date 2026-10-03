@@ -64,6 +64,7 @@ export class AppProfileManager extends AppManager {
       updateChatParticipantDelete: this.onUpdateChatParticipantDelete,
 
       updateChatParticipantAdmin: this.onUpdateChatParticipantAdmin,
+      updateChatParticipantRank: this.onUpdateChatParticipantRank,
 
       updateUserTyping: this.onUpdateUserTyping,
       updateChatUserTyping: this.onUpdateUserTyping,
@@ -1418,17 +1419,35 @@ export class AppProfileManager extends AppManager {
     const participants = _participants.participants;
     for(let i = 0, length = participants.length; i < length; i++) {
       if(participants[i].user_id === update.user_id) {
+        // the tag outlives the admin flag (api/rank.md), so it is carried over
         participants[i] = {
           _: update.is_admin ? 'chatParticipantAdmin' : 'chatParticipant',
           user_id: update.user_id,
           inviter_id: this.appUsersManager.getSelf().id,
-          date: tsNow(true)
+          date: tsNow(true),
+          rank: (participants[i] as ChatParticipant.chatParticipant).rank
         };
         return;
       }
     }
 
     return false;
+  });
+
+  // Basic groups only (api/rank.md): a supergroup's tag rides the message (from_rank) and ChannelParticipant.rank.
+  // The participant keeps its constructor, so the peer stays a basic group and nothing migrates.
+  private onUpdateChatParticipantRank = (update: Update.updateChatParticipantRank) => this.modifyCachedFullChat(update.chat_id, (chatFull) => {
+    const _participants = (chatFull as ChatFull.chatFull).participants as ChatParticipants.chatParticipants;
+    if(_participants?._ !== 'chatParticipants') {
+      return false;
+    }
+
+    const participant = _participants.participants.find((candidate) => candidate.user_id === update.user_id);
+    if(!participant) {
+      return false;
+    }
+
+    participant.rank = update.rank || undefined;
   });
 
   private onUpdateUserTyping = (update: Update.updateUserTyping | Update.updateChatUserTyping | Update.updateChannelUserTyping) => {
