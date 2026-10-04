@@ -216,4 +216,82 @@ test.describe('LiveKit calls', () => {
       })));
     });
   }
+
+  test('basic group call: both leave without ending it, the bar under the header counts each leave and never flashes for the last one', async({pair}) => {
+    const {sender, recipient} = pair;
+    const senderId = await sender.ownPeerId();
+    const recipientId = await recipient.ownPeerId();
+
+    const {chatId, callId} = await sender.page.evaluate(async(userId) => {
+      const w = window as any;
+      const createdChatId = (await w.rootScope.managers.appChatsManager.createChat(`calls-bar-${Date.now()}`, [Number(userId)])).chatId;
+      const call = await w.rootScope.managers.appGroupCallsManager.createGroupCall(createdChatId);
+      await w.groupCallController.joinGroupCall(createdChatId, call.id, false);
+      return {chatId: createdChatId, callId: call.id};
+    }, recipientId);
+    await recipient.page.evaluate(async({joinChatId, joinCallId}) => {
+      await (window as any).groupCallController.joinGroupCall(joinChatId, joinCallId, false);
+    }, {joinChatId: chatId, joinCallId: callId});
+    await Promise.all([
+      expectMediaFlowing(sender.page, 'group', {remoteIdentity: new RegExp(`^u${recipientId}\\.\\d+$`), e2ee: false}),
+      expectMediaFlowing(recipient.page, 'group', {remoteIdentity: new RegExp(`^u${senderId}\\.\\d+$`), e2ee: false})
+    ]);
+    for(const page of [sender.page, recipient.page]) {
+      await page.evaluate((id) => (window as any).appImManager.setInnerPeer({peerId: id.toPeerId(true)}), chatId);
+    }
+
+    const readBar = (page: Page) => page.evaluate(async(id) => {
+      const w = window as any;
+      const call = await w.rootScope.managers.appGroupCallsManager.getGroupCall(id);
+      const rows = await w.rootScope.managers.appGroupCallsManager.getCachedParticipants(id);
+      return {
+        count: call?.participants_count,
+        listed: [...rows.keys()].map(String),
+        shown: [...document.querySelectorAll('.pinned-group-call')].some((plate) => !plate.classList.contains('hide'))
+      };
+    }, callId);
+
+    // The admin leaves first: the call goes on with the other participant in it.
+    await sender.page.evaluate(() => (window as any).groupCallController.groupCall.hangUp());
+    await expect.poll(() => readBar(sender.page), {
+      message: 'the admin that left is shown the call it left, with the one participant still in it',
+      timeout: connectTimeoutMs
+    }).toEqual({count: 1, listed: [recipientId], shown: true});
+
+    // The last participant leaves: on its own page the bar must never appear for the call it is leaving.
+    await recipient.page.evaluate(() => {
+      const w = window as any;
+      const startedAt = performance.now();
+      const shown: string[] = w.__barShownAfterLeave = [];
+      const check = () => {
+        for(const plate of document.querySelectorAll('.pinned-group-call')) {
+          if(!plate.classList.contains('hide')) {
+            shown.push(`${Math.round(performance.now() - startedAt)} ms: "${plate.textContent}"`);
+          }
+        }
+      };
+      new MutationObserver(check).observe(document.body, {subtree: true, attributes: true, attributeFilter: ['class'], childList: true, characterData: true});
+      check();
+    });
+    await recipient.page.evaluate(() => (window as any).groupCallController.groupCall.hangUp());
+    // Watched until the chat stops saying anybody is in its call (constructor/chat.md:63-67), which is when
+    // the bar used to hide.
+    await expect.poll(() => recipient.page.evaluate(async(id) => {
+      const chat = await (window as any).rootScope.managers.appChatsManager.getChat(id);
+      return !!chat?.pFlags?.call_not_empty;
+    }, chatId), {
+      message: 'the last participant\'s chat never stopped saying there is somebody in its call',
+      timeout: connectTimeoutMs
+    }).toBe(false);
+    for(const page of [sender.page, recipient.page]) {
+      await expect.poll(() => readBar(page), {
+        message: 'the call is still active and nobody is in it',
+        timeout: connectTimeoutMs
+      }).toEqual({count: 0, listed: [], shown: false});
+    }
+    expect(
+      await recipient.page.evaluate(() => (window as any).__barShownAfterLeave),
+      'the bar of the call the last participant was leaving appeared on its own page, at these times after the observer started'
+    ).toEqual([]);
+  });
 });

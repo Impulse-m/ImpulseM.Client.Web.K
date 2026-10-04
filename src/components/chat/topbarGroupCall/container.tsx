@@ -1,4 +1,4 @@
-import {Accessor, Show, createEffect, createMemo, createResource, createSignal} from 'solid-js';
+import {Accessor, Show, createComputed, createEffect, createMemo, createResource, createSignal, on} from 'solid-js';
 import type Chat from '@components/chat/chat';
 import type ChatTopbar from '@components/chat/topbar';
 import {ChatType} from '@components/chat/chatType';
@@ -51,10 +51,10 @@ function GroupCallPlateBody(props: {
     return (full.call as InputGroupCall.inputGroupCall)?.id;
   });
 
-  const [preview, {refetch}] = createResource(
-    callId,
-    (id) => rootScope.managers.appGroupCallsManager.getGroupCallPreview(id, PREVIEW_AVATARS_COUNT)
-  );
+  const [preview, {refetch}] = createResource(callId, async(id) => {
+    const requestedAt = performance.now();
+    return {...await rootScope.managers.appGroupCallsManager.getGroupCallPreview(id, PREVIEW_AVATARS_COUNT), requestedAt};
+  });
 
   const groupCall = createMemo(() => {
     const call = preview()?.call;
@@ -62,9 +62,23 @@ function GroupCallPlateBody(props: {
     return call?._ === 'groupCall' && !call.pFlags.rtmp_stream ? call : undefined;
   });
 
+  // The call this tab is leaving stays its own until the leave's answer is applied, as tdesktop ends a
+  // call only then (calls_group_call.cpp:2247-2254): only a preview requested after that may show it.
+  const [shownFrom, setShownFrom] = createSignal(-Infinity);
+  createComputed(on(currentGroupCall, (current, left) => {
+    if(current || !left || left.chatId !== props.peerId().toChatId()) return;
+    setShownFrom(Infinity);
+    left.leaveSettled.then(() => {
+      setShownFrom(performance.now());
+      refetch();
+    });
+  }));
+
+  // tdesktop shows the bar while the call has somebody in it (history_view_group_call_bar.cpp:409).
   const shouldShow = createMemo(() => !!(
     isCallActive() &&
-    groupCall() &&
+    preview()?.requestedAt >= shownFrom() &&
+    groupCall()?.participants_count > 0 &&
     currentGroupCall()?.chatId !== props.peerId().toChatId()
   ));
 

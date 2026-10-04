@@ -139,6 +139,12 @@ export default class GroupCallInstance extends CallInstanceBase<{
   public connections: {[k in GroupCallConnectionType]?: GroupCallConnectionInstance};
   public groupCall: GroupCall;
   public participant: GroupCallParticipant;
+  /**
+   * Settles once the leave the last hang-up sent is answered and its updates applied, however it ended.
+   * Until then the call is still this tab's own: tdesktop ends it only after applying the leave's answer
+   * (calls_group_call.cpp:2247-2254).
+   */
+  public leaveSettled: Promise<void> = Promise.resolve();
 
   // ===== E2E (conference) mode =====
   // When set, this instance is a TdE2E-encrypted conference call rather than
@@ -2288,6 +2294,20 @@ export default class GroupCallInstance extends CallInstanceBase<{
   }
 
   public async hangUp(discard = false, rejoin = false, isDiscarded = false) {
+    if(rejoin || isDiscarded) {
+      return this.closeAndLeave(discard, rejoin, isDiscarded);
+    }
+
+    let settleLeave: () => void;
+    this.leaveSettled = new Promise<void>((resolve) => settleLeave = resolve);
+    try {
+      return await this.closeAndLeave(discard, rejoin, isDiscarded);
+    } finally {
+      settleLeave();
+    }
+  }
+
+  private async closeAndLeave(discard: boolean, rejoin: boolean, isDiscarded: boolean) {
     if(!rejoin) {
       this.markHungUp();
     }

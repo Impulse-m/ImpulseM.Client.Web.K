@@ -273,6 +273,7 @@ export class AppGroupCallsManager extends AppManager {
         this.appChatsManager.saveApiChats(result.chats);
         this.appUsersManager.saveApiUsers(result.users);
         this.saveApiParticipants(id, result.participants);
+        this.saveServerParticipantsCount(id, result.count);
         return;
       }
     })().finally(() => {
@@ -289,6 +290,9 @@ export class AppGroupCallsManager extends AppManager {
 
     const call = update.call;
     const currentVersion = this.participantVersions.get(call.id);
+    // A change at or below the cached version is already in the cached participants_count
+    // (api/group-calls.md:2316-2320, 2411-2424): the leave answer and its push, or a page read after it.
+    const advances = currentVersion === undefined || update.version > currentVersion;
     if(this.isParticipantVersionOlder(call.id, update.version)) {
       this.log.warn('updateGroupCallParticipants: ignored stale version', {
         id: call.id,
@@ -314,7 +318,7 @@ export class AppGroupCallsManager extends AppManager {
       groupCall.version = update.version;
     }
 
-    this.saveApiParticipants(call.id, update.participants);
+    this.saveApiParticipants(call.id, update.participants, advances);
   }
 
   private prepareToSavingNextOffset(groupCallId: GroupCallId) {
@@ -336,7 +340,11 @@ export class AppGroupCallsManager extends AppManager {
     };
   }
 
-  public saveApiParticipant(groupCallId: GroupCallId, participant: GroupCallParticipant) {
+  /**
+   * `countsChange` is false for a change the cached participants_count already holds (a participants
+   * update at or below the cached version), so it moves the roster but not the count.
+   */
+  public saveApiParticipant(groupCallId: GroupCallId, participant: GroupCallParticipant, countsChange = true) {
     const participants = this.getCachedParticipants(groupCallId);
 
     const peerId = getPeerId(participant.peer);
@@ -344,6 +352,8 @@ export class AppGroupCallsManager extends AppManager {
     const oldParticipant = participants.get(peerId);
     const hasLeft = participant.pFlags.left;
     if(!oldParticipant && hasLeft) {
+      // tdesktop data_group_call.cpp:726-743: a `left` lowers the count whether or not the row was loaded.
+      if(countsChange) this.shiftParticipantsCount(groupCallId, -1);
       return;
     }
 
@@ -363,25 +373,11 @@ export class AppGroupCallsManager extends AppManager {
     }
     this.participantRevisions.set(participant, (this.participantRevisions.get(participant) || 0) + 1);
 
-    const groupCall = this.getGroupCall(groupCallId);
-    if(groupCall?._ === 'groupCall') {
-      let modified = false;
+    if(countsChange) {
       if(hasLeft) {
-        // Clamped like tdesktop's _serverParticipantsCount: a `left` for a row
-        // whose join this bookkeeping never counted (polls carry no
-        // `just_joined`) drifted the counter below zero. The next
-        // updateGroupCall / roster page resets it to the server's value anyway.
-        if(groupCall.participants_count > 0) {
-          --groupCall.participants_count;
-          modified = true;
-        }
+        this.shiftParticipantsCount(groupCallId, -1);
       } else if(participant.pFlags.just_joined && !oldParticipant && !participant.pFlags.self) {
-        ++groupCall.participants_count;
-        modified = true;
-      }
-
-      if(modified) {
-        this.rootScope.dispatchEvent('group_call_update', groupCall);
+        this.shiftParticipantsCount(groupCallId, 1);
       }
     }
     if(hasLeft) {
@@ -394,10 +390,28 @@ export class AppGroupCallsManager extends AppManager {
     });
   }
 
-  public saveApiParticipants(groupCallId: GroupCallId, apiParticipants: GroupCallParticipant[]) {
+  public saveApiParticipants(groupCallId: GroupCallId, apiParticipants: GroupCallParticipant[], countsChange = true) {
     if((apiParticipants as any).saved) return;
     (apiParticipants as any).saved = true;
-    apiParticipants.forEach((p) => this.saveApiParticipant(groupCallId, p));
+    apiParticipants.forEach((p) => this.saveApiParticipant(groupCallId, p, countsChange));
+  }
+
+  /**
+   * Clamped at zero like tdesktop's _serverParticipantsCount: a `left` for a join this bookkeeping
+   * never counted would drift it below zero.
+   */
+  private shiftParticipantsCount(groupCallId: GroupCallId, delta: number): void {
+    const groupCall = this.getGroupCall(groupCallId);
+    if(groupCall?._ !== 'groupCall') return;
+    this.saveServerParticipantsCount(groupCallId, Math.max(0, (groupCall.participants_count || 0) + delta));
+  }
+
+  /** The participants_count the server stated, as groupCall or as phone.groupParticipants.count. */
+  private saveServerParticipantsCount(groupCallId: GroupCallId, count: number): void {
+    const groupCall = this.getGroupCall(groupCallId);
+    if(groupCall?._ !== 'groupCall' || !Number.isSafeInteger(count) || groupCall.participants_count === count) return;
+    groupCall.participants_count = count;
+    this.rootScope.dispatchEvent('group_call_update', groupCall);
   }
 
   public async editParticipant(groupCallId: GroupCallId, participant: GroupCallParticipant, options: Partial<{
@@ -721,6 +735,8 @@ export class AppGroupCallsManager extends AppManager {
           this.appChatsManager.saveApiChats(groupCallParticipants.chats);
           this.appUsersManager.saveApiUsers(groupCallParticipants.users);
           this.saveApiParticipants(id, groupCallParticipants.participants);
+          // tdesktop data_group_call.cpp:215 takes every page's count as the server's participant count.
+          this.saveServerParticipantsCount(id, groupCallParticipants.count);
 
           setNextOffset(newNextOffset);
         },
@@ -1051,10 +1067,7 @@ export class AppGroupCallsManager extends AppManager {
 
     // Server count is authoritative — the per-participant +/- bookkeeping in
     // saveApiParticipant can't see joins (no `just_joined` on a poll).
-    if(groupCall.participants_count !== count) {
-      groupCall.participants_count = count;
-      this.rootScope.dispatchEvent('group_call_update', groupCall);
-    }
+    this.saveServerParticipantsCount(id, count);
 
     return {complete, userIds: freshUserIds};
   }
