@@ -265,4 +265,19 @@ describe('GroupCallConnectionInstance.join', () => {
     connection.closeConnectionAndStream(false);
     expect((connection.streamManager as any).stop).toHaveBeenCalledTimes(1);
   });
+
+  it('stops the capture before it closes the transport, whose closed state is what plays the end tone', () => {
+    const {connection, transport} = makeConnection();
+    const order: string[] = [];
+    (connection.streamManager as any).stop.mockImplementation(() => order.push('capture stopped'));
+    const disconnect = transport.disconnect.bind(transport);
+    transport.disconnect = () => {
+      order.push('transport closed');
+      disconnect();
+    };
+
+    connection.closeConnectionAndStream(true);
+
+    expect(order).toEqual(['capture stopped', 'transport closed']);
+  });
 });

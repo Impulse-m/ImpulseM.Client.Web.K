@@ -1,7 +1,8 @@
 import {Page} from '@playwright/test';
 
 import {liveLane} from './lane';
-import {expect, test} from './pair';
+import {expect, PersonaPair, test} from './pair';
+import {PersonaSession} from './personaSession';
 
 
 /*
@@ -25,6 +26,11 @@ const enabled = liveLane.enabled && process.env.IMPULSE_LIVE_LIVEKIT === '1';
 const gateReason = 'IMPULSE_LIVE_LIVEKIT=1 (and IMPULSE_LIVE_GATEWAY) are required: this lane needs a real LiveKit project behind the dev stack';
 const connectTimeoutMs = 90_000;
 const sampleGapMs = 2_000;
+// Packets sent before the hang-up may still be in flight through the SFU; past this nothing of the sender's may arrive.
+const hangUpDrainMs = 500;
+// Kept below CALL_DISCARD_TEARDOWN_CAP_MS together with hangUpDrainMs: the sender's room is still up while it is measured.
+const hangUpWindowMs = 2_000;
+const hangUpSampleMs = 100;
 
 type TransportDiagnostics = {
   state: string,
@@ -88,6 +94,62 @@ async function expectMediaFlowing(page: Page, kind: 'phone' | 'group', options: 
   expect(diagnostics?.e2ee, 'media encryption of the call').toBe(options.e2ee);
 }
 
+type InboundAudio = {packetsReceived: number, totalAudioEnergy: number};
+
+/**
+ * Holds on to the RTCRtpReceiver of the 1:1 call's remote microphone named `identity`: its counters stay readable
+ * after LiveKit dropped the track.
+ */
+async function watchInboundAudio(page: Page, identity: string): Promise<void> {
+  const watched: boolean = await page.evaluate((remoteIdentity) => {
+    const transport = (window as any).callsController?.currentCall?.session?.transport;
+    const entries: any[] = transport ? [...transport.remoteTracks.values()] : [];
+    const entry = entries.find((candidate) => candidate.identity === remoteIdentity && candidate.source === 'microphone');
+    (window as any).__watchedReceiver = entry?.track?.receiver;
+    return !!entry?.track?.receiver;
+  }, identity);
+  expect(watched, `the receiver of ${identity}'s microphone`).toBe(true);
+}
+
+/** The inbound-rtp counters of the receiver watchInboundAudio holds; undefined once the receiver reports none. */
+async function readInboundAudio(page: Page): Promise<InboundAudio | undefined> {
+  return page.evaluate(async() => {
+    const report: RTCStatsReport = await ((window as any).__watchedReceiver as RTCRtpReceiver).getStats();
+    let inbound: InboundAudio | undefined;
+    report.forEach((stat: any) => {
+      if(stat.type === 'inbound-rtp') {
+        inbound = {packetsReceived: stat.packetsReceived, totalAudioEnergy: stat.totalAudioEnergy};
+      }
+    });
+    return inbound;
+  });
+}
+
+/** The sender calls from the topbar, the recipient accepts in the popup, and audio flows end-to-end encrypted both ways. */
+async function startPhoneCall(pair: PersonaPair): Promise<{senderId: string, recipientId: string}> {
+  const {sender, recipient} = pair;
+  const senderId = await sender.ownPeerId();
+  const recipientId = await recipient.ownPeerId();
+
+  // The topbar Call button is offered only when the server flags the user (userFull.phone_calls_available).
+  await sender.page.locator('.chat-utils').getByRole('button', {name: 'Call', exact: true}).click({timeout: connectTimeoutMs});
+  await recipient.page.locator('.popup-call').getByRole('button', {name: 'Accept'}).click({timeout: connectTimeoutMs});
+
+  await Promise.all([
+    expectMediaFlowing(sender.page, 'phone', {remoteIdentity: new RegExp(`^u${recipientId}$`), e2ee: true}),
+    expectMediaFlowing(recipient.page, 'phone', {remoteIdentity: new RegExp(`^u${senderId}$`), e2ee: true})
+  ]);
+
+  return {senderId, recipientId};
+}
+
+async function expectRecipientCallEnded(recipient: PersonaSession): Promise<void> {
+  await expect.poll(
+    () => recipient.page.evaluate(() => !(window as any).callsController?.currentCall),
+    {message: 'the recipient still has a call after the sender hung up', timeout: connectTimeoutMs}
+  ).toBe(true);
+}
+
 
 test.describe('LiveKit calls', () => {
   test.skip(!enabled, gateReason);
@@ -95,17 +157,7 @@ test.describe('LiveKit calls', () => {
 
   test('1:1 call: the sender calls, the recipient accepts in the popup, and audio flows end-to-end encrypted both ways', async({pair}) => {
     const {sender, recipient} = pair;
-    const senderId = await sender.ownPeerId();
-    const recipientId = await recipient.ownPeerId();
-
-    // The topbar Call button is offered only when the server flags the user (userFull.phone_calls_available).
-    await sender.page.locator('.chat-utils').getByRole('button', {name: 'Call', exact: true}).click({timeout: connectTimeoutMs});
-    await recipient.page.locator('.popup-call').getByRole('button', {name: 'Accept'}).click({timeout: connectTimeoutMs});
-
-    await Promise.all([
-      expectMediaFlowing(sender.page, 'phone', {remoteIdentity: new RegExp(`^u${recipientId}$`), e2ee: true}),
-      expectMediaFlowing(recipient.page, 'phone', {remoteIdentity: new RegExp(`^u${senderId}$`), e2ee: true})
-    ]);
+    await startPhoneCall(pair);
 
     // What the recipient hears from here on, and the call it will see end
     await recipient.page.evaluate(() => {
@@ -123,10 +175,7 @@ test.describe('LiveKit calls', () => {
       await (window as any).callsController.currentCall.hangUp('phoneCallDiscardReasonHangup');
     });
     // the end of the call reaches the other side without a click: nothing is left running there
-    await expect.poll(
-      () => recipient.page.evaluate(() => !(window as any).callsController?.currentCall),
-      {message: 'the recipient still has a call after the sender hung up', timeout: connectTimeoutMs}
-    ).toBe(true);
+    await expectRecipientCallEnded(recipient);
 
     // The peer hanging up is not our reconnect: the connecting loop never played, the call ended as a hang-up
     const ended = await recipient.page.evaluate(() => ({
@@ -135,6 +184,79 @@ test.describe('LiveKit calls', () => {
     }));
     expect(ended.sounds, 'sounds the recipient played while the sender hung up').not.toContain('voip_connecting.mp3');
     expect(ended.reason, 'how the call ended on the recipient').toBe('phoneCallDiscardReasonHangup');
+  });
+
+  test('1:1 call: once the sender starts hanging up, not one more packet of its microphone reaches the recipient, while its discard is still on the way', async({pair}) => {
+    const {sender, recipient} = pair;
+    const {senderId} = await startPhoneCall(pair);
+    const senderIdentity = `u${senderId}`;
+
+    await watchInboundAudio(recipient.page, senderIdentity);
+    const flowing = await readInboundAudio(recipient.page);
+    await recipient.page.waitForTimeout(hangUpWindowMs);
+    const stillFlowing = await readInboundAudio(recipient.page);
+    expect(flowing, 'the inbound-rtp of the sender\'s microphone at the recipient').toBeDefined();
+    expect(
+      stillFlowing?.packetsReceived,
+      'the sender\'s microphone packets arrive at the recipient before the hang-up (the measure can see a flow)'
+    ).toBeGreaterThan(flowing.packetsReceived);
+
+    // phone.discardCall leaves the sender only when the test lets it, with the arguments the hang-up gave it: until
+    // then the server keeps the room, and the recipient keeps listening to whatever the sender still sends.
+    await sender.page.evaluate(() => {
+      const w = window as any;
+      const call = w.callsController.currentCall;
+      const managers = call.managers;
+      let release: () => void;
+      const held: Promise<void> = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      w.__discard = {sent: false, release: () => release()};
+      call.managers = new Proxy(managers, {
+        get: (target, key) => key !== 'appCallsManager' ? target[key] : new Proxy(target.appCallsManager, {
+          get: (callsManager, method) => method !== 'discardCall' ? callsManager[method] : async(...args: unknown[]) => {
+            await held;
+            w.__discard.sent = true;
+            return callsManager.discardCall(...args);
+          }
+        })
+      });
+      w.__hangUp = call.hangUp('phoneCallDiscardReasonHangup');
+    });
+
+    await recipient.page.waitForTimeout(hangUpDrainMs);
+    // A receiver whose stream the SFU stopped forwarding reports no inbound-rtp at all: nothing arrives on it any more.
+    const samples: Array<InboundAudio | undefined> = [await readInboundAudio(recipient.page)];
+    const windowEndsAt: number = Date.now() + hangUpWindowMs;
+    while(Date.now() < windowEndsAt) {
+      await recipient.page.waitForTimeout(hangUpSampleMs);
+      samples.push(await readInboundAudio(recipient.page));
+    }
+    const counted: InboundAudio[] = samples.filter((sample): sample is InboundAudio => !!sample);
+    const arrived: number = counted.length ? counted[counted.length - 1].packetsReceived - counted[0].packetsReceived : 0;
+    const during = {
+      discardSent: await sender.page.evaluate(() => (window as any).__discard.sent),
+      recipient: await readDiagnostics(recipient.page, 'phone')
+    };
+
+    expect(during.discardSent, 'the sender\'s phone.discardCall is still held: the window is before it settled').toBe(false);
+    expect(during.recipient?.state, 'the recipient\'s room is still up through the window').toBe('connected');
+    expect(during.recipient?.remoteParticipants, 'the sender is still in the recipient\'s room through the window').toContain(senderIdentity);
+    expect(
+      arrived,
+      `microphone packets of the sender that reached the recipient between ${hangUpDrainMs} ms and ` +
+      `${hangUpDrainMs + hangUpWindowMs} ms after the sender started hanging up, a local hang-up must stop sending ` +
+      `at once (inbound-rtp samples, packets/energy, "gone" once the receiver has none: ${samples.map((sample) => {
+        return sample ? `${sample.packetsReceived}/${sample.totalAudioEnergy.toFixed(6)}` : 'gone';
+      }).join(' ')})`
+    ).toBe(0);
+
+    await sender.page.evaluate(async() => {
+      const w = window as any;
+      w.__discard.release();
+      await w.__hangUp;
+    });
+    await expectRecipientCallEnded(recipient);
   });
 
   for(const kind of ['basic group', 'supergroup'] as const) {

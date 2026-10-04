@@ -6,6 +6,7 @@ import PhoneCallSession, {
   readPhoneCallTimeouts,
   PhoneCallConnectionState
 } from '@lib/calls/livekit/phoneCallSession';
+import deferred from './helpers/deferred';
 import FakePhoneCallTransport from './helpers/fakePhoneCallTransport';
 
 class FakeMediaStream {
@@ -202,6 +203,28 @@ describe('PhoneCallSession', () => {
     expect(late.track.stop).toHaveBeenCalledTimes(1);
     expect(session.getStreams().ownAudio).toBeUndefined();
     expect(states).toEqual([]);
+  });
+
+  it('releaseCapture ends and unpublishes everything sent, and a capture whose publishing outlived it as it lands', async() => {
+    const {session, transport} = setup();
+    const audio = stream('audio');
+    await session.start({params: PARAMS, e2eeKey: new Uint8Array(32), audio: audio.stream});
+    const camera = stream('video');
+    const published = deferred<void>();
+    transport.hold('publish', published.promise);
+    const enabling = session.setOwnMedia({kind: 'video', stream: camera.stream});
+    await vi.waitFor(() => expect(transport.calls).toContain('publish:camera'));
+
+    session.releaseCapture();
+    expect(audio.track.stop).toHaveBeenCalledTimes(1);
+    expect(transport.calls, 'the microphone is taken off the sender at once').toContain('unpublish:microphone');
+
+    published.resolve();
+    await enabling;
+    expect(camera.track.stop, 'the camera that landed after the release is ended').toHaveBeenCalledTimes(1);
+    expect(transport.calls, 'the camera that landed after the release is taken off the sender').toContain('unpublish:camera');
+    await vi.waitFor(() => expect(transport.published.size).toBe(0));
+    expect(session.getStreams().ownVideo).toBeUndefined();
   });
 
   it('refuses to start publishing into a session that was closed while connecting', async() => {
