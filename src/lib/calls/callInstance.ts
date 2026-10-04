@@ -736,11 +736,11 @@ export default class CallInstance extends CallInstanceBase<{
 
     const hasVideo = this.isSharingVideo || this.isSharingScreen;
 
-    // tdesktop's order (calls_call.cpp): the call shows as ended and what we capture stops at once, the discard is
-    // sent, and only then is the media room dropped -- when the discard settled, or after a cap if it hangs.
+    // tdesktop plays the end tone only once our media is gone (calls_call.cpp:1345 before :1356), and drops the media
+    // only when phone.discardCall settled (:1587-:1594) or its timer fired (:1558).
     this.awaitingDiscard = !!discardedByOtherParty && !discardReason;
-    this.overrideConnectionState(CALL_STATE.CLOSED);
     this.session?.releaseCapture();
+    this.overrideConnectionState(CALL_STATE.CLOSED);
 
     if(!discardReason || discardedByOtherParty) {
       this.closeSession();

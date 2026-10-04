@@ -55,6 +55,7 @@ vi.mock('@lib/calls/livekit/liveKitTransport', async() => {
 import {CallsController} from '@lib/calls/callsController';
 import type CallInstance from '@lib/calls/callInstance';
 import CALL_STATE from '@lib/calls/callState';
+import deferred from './helpers/deferred';
 import FakePhoneCallTransport from './helpers/fakePhoneCallTransport';
 
 class FakeMediaStream {
@@ -95,7 +96,10 @@ type Harness = {
   order: string[]
 };
 
-async function connectedCall(options?: {discardCall?: ReturnType<typeof vi.fn>}): Promise<Harness> {
+type CallOptions = {discardCall?: ReturnType<typeof vi.fn>, video?: boolean};
+
+/** A call whose key exchange is done: joinCall has started the LiveKit session. */
+async function joiningCall(options?: CallOptions): Promise<Omit<Harness, 'transport'>> {
   const order: string[] = [];
   const discardCall = options?.discardCall ?? vi.fn(async() => {
     order.push('discardCall');
@@ -110,15 +114,20 @@ async function connectedCall(options?: {discardCall?: ReturnType<typeof vi.fn>})
   instance.setPhoneCall({
     _: 'phoneCall',
     id: CALL_ID,
-    pFlags: {},
+    pFlags: {video: options?.video || undefined},
     custom_parameters: {_: 'dataJSON', data: JSON.stringify({livekit: {url: 'wss://lk.example', token: 'jwt', room: `p.${CALL_ID}`}})}
   } as any);
   instance.encryptionKey = AUTH_KEY;
   instance.dh = {g_a: new Uint8Array([1])} as any;
   instance.joinCall();
+  return {controller, instance, discardCall, order};
+}
+
+async function connectedCall(options?: CallOptions): Promise<Harness> {
+  const {controller, instance, discardCall, order} = await joiningCall(options);
   await vi.waitFor(() => expect(FakePhoneCallTransport.instances.length).toBe(1));
   const transport: FakePhoneCallTransport = FakePhoneCallTransport.instances[0];
-  await vi.waitFor(() => expect(transport.calls).toContain('publish:microphone'));
+  await vi.waitFor(() => expect(transport.calls).toContain(options?.video ? 'publish:camera' : 'publish:microphone'));
   const disconnect = transport.disconnect.bind(transport);
   transport.disconnect = () => {
     order.push('transport.disconnect');
@@ -131,6 +140,25 @@ async function connectedCall(options?: {discardCall?: ReturnType<typeof vi.fn>})
   mocks.sharedAsset.playIfDifferent.mockClear();
   mocks.sharedAsset.stop.mockClear();
   return {controller, instance, transport, discardCall, order};
+}
+
+/** A capture track that ends for good when stopped, and records the moment in `order` as `stop:<kind>`. */
+function liveTrack(kind: 'audio' | 'video', order: string[]): MediaStreamTrack {
+  const track = {
+    kind,
+    enabled: true,
+    muted: false,
+    readyState: 'live' as MediaStreamTrackState,
+    addEventListener: vi.fn(),
+    stop: vi.fn(() => {
+      if(track.readyState === 'live') {
+        order.push(`stop:${kind}`);
+      }
+
+      track.readyState = 'ended';
+    })
+  };
+  return track as unknown as MediaStreamTrack;
 }
 
 function plays(): string[] {
@@ -284,6 +312,57 @@ describe('a local hang-up', () => {
 
     expect(order).toEqual(['discardCall', 'transport.disconnect']);
     expect(plays()).toEqual(['end']);
+  });
+
+  it('takes every track it sends off the wire before the end tone plays, while the discard is still pending', async() => {
+    const order: string[] = [];
+    mocks.getUserStream.mockImplementation(async(kind: string) => new FakeMediaStream([liveTrack(kind === 'audio' ? 'audio' : 'video', order)]));
+    const discard = deferred<void>();
+    const {instance, transport, discardCall} = await connectedCall({discardCall: vi.fn(() => discard.promise), video: true});
+    mocks.sharedAsset.play.mockImplementation(({name}: {name: string}) => {
+      order.push(`tone:${name}`);
+    });
+    const sent: Array<[string, MediaStreamTrack]> = [...transport.published.entries()];
+    expect(sent.map(([source]) => source), 'what the call sends before the hang-up').toEqual(['microphone', 'camera']);
+
+    const hangingUp = instance.hangUp('phoneCallDiscardReasonHangup');
+
+    expect(discardCall, 'phone.discardCall is on its way').toHaveBeenCalledTimes(1);
+    expect(transport.disconnectCount, 'the room is still up').toBe(0);
+    for(const [source, track] of sent) {
+      expect.soft(track.readyState, `the ${source} track LiveKit sends has ended`).toBe('ended');
+      expect.soft(transport.calls, `the ${source} track is taken off the sender`).toContain(`unpublish:${source}`);
+    }
+    expect.soft(order, 'the end tone plays only after every capture stopped').toEqual(['stop:audio', 'stop:video', 'tone:end']);
+
+    discard.resolve();
+    await hangingUp;
+    expect(transport.disconnectCount).toBe(1);
+  });
+
+  it('publishes nothing once a hang-up came while the room was still connecting', async() => {
+    const order: string[] = [];
+    const capture = deferred<FakeMediaStream>();
+    mocks.getUserStream.mockImplementation(() => capture.promise);
+    const discard = deferred<void>();
+    const {instance} = await joiningCall({discardCall: vi.fn(() => discard.promise)});
+    await vi.waitFor(() => expect(FakePhoneCallTransport.instances.length).toBe(1));
+    const transport: FakePhoneCallTransport = FakePhoneCallTransport.instances[0];
+    const connected = deferred<void>();
+    transport.hold('connect', connected.promise);
+    const micTrack: MediaStreamTrack = liveTrack('audio', order);
+    capture.resolve(new FakeMediaStream([micTrack]));
+    await vi.waitFor(() => expect(transport.calls).toContain('connect'));
+
+    const hangingUp = instance.hangUp('phoneCallDiscardReasonHangup');
+    connected.resolve();
+    await vi.waitFor(() => expect(micTrack.readyState).toBe('ended'));
+
+    expect(transport.calls, 'the microphone captured for the call is never published after the hang-up').not.toContain('publish:microphone');
+    expect(transport.isPublished('microphone')).toBe(false);
+
+    discard.resolve();
+    await hangingUp;
   });
 
   it('drops the room after 5 seconds when the discard never settles', async() => {

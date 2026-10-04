@@ -66,8 +66,8 @@ export type PhoneCallStreams = {
 
 export type PhoneCallTransport = Pick<
   LiveKitTransport,
-  'connect' | 'publish' | 'replace' | 'setMuted' | 'unpublish' | 'isPublished' | 'disconnect' | 'getDiagnostics' |
-  'addEventListener' | 'removeEventListener' | 'state'
+  'connect' | 'publish' | 'replace' | 'setMuted' | 'unpublish' | 'isPublished' | 'getPublishedTrack' | 'disconnect' |
+  'getDiagnostics' | 'addEventListener' | 'removeEventListener' | 'state'
 >;
 
 export type PhoneCallSessionEvents = {
@@ -175,11 +175,17 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
     const {kind, stream} = options;
     const source: LiveKitMediaSource = SOURCE_BY_KIND[kind];
 
+    if(stream && (this.closed || this.captureReleased)) {
+      this.adoptOwnStream({kind, stream});
+      return;
+    }
+
     if(stream) {
       const track: MediaStreamTrack = stream.getTracks()[0];
       if(this.transport.isPublished(source)) {
         await this.transport.replace({source, track});
-        if(kind === 'audio') {
+        // releaseCapture() during the replace has unpublished the source: there is nothing left to unmute
+        if(kind === 'audio' && !this.captureReleased) {
           await this.transport.setMuted({source, muted: false});
         }
       } else {
@@ -213,8 +219,7 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
   public adoptOwnStream(options: {kind: PhoneCallOwnKind, stream: MediaStream | undefined}): void {
     const {kind, stream} = options;
     if(this.closed || this.captureReleased) {
-      // the capture was already released; a capture handed over after that must not outlive the call
-      stopStream(stream);
+      this.stopSending({kind, stream});
       return;
     }
 
@@ -239,14 +244,13 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
   }
 
   /**
-   * Stops sending what we capture, at once: the call is ending and nothing of ours may keep going out while the
-   * discard is on its way (tdesktop stops the microphone and camera first, then discards, then drops the room).
-   * The transport stays up until close().
+   * The call is ending: every capture is released and nothing of ours is sent from here on, including a capture
+   * handed over later. The transport stays connected until close().
    */
   public releaseCapture(): void {
     this.captureReleased = true;
     for(const kind of ['audio', 'video', 'presentation'] as const) {
-      stopStream(this.getOwn(kind));
+      this.stopSending({kind, stream: this.getOwn(kind)});
       this.setOwn(kind, undefined);
     }
   }
@@ -451,6 +455,25 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
       screencastState: active('screen') ? 'active' : 'inactive'
     };
     this.dispatchEvent('remoteMediaState', this.remoteMediaState);
+  }
+
+  /** Ends `stream` and the exact track the transport sends for `kind`, and unpublishes that track. */
+  private stopSending(options: {kind: PhoneCallOwnKind, stream: MediaStream | undefined}): void {
+    const source: LiveKitMediaSource = SOURCE_BY_KIND[options.kind];
+    const tracks: Set<MediaStreamTrack> = new Set(options.stream?.getTracks());
+    if(this.transport.isPublished(source)) {
+      const published: MediaStreamTrack | undefined = this.transport.getPublishedTrack(source);
+      if(published) {
+        tracks.add(published);
+      }
+
+      // Firefox keeps sending RTP for an ended track; only taking the track off the sender stops the packets.
+      this.transport.unpublish(source).catch((err: unknown) => {
+        this.log.warn('unpublishing a released capture failed', {source, error: err});
+      });
+    }
+
+    tracks.forEach((track: MediaStreamTrack) => track.stop());
   }
 
   private getOwn(kind: PhoneCallOwnKind): MediaStream | undefined {

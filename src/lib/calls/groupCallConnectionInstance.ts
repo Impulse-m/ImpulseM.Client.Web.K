@@ -210,9 +210,10 @@ export default class GroupCallConnectionInstance {
     this.transport.disconnect();
   }
 
+  /** The capture stops first: closing the transport is what moves the call to closed and plays its end tone. */
   public closeConnectionAndStream(stopStream: boolean): void {
-    this.closeConnection();
     stopStream && this.streamManager.stop();
+    this.closeConnection();
   }
 
 

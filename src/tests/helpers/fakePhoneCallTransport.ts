@@ -87,9 +87,12 @@ export default class FakePhoneCallTransport extends EventListenerBase<LiveKitTra
     return undefined;
   }
 
+  /** Like LiveKitTransport.disconnect: nothing counts as published any more. */
   public disconnect(): void {
     ++this.disconnectCount;
     this.calls.push('disconnect');
+    this.published.clear();
+    this.muted.clear();
   }
 
   public async getDiagnostics(): Promise<never> {
