@@ -132,6 +132,7 @@ export default function showGroupCallPopup() {
   const [isRightColumnShown, setIsRightColumnShown] = createSignal(true);
   const [hasPinned, setHasPinned] = createSignal(false);
   const [showControls, setShowControls] = createSignal(false);
+  const [isMovable, setIsMovable] = createSignal(false);
 
   let containerEl!: HTMLDivElement;
 
@@ -635,6 +636,7 @@ export default function showGroupCallPopup() {
         onResize: () => toggleBigLayout(),
         previousState
       });
+      setIsMovable(!!movablePanel.movable);
 
       onFullScreenChange();
 
@@ -681,7 +683,7 @@ export default function showGroupCallPopup() {
 
   createPopup(() => (
     <PopupElement
-      class="popup-group-call"
+      class={classNames('popup-group-call', isMovable() && 'movable-element')}
       kind={GROUP_CALL_POPUP_KIND}
       withoutOverlay
       closable

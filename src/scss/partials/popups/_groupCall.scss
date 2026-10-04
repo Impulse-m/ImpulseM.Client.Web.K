@@ -471,6 +471,13 @@
       display: none;
     }
 
+    // tdesktop names every tile outside the wide layout: only Wide mode hides
+    // the controls (calls_group_panel.cpp:2521, calls_group_viewport.cpp:189).
+    .group-call-participant-video-container:after,
+    .group-call-participant-video-info {
+      opacity: 1;
+    }
+
     .group-call-big-video-container {
       display: none;
     }
