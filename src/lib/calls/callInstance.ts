@@ -80,6 +80,7 @@ export default class CallInstance extends CallInstanceBase<{
   private hangUpTimeout: number;
   private hangUpStarted = false;
   private awaitingDiscard = false;
+  private endedByOtherParty = false;
 
   private joined: boolean;
   private sessionState: PhoneCallConnectionState | undefined;
@@ -739,6 +740,7 @@ export default class CallInstance extends CallInstanceBase<{
     // tdesktop plays the end tone only once our media is gone (calls_call.cpp:1345 before :1356), and drops the media
     // only when phone.discardCall settled (:1587-:1594) or its timer fired (:1558).
     this.awaitingDiscard = !!discardedByOtherParty && !discardReason;
+    this.endedByOtherParty = !!discardedByOtherParty;
     this.session?.releaseCapture();
     this.overrideConnectionState(CALL_STATE.CLOSED);
 
@@ -757,6 +759,11 @@ export default class CallInstance extends CallInstanceBase<{
   /** The call ended here because the room was deleted, and the server's phoneCallDiscarded has not arrived yet. */
   public get isAwaitingDiscard(): boolean {
     return this.awaitingDiscard;
+  }
+
+  /** The other side's phoneCallDiscarded, or the room the server deleted for it, ended the call before we hung up. */
+  public get isEndedByOtherParty(): boolean {
+    return this.endedByOtherParty;
   }
 
   /** Takes in the phoneCallDiscarded that follows a deleted room: its reason, duration and rating flag. No sound, no RPC. */

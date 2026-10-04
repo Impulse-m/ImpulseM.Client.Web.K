@@ -96,9 +96,9 @@ type Harness = {
   order: string[]
 };
 
-type CallOptions = {discardCall?: ReturnType<typeof vi.fn>, video?: boolean};
+type CallOptions = {discardCall?: ReturnType<typeof vi.fn>, video?: boolean, incoming?: boolean};
 
-/** A call whose key exchange is done: joinCall has started the LiveKit session. */
+/** A call whose key exchange is done: joinCall has started the LiveKit session. An incoming one was accepted here. */
 async function joiningCall(options?: CallOptions): Promise<Omit<Harness, 'transport'>> {
   const order: string[] = [];
   const discardCall = options?.discardCall ?? vi.fn(async() => {
@@ -109,8 +109,11 @@ async function joiningCall(options?: CallOptions): Promise<Omit<Harness, 'transp
     appCallsManager: {discardCall},
     apiManager: {getConfig: vi.fn(async() => CONFIG)}
   } as any);
-  const instance: CallInstance = (controller as any).createCallInstance({isOutgoing: true, interlocutorUserId: 7 as UserId});
+  const instance: CallInstance = (controller as any).createCallInstance({isOutgoing: !options?.incoming, interlocutorUserId: 7 as UserId});
   (instance as any).streamManager.stop = vi.fn();
+  if(options?.incoming) {
+    instance.overrideConnectionState(CALL_STATE.EXCHANGING_KEYS);
+  }
   instance.setPhoneCall({
     _: 'phoneCall',
     id: CALL_ID,
@@ -258,6 +261,59 @@ describe('the room is deleted', () => {
     expect((instance as any).call.duration).toBe(5);
     expect((instance as any).call.pFlags.need_rating).toBe(true);
     expect(transport.disconnectCount).toBe(1);
+  });
+});
+
+describe('an incoming call the other side ends (tdesktop EndedByOtherDevice)', () => {
+  it('plays nothing when the caller discards it', async() => {
+    const {controller, instance, transport, discardCall} = await connectedCall({incoming: true});
+
+    await (controller as any).handleCallUpdate(discarded({reason: 'phoneCallDiscardReasonHangup'}));
+
+    expect(instance.connectionState).toBe(CALL_STATE.CLOSED);
+    expect(plays(), 'sounds an incoming call plays when the caller discards it').toEqual([]);
+    expect(playsIfDifferent()).toEqual([]);
+    expect(discardCall).not.toHaveBeenCalled();
+    expect(transport.disconnectCount).toBe(1);
+  });
+
+  it('plays nothing when the server deletes its room, nor when the discard follows', async() => {
+    const {controller, instance, transport} = await connectedCall({incoming: true});
+
+    transport.emitState('disconnected', 'roomDeleted');
+    await vi.waitFor(() => expect(instance.connectionState).toBe(CALL_STATE.CLOSED));
+    expect(plays(), 'sounds an incoming call plays when its room is deleted').toEqual([]);
+
+    await (controller as any).handleCallUpdate(discarded({reason: 'phoneCallDiscardReasonHangup', duration: 5}));
+    expect(plays()).toEqual([]);
+    expect(playsIfDifferent()).toEqual([]);
+    expect(instance.discardReason).toEqual({_: 'phoneCallDiscardReasonHangup'});
+  });
+
+  it('plays the busy tone when the caller discards it as busy', async() => {
+    const {controller} = await connectedCall({incoming: true});
+
+    await (controller as any).handleCallUpdate(discarded({reason: 'phoneCallDiscardReasonBusy'}));
+
+    expect(plays()).toEqual(['busy']);
+  });
+
+  it('plays the end tone when we hang it up ourselves', async() => {
+    const {instance} = await connectedCall({incoming: true});
+
+    await instance.hangUp('phoneCallDiscardReasonHangup');
+
+    expect(plays()).toEqual(['end']);
+  });
+
+  it('plays the end tone when our own transport fails', async() => {
+    const {instance, transport, discardCall} = await connectedCall({incoming: true});
+
+    transport.emitState('disconnected', 'network');
+
+    await vi.waitFor(() => expect(discardCall).toHaveBeenCalledTimes(1));
+    expect(instance.connectionState).toBe(CALL_STATE.CLOSED);
+    expect(plays()).toEqual(['end']);
   });
 });
 

@@ -472,6 +472,9 @@ export class CallsController extends EventListenerBase<{
             this.audioAsset.stop();
           } else if(!call.isOutgoing && !call.wasTryingToJoin) { // incoming call has been accepted on other device or ended
             this.audioAsset.stop();
+          } else if(!call.isOutgoing && call.isEndedByOtherParty && call.discardReason?._ !== 'phoneCallDiscardReasonBusy') {
+            // tdesktop calls_call.cpp:849-856, :1359-1361: an incoming call the other side ends is EndedByOtherDevice, silent
+            this.audioAsset.stop();
           } else if(call.wasTryingToJoin && !hasConnected) { // something has happened during the key exchanging
             this.audioAsset.play({name: 'failed'});
           } else {
