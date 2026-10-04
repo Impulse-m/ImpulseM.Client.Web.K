@@ -122,7 +122,6 @@ test('#319 a message written to Saved Messages on one device appears on the acco
 });
 
 
-
 test('#319 a message arriving from someone else appears on BOTH devices of the account', async({account, browser}, testInfo) => {
   const {writer, watcher} = account;
 
