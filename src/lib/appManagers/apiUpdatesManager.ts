@@ -662,7 +662,11 @@ class ApiUpdatesManager {
     const log = this.log.bindPrefix(`processUpdate${channelId ? `-${channelId}` : ''}`);
     log('process', curState.pts, copy(update));
 
-    if(curState.syncLoading && !options.ignoreSyncLoading) {
+    // No difference carries a group call's participant updates, so tdesktop applies them while one is
+    // requested (api_updates.cpp:894-903, 951-970).
+    const differenceNeverCarries = update._ === 'updateGroupCallParticipants' ||
+      update._ === 'updateGroupCallChainBlocks';
+    if(curState.syncLoading && !options.ignoreSyncLoading && !differenceNeverCarries) {
       log('ignoring update, sync loading');
       return false;
     } else if(curState.syncLoading) {
