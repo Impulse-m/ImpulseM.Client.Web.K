@@ -75,6 +75,55 @@ describe('PhoneCallSession', () => {
     expect(session.isOwnActive('presentation')).toBe(false);
   });
 
+  it('starts without any capture: connects and publishes nothing', async() => {
+    const {session, transport} = setup();
+
+    await session.start({params: PARAMS, e2eeKey: new Uint8Array(32)});
+
+    expect(transport.calls).toEqual(['connect']);
+    expect(transport.state).toBe('connected');
+    expect(session.isOwnActive('audio')).toBe(false);
+    expect(session.getStreams().ownAudio).toBeUndefined();
+    session.close();
+  });
+
+  it('publishes a capture handed over while connecting only once the connection is up', async() => {
+    const {session, transport} = setup();
+    const connected = deferred<void>();
+    transport.hold('connect', connected.promise);
+    const starting = session.start({params: PARAMS, e2eeKey: new Uint8Array(32)});
+    await vi.waitFor(() => expect(transport.calls).toContain('connect'));
+
+    const audio = stream('audio');
+    const enabling = session.setOwnMedia({kind: 'audio', stream: audio.stream});
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(transport.calls, 'nothing is published into a room that is not connected yet').toEqual(['connect']);
+
+    connected.resolve();
+    await starting;
+    await enabling;
+
+    expect(transport.calls).toEqual(['connect', 'publish:microphone']);
+    expect(session.getStreams().ownAudio).toBe(audio.stream);
+    expect(session.isOwnActive('audio')).toBe(true);
+    session.close();
+  });
+
+  it('rejects a capture handed over while connecting when the connection fails, publishing nothing', async() => {
+    const {session, transport} = setup();
+    const connected = deferred<void>();
+    transport.hold('connect', connected.promise);
+    const starting = session.start({params: PARAMS, e2eeKey: new Uint8Array(32)});
+    await vi.waitFor(() => expect(transport.calls).toContain('connect'));
+
+    const enabling = session.setOwnMedia({kind: 'audio', stream: stream('audio').stream});
+    connected.reject(new Error('signal connection failed'));
+
+    await expect(starting).rejects.toThrow(/signal connection failed/);
+    await expect(enabling).rejects.toThrow(/signal connection failed/);
+    expect(transport.calls).toEqual(['connect']);
+  });
+
   it('is connecting until the peer shows up, connected with the peer, and stays connected when it leaves', async() => {
     const {session, transport, states} = setup();
     await session.start({params: PARAMS, e2eeKey: new Uint8Array(32), audio: stream('audio').stream});

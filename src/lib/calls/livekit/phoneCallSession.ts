@@ -101,6 +101,7 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
   private readonly log: ReturnType<typeof logger>;
   private readonly streams: PhoneCallStreams = {};
   private readonly remoteTracks = new Map<LiveKitMediaSource, {track: MediaStreamTrack, muted: boolean}>();
+  private connecting: Promise<void> | undefined;
   private peerPresent = false;
   // Once the call connected, the peer's absence is not a reconnect of ours (see PhoneCallConnectionState).
   private hasConnected = false;
@@ -145,22 +146,27 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
   }
 
   /**
-   * Connects, then publishes what was captured: the microphone always, the camera when given.
+   * Connects, then publishes whatever capture is given. Media is optional: a call connects without it.
    * Rejects with the transport's typed error; the caller decides how the call ends.
    */
   public async start(options: {
     params: LiveKitJoinParams,
     e2eeKey: Uint8Array,
-    audio: MediaStream,
+    audio?: MediaStream,
     video?: MediaStream
   }): Promise<void> {
     const connectOptions: LiveKitConnectOptions = {autoSubscribe: true, e2eeKey: options.e2eeKey};
-    await this.transport.connect(options.params, connectOptions);
+    const connecting: Promise<void> = this.transport.connect(options.params, connectOptions);
+    this.connecting = connecting;
+    await connecting;
     if(this.closed) {
       throw new Error('PhoneCallSession: closed while connecting');
     }
 
-    await this.setOwnMedia({kind: 'audio', stream: options.audio});
+    if(options.audio) {
+      await this.setOwnMedia({kind: 'audio', stream: options.audio});
+    }
+
     if(options.video) {
       await this.setOwnMedia({kind: 'video', stream: options.video});
     }
@@ -168,12 +174,17 @@ export default class PhoneCallSession extends EventListenerBase<PhoneCallSession
 
   /**
    * Makes `stream` the one we send for `kind`, or stops sending it when `stream` is undefined.
+   * A stream handed over while connecting is published once connected; a failed connect rejects.
    * Audio is muted rather than unpublished so the publication (and the remote's track) stays; the
    * capture itself is always released. Camera and screen are unpublished.
    */
   public async setOwnMedia(options: {kind: PhoneCallOwnKind, stream: MediaStream | undefined}): Promise<void> {
     const {kind, stream} = options;
     const source: LiveKitMediaSource = SOURCE_BY_KIND[kind];
+
+    if(stream && this.connecting) {
+      await this.connecting;
+    }
 
     if(stream && (this.closed || this.captureReleased)) {
       this.adoptOwnStream({kind, stream});

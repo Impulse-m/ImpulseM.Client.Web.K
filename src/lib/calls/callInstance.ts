@@ -562,25 +562,72 @@ export default class CallInstance extends CallInstanceBase<{
     // transaction and read the committed id only then.
     this.applyCurrentOutputDeviceToElement(session.audioElement);
 
-    let audio: MediaStream | undefined;
-    let video: MediaStream | undefined;
-    try {
-      audio = await getUserStream('audio');
-      if(shouldStartVideo) {
-        this.facingMode = 'user';
-        video = await getUserStream('video', this.facingMode);
-      }
-
-      if(this.session !== session || this.isClosing) {
-        throw new Error('The call closed during media capture');
-      }
-
-      await session.start({params, e2eeKey, audio, video});
-    } catch(err) {
-      stopStream(audio);
-      stopStream(video);
-      throw err;
+    // The call connects whatever the browser answers to the capture prompts; each capture is published once it lands.
+    const starting: Promise<void> = session.start({params, e2eeKey});
+    void this.attachInitialCapture({session, kind: 'audio'});
+    if(shouldStartVideo) {
+      this.facingMode = 'user';
+      void this.attachInitialCapture({session, kind: 'video'});
     }
+
+    await starting;
+  }
+
+  private async attachInitialCapture(options: {session: PhoneCallSession, kind: 'audio' | 'video'}): Promise<void> {
+    const {session, kind} = options;
+    // A mute/unmute pressed while the prompt is open supersedes this capture.
+    const generation: number = this.beginMediaDeviceChange(kind);
+    const isSuperseded = (): boolean => {
+      return this.session !== session ||
+        this.isClosing ||
+        !this.isMediaDeviceChangeCurrent(kind, generation) ||
+        session.isOwnActive(kind);
+    };
+
+    let stream: MediaStream;
+    try {
+      stream = await getUserStream(kind, this.facingMode);
+    } catch(err) {
+      this.onInitialCaptureRefused({session, kind, error: err});
+      return;
+    }
+
+    if(isSuperseded()) {
+      stopStream(stream);
+      return;
+    }
+
+    try {
+      await session.setOwnMedia({kind, stream});
+    } catch(err) {
+      stopStream(stream);
+      this.log.warn('publishing the initial capture failed', {kind, error: err});
+      return;
+    }
+
+    this.dispatchOwnMediaState();
+  }
+
+  private onInitialCaptureRefused(options: {session: PhoneCallSession, kind: 'audio' | 'video', error: unknown}): void {
+    const {session, kind, error} = options;
+    const errorName: string | undefined = error instanceof Error ? error.name : undefined;
+    this.log.warn('initial capture refused, the call goes on without it', {kind, error: errorName});
+    if(this.session !== session || this.isClosing) {
+      return;
+    }
+
+    if(kind === 'audio') {
+      toastNew({langPackKey: errorName === 'NotAllowedError' ? 'NoMicrophoneAccess' : 'CallSettings.MicrophoneUnavailable'});
+    } else {
+      toastNew({langPackKey: 'CallSettings.CameraUnavailable'});
+    }
+
+    this.dispatchOwnMediaState();
+  }
+
+  private dispatchOwnMediaState(): void {
+    this.dispatchEvent('muted', this.isMuted);
+    this.dispatchEvent('mediaState', this.getMediaState('input'));
   }
 
   private bindSession(session: PhoneCallSession): void {

@@ -35,6 +35,7 @@ import CallInstance from '@lib/calls/callInstance';
 import CALL_STATE from '@lib/calls/callState';
 import {LiveKitE2eeUnsupportedError} from '@lib/calls/livekit/liveKitErrors';
 import FakePhoneCallTransport from './helpers/fakePhoneCallTransport';
+import deferred from './helpers/deferred';
 
 class FakeMediaStream {
   public readonly tracks: MediaStreamTrack[];
@@ -64,6 +65,10 @@ function track(kind: 'audio' | 'video'): MediaStreamTrack & {stop: ReturnType<ty
     stop: vi.fn(),
     addEventListener: vi.fn()
   } as unknown as MediaStreamTrack & {stop: ReturnType<typeof vi.fn>};
+}
+
+function mediaError(name: string): Error {
+  return Object.assign(new Error(`getUserMedia: ${name}`), {name});
 }
 
 function livekitParams(room: string): {_: 'dataJSON', data: string} {
@@ -206,6 +211,74 @@ describe('1:1 call on LiveKit', () => {
 
     await vi.waitFor(() => expect(transport.calls).toContain('publish:camera'));
     expect(transport.calls.indexOf('publish:microphone')).toBeLessThan(transport.calls.indexOf('publish:camera'));
+    instance.cleanup();
+  });
+
+  it('connects while the microphone prompt is still open, and publishes the microphone only once it is granted', async() => {
+    const prompt = deferred<MediaStream>();
+    mocks.getUserStream.mockReset().mockReturnValue(prompt.promise);
+    const {instance, discardCall} = makeInstance();
+    const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
+
+    transport.dispatchEvent('remoteParticipant', {identity: 'u7', present: true});
+    expect(instance.connectionState).toBe(CALL_STATE.CONNECTED);
+    expect(instance.isMuted).toBe(true);
+    expect(transport.calls, 'nothing is published while the prompt is open').not.toContain('publish:microphone');
+
+    prompt.resolve(new FakeMediaStream([track('audio')]) as unknown as MediaStream);
+
+    await vi.waitFor(() => expect(transport.calls).toContain('publish:microphone'));
+    await vi.waitFor(() => expect(instance.isMuted).toBe(false));
+    expect(instance.connectionState).toBe(CALL_STATE.CONNECTED);
+    expect(discardCall).not.toHaveBeenCalled();
+    instance.cleanup();
+  });
+
+  it.each([
+    ['NotAllowedError', 'NoMicrophoneAccess'],
+    ['NotFoundError', 'CallSettings.MicrophoneUnavailable'],
+    ['NotReadableError', 'CallSettings.MicrophoneUnavailable']
+  ])('stays in the call, muted, when the microphone is refused with %s', async(errorName, toastKey) => {
+    mocks.getUserStream.mockReset().mockRejectedValue(mediaError(errorName));
+    const {instance, discardCall} = makeInstance();
+    const mutedEvents: boolean[] = [];
+    instance.addEventListener('muted', (muted) => mutedEvents.push(muted));
+    const transport = await joinWith(instance, {custom_parameters: livekitParams('p.call-42')});
+    transport.dispatchEvent('remoteParticipant', {identity: 'u7', present: true});
+
+    await vi.waitFor(() => expect(mocks.toastNew).toHaveBeenCalledWith({langPackKey: toastKey}));
+    expect(mutedEvents).toEqual([true]);
+    expect(instance.connectionState).toBe(CALL_STATE.CONNECTED);
+    expect(instance.isClosing).toBe(false);
+    expect(instance.isMuted).toBe(true);
+    expect(transport.calls).not.toContain('publish:microphone');
+    expect(transport.disconnectCount).toBe(0);
+    expect(discardCall).not.toHaveBeenCalled();
+    instance.cleanup();
+  });
+
+  it('keeps a video call with the microphone published when the camera is refused', async() => {
+    mocks.getUserStream.mockReset().mockImplementation(async(kind: string) => {
+      if(kind === 'video') {
+        throw mediaError('NotAllowedError');
+      }
+
+      return new FakeMediaStream([track('audio')]);
+    });
+    const {instance, discardCall} = makeInstance();
+    const transport = await joinWith(instance, {
+      pFlags: {video: true},
+      custom_parameters: livekitParams('p.call-42')
+    });
+    transport.dispatchEvent('remoteParticipant', {identity: 'u7', present: true});
+
+    await vi.waitFor(() => expect(transport.calls).toContain('publish:microphone'));
+    await vi.waitFor(() => expect(mocks.toastNew).toHaveBeenCalledWith({langPackKey: 'CallSettings.CameraUnavailable'}));
+    expect(transport.calls).not.toContain('publish:camera');
+    expect(instance.isSharingVideo).toBe(false);
+    expect(instance.isMuted).toBe(false);
+    expect(instance.connectionState).toBe(CALL_STATE.CONNECTED);
+    expect(discardCall).not.toHaveBeenCalled();
     instance.cleanup();
   });
 
