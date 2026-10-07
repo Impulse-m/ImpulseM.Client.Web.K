@@ -21,19 +21,27 @@ export type PersonaPair = {
 };
 
 
-export const test = base.extend<{pair: PersonaPair, pairContextOptions: BrowserContextOptions}>({
+export const test = base.extend<{
+  pair: PersonaPair,
+  pairContextOptions: BrowserContextOptions,
+  recipientContextOptions: BrowserContextOptions | undefined
+}>({
   // Options of both personas' browser contexts; a scenario sets them with test.use({pairContextOptions}).
   pairContextOptions: [{}, {option: true}],
+  // Overrides pairContextOptions for the recipient alone, when a scenario needs the two sides to differ.
+  recipientContextOptions: [undefined, {option: true}],
 
-  pair: async({browser, pairContextOptions}, use, testInfo) => {
+  pair: async({browser, pairContextOptions, recipientContextOptions}, use, testInfo) => {
     // The label doubles as the persona's first name and is typed into the sign-up UI, which
     // caps names at 70 chars — testId keeps it short while still unique per scenario.
     // Firefox has no `permissions` context option: its fake devices need none (the project's prefs).
-    const contextOptions: BrowserContextOptions = browser.browserType().name() === 'firefox' ?
-      {...pairContextOptions, permissions: undefined} :
-      pairContextOptions;
-    const sender = await PersonaSession.open(browser, ephemeralPersona(`sender-${testInfo.testId}`), {contextOptions});
-    const recipient = await PersonaSession.open(browser, ephemeralPersona(`recipient-${testInfo.testId}`), {contextOptions});
+    const forBrowser = (options: BrowserContextOptions): BrowserContextOptions => {
+      return browser.browserType().name() === 'firefox' ? {...options, permissions: undefined} : options;
+    };
+    const senderOptions: BrowserContextOptions = forBrowser(pairContextOptions);
+    const recipientOptions: BrowserContextOptions = forBrowser(recipientContextOptions ?? pairContextOptions);
+    const sender = await PersonaSession.open(browser, ephemeralPersona(`sender-${testInfo.testId}`), {contextOptions: senderOptions});
+    const recipient = await PersonaSession.open(browser, ephemeralPersona(`recipient-${testInfo.testId}`), {contextOptions: recipientOptions});
 
     try {
       await Promise.all([

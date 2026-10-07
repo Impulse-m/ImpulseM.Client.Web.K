@@ -259,6 +259,62 @@ test.describe('LiveKit calls', () => {
     await expectRecipientCallEnded(recipient);
   });
 
+  test.describe('with the recipient\'s microphone and camera refused by the browser', {tag: '@media-permission-denied'}, () => {
+    test.use({recipientContextOptions: {permissions: []}});
+
+    test('1:1 call: the call connects on both sides, the recipient stays in it muted and hears the sender', async({pair}) => {
+      const {sender, recipient} = pair;
+      const senderId = await sender.ownPeerId();
+      const recipientId = await recipient.ownPeerId();
+      const refused: string = await recipient.page.evaluate(() => navigator.mediaDevices.getUserMedia({audio: true}).then(
+        () => 'granted',
+        (error: Error) => error.name
+      ));
+      expect(refused, 'the recipient\'s browser itself refuses the microphone').toBe('NotAllowedError');
+
+      await sender.page.locator('.chat-utils').getByRole('button', {name: 'Call', exact: true}).click({timeout: connectTimeoutMs});
+      await recipient.page.locator('.popup-call').getByRole('button', {name: 'Accept'}).click({timeout: connectTimeoutMs});
+
+      for(const side of [sender, recipient]) {
+        await expect(
+          side.page.locator('.popup-call .call-description-duration'),
+          'the call reached connected and shows its running duration'
+        ).toBeVisible({timeout: connectTimeoutMs});
+      }
+
+      await expectMediaFlowing(recipient.page, 'phone', {remoteIdentity: new RegExp(`^u${senderId}$`), e2ee: true});
+      await expect.poll(async() => {
+        const diagnostics = await readDiagnostics(sender.page, 'phone');
+        return diagnostics?.remoteParticipants ?? [];
+      }, {message: 'the recipient is in the sender\'s room', timeout: connectTimeoutMs}).toContain(`u${recipientId}`);
+
+      const recipientCall = await recipient.page.evaluate(async() => {
+        const call = (window as any).callsController.currentCall;
+        return {
+          present: !!call,
+          isClosing: call?.isClosing,
+          isMuted: call?.isMuted,
+          discardReason: call?.discardReason?._,
+          diagnostics: await call?.session?.transport?.getDiagnostics()
+        };
+      });
+      expect(recipientCall.present, 'the recipient is still in the call').toBe(true);
+      expect(recipientCall.isClosing, 'the recipient\'s call is not ending').toBe(false);
+      expect(recipientCall.discardReason, 'nothing discarded the recipient\'s call').toBeUndefined();
+      expect(recipientCall.isMuted, 'the recipient without a microphone is muted').toBe(true);
+      expect(recipientCall.diagnostics?.state, 'the recipient\'s room').toBe('connected');
+      await expect(
+        sender.page.locator('.popup-call .call-description-duration'),
+        'the sender is still in the call'
+      ).toBeVisible();
+
+      await sender.page.evaluate(async() => {
+        await (window as any).callsController.currentCall.hangUp('phoneCallDiscardReasonHangup');
+      });
+      await expectRecipientCallEnded(recipient);
+    });
+  });
+
   for(const kind of ['basic group', 'supergroup'] as const) {
     test(`${kind} call: both join unmuted, each hears the other, each sees the other's camera tile, and the call ends cleanly`, async({pair}) => {
       const {sender, recipient} = pair;

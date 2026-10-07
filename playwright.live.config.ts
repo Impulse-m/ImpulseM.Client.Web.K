@@ -48,7 +48,21 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         launchOptions: {args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']}
       },
-      testMatch: '**/calls.live.spec.ts'
+      testMatch: '**/calls.live.spec.ts',
+      grepInvert: /@media-permission-denied/
+    },
+    {
+      // Calls where a side never gets the microphone: no fake UI, so a context without the permission is refused
+      // by the browser itself (NotAllowedError). The full Chromium build: the headless shell answers every
+      // getUserMedia without the fake UI with NotSupportedError, granted or not.
+      name: 'chromium-calls-denied',
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chromium',
+        launchOptions: {args: ['--use-fake-device-for-media-stream']}
+      },
+      testMatch: '**/calls.live.spec.ts',
+      grep: /@media-permission-denied/
     },
     {
       // The same scenarios in Firefox (calls are allowed there): fake devices through its prefs.
@@ -62,7 +76,8 @@ export default defineConfig({
           }
         }
       },
-      testMatch: '**/calls.live.spec.ts'
+      testMatch: '**/calls.live.spec.ts',
+      grepInvert: /@media-permission-denied/
     },
     {
       // Selected explicitly with --project=firefox-archive120; never picked up by a bare
