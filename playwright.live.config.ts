@@ -40,13 +40,18 @@ export default defineConfig({
     {
       // The calls lane: LiveKit media between two real browsers on the live stack. Chromium feeds a
       // synthetic microphone and camera (a beep and a test pattern), so the media is never silent;
-      // the permissions are granted per context by the spec (pairContextOptions). The scenario
+      // the permissions are granted per context by the spec (pairContextOptions). A screen share picks
+      // the whole (synthetic) screen without a chooser. The scenario
       // carries its own env gate (IMPULSE_LIVE_LIVEKIT) because it needs a real LiveKit project
       // behind the dev stack, which the rest of the live suite does not.
       name: 'chromium-calls',
       use: {
         ...devices['Desktop Chrome'],
-        launchOptions: {args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']}
+        launchOptions: {args: [
+          '--use-fake-ui-for-media-stream',
+          '--use-fake-device-for-media-stream',
+          '--auto-select-desktop-capture-source=Entire screen'
+        ]}
       },
       testMatch: '**/calls.live.spec.ts',
       grepInvert: /@media-permission-denied/

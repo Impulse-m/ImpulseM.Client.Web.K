@@ -143,6 +143,147 @@ async function startPhoneCall(pair: PersonaPair): Promise<{senderId: string, rec
   return {senderId, recipientId};
 }
 
+/** The sender creates a group of `kind` with the recipient and a call in it, both join unmuted, and audio flows both ways. */
+async function startGroupCall(pair: PersonaPair, kind: 'basic group' | 'supergroup'): Promise<{
+  chatId: number,
+  callId: string,
+  senderId: string,
+  recipientId: string
+}> {
+  const {sender, recipient} = pair;
+  const senderId = await sender.ownPeerId();
+  const recipientId = await recipient.ownPeerId();
+
+  const {chatId, callId} = await sender.page.evaluate(async({userId, groupKind}) => {
+    const w = window as any;
+    const chats = w.rootScope.managers.appChatsManager;
+    const title = `calls-${Date.now()}`;
+    let createdChatId: number;
+    if(groupKind === 'supergroup') {
+      createdChatId = await chats.createChannel({megagroup: true, title, about: ''});
+      await chats.inviteToChannel(createdChatId, [Number(userId)]);
+    } else {
+      createdChatId = (await chats.createChat(title, [Number(userId)])).chatId;
+    }
+    const call = await w.rootScope.managers.appGroupCallsManager.createGroupCall(createdChatId);
+    await w.groupCallController.joinGroupCall(createdChatId, call.id, false);
+    return {chatId: createdChatId, callId: call.id};
+  }, {userId: recipientId, groupKind: kind});
+
+  await recipient.page.evaluate(async({joinChatId, joinCallId}) => {
+    const w = window as any;
+    // the group reaches the recipient through its updates; the join needs the call, not the dialog
+    await w.groupCallController.joinGroupCall(joinChatId, joinCallId, false);
+  }, {joinChatId: chatId, joinCallId: callId});
+
+  await Promise.all([
+    expectMediaFlowing(sender.page, 'group', {remoteIdentity: new RegExp(`^u${recipientId}\\.\\d+$`), e2ee: false}),
+    expectMediaFlowing(recipient.page, 'group', {remoteIdentity: new RegExp(`^u${senderId}\\.\\d+$`), e2ee: false})
+  ]);
+
+  return {chatId, callId, senderId, recipientId};
+}
+
+type CallPopupKind = 'popup-call' | 'popup-group-call';
+
+/** Opens the window of the running call from the call bar under the chat header, as a user does. */
+async function openCallPopup(page: Page, kind: CallPopupKind): Promise<void> {
+  const popup = page.locator(`.popup.${kind}.active`);
+  if(!await popup.count()) {
+    await page.locator('.pinned-call .topbar-call-center').filter({visible: true}).first().click();
+  }
+
+  await expect(popup, `the ${kind} window is open`).toBeVisible({timeout: connectTimeoutMs});
+}
+
+type VideoState = {connected: boolean, visible: boolean, width: number, inPopup: boolean};
+
+/** The state of a call video element as the user sees it: in the call window, laid out, and showing frames. */
+async function readVideoState(page: Page, kind: CallPopupKind, find: 'phoneOutput' | {groupPresentationOf: string} | {groupCameraOf: string}): Promise<VideoState | undefined> {
+  return page.evaluate(async({popupKind, target}) => {
+    const w = window as any;
+    const container: HTMLElement | null = document.querySelector(`.popup.${popupKind}.active .popup-container`);
+    let videos: HTMLVideoElement[] = [];
+    if(target === 'phoneOutput') {
+      const video: HTMLVideoElement | undefined = w.callsController.currentCall?.getVideoElement('output');
+      videos = video ? [video] : [];
+    } else {
+      const call = w.groupCallController.groupCall;
+      const rows = await call.participants;
+      const userId: string = 'groupPresentationOf' in target ? target.groupPresentationOf : target.groupCameraOf;
+      const row: any = [...rows.values()].find((candidate: any) => String(candidate.peer?.user_id) === userId);
+      const endpoint: string | undefined = ('groupPresentationOf' in target ? row?.presentation : row?.video)?.endpoint;
+      const source: HTMLVideoElement | undefined = endpoint ? call.getElement(endpoint) : undefined;
+      // Each of the window's two grids (the pinned view and the participants column) shows a clone of the
+      // routed element that shares its stream; the layout decides which of them is on screen.
+      videos = source ? [...(container?.querySelectorAll('video') ?? [])].filter((candidate) => candidate.srcObject === source.srcObject) : [];
+    }
+
+    const states: Array<VideoState> = videos.map((video) => ({
+      connected: video.isConnected,
+      visible: video.checkVisibility() && video.getBoundingClientRect().width > 0,
+      width: video.videoWidth,
+      inPopup: !!container?.contains(video)
+    }));
+    return states.find((state) => state.visible) ?? states[0];
+  }, {popupKind: kind, target: find});
+}
+
+async function expectVideoShown(page: Page, kind: CallPopupKind, find: Parameters<typeof readVideoState>[2], message: string): Promise<void> {
+  await expect.poll(() => readVideoState(page, kind, find), {message, timeout: connectTimeoutMs}).toEqual({
+    connected: true,
+    visible: true,
+    width: expect.any(Number),
+    inPopup: true
+  });
+  await expect.poll(async() => (await readVideoState(page, kind, find))?.width ?? 0, {
+    message: `${message}: the video never decoded a frame`,
+    timeout: connectTimeoutMs
+  }).toBeGreaterThan(0);
+}
+
+type FullScreenState = {isPopupContainer: boolean, connected: boolean, inActivePopup: boolean};
+
+async function readFullScreen(page: Page, kind: CallPopupKind): Promise<FullScreenState | undefined> {
+  return page.evaluate((popupKind) => {
+    const element = document.fullscreenElement as HTMLElement | null;
+    if(!element) {
+      return undefined;
+    }
+
+    return {
+      isPopupContainer: element.classList.contains('popup-container') && !!element.closest(`.popup.${popupKind}`),
+      connected: element.isConnected,
+      inActivePopup: !!element.closest('.popup.active')
+    };
+  }, kind);
+}
+
+/**
+ * The call window goes fullscreen from its own button and stays itself: the popup container is the fullscreen
+ * element, still in the page, and the remote video is shown in it. Leaving fullscreen, closing and reopening
+ * the window from the call bar works.
+ */
+async function expectFullScreenRoundTrip(page: Page, kind: CallPopupKind, video: Parameters<typeof readVideoState>[2]): Promise<void> {
+  const popup = page.locator(`.popup.${kind}.active`);
+  await popup.getByRole('button', {name: 'Enter full screen'}).filter({visible: true}).first().click();
+
+  await expect.poll(() => readFullScreen(page, kind), {
+    message: `the ${kind} container is the fullscreen element and stays in the page`,
+    timeout: connectTimeoutMs
+  }).toEqual({isPopupContainer: true, connected: true, inActivePopup: true});
+  await expectVideoShown(page, kind, video, `the remote video in the fullscreen ${kind}`);
+
+  await popup.getByRole('button', {name: 'Exit full screen'}).filter({visible: true}).first().click();
+  await expect.poll(() => readFullScreen(page, kind), {message: 'fullscreen ended', timeout: connectTimeoutMs}).toBeUndefined();
+  await expect(popup, `the ${kind} window is still open after leaving fullscreen`).toBeVisible();
+
+  await popup.locator('.popup-close').click();
+  await expect(page.locator(`.popup.${kind}`), `the ${kind} window closed`).toHaveCount(0, {timeout: connectTimeoutMs});
+  await openCallPopup(page, kind);
+  await expectVideoShown(page, kind, video, `the remote video in the reopened ${kind}`);
+}
+
 async function expectRecipientCallEnded(recipient: PersonaSession): Promise<void> {
   await expect.poll(
     () => recipient.page.evaluate(() => !(window as any).callsController?.currentCall),
@@ -318,35 +459,7 @@ test.describe('LiveKit calls', () => {
   for(const kind of ['basic group', 'supergroup'] as const) {
     test(`${kind} call: both join unmuted, each hears the other, each sees the other's camera tile, and the call ends cleanly`, async({pair}) => {
       const {sender, recipient} = pair;
-      const senderId = await sender.ownPeerId();
-      const recipientId = await recipient.ownPeerId();
-
-      const {chatId, callId} = await sender.page.evaluate(async({userId, groupKind}) => {
-        const w = window as any;
-        const chats = w.rootScope.managers.appChatsManager;
-        const title = `calls-${Date.now()}`;
-        let createdChatId: number;
-        if(groupKind === 'supergroup') {
-          createdChatId = await chats.createChannel({megagroup: true, title, about: ''});
-          await chats.inviteToChannel(createdChatId, [Number(userId)]);
-        } else {
-          createdChatId = (await chats.createChat(title, [Number(userId)])).chatId;
-        }
-        const call = await w.rootScope.managers.appGroupCallsManager.createGroupCall(createdChatId);
-        await w.groupCallController.joinGroupCall(createdChatId, call.id, false);
-        return {chatId: createdChatId, callId: call.id};
-      }, {userId: recipientId, groupKind: kind});
-
-      await recipient.page.evaluate(async({joinChatId, joinCallId}) => {
-        const w = window as any;
-        // the group reaches the recipient through its updates; the join needs the call, not the dialog
-        await w.groupCallController.joinGroupCall(joinChatId, joinCallId, false);
-      }, {joinChatId: chatId, joinCallId: callId});
-
-      await Promise.all([
-        expectMediaFlowing(sender.page, 'group', {remoteIdentity: new RegExp(`^u${recipientId}\\.\\d+$`), e2ee: false}),
-        expectMediaFlowing(recipient.page, 'group', {remoteIdentity: new RegExp(`^u${senderId}\\.\\d+$`), e2ee: false})
-      ]);
+      const {senderId, recipientId} = await startGroupCall(pair, kind);
 
       // Each side turns its camera on; the other must get a camera tile whose participant row names the publisher's
       // LiveKit identity as video.endpoint (the server emits video only because the join declared source groups).
@@ -397,23 +510,7 @@ test.describe('LiveKit calls', () => {
 
   test('basic group call: both leave without ending it, the bar under the header counts each leave and never flashes for the last one', async({pair}) => {
     const {sender, recipient} = pair;
-    const senderId = await sender.ownPeerId();
-    const recipientId = await recipient.ownPeerId();
-
-    const {chatId, callId} = await sender.page.evaluate(async(userId) => {
-      const w = window as any;
-      const createdChatId = (await w.rootScope.managers.appChatsManager.createChat(`calls-bar-${Date.now()}`, [Number(userId)])).chatId;
-      const call = await w.rootScope.managers.appGroupCallsManager.createGroupCall(createdChatId);
-      await w.groupCallController.joinGroupCall(createdChatId, call.id, false);
-      return {chatId: createdChatId, callId: call.id};
-    }, recipientId);
-    await recipient.page.evaluate(async({joinChatId, joinCallId}) => {
-      await (window as any).groupCallController.joinGroupCall(joinChatId, joinCallId, false);
-    }, {joinChatId: chatId, joinCallId: callId});
-    await Promise.all([
-      expectMediaFlowing(sender.page, 'group', {remoteIdentity: new RegExp(`^u${recipientId}\\.\\d+$`), e2ee: false}),
-      expectMediaFlowing(recipient.page, 'group', {remoteIdentity: new RegExp(`^u${senderId}\\.\\d+$`), e2ee: false})
-    ]);
+    const {chatId, callId, recipientId} = await startGroupCall(pair, 'basic group');
     for(const page of [sender.page, recipient.page]) {
       await page.evaluate((id) => (window as any).appImManager.setInnerPeer({peerId: id.toPeerId(true)}), chatId);
     }
@@ -471,5 +568,64 @@ test.describe('LiveKit calls', () => {
       await recipient.page.evaluate(() => (window as any).__barShownAfterLeave),
       'the bar of the call the last participant was leaving appeared on its own page, at these times after the observer started'
     ).toEqual([]);
+  });
+
+  test('1:1 call: the window goes fullscreen with the peer\'s camera in it, and closes and reopens afterwards', async({pair}) => {
+    const {sender, recipient} = pair;
+    await startPhoneCall(pair);
+    await sender.page.evaluate(async() => {
+      await (window as any).callsController.currentCall.toggleVideoSharing();
+    });
+
+    await openCallPopup(recipient.page, 'popup-call');
+    await expectVideoShown(recipient.page, 'popup-call', 'phoneOutput', 'the sender\'s camera in the recipient\'s call window');
+    await expectFullScreenRoundTrip(recipient.page, 'popup-call', 'phoneOutput');
+
+    await sender.page.evaluate(async() => {
+      await (window as any).callsController.currentCall.hangUp('phoneCallDiscardReasonHangup');
+    });
+    await expectRecipientCallEnded(recipient);
+  });
+
+  test('basic group call: the sender shares its screen and the other participant sees it in the call window', async({pair}) => {
+    const {sender, recipient} = pair;
+    const {senderId} = await startGroupCall(pair, 'basic group');
+    await openCallPopup(recipient.page, 'popup-group-call');
+
+    await sender.page.evaluate(async() => {
+      await (window as any).groupCallController.groupCall.startScreenSharing();
+    });
+
+    await expectVideoShown(
+      recipient.page,
+      'popup-group-call',
+      {groupPresentationOf: senderId},
+      'the sender\'s screen share as a tile in the recipient\'s group call window'
+    );
+
+    await Promise.all([sender.page, recipient.page].map((page) => page.evaluate(async() => {
+      await (window as any).groupCallController.groupCall.hangUp();
+    })));
+  });
+
+  test('basic group call: the window goes fullscreen with the other participant\'s camera in it, and closes and reopens afterwards', async({pair}) => {
+    const {sender, recipient} = pair;
+    const {senderId} = await startGroupCall(pair, 'basic group');
+    await sender.page.evaluate(async() => {
+      await (window as any).groupCallController.groupCall.startVideoSharing();
+    });
+
+    await openCallPopup(recipient.page, 'popup-group-call');
+    await expectVideoShown(
+      recipient.page,
+      'popup-group-call',
+      {groupCameraOf: senderId},
+      'the sender\'s camera as a tile in the recipient\'s group call window'
+    );
+    await expectFullScreenRoundTrip(recipient.page, 'popup-group-call', {groupCameraOf: senderId});
+
+    await Promise.all([sender.page, recipient.page].map((page) => page.evaluate(async() => {
+      await (window as any).groupCallController.groupCall.hangUp();
+    })));
   });
 });
