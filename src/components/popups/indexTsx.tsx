@@ -1,4 +1,4 @@
-import {createContext, useContext, createSignal, onCleanup, JSX, Show, createRoot, Accessor, createEffect, createRenderEffect, untrack, on, Ref, Setter, onMount} from 'solid-js';
+import {createContext, useContext, createSignal, onCleanup, JSX, Show, createRoot, Accessor, createEffect, createRenderEffect, createMemo, untrack, on, Ref, Setter, onMount} from 'solid-js';
 import {createStore} from 'solid-js/store';
 import {Portal} from 'solid-js/web';
 import classNames from '@helpers/string/classNames';
@@ -110,7 +110,7 @@ const PopupControllerContext = createContext<PopupControllerContextValue>();
 export const usePopupController = () => useContext(PopupControllerContext);
 
 const DEFAULT_APPEND_TO = document.body;
-// A fullscreen element always wins; otherwise each popup uses the realm it captured at creation
+// Another element in fullscreen wins; otherwise each popup uses the realm it captured at creation
 // (see the Portal mount below). Only the fullscreen state is reactive here.
 const [fullScreenElement, setFullScreenElement] = createSignal<HTMLElement>(null);
 
@@ -411,9 +411,17 @@ const PopupElement = (props: {
   // the container's own ref is the context's, so a caller's ref is called from ours
   const {ref: containerRef, ...containerPropsWithoutRef} = props.containerProps || {};
 
+  // A popup cannot be moved into its own fullscreen descendant (a call window expanding itself):
+  // that detaches it, and a detached element's `fullscreenchange` is fired at the document.
+  const mount = createMemo(() => {
+    const element = fullScreenElement();
+    const isOwnDescendant = !!element && !!popupElement()?.contains(element);
+    return element && !isOwnDescendant ? element : capturedRoot;
+  });
+
   return (
     <PopupContext.Provider value={value}>
-      <Portal mount={fullScreenElement() || capturedRoot}>
+      <Portal mount={mount()}>
         <div
           ref={setPopupElement}
           class={classNames(
