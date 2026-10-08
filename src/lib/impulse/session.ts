@@ -144,7 +144,8 @@ export async function captureImpulseSessionToken(accountNumber: ActiveAccountNum
     return false;
   }
 
-  const {session_token: token, refresh_token: refresh} = result as {
+  const carrier: object = authorizationCarrier(result);
+  const {session_token: token, refresh_token: refresh} = carrier as {
     session_token?: unknown,
     refresh_token?: unknown
   };
@@ -152,8 +153,8 @@ export async function captureImpulseSessionToken(accountNumber: ActiveAccountNum
   if(typeof token !== 'string' || !token) {
     // Only worth reporting for a response that looks like an authorization --
     // this runs for every RPC result, and most legitimately carry no token.
-    if('user' in (result as object) || 'refresh_token' in (result as object)) {
-      logger.warn('Authorization carried no session token', {accountNumber, keys: Object.keys(result as object)});
+    if('user' in carrier || 'refresh_token' in carrier) {
+      logger.warn('Authorization carried no session token', {accountNumber, keys: Object.keys(carrier)});
     }
 
     return false;
@@ -173,6 +174,17 @@ export async function captureImpulseSessionToken(accountNumber: ActiveAccountNum
   await clearPendingToken(accountNumber);
   await persistTokens(accountNumber, token, refresh);
   return true;
+}
+
+// auth.loginTokenSuccess (the QR login reply) nests its authorization under `authorization`;
+// every other auth reply carries the tokens at the top level.
+function authorizationCarrier(result: object): object {
+  const {_: predicate, authorization}: {_?: unknown, authorization?: unknown} = result;
+  if(predicate === 'auth.loginTokenSuccess' && authorization && typeof authorization === 'object') {
+    return authorization;
+  }
+
+  return result;
 }
 
 async function persistTokens(account: ActiveAccountNumber, token: string, refresh: string): Promise<void> {
