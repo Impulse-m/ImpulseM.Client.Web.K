@@ -8,7 +8,7 @@ import {logger} from '@lib/logger';
 import type GroupCallInstance from '@lib/calls/groupCallInstance';
 import {groupCallRoomName, parseLiveKitJoinParams} from '@lib/calls/livekit/liveKitJoinParams';
 import LiveKitTransport, {LiveKitMediaSource, LiveKitTransportState} from '@lib/calls/livekit/liveKitTransport';
-import {parseGroupCallIdentity} from '@lib/calls/livekit/liveKitIdentity';
+import {GroupCallIdentity, parseGroupCallIdentity} from '@lib/calls/livekit/liveKitIdentity';
 import StreamManager from '@lib/calls/streamManager';
 import {toImpulseMSource} from '@lib/calls/utils';
 
@@ -108,8 +108,7 @@ export default class GroupCallConnectionInstance {
 
     await transport.connect(coordinates, {
       autoSubscribe: this.type === 'main',
-      // our own screen share comes back through the main room under the `.p` identity of the same peer
-      shouldSubscribe: (identity: string) => !parseGroupCallIdentity(identity)?.isPresentation
+      shouldSubscribe: (identity: string) => !this.isOwnPresentation(identity)
     });
 
     if(this.options.type === 'main') {
@@ -254,6 +253,17 @@ export default class GroupCallConnectionInstance {
     }
 
     return true;
+  }
+
+  /** Our own screen share comes back through the main room as the `.p` identity of our own peer. */
+  private isOwnPresentation(identity: string): boolean {
+    const remote: GroupCallIdentity | undefined = parseGroupCallIdentity(identity);
+    if(!remote?.isPresentation) {
+      return false;
+    }
+
+    const own: GroupCallIdentity | undefined = parseGroupCallIdentity(this.transport.localIdentity);
+    return !!own && own.kind === remote.kind && own.peerId === remote.peerId;
   }
 
   private nextSsrc(): number {

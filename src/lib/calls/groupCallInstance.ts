@@ -1506,8 +1506,16 @@ export default class GroupCallInstance extends CallInstanceBase<{
     return this.joined && !!this.participant?.pFlags?.self && !this.isClosing;
   }
 
-  get pinnedSource() {
-    return this.pinnedSources[this.pinnedSources.length - 1];
+  /** The latest pin whose video is here: a screen auto-pinned from its row waits for its track. */
+  get pinnedSource(): GroupCallOutputSource | undefined {
+    for(let i = this.pinnedSources.length - 1; i >= 0; --i) {
+      const source = this.pinnedSources[i];
+      if(this.getElement(source)) {
+        return source;
+      }
+    }
+
+    return undefined;
   }
 
   public get isMuted() {
@@ -2780,10 +2788,18 @@ export default class GroupCallInstance extends CallInstanceBase<{
     this.applyParticipantAudioState(route.participant);
     this.applyRemoteVideoQuality();
     rootScope.dispatchEvent('group_call_participant', {groupCallId: this.id, participant: route.participant});
+    this.dispatchPinnedIfAffected(route);
   }
 
   private onTrackDropped(route: RoutedGroupCallTrack): void {
     this.removeOutputTrack(route.key, route.kind);
     rootScope.dispatchEvent('group_call_participant', {groupCallId: this.id, participant: route.participant});
+    this.dispatchPinnedIfAffected(route);
+  }
+
+  private dispatchPinnedIfAffected(route: RoutedGroupCallTrack): void {
+    if(route.kind === 'video' && this.pinnedSources.includes(route.key)) {
+      this.dispatchPinnedThrottled();
+    }
   }
 }

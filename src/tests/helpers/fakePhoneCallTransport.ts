@@ -12,6 +12,7 @@ export default class FakePhoneCallTransport extends EventListenerBase<LiveKitTra
   public static instances: FakePhoneCallTransport[] = [];
 
   public state: LiveKitTransportState = 'idle';
+  public localIdentity: string | undefined;
   public published = new Map<LiveKitMediaSource, MediaStreamTrack>();
   public muted = new Map<LiveKitMediaSource, boolean>();
   public calls: string[] = [];

@@ -164,6 +164,11 @@ export default class LiveKitTransport extends EventListenerBase<LiveKitTransport
     }
   }
 
+  /** The identity the server gave our side of the room; known from the join on, before any remote publication. */
+  public get localIdentity(): string | undefined {
+    return this.room?.localParticipant?.identity || undefined;
+  }
+
   public getPublishPermission(): LiveKitPublishPermission | undefined {
     const permissions = this.room?.localParticipant?.permissions;
     if(!permissions || !this.lk) {
@@ -267,7 +272,7 @@ export default class LiveKitTransport extends EventListenerBase<LiveKitTransport
 
     return {
       state: this.state,
-      localIdentity: this.room?.localParticipant?.identity,
+      localIdentity: this.localIdentity,
       e2ee: this.e2eeEnabled && this.room?.isE2EEEnabled === true,
       remoteParticipants: Array.from(this.announcedParticipants),
       remoteTracks
