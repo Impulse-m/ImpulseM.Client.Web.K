@@ -112,6 +112,7 @@ describe('GroupCallConnectionInstance.join', () => {
 
   it('connects with the coordinates of the answer, subscribing on the main connection', async() => {
     const {connection, transport} = makeConnection();
+    transport.localIdentity = 'u1.5';
 
     await connection.join();
 
@@ -119,7 +120,22 @@ describe('GroupCallConnectionInstance.join', () => {
     expect(coordinates).toMatchObject({url: 'wss://lk.example', token: 'jwt', room: 'g.700'});
     expect(options.autoSubscribe).toBe(true);
     expect(options.shouldSubscribe('u1.5')).toBe(true);
-    expect(options.shouldSubscribe('u1.5.p')).toBe(false);
+    expect(options.shouldSubscribe('u2.9')).toBe(true);
+    expect(options.shouldSubscribe('u2.9.p'), 'another participant\'s screen share is shown').toBe(true);
+    expect(options.shouldSubscribe('u1.5.p'), 'our own screen share is not downloaded back').toBe(false);
+    expect(options.shouldSubscribe('u1.7.p'), 'our own screen share under any source').toBe(false);
+  });
+
+  it('compares the peer, not just the number, of a presentation against our own', async() => {
+    const {connection, transport} = makeConnection();
+    transport.localIdentity = 'h1.5';
+
+    await connection.join();
+
+    const options = (transport.connectArgs as [unknown, {shouldSubscribe: (identity: string) => boolean}])[1];
+    expect(options.shouldSubscribe('h1.7.p')).toBe(false);
+    expect(options.shouldSubscribe('u1.7.p')).toBe(true);
+    expect(options.shouldSubscribe('c1.7.p')).toBe(true);
   });
 
   it('does not subscribe on the presentation connection and avoids the main source', async() => {
