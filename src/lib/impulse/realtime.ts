@@ -92,9 +92,21 @@ type RealtimeConnection = {
   // Channel lanes whose opaque actor tag is still being fetched: the tags filter is part of the
   // subscribe request, so the subscription cannot be created until the tag is in hand.
   pendingChannelLanes: Set<string>,
+  // Keyed by the session token it was fetched with, so a new session never reuses another session's tag.
+  ownSessionTag: CachedOwnSessionTag | undefined,
   sink: RealtimeUpdateSink | undefined,
   spinUpInProgress: boolean,
   lastSpinUpAt: number | undefined
+};
+
+type OwnSessionTag = {
+  key: string,
+  value: string
+};
+
+type CachedOwnSessionTag = {
+  sessionToken: string,
+  tag: OwnSessionTag
 };
 
 export type RealtimeCall = {
@@ -116,6 +128,7 @@ function connectionFor(accountNumber: ActiveAccountNumber): RealtimeConnection {
       latestTabStates: [],
       subscriptions: new Map<string, Subscription>(),
       pendingChannelLanes: new Set<string>(),
+      ownSessionTag: undefined,
       sink: undefined,
       spinUpInProgress: false,
       lastSpinUpAt: undefined
@@ -325,6 +338,37 @@ async function fetchChannelActorTag(accountNumber: ActiveAccountNumber, channelI
   return tag;
 }
 
+/**
+ * This session's own tag (sync.GetOwnSessionTag): the key and value of the neq filter on user:{id},
+ * which leaves out the echo of this session's own sends. Cached per session token.
+ */
+async function fetchOwnSessionTag(accountNumber: ActiveAccountNumber): Promise<OwnSessionTag> {
+  await whenImpulseSessionReady(accountNumber);
+  const sessionToken = requireGrpcSessionToken(accountNumber);
+
+  const record = connectionFor(accountNumber);
+  if(record.ownSessionTag?.sessionToken === sessionToken) {
+    return record.ownSessionTag.tag;
+  }
+
+  const client = createClient(SyncService, getGrpcTransport(accountNumber));
+  const response = await client.getOwnSessionTag({}).catch(async(err: unknown) => {
+    if(!isUnauthenticated(err) || !await refreshImpulseSession(accountNumber)) {
+      throw err;
+    }
+
+    return client.getOwnSessionTag({});
+  });
+
+  if(!response?.key || !response?.value) {
+    throw new Error('Sync.GetOwnSessionTag returned no tag');
+  }
+
+  const tag: OwnSessionTag = {key: response.key, value: response.value};
+  record.ownSessionTag = {sessionToken, tag};
+  return tag;
+}
+
 function isUnauthenticated(err: unknown): boolean {
   return ConnectError.from(err).code === Code.Unauthenticated;
 }
@@ -412,6 +456,11 @@ function createSubscription(accountNumber: ActiveAccountNumber, channel: string)
   const record = connectionFor(accountNumber);
   if(!record.connection || record.subscriptions.has(channel) || record.pendingChannelLanes.has(channel)) return;
 
+  if(channel.startsWith('user:')) {
+    createUserSubscription(accountNumber, channel);
+    return;
+  }
+
   if(!channel.startsWith('channel:')) {
     openSubscription(accountNumber, channel, undefined);
     return;
@@ -434,6 +483,28 @@ function createSubscription(accountNumber: ActiveAccountNumber, channel: string)
     record.pendingChannelLanes.delete(channel);
     logger.warn('Realtime channel lane not subscribed: no actor tag', {channel}, err);
   });
+}
+
+// The server tags this session's own send echo with auth_session. A publication without the tag passes
+// a neq filter (Centrifugo), as on the channel lane. Without the tag the echo is delivered as a
+// duplicate, which is safer than losing updates.
+function createUserSubscription(accountNumber: ActiveAccountNumber, channel: string): void {
+  const record = connectionFor(accountNumber);
+  const connection = record.connection;
+  record.pendingChannelLanes.add(channel);
+  fetchOwnSessionTag(accountNumber).then(
+    (tag) => {
+      if(!record.pendingChannelLanes.delete(channel) || record.connection !== connection) return;
+
+      openSubscription(accountNumber, channel, {tagsFilter: {key: tag.key, cmp: 'neq', val: tag.value}});
+    },
+    (err: unknown) => {
+      if(!record.pendingChannelLanes.delete(channel) || record.connection !== connection) return;
+
+      logger.warn('Realtime user lane subscribed without the own session tag filter', {channel}, err);
+      openSubscription(accountNumber, channel, undefined);
+    }
+  );
 }
 
 function openSubscription(

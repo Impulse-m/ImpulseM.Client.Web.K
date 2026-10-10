@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/sync/sync_service.proto.
  */
 export const file_impulse_sync_sync_service: GenFile = /*@__PURE__*/
-  fileDesc("Ch9pbXB1bHNlL3N5bmMvc3luY19zZXJ2aWNlLnByb3RvEgxpbXB1bHNlLnN5bmMiEQoPR2V0U3RhdGVSZXF1ZXN0IlcKFEdldERpZmZlcmVuY2VSZXF1ZXN0EgsKA3B0cxgBIAEoAxIMCgRkYXRlGAIgASgDEgsKA3F0cxgDIAEoAxIXCg9wdHNfdG90YWxfbGltaXQYBCABKAUiYgobR2V0Q2hhbm5lbERpZmZlcmVuY2VSZXF1ZXN0EhIKCmNoYW5uZWxfaWQYASABKAMSCwoDcHRzGAIgASgDEg0KBWxpbWl0GAMgASgFEhMKC2FjY2Vzc19oYXNoGAQgASgDIioKFEdldENoYW5uZWxQdHNSZXF1ZXN0EhIKCmNoYW5uZWxfaWQYASABKAMiJAoVR2V0Q2hhbm5lbFB0c1Jlc3BvbnNlEgsKA3B0cxgBIAEoAyIxChpHZXRDaGFubmVsQWN0b3JUYWdzUmVxdWVzdBITCgtjaGFubmVsX2lkcxgBIAMoAyKNAQobR2V0Q2hhbm5lbEFjdG9yVGFnc1Jlc3BvbnNlEkEKBHRhZ3MYASADKAsyMy5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbEFjdG9yVGFnc1Jlc3BvbnNlLlRhZ3NFbnRyeRorCglUYWdzRW50cnkSCwoDa2V5GAEgASgDEg0KBXZhbHVlGAIgASgJOgI4ASIbChlHZXRDZW50cmlmdWdvVG9rZW5SZXF1ZXN0Ij8KGkdldENlbnRyaWZ1Z29Ub2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEhIKCmV4cGlyZXNfaW4YAiABKAUyjAcKC1N5bmNTZXJ2aWNlEj4KCEdldFN0YXRlEh0uaW1wdWxzZS5zeW5jLkdldFN0YXRlUmVxdWVzdBoTLmltcHVsc2Uuc3luYy5TdGF0ZRJNCg1HZXREaWZmZXJlbmNlEiIuaW1wdWxzZS5zeW5jLkdldERpZmZlcmVuY2VSZXF1ZXN0GhguaW1wdWxzZS5zeW5jLkRpZmZlcmVuY2USYgoUR2V0Q2hhbm5lbERpZmZlcmVuY2USKS5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbERpZmZlcmVuY2VSZXF1ZXN0Gh8uaW1wdWxzZS5zeW5jLkNoYW5uZWxEaWZmZXJlbmNlElgKDUdldENoYW5uZWxQdHMSIi5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbFB0c1JlcXVlc3QaIy5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbFB0c1Jlc3BvbnNlEmcKEkdldENlbnRyaWZ1Z29Ub2tlbhInLmltcHVsc2Uuc3luYy5HZXRDZW50cmlmdWdvVG9rZW5SZXF1ZXN0GiguaW1wdWxzZS5zeW5jLkdldENlbnRyaWZ1Z29Ub2tlblJlc3BvbnNlEmoKE0dldENoYW5uZWxBY3RvclRhZ3MSKC5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbEFjdG9yVGFnc1JlcXVlc3QaKS5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbEFjdG9yVGFnc1Jlc3BvbnNlEl4KD0Vuc3VyZVB0c1NlZWRlZBIkLmltcHVsc2Uuc3luYy5FbnN1cmVQdHNTZWVkZWRSZXF1ZXN0GiUuaW1wdWxzZS5zeW5jLkVuc3VyZVB0c1NlZWRlZFJlc3BvbnNlEm0KFFBlcnNpc3RQdHNBbGxvY2F0aW9uEikuaW1wdWxzZS5zeW5jLlBlcnNpc3RQdHNBbGxvY2F0aW9uUmVxdWVzdBoqLmltcHVsc2Uuc3luYy5QZXJzaXN0UHRzQWxsb2NhdGlvblJlc3BvbnNlEosBCh5SZXNlZWRQdHNDb3VudGVyRnJvbUR1cmFibGVMb2cSMy5pbXB1bHNlLnN5bmMuUmVzZWVkUHRzQ291bnRlckZyb21EdXJhYmxlTG9nUmVxdWVzdBo0LmltcHVsc2Uuc3luYy5SZXNlZWRQdHNDb3VudGVyRnJvbUR1cmFibGVMb2dSZXNwb25zZUIXqgIUSW1wdWxzZU0uUHJvdG9zLlN5bmNiBnByb3RvMw", [file_impulse_sync_sync_types]);
+  fileDesc("Ch9pbXB1bHNlL3N5bmMvc3luY19zZXJ2aWNlLnByb3RvEgxpbXB1bHNlLnN5bmMiEQoPR2V0U3RhdGVSZXF1ZXN0IlcKFEdldERpZmZlcmVuY2VSZXF1ZXN0EgsKA3B0cxgBIAEoAxIMCgRkYXRlGAIgASgDEgsKA3F0cxgDIAEoAxIXCg9wdHNfdG90YWxfbGltaXQYBCABKAUiYgobR2V0Q2hhbm5lbERpZmZlcmVuY2VSZXF1ZXN0EhIKCmNoYW5uZWxfaWQYASABKAMSCwoDcHRzGAIgASgDEg0KBWxpbWl0GAMgASgFEhMKC2FjY2Vzc19oYXNoGAQgASgDIioKFEdldENoYW5uZWxQdHNSZXF1ZXN0EhIKCmNoYW5uZWxfaWQYASABKAMiJAoVR2V0Q2hhbm5lbFB0c1Jlc3BvbnNlEgsKA3B0cxgBIAEoAyIxChpHZXRDaGFubmVsQWN0b3JUYWdzUmVxdWVzdBITCgtjaGFubmVsX2lkcxgBIAMoAyKNAQobR2V0Q2hhbm5lbEFjdG9yVGFnc1Jlc3BvbnNlEkEKBHRhZ3MYASADKAsyMy5pbXB1bHNlLnN5bmMuR2V0Q2hhbm5lbEFjdG9yVGFnc1Jlc3BvbnNlLlRhZ3NFbnRyeRorCglUYWdzRW50cnkSCwoDa2V5GAEgASgDEg0KBXZhbHVlGAIgASgJOgI4ASIZChdHZXRPd25TZXNzaW9uVGFnUmVxdWVzdCI2ChhHZXRPd25TZXNzaW9uVGFnUmVzcG9uc2USCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJIhsKGUdldENlbnRyaWZ1Z29Ub2tlblJlcXVlc3QiPwoaR2V0Q2VudHJpZnVnb1Rva2VuUmVzcG9uc2USDQoFdG9rZW4YASABKAkSEgoKZXhwaXJlc19pbhgCIAEoBTLvBwoLU3luY1NlcnZpY2USPgoIR2V0U3RhdGUSHS5pbXB1bHNlLnN5bmMuR2V0U3RhdGVSZXF1ZXN0GhMuaW1wdWxzZS5zeW5jLlN0YXRlEk0KDUdldERpZmZlcmVuY2USIi5pbXB1bHNlLnN5bmMuR2V0RGlmZmVyZW5jZVJlcXVlc3QaGC5pbXB1bHNlLnN5bmMuRGlmZmVyZW5jZRJiChRHZXRDaGFubmVsRGlmZmVyZW5jZRIpLmltcHVsc2Uuc3luYy5HZXRDaGFubmVsRGlmZmVyZW5jZVJlcXVlc3QaHy5pbXB1bHNlLnN5bmMuQ2hhbm5lbERpZmZlcmVuY2USWAoNR2V0Q2hhbm5lbFB0cxIiLmltcHVsc2Uuc3luYy5HZXRDaGFubmVsUHRzUmVxdWVzdBojLmltcHVsc2Uuc3luYy5HZXRDaGFubmVsUHRzUmVzcG9uc2USZwoSR2V0Q2VudHJpZnVnb1Rva2VuEicuaW1wdWxzZS5zeW5jLkdldENlbnRyaWZ1Z29Ub2tlblJlcXVlc3QaKC5pbXB1bHNlLnN5bmMuR2V0Q2VudHJpZnVnb1Rva2VuUmVzcG9uc2USagoTR2V0Q2hhbm5lbEFjdG9yVGFncxIoLmltcHVsc2Uuc3luYy5HZXRDaGFubmVsQWN0b3JUYWdzUmVxdWVzdBopLmltcHVsc2Uuc3luYy5HZXRDaGFubmVsQWN0b3JUYWdzUmVzcG9uc2USYQoQR2V0T3duU2Vzc2lvblRhZxIlLmltcHVsc2Uuc3luYy5HZXRPd25TZXNzaW9uVGFnUmVxdWVzdBomLmltcHVsc2Uuc3luYy5HZXRPd25TZXNzaW9uVGFnUmVzcG9uc2USXgoPRW5zdXJlUHRzU2VlZGVkEiQuaW1wdWxzZS5zeW5jLkVuc3VyZVB0c1NlZWRlZFJlcXVlc3QaJS5pbXB1bHNlLnN5bmMuRW5zdXJlUHRzU2VlZGVkUmVzcG9uc2USbQoUUGVyc2lzdFB0c0FsbG9jYXRpb24SKS5pbXB1bHNlLnN5bmMuUGVyc2lzdFB0c0FsbG9jYXRpb25SZXF1ZXN0GiouaW1wdWxzZS5zeW5jLlBlcnNpc3RQdHNBbGxvY2F0aW9uUmVzcG9uc2USiwEKHlJlc2VlZFB0c0NvdW50ZXJGcm9tRHVyYWJsZUxvZxIzLmltcHVsc2Uuc3luYy5SZXNlZWRQdHNDb3VudGVyRnJvbUR1cmFibGVMb2dSZXF1ZXN0GjQuaW1wdWxzZS5zeW5jLlJlc2VlZFB0c0NvdW50ZXJGcm9tRHVyYWJsZUxvZ1Jlc3BvbnNlQheqAhRJbXB1bHNlTS5Qcm90b3MuU3luY2IGcHJvdG8z", [file_impulse_sync_sync_types]);
 
 /**
  * @generated from message impulse.sync.GetStateRequest
@@ -162,6 +162,41 @@ export const GetChannelActorTagsResponseSchema: GenMessage<GetChannelActorTagsRe
   messageDesc(file_impulse_sync_sync_service, 6);
 
 /**
+ * @generated from message impulse.sync.GetOwnSessionTagRequest
+ */
+export type GetOwnSessionTagRequest = Message<"impulse.sync.GetOwnSessionTagRequest"> & {
+};
+
+/**
+ * Describes the message impulse.sync.GetOwnSessionTagRequest.
+ * Use `create(GetOwnSessionTagRequestSchema)` to create a new message.
+ */
+export const GetOwnSessionTagRequestSchema: GenMessage<GetOwnSessionTagRequest> = /*@__PURE__*/
+  messageDesc(file_impulse_sync_sync_service, 7);
+
+/**
+ * @generated from message impulse.sync.GetOwnSessionTagResponse
+ */
+export type GetOwnSessionTagResponse = Message<"impulse.sync.GetOwnSessionTagResponse"> & {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key: string;
+
+  /**
+   * @generated from field: string value = 2;
+   */
+  value: string;
+};
+
+/**
+ * Describes the message impulse.sync.GetOwnSessionTagResponse.
+ * Use `create(GetOwnSessionTagResponseSchema)` to create a new message.
+ */
+export const GetOwnSessionTagResponseSchema: GenMessage<GetOwnSessionTagResponse> = /*@__PURE__*/
+  messageDesc(file_impulse_sync_sync_service, 8);
+
+/**
  * @generated from message impulse.sync.GetCentrifugoTokenRequest
  */
 export type GetCentrifugoTokenRequest = Message<"impulse.sync.GetCentrifugoTokenRequest"> & {
@@ -172,7 +207,7 @@ export type GetCentrifugoTokenRequest = Message<"impulse.sync.GetCentrifugoToken
  * Use `create(GetCentrifugoTokenRequestSchema)` to create a new message.
  */
 export const GetCentrifugoTokenRequestSchema: GenMessage<GetCentrifugoTokenRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_service, 7);
+  messageDesc(file_impulse_sync_sync_service, 9);
 
 /**
  * @generated from message impulse.sync.GetCentrifugoTokenResponse
@@ -194,7 +229,7 @@ export type GetCentrifugoTokenResponse = Message<"impulse.sync.GetCentrifugoToke
  * Use `create(GetCentrifugoTokenResponseSchema)` to create a new message.
  */
 export const GetCentrifugoTokenResponseSchema: GenMessage<GetCentrifugoTokenResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_sync_sync_service, 8);
+  messageDesc(file_impulse_sync_sync_service, 10);
 
 /**
  * @generated from service impulse.sync.SyncService
@@ -256,6 +291,19 @@ export const SyncService: GenService<{
     methodKind: "unary";
     input: typeof GetChannelActorTagsRequestSchema;
     output: typeof GetChannelActorTagsResponseSchema;
+  },
+  /**
+   * GetOwnSessionTag -- our own realtime bridge surface, not a Telegram method. Answers the CALLER'S
+   * own session tag: the key and value of the `neq` tags filter the client sends when it subscribes to
+   * user:{id}, so the session's own sends are not echoed back to it. The value is the session hash as
+   * a decimal string. Client-facing, like GetCentrifugoToken.
+   *
+   * @generated from rpc impulse.sync.SyncService.GetOwnSessionTag
+   */
+  getOwnSessionTag: {
+    methodKind: "unary";
+    input: typeof GetOwnSessionTagRequestSchema;
+    output: typeof GetOwnSessionTagResponseSchema;
   },
   /**
    * EnsurePtsSeeded — cross-service reserve-path cold-start recovery seam (IMPAAA-2025,
