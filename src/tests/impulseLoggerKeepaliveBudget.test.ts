@@ -269,7 +269,7 @@ describe('Loki transport survives over-budget batches', () => {
       streams: {stream: Record<string, string>, values: [string, string][]}[]
     };
     expect(payload.streams).toHaveLength(1);
-    expect(payload.streams[0].stream).toEqual({service_name: 'ImpulseM.Client', component: 'main', level: 'info'});
+    expect(payload.streams[0].stream).toEqual({service_name: 'ImpulseM.Web', component: 'main', level: 'info'});
     expect(payload.streams[0].values).toHaveLength(3);
     for(const [timestampNanos, line] of payload.streams[0].values) {
       expect(timestampNanos).toMatch(/^\d+$/);

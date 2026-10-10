@@ -34,6 +34,16 @@ const MAX_ERROR_MESSAGE_LENGTH = 2_048;
 const MAX_ERROR_NAME_LENGTH = 128;
 const MAX_ERROR_STACK_LENGTH = 32_768;
 const LOKI_PUSH_URL = `${backendHttpOrigin()}/loki/api/v1/push`;
+const LOKI_SERVICE_NAME = 'ImpulseM.Web';
+const MAX_ENTRIES_PER_PUSH = 500;
+const HTTP_BAD_REQUEST = 400;
+const HTTP_UNAUTHORIZED = 401;
+const HTTP_TOO_MANY_REQUESTS = 429;
+const HTTP_SERVICE_UNAVAILABLE = 503;
+const THROTTLED_STATUSES: ReadonlySet<number> = new Set<number>([HTTP_TOO_MANY_REQUESTS, HTTP_SERVICE_UNAVAILABLE]);
+const REFUSED_BATCH_STATUSES: ReadonlySet<number> = new Set<number>([HTTP_BAD_REQUEST, 413, 415]);
+const RETRY_AFTER_DEFAULT_MS = 60_000;
+const RETRY_AFTER_CAP_MS = 600_000;
 const REDACTED = '[REDACTED]';
 
 const SENSITIVE_KEYS = new Set([
@@ -107,6 +117,15 @@ let flushTimer: ReturnType<typeof setTimeout> | undefined;
 let isFlushing = false;
 let isRetrying = false;
 let droppedEntries = 0;
+let authTokenProvider: (() => string | undefined) | undefined;
+let rejectedAuthToken: string | undefined;
+let retryNotBeforeMs: number = 0;
+const warnedRefusedStatuses: Set<number> = new Set<number>();
+
+// Only the main thread registers a provider; workers and the service worker ship anonymously.
+export function setLogAuthTokenProvider(provider: () => string | undefined): void {
+  authTokenProvider = provider;
+}
 
 export function getLogger(module: string): Logger {
   let logger = loggers.get(module);
@@ -212,27 +231,63 @@ function emitRecord(record: LogRecord): void {
 }
 
 function scheduleFlush(isImmediate: boolean): void {
+  scheduleFlushIn(isImmediate ? 0 : FLUSH_INTERVAL_MS);
+}
+
+function scheduleFlushIn(delayMs: number): void {
   if(flushTimer !== undefined) {
     clearTimeout(flushTimer);
   }
 
-  flushTimer = setTimeout(flush, isImmediate ? 0 : FLUSH_INTERVAL_MS);
+  flushTimer = setTimeout(flush, delayMs);
 }
 
 function buildPayload(entries: LokiEntry[]): string {
-  const byLevel = new Map<LogLevel, [string, string][]>();
-  entries.forEach((entry) => {
-    const values = byLevel.get(entry.level) ?? [];
+  const byLevel: Map<LogLevel, [string, string][]> = new Map();
+  entries.forEach((entry: LokiEntry) => {
+    const values: [string, string][] = byLevel.get(entry.level) ?? [];
     values.push([entry.timestampNanos, entry.line]);
     byLevel.set(entry.level, values);
   });
 
   const streams = Array.from(byLevel.entries()).map(([level, values]) => ({
-    stream: {service_name: 'ImpulseM.Client', component, level},
+    stream: {service_name: LOKI_SERVICE_NAME, component, level},
     values
   }));
 
   return JSON.stringify({streams});
+}
+
+type PushHeaders = {
+  headers: Record<string, string>,
+  sentToken: string | undefined
+};
+
+// A token the server answered 401 is withheld until the provider returns a different one.
+function buildPushHeaders(): PushHeaders {
+  const headers: Record<string, string> = {'Content-Type': 'application/json'};
+  const token: string | undefined = authTokenProvider?.();
+  if(!token || token === rejectedAuthToken) {
+    return {headers, sentToken: undefined};
+  }
+
+  headers.Authorization = `Bearer ${token}`;
+  return {headers, sentToken: token};
+}
+
+// RFC 9110 section 10.2.3: Retry-After is either delta-seconds or an HTTP-date.
+function getRetryAfterDelayMs(retryAfter: string | null, nowMs: number): number {
+  if(retryAfter === null) {
+    return RETRY_AFTER_DEFAULT_MS;
+  }
+
+  const seconds: number = Number(retryAfter);
+  const delayMs: number = Number.isNaN(seconds) ? Date.parse(retryAfter) - nowMs : seconds * 1_000;
+  if(Number.isNaN(delayMs)) {
+    return RETRY_AFTER_DEFAULT_MS;
+  }
+
+  return Math.min(Math.max(delayMs, 0), RETRY_AFTER_CAP_MS);
 }
 
 function getPayloadByteLength(entries: LokiEntry[]): number {
@@ -246,9 +301,23 @@ function boundBufferToKeepaliveBudget(): void {
   }
 }
 
+function requeue(batch: LokiEntry[]): void {
+  // Requeue instead of dropping: a transient gateway blip must not silently
+  // erase the diagnostics that explain it. Oldest-first, bounded.
+  buffer = batch.concat(buffer).slice(-MAX_BUFFER_ENTRIES);
+  isRetrying = true;
+  boundBufferToKeepaliveBudget();
+}
+
 function flush(): void {
   flushTimer = undefined;
   if(isFlushing || !buffer.length) {
+    return;
+  }
+
+  const waitMs: number = retryNotBeforeMs - Date.now();
+  if(waitMs > 0) {
+    scheduleFlushIn(waitMs);
     return;
   }
 
@@ -261,26 +330,44 @@ function flush(): void {
     droppedEntries = 0;
   }
 
-  const batch = buffer;
-  buffer = [];
+  const batch: LokiEntry[] = buffer.slice(0, MAX_ENTRIES_PER_PUSH);
+  buffer = buffer.slice(MAX_ENTRIES_PER_PUSH);
   isFlushing = true;
+  const push: PushHeaders = buildPushHeaders();
 
   fetch(LOKI_PUSH_URL, {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: push.headers,
     body: buildPayload(batch),
     credentials: 'omit'
-  }).then((response) => {
-    if(!response.ok) {
-      throw new Error(`Loki responded ${response.status}`);
+  }).then((response: Response) => {
+    if(response.ok) {
+      isRetrying = false;
+      return;
     }
-    isRetrying = false;
+
+    if(response.status === HTTP_UNAUTHORIZED) {
+      if(push.sentToken !== undefined) {
+        rejectedAuthToken = push.sentToken;
+      }
+      return;
+    }
+
+    if(THROTTLED_STATUSES.has(response.status)) {
+      const nowMs: number = Date.now();
+      retryNotBeforeMs = nowMs + getRetryAfterDelayMs(response.headers.get('Retry-After'), nowMs);
+      requeue(batch);
+      return;
+    }
+
+    if(REFUSED_BATCH_STATUSES.has(response.status)) {
+      warnRefusedStatusOnce(response.status);
+      return;
+    }
+
+    throw new Error(`Loki responded ${response.status}`);
   }).catch((err: unknown) => {
-    // Requeue instead of dropping: a transient gateway blip must not silently
-    // erase the diagnostics that explain it. Oldest-first, bounded.
-    buffer = batch.concat(buffer).slice(-MAX_BUFFER_ENTRIES);
-    isRetrying = true;
-    boundBufferToKeepaliveBudget();
+    requeue(batch);
     originalConsole.warn('[logging] Loki transport failed', safelySerializeError(err));
   }).finally(() => {
     isFlushing = false;
@@ -288,6 +375,15 @@ function flush(): void {
       scheduleFlush(false);
     }
   });
+}
+
+function warnRefusedStatusOnce(status: number): void {
+  if(warnedRefusedStatuses.has(status)) {
+    return;
+  }
+
+  warnedRefusedStatuses.add(status);
+  originalConsole.warn(`[logging] Loki refused a batch with status ${status}; the batch was dropped`);
 }
 
 /**
@@ -318,7 +414,7 @@ function flushOnHide(): void {
   try {
     fetch(LOKI_PUSH_URL, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: buildPushHeaders().headers,
       body: buildPayload(batch),
       keepalive: true,
       credentials: 'omit'

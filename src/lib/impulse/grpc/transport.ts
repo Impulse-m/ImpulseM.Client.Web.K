@@ -27,8 +27,10 @@ import type {Interceptor, StreamRequest, Transport, UnaryRequest} from '@connect
 import {createGrpcWebTransport} from '@connectrpc/connect-web';
 
 import {backendHttpOrigin} from '@config/backendOrigin';
-import {getLogger} from '@lib/impulseLogger';
+import {IS_WORKER} from '@helpers/context';
+import {getLogger, setLogAuthTokenProvider} from '@lib/impulseLogger';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import {getCurrentAccount} from '@lib/accounts/getCurrentAccount';
 import {AuthService} from './gen/v1/internal/impulse/auth/auth_service_pb';
 import {ConnectionDeclarationSchema} from './gen/v1/internal/impulse/auth/auth_types_pb';
 
@@ -164,6 +166,10 @@ const PENDING_SESSION_ALLOWED_METHODS = new Set<string>([
   'v1.auth.Auth/CheckRecoveryPassword',
   'v1.auth.Auth/RecoverPassword'
 ]);
+
+if(!IS_WORKER) {
+  setLogAuthTokenProvider(() => credentialsFor(getCurrentAccount()).sessionToken);
+}
 
 export function setGrpcUserId(accountNumber: ActiveAccountNumber, userId: string | undefined): void {
   credentialsFor(accountNumber).userId = userId;
