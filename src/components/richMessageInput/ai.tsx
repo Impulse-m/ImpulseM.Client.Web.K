@@ -253,7 +253,8 @@ const createAiEditorButton = ({
   const child = resolveFirst(() => button);
   const element = child() as HTMLElement;
 
-  element.hidden = !!hidden;
+  // `.btn-icon` sets display: flex, which overrides the hidden attribute.
+  element.style.display = hidden ? 'none' : '';
   appendTo.append(element);
 
   onCleanup(() => {
