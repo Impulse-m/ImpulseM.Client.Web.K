@@ -35,6 +35,7 @@ type UseAiEditorButtonArgs = {
   canSend: boolean;
   shouldShowFromHeight?: Accessor<number>;
   forceHidden?: Accessor<boolean>;
+  insertBefore?: () => Element | null;
 };
 
 export function useAiEditorButton({
@@ -46,7 +47,8 @@ export function useAiEditorButton({
   appendTo,
   canSend,
   shouldShowFromHeight = () => defaultShouldShowFromHeight,
-  forceHidden = () => false
+  forceHidden = () => false,
+  insertBefore
 }: UseAiEditorButtonArgs) {
   const [containerHeight, setContainerHeight] = createSignal(0);
   const hasMinimumHeight = createMemo(() => containerHeight() >= shouldShowFromHeight());
@@ -79,7 +81,8 @@ export function useAiEditorButton({
       onApply,
       class: className,
       canSend,
-      hidden: !visible
+      hidden: !visible,
+      insertBefore
     });
   });
 }
@@ -92,6 +95,7 @@ type CreateAiEditorButtonArgs = {
   canSend: boolean;
   class?: string;
   hidden?: boolean;
+  insertBefore?: () => Element | null;
 };
 
 const createAiEditorButton = ({
@@ -101,7 +105,8 @@ const createAiEditorButton = ({
   onApply,
   class: className,
   canSend,
-  hidden
+  hidden,
+  insertBefore
 }: CreateAiEditorButtonArgs) => {
   const {HotReloadGuard, rootScope, toastNew} = useHotReloadGuard();
 
@@ -255,7 +260,7 @@ const createAiEditorButton = ({
 
   // `.btn-icon` sets display: flex, which overrides the hidden attribute.
   element.style.display = hidden ? 'none' : '';
-  appendTo.append(element);
+  appendTo.insertBefore(element, insertBefore?.() ?? null);
 
   onCleanup(() => {
     element.remove();

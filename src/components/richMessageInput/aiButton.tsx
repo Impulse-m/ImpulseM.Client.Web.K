@@ -14,6 +14,7 @@ type AiEditorButtonProps = {
   onApply: (text: LocalTextWithEntities) => void;
   inputField: InputField;
   class?: string;
+  insertBefore?: () => Element | null;
 };
 
 export const AiEditorButton = (props: AiEditorButtonProps): JSX.Element => {
@@ -25,7 +26,8 @@ export const AiEditorButton = (props: AiEditorButtonProps): JSX.Element => {
     canSend: props.canSend,
     onApply: props.onApply,
     inputField: () => props.inputField,
-    shouldShowFromHeight: () => props.shouldShowFromHeight ?? defaultShouldShowFromHeight
+    shouldShowFromHeight: () => props.shouldShowFromHeight ?? defaultShouldShowFromHeight,
+    insertBefore: props.insertBefore
   });
   return null;
 };

@@ -36,9 +36,12 @@ afterEach(() => {
   mocks.resize = undefined;
 });
 
-function mountCaptionAiButton(): HTMLDivElement {
+function mountCaptionAiButton(): {container: HTMLDivElement, sendButton: HTMLButtonElement} {
   const container = document.createElement('div');
   const input = document.createElement('div');
+  const sendButton = document.createElement('button');
+  sendButton.className = 'simple-message-input-confirm';
+  container.append(input, sendButton);
   document.body.append(container);
 
   const context: AiEditorContext = {
@@ -54,11 +57,12 @@ function mountCaptionAiButton(): HTMLDivElement {
       appendTo: () => container,
       onApply: vi.fn(),
       canSend: false,
-      shouldShowFromHeight: () => 100
+      shouldShowFromHeight: () => 100,
+      insertBefore: () => sendButton
     });
   });
 
-  return container;
+  return {container, sendButton};
 }
 
 function aiButtonOf(container: HTMLElement): HTMLElement | null {
@@ -66,7 +70,7 @@ function aiButtonOf(container: HTMLElement): HTMLElement | null {
 }
 
 test('a caption shorter than the threshold hides the AI editor button inline, not via the hidden attribute', () => {
-  const container = mountCaptionAiButton();
+  const {container} = mountCaptionAiButton();
   mocks.resize?.({contentRect: {height: 48}});
 
   const button = aiButtonOf(container);
@@ -75,10 +79,22 @@ test('a caption shorter than the threshold hides the AI editor button inline, no
 });
 
 test('a caption at the threshold shows the AI editor button', () => {
-  const container = mountCaptionAiButton();
+  const {container} = mountCaptionAiButton();
   mocks.resize?.({contentRect: {height: 120}});
 
   const button = aiButtonOf(container);
   expect(button).not.toBeNull();
   expect(button!.style.display).toBe('');
+});
+
+test('a caption at the threshold places the AI editor button before the send button, with no offset that could cover it', () => {
+  const {container, sendButton} = mountCaptionAiButton();
+  mocks.resize?.({contentRect: {height: 120}});
+
+  const button = aiButtonOf(container)!;
+  const children = Array.from(container.children);
+  expect(children.indexOf(button)).toBeLessThan(children.indexOf(sendButton));
+  expect(button.nextElementSibling).toBe(sendButton);
+  expect(button.style.right).toBe('');
+  expect(button.style.position).toBe('');
 });
