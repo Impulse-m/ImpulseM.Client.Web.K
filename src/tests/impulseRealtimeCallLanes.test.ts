@@ -92,10 +92,7 @@ vi.mock('@connectrpc/connect', async(importActual) => {
   return {
     ...actual,
     createClient: vi.fn(() => ({
-      getCentrifugoToken: vi.fn(async() => ({token: 'centrifugo-token'})),
-      getChannelActorTags: vi.fn(async(request: {channelIds: bigint[]}) => ({
-        tags: Object.fromEntries(request.channelIds.map((id) => [id.toString(), 'actor-tag']))
-      }))
+      getCentrifugoToken: vi.fn(async() => ({token: 'centrifugo-token'}))
     }))
   };
 });

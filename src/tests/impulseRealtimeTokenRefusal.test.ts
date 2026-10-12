@@ -65,9 +65,7 @@ vi.mock('@connectrpc/connect', async(importActual) => {
   return {
     ...actual,
     createClient: vi.fn(() => ({
-      getCentrifugoToken,
-      getOwnSessionTag: vi.fn(async() => ({key: 'auth_session', value: '1'})),
-      getChannelActorTags: vi.fn(async() => ({tags: {}}))
+      getCentrifugoToken
     }))
   };
 });

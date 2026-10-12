@@ -18,7 +18,7 @@
  */
 
 import Schema, {MTProtoConstructor} from '@lib/mtproto/schema';
-import {Centrifuge, UnauthorizedError, type Subscription, type SubscriptionOptions} from '@impulsem/centrifuge';
+import {Centrifuge, UnauthorizedError, type Subscription} from '@impulsem/centrifuge';
 import {fromBinary} from '@bufbuild/protobuf';
 import {Code, ConnectError, createClient} from '@connectrpc/connect';
 
@@ -89,24 +89,9 @@ type RealtimeConnection = {
   call: RealtimeCall | undefined,
   latestTabStates: TabState[],
   subscriptions: Map<string, Subscription>,
-  // Channel lanes whose opaque actor tag is still being fetched: the tags filter is part of the
-  // subscribe request, so the subscription cannot be created until the tag is in hand.
-  pendingChannelLanes: Set<string>,
-  // Keyed by the session token it was fetched with, so a new session never reuses another session's tag.
-  ownSessionTag: CachedOwnSessionTag | undefined,
   sink: RealtimeUpdateSink | undefined,
   spinUpInProgress: boolean,
   lastSpinUpAt: number | undefined
-};
-
-type OwnSessionTag = {
-  key: string,
-  value: string
-};
-
-type CachedOwnSessionTag = {
-  sessionToken: string,
-  tag: OwnSessionTag
 };
 
 export type RealtimeCall = {
@@ -127,8 +112,6 @@ function connectionFor(accountNumber: ActiveAccountNumber): RealtimeConnection {
       call: undefined,
       latestTabStates: [],
       subscriptions: new Map<string, Subscription>(),
-      pendingChannelLanes: new Set<string>(),
-      ownSessionTag: undefined,
       sink: undefined,
       spinUpInProgress: false,
       lastSpinUpAt: undefined
@@ -209,7 +192,6 @@ export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
   }
 
   record.subscriptions.clear();
-  record.pendingChannelLanes.clear();
   record.subscriptionSet = undefined;
   record.openChannelId = undefined;
   record.connection = undefined;
@@ -327,67 +309,6 @@ async function fetchCentrifugoTokenForSdk(accountNumber: ActiveAccountNumber): P
   }
 }
 
-/**
- * This account's OWN opaque actor tag for one channel (sync.GetChannelActorTags).
- *
- * The server tags every shared channel:{id} publication with the acting account's tag instead of its
- * user id -- publications and Centrifugo history are readable by every subscriber, and a user id
- * there would name the author of an anonymous post. A client can learn only its own tag, and must
- * hold it BEFORE it subscribes because the tags filter is part of the subscribe request.
- */
-async function fetchChannelActorTag(accountNumber: ActiveAccountNumber, channelId: bigint): Promise<string> {
-  await whenImpulseSessionReady(accountNumber);
-  requireGrpcSessionToken(accountNumber);
-
-  const client = createClient(SyncService, getGrpcTransport(accountNumber));
-  const request = {channelIds: [channelId]};
-  const response = await client.getChannelActorTags(request).catch(async(err: unknown) => {
-    if(!isUnauthenticated(err) || !await refreshImpulseSession(accountNumber)) {
-      throw err;
-    }
-
-    return client.getChannelActorTags(request);
-  });
-
-  const tag = response?.tags?.[channelId.toString()];
-  if(!tag) {
-    throw new Error('Sync.GetChannelActorTags returned no tag for the channel');
-  }
-
-  return tag;
-}
-
-/**
- * This session's own tag (sync.GetOwnSessionTag): the key and value of the neq filter on user:{id},
- * which leaves out the echo of this session's own sends. Cached per session token.
- */
-async function fetchOwnSessionTag(accountNumber: ActiveAccountNumber): Promise<OwnSessionTag> {
-  await whenImpulseSessionReady(accountNumber);
-  const sessionToken = requireGrpcSessionToken(accountNumber);
-
-  const record = connectionFor(accountNumber);
-  if(record.ownSessionTag?.sessionToken === sessionToken) {
-    return record.ownSessionTag.tag;
-  }
-
-  const client = createClient(SyncService, getGrpcTransport(accountNumber));
-  const response = await client.getOwnSessionTag({}).catch(async(err: unknown) => {
-    if(!isUnauthenticated(err) || !await refreshImpulseSession(accountNumber)) {
-      throw err;
-    }
-
-    return client.getOwnSessionTag({});
-  });
-
-  if(!response?.key || !response?.value) {
-    throw new Error('Sync.GetOwnSessionTag returned no tag');
-  }
-
-  const tag: OwnSessionTag = {key: response.key, value: response.value};
-  record.ownSessionTag = {sessionToken, tag};
-  return tag;
-}
-
 function isUnauthenticated(err: unknown): boolean {
   return ConnectError.from(err).code === Code.Unauthenticated;
 }
@@ -473,68 +394,18 @@ async function spinUp(accountNumber: ActiveAccountNumber, userId: string): Promi
 
 function createSubscription(accountNumber: ActiveAccountNumber, channel: string): void {
   const record = connectionFor(accountNumber);
-  if(!record.connection || record.subscriptions.has(channel) || record.pendingChannelLanes.has(channel)) return;
-
-  if(channel.startsWith('user:')) {
-    createUserSubscription(accountNumber, channel);
+  if(!record.connection || record.subscriptions.has(channel)) {
     return;
   }
 
-  if(!channel.startsWith('channel:')) {
-    openSubscription(accountNumber, channel, undefined);
-    return;
-  }
-
-  // A shared channel:{id} lane is subscribed with a publication tags filter that leaves out the
-  // publications tagged with THIS account's opaque actor tag (Centrifugo v6.4+, the `channel`
-  // namespace has allow_tags_filter on). The account that acted is sent its own viewer-projected copy
-  // (out=true, its own peers) on user:{id}; the shared body is projected for nobody (out cleared),
-  // and pts dedup keeps whichever copy arrives first, so receiving both would let the shared one win
-  // with out=false on the actor's own post.
-  const connection = record.connection;
-  record.pendingChannelLanes.add(channel);
-  fetchChannelActorTag(accountNumber, BigInt(channel.slice('channel:'.length))).then((tag) => {
-    // Torn down, or unsubscribed by a later diff, while the tag was being fetched.
-    if(!record.pendingChannelLanes.delete(channel) || record.connection !== connection) return;
-
-    openSubscription(accountNumber, channel, {tagsFilter: {key: 'actor', cmp: 'neq', val: tag}});
-  }).catch((err: unknown) => {
-    record.pendingChannelLanes.delete(channel);
-    logger.warn('Realtime channel lane not subscribed: no actor tag', {channel}, err);
-  });
+  openSubscription(accountNumber, channel);
 }
 
-// The server tags this session's own send echo with auth_session. A publication without the tag passes
-// a neq filter (Centrifugo), as on the channel lane. Without the tag the echo is delivered as a
-// duplicate, which is safer than losing updates.
-function createUserSubscription(accountNumber: ActiveAccountNumber, channel: string): void {
-  const record = connectionFor(accountNumber);
-  const connection = record.connection;
-  record.pendingChannelLanes.add(channel);
-  fetchOwnSessionTag(accountNumber).then(
-    (tag) => {
-      if(!record.pendingChannelLanes.delete(channel) || record.connection !== connection) return;
-
-      openSubscription(accountNumber, channel, {tagsFilter: {key: tag.key, cmp: 'neq', val: tag.value}});
-    },
-    (err: unknown) => {
-      if(!record.pendingChannelLanes.delete(channel) || record.connection !== connection) return;
-
-      logger.warn('Realtime user lane subscribed without the own session tag filter', {channel}, err);
-      openSubscription(accountNumber, channel, undefined);
-    }
-  );
-}
-
-function openSubscription(
-  accountNumber: ActiveAccountNumber,
-  channel: string,
-  options: Partial<SubscriptionOptions> | undefined
-): void {
+function openSubscription(accountNumber: ActiveAccountNumber, channel: string): void {
   const record = connectionFor(accountNumber);
   if(!record.connection || record.subscriptions.has(channel)) return;
 
-  const sub = record.connection.newSubscription(channel, options);
+  const sub = record.connection.newSubscription(channel);
   sub.on('publication', (ctx: any) => {
     handleEnvelope(accountNumber, ctx?.data as Envelope, channel);
   });
@@ -569,7 +440,6 @@ function openSubscription(
 function applySubscriptionDiff(accountNumber: ActiveAccountNumber, diff: RealtimeSubscriptionDiff): void {
   const record = connectionFor(accountNumber);
   for(const channel of diff.unsubscribe) {
-    record.pendingChannelLanes.delete(channel);
     const subscription = record.subscriptions.get(channel);
     if(!subscription) continue;
 
