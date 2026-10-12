@@ -21,9 +21,9 @@ export const ReconnectFloorMs = 500;
 
 /**
  * Centrifuge 5's reconnect ladder, reproduced from the shipped bundle so our own options can be
- * asserted against it. Verbatim from node_modules/centrifuge/dist/centrifuge.js:
+ * asserted against it. Verbatim from node_modules/@impulsem/centrifuge/dist/centrifuge.js:
  *
- *   function y(o,n,e){o>31&&(o=31);let t=Pe(0,Math.min(e,n*Math.pow(2,o)));return Math.min(e,n+t)}
+ *   function P(a,r,e){a>31&&(a=31);let t=Ie(0,Math.min(e,r*Math.pow(2,a)));return Math.min(e,r+t)}
  *
  * i.e. min(max, min + randInt(0, min(max, min * 2^attempt))).
  *

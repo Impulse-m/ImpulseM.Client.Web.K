@@ -79,9 +79,10 @@ const {MockCentrifuge, centrifugeInstances} = vi.hoisted(() => {
   return {MockCentrifuge, centrifugeInstances};
 });
 
-vi.mock('centrifuge', () => ({
-  Centrifuge: MockCentrifuge
-}));
+vi.mock('@impulsem/centrifuge', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge')>();
+  return {...actual, Centrifuge: MockCentrifuge};
+});
 
 // The token mint is exercised for real in the live lane; here it is short-circuited so the test
 // stays a pure unit around the connection lifecycle. Only the two functions the spin-up path calls

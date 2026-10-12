@@ -45,6 +45,9 @@ importers:
       '@connectrpc/connect-web':
         specifier: ^2.1.2
         version: 2.2.0(@bufbuild/protobuf@2.15.0)(@connectrpc/connect@2.2.0(@bufbuild/protobuf@2.15.0))
+      '@impulsem/centrifuge':
+        specifier: 1.0.0
+        version: 1.0.0
       '@tiptap/core':
         specifier: 3.28.0
         version: 3.28.0(@tiptap/pm@3.28.0)
@@ -84,9 +87,6 @@ importers:
       '@tiptap/pm':
         specifier: 3.28.0
         version: 3.28.0
-      centrifuge:
-        specifier: ^5.7.1
-        version: 5.7.4
       livekit-client:
         specifier: 2.22.3
         version: 2.22.3(@types/dom-mediacapture-record@1.0.22)
@@ -1352,6 +1352,9 @@ packages:
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
 
+  '@impulsem/centrifuge@1.0.0':
+    resolution: {integrity: sha512-IpePkgp5CBG6HSYvFcMuBCFJKJLSwSOpFD434G/z77pV2o3GqmDLwid7sCIOiOuUDwepCYblaVGRhRCSb8n0dg==}
+
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
 
@@ -2407,9 +2410,6 @@ packages:
 
   capital-case@1.0.4:
     resolution: {integrity: sha512-ds37W8CytHgwnhGGTi88pcPyR15qoNkOpYwmMMfnWqqWgESapLqvDx6huFjQ5vqWSn2Z06173XNA7LtMOeUh1A==}
-
-  centrifuge@5.7.4:
-    resolution: {integrity: sha512-PnkJSS5uDPcdIDK4kkrgVCiT7RT+4xUTVjO9FfUjrUpOdPNKXgjfY+6gdG+RQKGSRP7AxP4NxCuFk0Eb4sjrWw==}
 
   chai@6.2.2:
     resolution: {integrity: sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==}
@@ -5101,6 +5101,11 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
+  '@impulsem/centrifuge@1.0.0':
+    dependencies:
+      events: 3.3.0
+      protobufjs: 7.6.6
+
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -5918,11 +5923,6 @@ snapshots:
       no-case: 3.0.4
       tslib: 2.8.1
       upper-case-first: 2.0.2
-
-  centrifuge@5.7.4:
-    dependencies:
-      events: 3.3.0
-      protobufjs: 7.6.6
 
   chai@6.2.2: {}
 

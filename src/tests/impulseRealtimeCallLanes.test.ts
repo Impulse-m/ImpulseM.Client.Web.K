@@ -64,7 +64,10 @@ const {MockCentrifuge, centrifugeInstances} = vi.hoisted(() => {
   return {MockCentrifuge, centrifugeInstances};
 });
 
-vi.mock('centrifuge', () => ({Centrifuge: MockCentrifuge}));
+vi.mock('@impulsem/centrifuge', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge')>();
+  return {...actual, Centrifuge: MockCentrifuge};
+});
 
 vi.mock('@lib/impulse/session', async(importActual) => {
   const actual = await importActual<typeof import('@lib/impulse/session')>();

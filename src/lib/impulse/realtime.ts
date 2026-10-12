@@ -18,7 +18,7 @@
  */
 
 import Schema, {MTProtoConstructor} from '@lib/mtproto/schema';
-import {Centrifuge, type Subscription, type SubscriptionOptions} from 'centrifuge';
+import {Centrifuge, UnauthorizedError, type Subscription, type SubscriptionOptions} from '@impulsem/centrifuge';
 import {fromBinary} from '@bufbuild/protobuf';
 import {Code, ConnectError, createClient} from '@connectrpc/connect';
 
@@ -309,6 +309,25 @@ export async function fetchCentrifugoToken(accountNumber: ActiveAccountNumber): 
 }
 
 /**
+ * The token callback of the SDK. A 401 or 403 from the token RPC means this session may not hold a
+ * realtime connection; the SDK retries every other failure forever and stops only on its
+ * UnauthorizedError.
+ */
+async function fetchCentrifugoTokenForSdk(accountNumber: ActiveAccountNumber): Promise<string> {
+  try {
+    return await fetchCentrifugoToken(accountNumber);
+  } catch(err: unknown) {
+    const code: Code = ConnectError.from(err).code;
+    if(code === Code.Unauthenticated || code === Code.PermissionDenied) {
+      logger.warn('Centrifugo token refused; the connection stops', {code});
+      throw new UnauthorizedError(ConnectError.from(err).rawMessage);
+    }
+
+    throw err;
+  }
+}
+
+/**
  * This account's OWN opaque actor tag for one channel (sync.GetChannelActorTags).
  *
  * The server tags every shared channel:{id} publication with the acting account's tag instead of its
@@ -384,7 +403,7 @@ async function spinUp(accountNumber: ActiveAccountNumber, userId: string): Promi
 
   const centrifuge = new Centrifuge(CENTRIFUGO_WS, {
     token,
-    getToken: () => fetchCentrifugoToken(accountNumber),
+    getToken: () => fetchCentrifugoTokenForSdk(accountNumber),
     // Centrifuge 5's ladder is min(max, min + randInt(0, min(max, min * 2^attempt))) --
     // reproduced and asserted in realtimeDiscipline.sdkReconnectDelay. It is NOT full jitter:
     // the random range grows from the floor rather than covering the window, and
