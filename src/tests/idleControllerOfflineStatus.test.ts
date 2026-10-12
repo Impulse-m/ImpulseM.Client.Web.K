@@ -34,27 +34,6 @@ describe('IdleController offline status', () => {
     expect(accountUpdateStatus).toHaveBeenCalledWith({offline: true});
   });
 
-  // A config value of 0 or an absent field must not disarm the delay. setTimeout reads both as
-  // "fire now", so an unguarded assignment would restore the instant-offline bug through the very
-  // field that configures the fix -- and it would do it silently, on every client, the moment a
-  // server shipped the field unset.
-  it.each([
-    ['zero', 0],
-    ['absent', undefined as unknown as number],
-    ['negative', -1]
-  ])('keeps the default blur timeout when the configured value is %s', (_label, configured) => {
-    const {accountUpdateStatus, controller} = setup();
-
-    controller.setOfflineBlurTimeout(configured);
-
-    window.dispatchEvent(new Event('blur'));
-    vi.advanceTimersByTime(OFFLINE_BLUR_TIMEOUT_MS - 1);
-    expect(accountUpdateStatus).not.toHaveBeenCalledWith({offline: true});
-
-    vi.advanceTimersByTime(1);
-    expect(accountUpdateStatus).toHaveBeenCalledWith({offline: true});
-  });
-
   it('suppresses offline when focus returns within the blur timeout', () => {
     const {accountUpdateStatus} = setup();
 

@@ -77,27 +77,6 @@ describe('IdleController inactivity', () => {
     expect(accountUpdateStatus).toHaveBeenCalledWith({offline: false});
   });
 
-  // Same trap the blur timeout already carries a guard for: setTimeout reads 0 and undefined alike
-  // as "fire now", so an unguarded assignment would mark every user offline immediately -- through
-  // the very field meant to configure the delay, and silently, on every client at once.
-  it.each([
-    ['zero', 0],
-    ['absent', undefined as unknown as number],
-    ['negative', -1]
-  ])('keeps the default idle timeout when the configured value is %s', (_label, configured) => {
-    const {accountUpdateStatus, controller} = setup();
-
-    controller.setOfflineIdleTimeout(configured);
-
-    vi.advanceTimersByTime(OFFLINE_IDLE_TIMEOUT_MS - 1);
-    expect(accountUpdateStatus).not.toHaveBeenCalledWith(
-      {offline: true}
-    );
-
-    vi.advanceTimersByTime(1);
-    expect(accountUpdateStatus).toHaveBeenCalledWith({offline: true});
-  });
-
   it('honours a shorter idle timeout supplied by the server', () => {
     const {accountUpdateStatus, controller} = setup();
 

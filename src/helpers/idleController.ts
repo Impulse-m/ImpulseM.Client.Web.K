@@ -103,28 +103,12 @@ export class IdleController extends EventListenerBase<{
     return this.focusPromise;
   }
 
-  // Guarded rather than assigned: an absent offline_blur_timeout_ms arrives as undefined and a
-  // server that has not set one sends 0, and setTimeout treats both as "fire now" — which is the
-  // instant-offline bug this delay exists to remove, silently restored by the very config meant to
-  // configure it. Absence keeps the documented default instead of being read as zero.
   public setOfflineBlurTimeout(timeout: number) {
-    if(!Number.isFinite(timeout) || timeout <= 0) {
-      return;
-    }
-
     this.offlineBlurTimeout = timeout;
   }
 
 
-  // Guarded exactly as the blur timeout is, and for the same reason: an absent
-  // offline_idle_timeout_ms arrives as undefined and a server that has not set one sends 0, both of
-  // which setTimeout reads as "fire now" — which would mark every focused client offline the
-  // instant config landed.
   public setOfflineIdleTimeout(timeout: number) {
-    if(!Number.isFinite(timeout) || timeout <= 0) {
-      return;
-    }
-
     this.offlineIdleTimeout = timeout;
     // Config arrives after the first deadline is already armed, so the new value has to displace it
     // rather than wait for the next pointer move — otherwise a server asking for a shorter idle
