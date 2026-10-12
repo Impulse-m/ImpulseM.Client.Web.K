@@ -12102,12 +12102,8 @@ export default class ChatBubbles {
 
       const middleware = this.getMiddleware();
 
-      const greetingStickerPromise: Promise<MyDocument | undefined> = this.managers.appStickersManager.getGreetingSticker().catch((error: unknown): MyDocument | undefined => {
-        if(error === 'NO_STICKERS') return undefined;
-        throw error;
-      });
       const promises = Promise.all([
-        greetingStickerPromise,
+        this.managers.appStickersManager.getGreetingSticker(),
         this.managers.appProfileManager.getProfile(message.peerId.toUserId())
       ]);
       await promises.then(async([doc, userFull]) => {
@@ -12151,30 +12147,28 @@ export default class ChatBubbles {
           bubble.classList.add('wider');
         }
 
-        if(doc) {
-          const loadPromises: Promise<any>[] = [];
-          await wrapSticker({
-            doc,
-            // doc: appDocsManager.getDoc("5431607541660389336"), // cubigator mockup
-            div: stickerDiv,
-            middleware,
-            lazyLoadQueue: this.lazyLoadQueue,
-            group: this.chat.animationGroup,
-            // play: !!message.pending || !multipleRender,
-            play: true,
-            loop: true,
-            withThumb: true,
-            loadPromises,
-            liteModeKey: 'stickers_chat'
-          });
+        const loadPromises: Promise<any>[] = [];
+        await wrapSticker({
+          doc,
+          // doc: appDocsManager.getDoc("5431607541660389336"), // cubigator mockup
+          div: stickerDiv,
+          middleware,
+          lazyLoadQueue: this.lazyLoadQueue,
+          group: this.chat.animationGroup,
+          // play: !!message.pending || !multipleRender,
+          play: true,
+          loop: true,
+          withThumb: true,
+          loadPromises,
+          liteModeKey: 'stickers_chat'
+        });
 
-          attachClickEvent(stickerDiv, (e) => {
-            cancelEvent(e);
-            this.chat.input.emoticonsDropdown.onMediaClick({target: e.target}, undefined, undefined, true);
-          });
+        attachClickEvent(stickerDiv, (e) => {
+          cancelEvent(e);
+          this.chat.input.emoticonsDropdown.onMediaClick({target: e.target}, undefined, undefined, true);
+        });
 
-          return Promise.all(loadPromises);
-        }
+        return Promise.all(loadPromises);
       });
 
       // this.renderMessagesQueue({
@@ -12186,10 +12180,7 @@ export default class ChatBubbles {
 
       subtitle.classList.add('center', BASE_CLASS + '-subtitle');
 
-      elements.push(subtitle);
-      if(stickerDiv.childNodes.length) {
-        elements.push(stickerDiv);
-      }
+      elements.push(subtitle, stickerDiv);
     } else if(type === 'premiumRequired') {
       const stickerDiv = document.createElement('div');
       stickerDiv.classList.add(BASE_CLASS + '-sticker');
