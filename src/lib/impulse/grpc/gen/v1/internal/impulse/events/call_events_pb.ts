@@ -6,13 +6,15 @@ import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2"
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { EventEnvelope } from "./events_common_pb";
 import { file_impulse_events_events_common } from "./events_common_pb";
+import type { GroupCallTransition } from "../chats/chat_types_pb";
+import { file_impulse_chats_chat_types } from "../chats/chat_types_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file impulse/events/call_events.proto.
  */
 export const file_impulse_events_call_events: GenFile = /*@__PURE__*/
-  fileDesc("CiBpbXB1bHNlL2V2ZW50cy9jYWxsX2V2ZW50cy5wcm90bxIUaW1wdWxzZS5ldmVudHMuY2FsbHMi5QEKCUNhbGxFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSFgoOdGFyZ2V0X3VzZXJfaWQYAiABKAMSOgoKcGhvbmVfY2FsbBgDIAEoCzIkLmltcHVsc2UuZXZlbnRzLmNhbGxzLlBob25lQ2FsbFN0YXRlSAASSAoUcGhvbmVfY2FsbF9zaWduYWxpbmcYBCABKAsyKC5pbXB1bHNlLmV2ZW50cy5jYWxscy5QaG9uZUNhbGxTaWduYWxpbmdIAEIJCgdwYXlsb2FkIv8CCg5QaG9uZUNhbGxTdGF0ZRI1CgVlbXB0eRgBIAEoCzIkLmltcHVsc2UuZXZlbnRzLmNhbGxzLlBob25lQ2FsbEVtcHR5SAASOQoHd2FpdGluZxgCIAEoCzImLmltcHVsc2UuZXZlbnRzLmNhbGxzLlBob25lQ2FsbFdhaXRpbmdIABI9CglyZXF1ZXN0ZWQYAyABKAsyKC5pbXB1bHNlLmV2ZW50cy5jYWxscy5QaG9uZUNhbGxSZXF1ZXN0ZWRIABI7CghhY2NlcHRlZBgEIAEoCzInLmltcHVsc2UuZXZlbnRzLmNhbGxzLlBob25lQ2FsbEFjY2VwdGVkSAASNwoGYWN0aXZlGAUgASgLMiUuaW1wdWxzZS5ldmVudHMuY2FsbHMuUGhvbmVDYWxsQWN0aXZlSAASPQoJZGlzY2FyZGVkGAYgASgLMiguaW1wdWxzZS5ldmVudHMuY2FsbHMuUGhvbmVDYWxsRGlzY2FyZGVkSABCBwoFc3RhdGUiHAoOUGhvbmVDYWxsRW1wdHkSCgoCaWQYASABKAMi4QEKEFBob25lQ2FsbFdhaXRpbmcSDQoFdmlkZW8YASABKAgSCgoCaWQYAiABKAMSEwoLYWNjZXNzX2hhc2gYAyABKAMSDAoEZGF0ZRgEIAEoBRIQCghhZG1pbl9pZBgFIAEoAxIWCg5wYXJ0aWNpcGFudF9pZBgGIAEoAxI5Cghwcm90b2NvbBgHIAEoCzInLmltcHVsc2UuZXZlbnRzLmNhbGxzLlBob25lQ2FsbFByb3RvY29sEhkKDHJlY2VpdmVfZGF0ZRgIIAEoBUgAiAEBQg8KDV9yZWNlaXZlX2RhdGUiyQEKElBob25lQ2FsbFJlcXVlc3RlZBINCgV2aWRlbxgBIAEoCBIKCgJpZBgCIAEoAxITCgthY2Nlc3NfaGFzaBgDIAEoAxIMCgRkYXRlGAQgASgFEhAKCGFkbWluX2lkGAUgASgDEhYKDnBhcnRpY2lwYW50X2lkGAYgASgDEhAKCGdfYV9oYXNoGAcgASgMEjkKCHByb3RvY29sGAggASgLMicuaW1wdWxzZS5ldmVudHMuY2FsbHMuUGhvbmVDYWxsUHJvdG9jb2wiwwEKEVBob25lQ2FsbEFjY2VwdGVkEg0KBXZpZGVvGAEgASgIEgoKAmlkGAIgASgDEhMKC2FjY2Vzc19oYXNoGAMgASgDEgwKBGRhdGUYBCABKAUSEAoIYWRtaW5faWQYBSABKAMSFgoOcGFydGljaXBhbnRfaWQYBiABKAMSCwoDZ19iGAcgASgMEjkKCHByb3RvY29sGAggASgLMicuaW1wdWxzZS5ldmVudHMuY2FsbHMuUGhvbmVDYWxsUHJvdG9jb2wipgIKD1Bob25lQ2FsbEFjdGl2ZRITCgtwMnBfYWxsb3dlZBgBIAEoCBINCgV2aWRlbxgCIAEoCBIcChRjb25mZXJlbmNlX3N1cHBvcnRlZBgDIAEoCBIKCgJpZBgEIAEoAxITCgthY2Nlc3NfaGFzaBgFIAEoAxIMCgRkYXRlGAYgASgFEhAKCGFkbWluX2lkGAcgASgDEhYKDnBhcnRpY2lwYW50X2lkGAggASgDEhAKCGdfYV9vcl9iGAkgASgMEhcKD2tleV9maW5nZXJwcmludBgKIAEoAxI5Cghwcm90b2NvbBgLIAEoCzInLmltcHVsc2UuZXZlbnRzLmNhbGxzLlBob25lQ2FsbFByb3RvY29sEhIKCnN0YXJ0X2RhdGUYDCABKAUiygEKElBob25lQ2FsbERpc2NhcmRlZBITCgtuZWVkX3JhdGluZxgBIAEoCBISCgpuZWVkX2RlYnVnGAIgASgIEg0KBXZpZGVvGAMgASgIEgoKAmlkGAQgASgDEkEKBnJlYXNvbhgFIAEoCzIsLmltcHVsc2UuZXZlbnRzLmNhbGxzLlBob25lQ2FsbERpc2NhcmRSZWFzb25IAIgBARIVCghkdXJhdGlvbhgGIAEoBUgBiAEBQgkKB19yZWFzb25CCwoJX2R1cmF0aW9uInsKEVBob25lQ2FsbFByb3RvY29sEg8KB3VkcF9wMnAYASABKAgSFQoNdWRwX3JlZmxlY3RvchgCIAEoCBIRCgltaW5fbGF5ZXIYAyABKAUSEQoJbWF4X2xheWVyGAQgASgFEhgKEGxpYnJhcnlfdmVyc2lvbnMYBSADKAkikgIKFlBob25lQ2FsbERpc2NhcmRSZWFzb24SPwoEdHlwZRgBIAEoDjIxLmltcHVsc2UuZXZlbnRzLmNhbGxzLlBob25lQ2FsbERpc2NhcmRSZWFzb24uVHlwZRIcCg9jb25mZXJlbmNlX3NsdWcYAiABKAlIAIgBASKEAQoEVHlwZRIUChBUWVBFX1VOU1BFQ0lGSUVEEAASDwoLVFlQRV9NSVNTRUQQARITCg9UWVBFX0RJU0NPTk5FQ1QQAhIPCgtUWVBFX0hBTkdVUBADEg0KCVRZUEVfQlVTWRAEEiAKHFRZUEVfTUlHUkFURV9DT05GRVJFTkNFX0NBTEwQBUISChBfY29uZmVyZW5jZV9zbHVnIjkKElBob25lQ2FsbFNpZ25hbGluZxIVCg1waG9uZV9jYWxsX2lkGAEgASgDEgwKBGRhdGEYAiABKAxCH6oCHEltcHVsc2VNLlByb3Rvcy5FdmVudHMuQ2FsbHNiBnByb3RvMw", [file_impulse_events_events_common]);
+  fileDesc("CiBpbXB1bHNlL2V2ZW50cy9jYWxsX2V2ZW50cy5wcm90bxIUaW1wdWxzZS5ldmVudHMuY2FsbHMi+wMKCUNhbGxFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSFgoOdGFyZ2V0X3VzZXJfaWQYAiABKAMSOgoKcGhvbmVfY2FsbBgDIAEoCzIkLmltcHVsc2UuZXZlbnRzLmNhbGxzLlBob25lQ2FsbFN0YXRlSAASSAoUcGhvbmVfY2FsbF9zaWduYWxpbmcYBCABKAsyKC5pbXB1bHNlLmV2ZW50cy5jYWxscy5QaG9uZUNhbGxTaWduYWxpbmdIABI7Cgpncm91cF9jYWxsGAcgASgLMiUuaW1wdWxzZS5ldmVudHMuY2FsbHMuR3JvdXBDYWxsRmFub3V0SAASRgoTZ3JvdXBfY2FsbF9tZXNzYWdlcxgJIAEoCzInLmltcHVsc2UuZXZlbnRzLmNhbGxzLkdyb3VwQ2FsbE1lc3NhZ2VzSAASHgoRb25seV9zZXNzaW9uX2hhc2gYBSABKANIAYgBARIgChNleGNlcHRfc2Vzc2lvbl9oYXNoGAYgASgDSAKIAQESHwoXcmVhbHRpbWVfc2Vzc2lvbl9oYXNoZXMYCCADKANCCQoHcGF5bG9hZEIUChJfb25seV9zZXNzaW9uX2hhc2hCFgoUX2V4Y2VwdF9zZXNzaW9uX2hhc2gi/wIKDlBob25lQ2FsbFN0YXRlEjUKBWVtcHR5GAEgASgLMiQuaW1wdWxzZS5ldmVudHMuY2FsbHMuUGhvbmVDYWxsRW1wdHlIABI5Cgd3YWl0aW5nGAIgASgLMiYuaW1wdWxzZS5ldmVudHMuY2FsbHMuUGhvbmVDYWxsV2FpdGluZ0gAEj0KCXJlcXVlc3RlZBgDIAEoCzIoLmltcHVsc2UuZXZlbnRzLmNhbGxzLlBob25lQ2FsbFJlcXVlc3RlZEgAEjsKCGFjY2VwdGVkGAQgASgLMicuaW1wdWxzZS5ldmVudHMuY2FsbHMuUGhvbmVDYWxsQWNjZXB0ZWRIABI3CgZhY3RpdmUYBSABKAsyJS5pbXB1bHNlLmV2ZW50cy5jYWxscy5QaG9uZUNhbGxBY3RpdmVIABI9CglkaXNjYXJkZWQYBiABKAsyKC5pbXB1bHNlLmV2ZW50cy5jYWxscy5QaG9uZUNhbGxEaXNjYXJkZWRIAEIHCgVzdGF0ZSIcCg5QaG9uZUNhbGxFbXB0eRIKCgJpZBgBIAEoAyLhAQoQUGhvbmVDYWxsV2FpdGluZxINCgV2aWRlbxgBIAEoCBIKCgJpZBgCIAEoAxITCgthY2Nlc3NfaGFzaBgDIAEoAxIMCgRkYXRlGAQgASgFEhAKCGFkbWluX2lkGAUgASgDEhYKDnBhcnRpY2lwYW50X2lkGAYgASgDEjkKCHByb3RvY29sGAcgASgLMicuaW1wdWxzZS5ldmVudHMuY2FsbHMuUGhvbmVDYWxsUHJvdG9jb2wSGQoMcmVjZWl2ZV9kYXRlGAggASgFSACIAQFCDwoNX3JlY2VpdmVfZGF0ZSLJAQoSUGhvbmVDYWxsUmVxdWVzdGVkEg0KBXZpZGVvGAEgASgIEgoKAmlkGAIgASgDEhMKC2FjY2Vzc19oYXNoGAMgASgDEgwKBGRhdGUYBCABKAUSEAoIYWRtaW5faWQYBSABKAMSFgoOcGFydGljaXBhbnRfaWQYBiABKAMSEAoIZ19hX2hhc2gYByABKAwSOQoIcHJvdG9jb2wYCCABKAsyJy5pbXB1bHNlLmV2ZW50cy5jYWxscy5QaG9uZUNhbGxQcm90b2NvbCLDAQoRUGhvbmVDYWxsQWNjZXB0ZWQSDQoFdmlkZW8YASABKAgSCgoCaWQYAiABKAMSEwoLYWNjZXNzX2hhc2gYAyABKAMSDAoEZGF0ZRgEIAEoBRIQCghhZG1pbl9pZBgFIAEoAxIWCg5wYXJ0aWNpcGFudF9pZBgGIAEoAxILCgNnX2IYByABKAwSOQoIcHJvdG9jb2wYCCABKAsyJy5pbXB1bHNlLmV2ZW50cy5jYWxscy5QaG9uZUNhbGxQcm90b2NvbCKmAgoPUGhvbmVDYWxsQWN0aXZlEhMKC3AycF9hbGxvd2VkGAEgASgIEg0KBXZpZGVvGAIgASgIEhwKFGNvbmZlcmVuY2Vfc3VwcG9ydGVkGAMgASgIEgoKAmlkGAQgASgDEhMKC2FjY2Vzc19oYXNoGAUgASgDEgwKBGRhdGUYBiABKAUSEAoIYWRtaW5faWQYByABKAMSFgoOcGFydGljaXBhbnRfaWQYCCABKAMSEAoIZ19hX29yX2IYCSABKAwSFwoPa2V5X2ZpbmdlcnByaW50GAogASgDEjkKCHByb3RvY29sGAsgASgLMicuaW1wdWxzZS5ldmVudHMuY2FsbHMuUGhvbmVDYWxsUHJvdG9jb2wSEgoKc3RhcnRfZGF0ZRgMIAEoBSLKAQoSUGhvbmVDYWxsRGlzY2FyZGVkEhMKC25lZWRfcmF0aW5nGAEgASgIEhIKCm5lZWRfZGVidWcYAiABKAgSDQoFdmlkZW8YAyABKAgSCgoCaWQYBCABKAMSQQoGcmVhc29uGAUgASgLMiwuaW1wdWxzZS5ldmVudHMuY2FsbHMuUGhvbmVDYWxsRGlzY2FyZFJlYXNvbkgAiAEBEhUKCGR1cmF0aW9uGAYgASgFSAGIAQFCCQoHX3JlYXNvbkILCglfZHVyYXRpb24iewoRUGhvbmVDYWxsUHJvdG9jb2wSDwoHdWRwX3AycBgBIAEoCBIVCg11ZHBfcmVmbGVjdG9yGAIgASgIEhEKCW1pbl9sYXllchgDIAEoBRIRCgltYXhfbGF5ZXIYBCABKAUSGAoQbGlicmFyeV92ZXJzaW9ucxgFIAMoCSKSAgoWUGhvbmVDYWxsRGlzY2FyZFJlYXNvbhI/CgR0eXBlGAEgASgOMjEuaW1wdWxzZS5ldmVudHMuY2FsbHMuUGhvbmVDYWxsRGlzY2FyZFJlYXNvbi5UeXBlEhwKD2NvbmZlcmVuY2Vfc2x1ZxgCIAEoCUgAiAEBIoQBCgRUeXBlEhQKEFRZUEVfVU5TUEVDSUZJRUQQABIPCgtUWVBFX01JU1NFRBABEhMKD1RZUEVfRElTQ09OTkVDVBACEg8KC1RZUEVfSEFOR1VQEAMSDQoJVFlQRV9CVVNZEAQSIAocVFlQRV9NSUdSQVRFX0NPTkZFUkVOQ0VfQ0FMTBAFQhIKEF9jb25mZXJlbmNlX3NsdWciOQoSUGhvbmVDYWxsU2lnbmFsaW5nEhUKDXBob25lX2NhbGxfaWQYASABKAMSDAoEZGF0YRgCIAEoDCKfAQoPR3JvdXBDYWxsRmFub3V0EhEKCXBlZXJfa2luZBgBIAEoBRIPCgdwZWVyX2lkGAIgASgDEg8KB3VwZGF0ZXMYAyADKAwSPAoHZW50cmllcxgEIAMoCzIrLmltcHVsc2UuZXZlbnRzLmNhbGxzLkdyb3VwQ2FsbEZhbm91dFVwZGF0ZRIZChFhdWRpZW5jZV91c2VyX2lkcxgFIAMoAyJAChVHcm91cENhbGxGYW5vdXRVcGRhdGUSDgoGdXBkYXRlGAEgASgMEhcKD3N1YmplY3RfdXNlcl9pZBgCIAEoAyIkChFHcm91cENhbGxNZXNzYWdlcxIPCgd1cGRhdGVzGAEgAygMIrMDChNHcm91cENhbGxDaGF0RWZmZWN0Ei8KCGVudmVsb3BlGAEgASgLMh0uaW1wdWxzZS5ldmVudHMuRXZlbnRFbnZlbG9wZRIPCgdjaGF0X2lkGAIgASgDEhEKCXBlZXJfa2luZBgDIAEoBRI2Cgp0cmFuc2l0aW9uGAQgASgOMiIuaW1wdWxzZS5jaGF0cy5Hcm91cENhbGxUcmFuc2l0aW9uEg8KB2NhbGxfaWQYBSABKAMSEwoLYWNjZXNzX2hhc2gYBiABKAMSFQoNYWN0b3JfdXNlcl9pZBgHIAEoAxIUCgxjYWxsX3ZlcnNpb24YCCABKAUSFQoIZHVyYXRpb24YCSABKAVIAIgBARIaCg1zY2hlZHVsZV9kYXRlGAogASgFSAGIAQESGAoQaW52aXRlZF91c2VyX2lkcxgLIAMoAxIYCgtwYXJ0aWNpcGFudBgMIAEoDEgCiAEBEhcKCmpvaW5fbXV0ZWQYDSABKAhIA4gBAUILCglfZHVyYXRpb25CEAoOX3NjaGVkdWxlX2RhdGVCDgoMX3BhcnRpY2lwYW50Qg0KC19qb2luX211dGVkIoEBChRHcm91cENhbGxTdGFydE5vdGlmeRIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSDwoHY2FsbF9pZBgCIAEoAxIWCg5jaGF0X3BlZXJfa2luZBgDIAEoBRIPCgdjaGF0X2lkGAQgASgDIncKFEdyb3VwQ2FsbFN0YXJ0Tm90aWNlEi8KCGVudmVsb3BlGAEgASgLMh0uaW1wdWxzZS5ldmVudHMuRXZlbnRFbnZlbG9wZRIPCgdjYWxsX2lkGAIgASgDEg8KB3VzZXJfaWQYAyABKAMSDAoEdGV4dBgEIAEoCUIfqgIcSW1wdWxzZU0uUHJvdG9zLkV2ZW50cy5DYWxsc2IGcHJvdG8z", [file_impulse_events_events_common, file_impulse_chats_chat_types]);
 
 /**
  * @generated from message impulse.events.calls.CallEvent
@@ -43,7 +45,45 @@ export type CallEvent = Message<"impulse.events.calls.CallEvent"> & {
      */
     value: PhoneCallSignaling;
     case: "phoneCallSignaling";
+  } | {
+    /**
+     * @generated from field: impulse.events.calls.GroupCallFanout group_call = 7;
+     */
+    value: GroupCallFanout;
+    case: "groupCall";
+  } | {
+    /**
+     * @generated from field: impulse.events.calls.GroupCallMessages group_call_messages = 9;
+     */
+    value: GroupCallMessages;
+    case: "groupCallMessages";
   } | { case: undefined; value?: undefined };
+
+  /**
+   * Session addressing. Neither set: every device of target_user_id. only_session_hash: that one
+   * authorized session and no other. except_session_hash: every session of the target but that
+   * one. At most one of the two is set. The 1:1 call update for "the caller's device" / "the
+   * device that accepted" is addressed, and the other devices are told the call went elsewhere
+   * (api/calls.md). Never carries a LiveKit token: tokens are minted at serve time.
+   *
+   * @generated from field: optional int64 only_session_hash = 5;
+   */
+  onlySessionHash?: bigint | undefined;
+
+  /**
+   * @generated from field: optional int64 except_session_hash = 6;
+   */
+  exceptSessionHash?: bigint | undefined;
+
+  /**
+   * Set with except_session_hash: the sessions of target_user_id, other than the excluded one, that
+   * the realtime copy is published to, listed by Messages (from Auth) in the same transaction that
+   * decided the transition. Sync stores one durable row for getDifference and publishes to exactly
+   * these session channels; it does not read the account's sessions itself.
+   *
+   * @generated from field: repeated int64 realtime_session_hashes = 8;
+   */
+  realtimeSessionHashes: bigint[];
 };
 
 /**
@@ -514,4 +554,285 @@ export type PhoneCallSignaling = Message<"impulse.events.calls.PhoneCallSignalin
  */
 export const PhoneCallSignalingSchema: GenMessage<PhoneCallSignaling> = /*@__PURE__*/
   messageDesc(file_impulse_events_call_events, 10);
+
+/**
+ * One group-call change, to be delivered to every participant of the call. The event is keyed by the
+ * call id (the outbox aggregate), so one call's changes stay on one partition. They are NOT ordered by
+ * version: a version is allocated in Redis before the database commit and the outbox row id is a
+ * snowflake, so two transactions can commit and be relayed in the opposite order of their versions.
+ * A consumer orders what it holds by version and never assumes a later event carries a higher one.
+ * target_user_id of the enclosing CallEvent is unused (zero): the audience is the call, not a user.
+ *
+ * @generated from message impulse.events.calls.GroupCallFanout
+ */
+export type GroupCallFanout = Message<"impulse.events.calls.GroupCallFanout"> & {
+  /**
+   * The chat the call belongs to (an ImpulseM.Common.Peers.PeerKind value and its id), which is what
+   * the audience is resolved from.
+   *
+   * @generated from field: int32 peer_kind = 1;
+   */
+  peerKind: number;
+
+  /**
+   * @generated from field: int64 peer_id = 2;
+   */
+  peerId: bigint;
+
+  /**
+   * Legacy: serialized v1.Update messages with no subject, written before the subject was carried.
+   * Nothing writes it any more; Sync still reads it so an event committed under the previous deploy
+   * drains instead of stranding its partition, treating each as a subject-less update.
+   *
+   * @generated from field: repeated bytes updates = 3;
+   */
+  updates: Uint8Array[];
+
+  /**
+   * One group-call change per entry, ascending by the version each carries. Each carries the version
+   * that was issued for it (api/group-calls.md:2307-2470), so a consumer applies them in this order
+   * and a client detects any gap itself. An entry names its subject, which the audience cannot be
+   * derived without.
+   *
+   * @generated from field: repeated impulse.events.calls.GroupCallFanoutUpdate entries = 4;
+   */
+  entries: GroupCallFanoutUpdate[];
+
+  /**
+   * Set only when the chat's own roster cannot name the audience any more: the call ended because its chat was
+   * deleted or deactivated, and the members the roster would have listed are gone with it. The accounts that were IN the
+   * call, captured in the transaction that ended it, are then told on their own inboxes instead of through the
+   * roster or the chat's lane. Empty for every other change.
+   *
+   * @generated from field: repeated int64 audience_user_ids = 5;
+   */
+  audienceUserIds: bigint[];
+};
+
+/**
+ * Describes the message impulse.events.calls.GroupCallFanout.
+ * Use `create(GroupCallFanoutSchema)` to create a new message.
+ */
+export const GroupCallFanoutSchema: GenMessage<GroupCallFanout> = /*@__PURE__*/
+  messageDesc(file_impulse_events_call_events, 11);
+
+/**
+ * One update of a group-call change and the account it is ABOUT. A participant update is about the
+ * owner of the participant row (the account that joined, possibly as a channel): that account is told
+ * the update as its own (self), by identity, even when it is no longer in the chat's roster -- an
+ * eviction removes it before the event is read. An updateGroupCall is about nobody (0).
+ *
+ * @generated from message impulse.events.calls.GroupCallFanoutUpdate
+ */
+export type GroupCallFanoutUpdate = Message<"impulse.events.calls.GroupCallFanoutUpdate"> & {
+  /**
+   * A serialized v1.Update.
+   *
+   * @generated from field: bytes update = 1;
+   */
+  update: Uint8Array;
+
+  /**
+   * The user the update is about; 0 for an update about the call itself.
+   *
+   * @generated from field: int64 subject_user_id = 2;
+   */
+  subjectUserId: bigint;
+};
+
+/**
+ * Describes the message impulse.events.calls.GroupCallFanoutUpdate.
+ * Use `create(GroupCallFanoutUpdateSchema)` to create a new message.
+ */
+export const GroupCallFanoutUpdateSchema: GenMessage<GroupCallFanoutUpdate> = /*@__PURE__*/
+  messageDesc(file_impulse_events_call_events, 12);
+
+/**
+ * In-call messages and their deletions, for the participants of ONE call (updateGroupCallMessage,
+ * updateDeleteGroupCallMessages). Not a change to the call and not part of any chat's history: they are
+ * produced straight to the topic by the sender's request, never through the outbox, because a message
+ * lives for seconds (group_call_message_ttl) and is not worth a database row. The call is the enclosing
+ * event's envelope aggregate. target_user_id is unused (zero): the audience is the call's participants,
+ * reached on the call's own realtime channel.
+ *
+ * @generated from message impulse.events.calls.GroupCallMessages
+ */
+export type GroupCallMessages = Message<"impulse.events.calls.GroupCallMessages"> & {
+  /**
+   * Serialized v1.Update messages, in the order they happened.
+   *
+   * @generated from field: repeated bytes updates = 1;
+   */
+  updates: Uint8Array[];
+};
+
+/**
+ * Describes the message impulse.events.calls.GroupCallMessages.
+ * Use `create(GroupCallMessagesSchema)` to create a new message.
+ */
+export const GroupCallMessagesSchema: GenMessage<GroupCallMessages> = /*@__PURE__*/
+  messageDesc(file_impulse_events_call_events, 13);
+
+/**
+ * What a change to a group call means for the chat that hosts it, enqueued in the same transaction as
+ * the change (outbox) on the topic group-call.chat-effects and applied to Chats by a Messages consumer.
+ * Keyed by the CHAT id, not the call id: a chat has at most one live call, and one chat's effects (the
+ * end of one call, the start of the next) must reach Chats in the order they committed.
+ *
+ * @generated from message impulse.events.calls.GroupCallChatEffect
+ */
+export type GroupCallChatEffect = Message<"impulse.events.calls.GroupCallChatEffect"> & {
+  /**
+   * @generated from field: impulse.events.EventEnvelope envelope = 1;
+   */
+  envelope?: EventEnvelope | undefined;
+
+  /**
+   * @generated from field: int64 chat_id = 2;
+   */
+  chatId: bigint;
+
+  /**
+   * An ImpulseM.Common.Peers.PeerKind value.
+   *
+   * @generated from field: int32 peer_kind = 3;
+   */
+  peerKind: number;
+
+  /**
+   * @generated from field: impulse.chats.GroupCallTransition transition = 4;
+   */
+  transition: GroupCallTransition;
+
+  /**
+   * @generated from field: int64 call_id = 5;
+   */
+  callId: bigint;
+
+  /**
+   * @generated from field: int64 access_hash = 6;
+   */
+  accessHash: bigint;
+
+  /**
+   * @generated from field: int64 actor_user_id = 7;
+   */
+  actorUserId: bigint;
+
+  /**
+   * @generated from field: int32 call_version = 8;
+   */
+  callVersion: number;
+
+  /**
+   * @generated from field: optional int32 duration = 9;
+   */
+  duration?: number | undefined;
+
+  /**
+   * @generated from field: optional int32 schedule_date = 10;
+   */
+  scheduleDate?: number | undefined;
+
+  /**
+   * @generated from field: repeated int64 invited_user_ids = 11;
+   */
+  invitedUserIds: bigint[];
+
+  /**
+   * @generated from field: optional bytes participant = 12;
+   */
+  participant?: Uint8Array | undefined;
+
+  /**
+   * @generated from field: optional bool join_muted = 13;
+   */
+  joinMuted?: boolean | undefined;
+};
+
+/**
+ * Describes the message impulse.events.calls.GroupCallChatEffect.
+ * Use `create(GroupCallChatEffectSchema)` to create a new message.
+ */
+export const GroupCallChatEffectSchema: GenMessage<GroupCallChatEffect> = /*@__PURE__*/
+  messageDesc(file_impulse_events_call_events, 14);
+
+/**
+ * A scheduled group call has started and its subscribers are owed a notice (api/group-calls.md:846-857).
+ * Enqueued by phone.startScheduledGroupCall in the same transaction as the start (outbox, O(1) however many
+ * subscribers there are) on the topic group-call.start-notifications, keyed by the call id. A pager in
+ * Messages consumes it: it reads the call's subscription rows a page at a time, writes one
+ * GroupCallStartNotice per subscriber in the same transaction that deletes the page, and so resumes exactly
+ * where it stopped after a crash or a redelivery (the deletion is the checkpoint).
+ *
+ * @generated from message impulse.events.calls.GroupCallStartNotify
+ */
+export type GroupCallStartNotify = Message<"impulse.events.calls.GroupCallStartNotify"> & {
+  /**
+   * @generated from field: impulse.events.EventEnvelope envelope = 1;
+   */
+  envelope?: EventEnvelope | undefined;
+
+  /**
+   * @generated from field: int64 call_id = 2;
+   */
+  callId: bigint;
+
+  /**
+   * The chat that hosts the call (an ImpulseM.Common.Peers.PeerKind value and its id): the notice names it.
+   *
+   * @generated from field: int32 chat_peer_kind = 3;
+   */
+  chatPeerKind: number;
+
+  /**
+   * @generated from field: int64 chat_id = 4;
+   */
+  chatId: bigint;
+};
+
+/**
+ * Describes the message impulse.events.calls.GroupCallStartNotify.
+ * Use `create(GroupCallStartNotifySchema)` to create a new message.
+ */
+export const GroupCallStartNotifySchema: GenMessage<GroupCallStartNotify> = /*@__PURE__*/
+  messageDesc(file_impulse_events_call_events, 15);
+
+/**
+ * The notice one subscriber is owed: one plain incoming message from the service notifications user in the
+ * subscriber's own private chat with it. On the topic group-call.start-notices, keyed by the SUBSCRIBER's
+ * user id so one account's notices stay ordered and the burst spreads over every partition. The text is
+ * already localized (the pager resolves the subscriber's language once per page), so the consumer only
+ * sends. A redelivery is a no-op: the message's random_id is derived from (call_id, user_id).
+ *
+ * @generated from message impulse.events.calls.GroupCallStartNotice
+ */
+export type GroupCallStartNotice = Message<"impulse.events.calls.GroupCallStartNotice"> & {
+  /**
+   * @generated from field: impulse.events.EventEnvelope envelope = 1;
+   */
+  envelope?: EventEnvelope | undefined;
+
+  /**
+   * @generated from field: int64 call_id = 2;
+   */
+  callId: bigint;
+
+  /**
+   * @generated from field: int64 user_id = 3;
+   */
+  userId: bigint;
+
+  /**
+   * @generated from field: string text = 4;
+   */
+  text: string;
+};
+
+/**
+ * Describes the message impulse.events.calls.GroupCallStartNotice.
+ * Use `create(GroupCallStartNoticeSchema)` to create a new message.
+ */
+export const GroupCallStartNoticeSchema: GenMessage<GroupCallStartNotice> = /*@__PURE__*/
+  messageDesc(file_impulse_events_call_events, 16);
 

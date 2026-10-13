@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/events/notification_events.proto.
  */
 export const file_impulse_events_notification_events: GenFile = /*@__PURE__*/
-  fileDesc("CihpbXB1bHNlL2V2ZW50cy9ub3RpZmljYXRpb25fZXZlbnRzLnByb3RvEhxpbXB1bHNlLmV2ZW50cy5ub3RpZmljYXRpb25zIqcBChFOb3RpZmljYXRpb25FdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSVgoXbm90aWZ5X3NldHRpbmdzX2NoYW5nZWQYCiABKAsyMy5pbXB1bHNlLmV2ZW50cy5ub3RpZmljYXRpb25zLk5vdGlmeVNldHRpbmdzQ2hhbmdlZEgAQgkKB3BheWxvYWQi0gIKFU5vdGlmeVNldHRpbmdzQ2hhbmdlZBIPCgd1c2VyX2lkGAEgASgDEhQKB2NoYXRfaWQYAiABKANIAIgBARINCgVzY29wZRgDIAEoBRIXCgp0b3BfbXNnX2lkGAQgASgDSAGIAQESFgoJcGVlcl9raW5kGAUgASgFSAKIAQESFAoHcGVlcl9pZBgGIAEoA0gDiAEBEhcKCm11dGVfdW50aWwYByABKANIBIgBARITCgZzaWxlbnQYCCABKAhIBYgBARIaCg1zaG93X3ByZXZpZXdzGAkgASgISAaIAQESEQoJcmVzZXRfYWxsGAogASgIQgoKCF9jaGF0X2lkQg0KC190b3BfbXNnX2lkQgwKCl9wZWVyX2tpbmRCCgoIX3BlZXJfaWRCDQoLX211dGVfdW50aWxCCQoHX3NpbGVudEIQCg5fc2hvd19wcmV2aWV3c0InqgIkSW1wdWxzZU0uUHJvdG9zLkV2ZW50cy5Ob3RpZmljYXRpb25zYgZwcm90bzM", [file_impulse_events_events_common]);
+  fileDesc("CihpbXB1bHNlL2V2ZW50cy9ub3RpZmljYXRpb25fZXZlbnRzLnByb3RvEhxpbXB1bHNlLmV2ZW50cy5ub3RpZmljYXRpb25zIqcBChFOb3RpZmljYXRpb25FdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSVgoXbm90aWZ5X3NldHRpbmdzX2NoYW5nZWQYCiABKAsyMy5pbXB1bHNlLmV2ZW50cy5ub3RpZmljYXRpb25zLk5vdGlmeVNldHRpbmdzQ2hhbmdlZEgAQgkKB3BheWxvYWQixAMKFU5vdGlmeVNldHRpbmdzQ2hhbmdlZBIPCgd1c2VyX2lkGAEgASgDEhQKB2NoYXRfaWQYAiABKANIAIgBARINCgVzY29wZRgDIAEoBRIXCgp0b3BfbXNnX2lkGAQgASgDSAGIAQESFgoJcGVlcl9raW5kGAUgASgFSAKIAQESFAoHcGVlcl9pZBgGIAEoA0gDiAEBEhcKCm11dGVfdW50aWwYByABKANIBIgBARITCgZzaWxlbnQYCCABKAhIBYgBARIaCg1zaG93X3ByZXZpZXdzGAkgASgISAaIAQESEQoJcmVzZXRfYWxsGAogASgIEhUKDWNsaWVudF91cGRhdGUYCyABKAwSIAoTZXhjZXB0X3Nlc3Npb25faGFzaBgMIAEoA0gHiAEBEh8KF3JlYWx0aW1lX3Nlc3Npb25faGFzaGVzGA0gAygDQgoKCF9jaGF0X2lkQg0KC190b3BfbXNnX2lkQgwKCl9wZWVyX2tpbmRCCgoIX3BlZXJfaWRCDQoLX211dGVfdW50aWxCCQoHX3NpbGVudEIQCg5fc2hvd19wcmV2aWV3c0IWChRfZXhjZXB0X3Nlc3Npb25faGFzaEInqgIkSW1wdWxzZU0uUHJvdG9zLkV2ZW50cy5Ob3RpZmljYXRpb25zYgZwcm90bzM", [file_impulse_events_events_common]);
 
 /**
  * Top-level event for everything Notifications publishes onto notification.events topic.
@@ -112,6 +112,35 @@ export type NotifySettingsChanged = Message<"impulse.events.notifications.Notify
    * @generated from field: bool reset_all = 10;
    */
   resetAll: boolean;
+
+  /**
+   * The canonical `updateNotifySettings#bec268ef peer:NotifyPeer notify_settings:PeerNotifySettings`
+   * (Update) as serialized bytes, built by the producer from the row it just wrote with the same
+   * mapper account.getNotifySettings answers through, so the pushed value and the pulled value
+   * cannot disagree. Absent on reset_all (canon has no update for a reset) and on events enqueued
+   * before this field existed: those carry no value the other sessions could be given, and
+   * Sync announces nothing for them.
+   *
+   * @generated from field: bytes client_update = 11;
+   */
+  clientUpdate: Uint8Array;
+
+  /**
+   * Session addressing of client_update, as CallEvent's. except_session_hash: the session whose
+   * account.updateNotifySettings made the change; canon tells the account's OTHER sessions, so it is
+   * never echoed to it. realtime_session_hashes: those other sessions, listed from Auth when the
+   * change was written; Sync stores one durable row that getDifference serves to every session but
+   * the excluded one and publishes the realtime copy to exactly these session channels. Neither set:
+   * no originating session (the start-time preview repair), every session of the account.
+   *
+   * @generated from field: optional int64 except_session_hash = 12;
+   */
+  exceptSessionHash?: bigint | undefined;
+
+  /**
+   * @generated from field: repeated int64 realtime_session_hashes = 13;
+   */
+  realtimeSessionHashes: bigint[];
 };
 
 /**

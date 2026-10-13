@@ -8,13 +8,15 @@ import type { EventEnvelope } from "./events_common_pb";
 import { file_impulse_events_events_common } from "./events_common_pb";
 import type { User, Username } from "../users/user_types_pb";
 import { file_impulse_users_user_types } from "../users/user_types_pb";
+import type { Peer } from "../peer_pb";
+import { file_impulse_peer } from "../peer_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file impulse/events/user_events.proto.
  */
 export const file_impulse_events_user_events: GenFile = /*@__PURE__*/
-  fileDesc("CiBpbXB1bHNlL2V2ZW50cy91c2VyX2V2ZW50cy5wcm90bxIUaW1wdWxzZS5ldmVudHMudXNlcnMi9QQKCVVzZXJFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSRQoQc25hcHNob3RfdXBkYXRlZBgKIAEoCzIpLmltcHVsc2UuZXZlbnRzLnVzZXJzLlVzZXJTbmFwc2hvdFVwZGF0ZWRIABI0CgdkZWxldGVkGAsgASgLMiEuaW1wdWxzZS5ldmVudHMudXNlcnMuVXNlckRlbGV0ZWRIABI0CgdibG9ja2VkGAwgASgLMiEuaW1wdWxzZS5ldmVudHMudXNlcnMuVXNlckJsb2NrZWRIABI4Cgl1bmJsb2NrZWQYDSABKAsyIy5pbXB1bHNlLmV2ZW50cy51c2Vycy5Vc2VyVW5ibG9ja2VkSAASQQoOc3RhdHVzX2NoYW5nZWQYDiABKAsyJy5pbXB1bHNlLmV2ZW50cy51c2Vycy5Vc2VyU3RhdHVzQ2hhbmdlZEgAEkIKEXRvcF9wZWVyc190b2dnbGVkGA8gASgLMiUuaW1wdWxzZS5ldmVudHMudXNlcnMuVG9wUGVlcnNUb2dnbGVkSAASPAoOdG9wX3BlZXJfcmVzZXQYECABKAsyIi5pbXB1bHNlLmV2ZW50cy51c2Vycy5Ub3BQZWVyUmVzZXRIABI5Cgx1c2VyX3VwZGF0ZWQYESABKAsyIS5pbXB1bHNlLmV2ZW50cy51c2Vycy5Vc2VyVXBkYXRlZEgAEj8KD3ByaXZhY3lfdXBkYXRlZBgSIAEoCzIkLmltcHVsc2UuZXZlbnRzLnVzZXJzLlByaXZhY3lVcGRhdGVkSABCCQoHcGF5bG9hZCI4ChNVc2VyU25hcHNob3RVcGRhdGVkEiEKBHVzZXIYASABKAsyEy5pbXB1bHNlLnVzZXJzLlVzZXIiHgoLVXNlckRlbGV0ZWQSDwoHdXNlcl9pZBgBIAEoAyI1CgtVc2VyQmxvY2tlZBISCgpibG9ja2VyX2lkGAEgASgDEhIKCmJsb2NrZWRfaWQYAiABKAMiNwoNVXNlclVuYmxvY2tlZBISCgpibG9ja2VyX2lkGAEgASgDEhIKCmJsb2NrZWRfaWQYAiABKAMiiAEKEVVzZXJTdGF0dXNDaGFuZ2VkEg8KB3VzZXJfaWQYASABKAMSEQoJaXNfb25saW5lGAIgASgIEhQKDGxhc3Rfc2Vlbl90cxgDIAEoAxIjChtzdGF0dXNfdGltZXN0YW1wX3Jlc3RyaWN0ZWQYBCABKAgSFAoMcHJlc2VuY2Vfc2VxGAUgASgDIjMKD1RvcFBlZXJzVG9nZ2xlZBIPCgd1c2VyX2lkGAEgASgDEg8KB2VuYWJsZWQYAiABKAgiQgoMVG9wUGVlclJlc2V0Eg8KB3VzZXJfaWQYASABKAMSEAoIY2F0ZWdvcnkYAiABKAkSDwoHcGVlcl9pZBgDIAEoAyKsAQoLVXNlclVwZGF0ZWQSDwoHdXNlcl9pZBgBIAEoAxINCgVmaWVsZBgCIAEoCRIRCglwdHNfY291bnQYAyABKAUSEgoKZmlyc3RfbmFtZRgEIAEoCRIRCglsYXN0X25hbWUYBSABKAkSKgoJdXNlcm5hbWVzGAYgAygLMhcuaW1wdWxzZS51c2Vycy5Vc2VybmFtZRIXCg9hdmF0YXJfcGhvdG9faWQYByABKAMiSQoOUHJpdmFjeVVwZGF0ZWQSDwoHdXNlcl9pZBgBIAEoAxITCgtwcml2YWN5X2tleRgCIAEoBRIRCglwdHNfY291bnQYAyABKAVCH6oCHEltcHVsc2VNLlByb3Rvcy5FdmVudHMuVXNlcnNiBnByb3RvMw", [file_impulse_events_events_common, file_impulse_users_user_types]);
+  fileDesc("CiBpbXB1bHNlL2V2ZW50cy91c2VyX2V2ZW50cy5wcm90bxIUaW1wdWxzZS5ldmVudHMudXNlcnMi9wYKCVVzZXJFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSRQoQc25hcHNob3RfdXBkYXRlZBgKIAEoCzIpLmltcHVsc2UuZXZlbnRzLnVzZXJzLlVzZXJTbmFwc2hvdFVwZGF0ZWRIABI0CgdkZWxldGVkGAsgASgLMiEuaW1wdWxzZS5ldmVudHMudXNlcnMuVXNlckRlbGV0ZWRIABI0CgdibG9ja2VkGAwgASgLMiEuaW1wdWxzZS5ldmVudHMudXNlcnMuVXNlckJsb2NrZWRIABI4Cgl1bmJsb2NrZWQYDSABKAsyIy5pbXB1bHNlLmV2ZW50cy51c2Vycy5Vc2VyVW5ibG9ja2VkSAASQQoOc3RhdHVzX2NoYW5nZWQYDiABKAsyJy5pbXB1bHNlLmV2ZW50cy51c2Vycy5Vc2VyU3RhdHVzQ2hhbmdlZEgAEkIKEXRvcF9wZWVyc190b2dnbGVkGA8gASgLMiUuaW1wdWxzZS5ldmVudHMudXNlcnMuVG9wUGVlcnNUb2dnbGVkSAASPAoOdG9wX3BlZXJfcmVzZXQYECABKAsyIi5pbXB1bHNlLmV2ZW50cy51c2Vycy5Ub3BQZWVyUmVzZXRIABI5Cgx1c2VyX3VwZGF0ZWQYESABKAsyIS5pbXB1bHNlLmV2ZW50cy51c2Vycy5Vc2VyVXBkYXRlZEgAEj8KD3ByaXZhY3lfdXBkYXRlZBgSIAEoCzIkLmltcHVsc2UuZXZlbnRzLnVzZXJzLlByaXZhY3lVcGRhdGVkSAASTAoWcGVlcl93YWxscGFwZXJfY2hhbmdlZBgTIAEoCzIqLmltcHVsc2UuZXZlbnRzLnVzZXJzLlBlZXJXYWxscGFwZXJDaGFuZ2VkSAASVwocd2ViX2Jyb3dzZXJfc2V0dGluZ3NfY2hhbmdlZBgUIAEoCzIvLmltcHVsc2UuZXZlbnRzLnVzZXJzLldlYkJyb3dzZXJTZXR0aW5nc0NoYW5nZWRIABJZCh13ZWJfYnJvd3Nlcl9leGNlcHRpb25fY2hhbmdlZBgVIAEoCzIwLmltcHVsc2UuZXZlbnRzLnVzZXJzLldlYkJyb3dzZXJFeGNlcHRpb25DaGFuZ2VkSABCCQoHcGF5bG9hZCJ8ChNVc2VyU25hcHNob3RVcGRhdGVkEiEKBHVzZXIYASABKAsyEy5pbXB1bHNlLnVzZXJzLlVzZXISQgoQYXBwX2NvbmZpZ19mYWN0cxgCIAEoCzIoLmltcHVsc2UuZXZlbnRzLnVzZXJzLlVzZXJBcHBDb25maWdGYWN0cyJuChJVc2VyQXBwQ29uZmlnRmFjdHMSGgoSY2FuX2VkaXRfZmFjdGNoZWNrGAEgASgIEhoKEnBob25lX2NvdW50cnlfaXNvMhgCIAEoCRIgChhhcHBfY29uZmlnX2ZhY3RzX2NoYW5nZWQYAyABKAgiYgoLVXNlckRlbGV0ZWQSDwoHdXNlcl9pZBgBIAEoAxJCChBhcHBfY29uZmlnX2ZhY3RzGAIgASgLMiguaW1wdWxzZS5ldmVudHMudXNlcnMuVXNlckFwcENvbmZpZ0ZhY3RzIjUKC1VzZXJCbG9ja2VkEhIKCmJsb2NrZXJfaWQYASABKAMSEgoKYmxvY2tlZF9pZBgCIAEoAyI3Cg1Vc2VyVW5ibG9ja2VkEhIKCmJsb2NrZXJfaWQYASABKAMSEgoKYmxvY2tlZF9pZBgCIAEoAyKIAQoRVXNlclN0YXR1c0NoYW5nZWQSDwoHdXNlcl9pZBgBIAEoAxIRCglpc19vbmxpbmUYAiABKAgSFAoMbGFzdF9zZWVuX3RzGAMgASgDEiMKG3N0YXR1c190aW1lc3RhbXBfcmVzdHJpY3RlZBgEIAEoCBIUCgxwcmVzZW5jZV9zZXEYBSABKAMiMwoPVG9wUGVlcnNUb2dnbGVkEg8KB3VzZXJfaWQYASABKAMSDwoHZW5hYmxlZBgCIAEoCCJCCgxUb3BQZWVyUmVzZXQSDwoHdXNlcl9pZBgBIAEoAxIQCghjYXRlZ29yeRgCIAEoCRIPCgdwZWVyX2lkGAMgASgDIqwBCgtVc2VyVXBkYXRlZBIPCgd1c2VyX2lkGAEgASgDEg0KBWZpZWxkGAIgASgJEhEKCXB0c19jb3VudBgDIAEoBRISCgpmaXJzdF9uYW1lGAQgASgJEhEKCWxhc3RfbmFtZRgFIAEoCRIqCgl1c2VybmFtZXMYBiADKAsyFy5pbXB1bHNlLnVzZXJzLlVzZXJuYW1lEhcKD2F2YXRhcl9waG90b19pZBgHIAEoAyJgCg5Qcml2YWN5VXBkYXRlZBIPCgd1c2VyX2lkGAEgASgDEhMKC3ByaXZhY3lfa2V5GAIgASgFEhEKCXB0c19jb3VudBgDIAEoBRIVCg1jbGllbnRfdXBkYXRlGAQgASgMIpgBChRQZWVyV2FsbHBhcGVyQ2hhbmdlZBIVCg1vd25lcl91c2VyX2lkGAEgASgDEhsKBHBlZXIYAiABKAsyDS5pbXB1bHNlLlBlZXISGwoOd2FsbHBhcGVyX3dpcmUYAyABKAxIAIgBARIcChR3YWxscGFwZXJfb3ZlcnJpZGRlbhgEIAEoCEIRCg9fd2FsbHBhcGVyX3dpcmUiaQoZV2ViQnJvd3NlclNldHRpbmdzQ2hhbmdlZBIPCgd1c2VyX2lkGAEgASgDEh0KFW9wZW5fZXh0ZXJuYWxfYnJvd3NlchgCIAEoCBIcChRkaXNwbGF5X2Nsb3NlX2J1dHRvbhgDIAEoCCKnAQoaV2ViQnJvd3NlckV4Y2VwdGlvbkNoYW5nZWQSDwoHdXNlcl9pZBgBIAEoAxIOCgZkZWxldGUYAiABKAgSIgoVb3Blbl9leHRlcm5hbF9icm93c2VyGAMgASgISACIAQESDgoGZG9tYWluGAQgASgJEgsKA3VybBgFIAEoCRINCgV0aXRsZRgGIAEoCUIYChZfb3Blbl9leHRlcm5hbF9icm93c2VyQh+qAhxJbXB1bHNlTS5Qcm90b3MuRXZlbnRzLlVzZXJzYgZwcm90bzM", [file_impulse_events_events_common, file_impulse_users_user_types, file_impulse_peer]);
 
 /**
  * Top-level event for everything Users publishes onto user.events topic.
@@ -84,6 +86,27 @@ export type UserEvent = Message<"impulse.events.users.UserEvent"> & {
      */
     value: PrivacyUpdated;
     case: "privacyUpdated";
+  } | {
+    /**
+     * Account-scoped, pts-less (Sync dispatches them to the owner's sessions and the pts-less log).
+     * Produced by Messages (private chats) and Chats (channels), not only by Users.
+     *
+     * @generated from field: impulse.events.users.PeerWallpaperChanged peer_wallpaper_changed = 19;
+     */
+    value: PeerWallpaperChanged;
+    case: "peerWallpaperChanged";
+  } | {
+    /**
+     * @generated from field: impulse.events.users.WebBrowserSettingsChanged web_browser_settings_changed = 20;
+     */
+    value: WebBrowserSettingsChanged;
+    case: "webBrowserSettingsChanged";
+  } | {
+    /**
+     * @generated from field: impulse.events.users.WebBrowserExceptionChanged web_browser_exception_changed = 21;
+     */
+    value: WebBrowserExceptionChanged;
+    case: "webBrowserExceptionChanged";
   } | { case: undefined; value?: undefined };
 };
 
@@ -102,6 +125,11 @@ export type UserSnapshotUpdated = Message<"impulse.events.users.UserSnapshotUpda
    * @generated from field: impulse.users.User user = 1;
    */
   user?: User | undefined;
+
+  /**
+   * @generated from field: impulse.events.users.UserAppConfigFacts app_config_facts = 2;
+   */
+  appConfigFacts?: UserAppConfigFacts | undefined;
 };
 
 /**
@@ -112,6 +140,36 @@ export const UserSnapshotUpdatedSchema: GenMessage<UserSnapshotUpdated> = /*@__P
   messageDesc(file_impulse_events_user_events, 1);
 
 /**
+ * Carried beside the snapshot, never inside impulse.users.User, so no peer-facing projection sees it.
+ * An empty phone_country_iso2 means the account has no country.
+ *
+ * @generated from message impulse.events.users.UserAppConfigFacts
+ */
+export type UserAppConfigFacts = Message<"impulse.events.users.UserAppConfigFacts"> & {
+  /**
+   * @generated from field: bool can_edit_factcheck = 1;
+   */
+  canEditFactcheck: boolean;
+
+  /**
+   * @generated from field: string phone_country_iso2 = 2;
+   */
+  phoneCountryIso2: string;
+
+  /**
+   * @generated from field: bool app_config_facts_changed = 3;
+   */
+  appConfigFactsChanged: boolean;
+};
+
+/**
+ * Describes the message impulse.events.users.UserAppConfigFacts.
+ * Use `create(UserAppConfigFactsSchema)` to create a new message.
+ */
+export const UserAppConfigFactsSchema: GenMessage<UserAppConfigFacts> = /*@__PURE__*/
+  messageDesc(file_impulse_events_user_events, 2);
+
+/**
  * @generated from message impulse.events.users.UserDeleted
  */
 export type UserDeleted = Message<"impulse.events.users.UserDeleted"> & {
@@ -119,6 +177,11 @@ export type UserDeleted = Message<"impulse.events.users.UserDeleted"> & {
    * @generated from field: int64 user_id = 1;
    */
   userId: bigint;
+
+  /**
+   * @generated from field: impulse.events.users.UserAppConfigFacts app_config_facts = 2;
+   */
+  appConfigFacts?: UserAppConfigFacts | undefined;
 };
 
 /**
@@ -126,7 +189,7 @@ export type UserDeleted = Message<"impulse.events.users.UserDeleted"> & {
  * Use `create(UserDeletedSchema)` to create a new message.
  */
 export const UserDeletedSchema: GenMessage<UserDeleted> = /*@__PURE__*/
-  messageDesc(file_impulse_events_user_events, 2);
+  messageDesc(file_impulse_events_user_events, 3);
 
 /**
  * @generated from message impulse.events.users.UserBlocked
@@ -148,7 +211,7 @@ export type UserBlocked = Message<"impulse.events.users.UserBlocked"> & {
  * Use `create(UserBlockedSchema)` to create a new message.
  */
 export const UserBlockedSchema: GenMessage<UserBlocked> = /*@__PURE__*/
-  messageDesc(file_impulse_events_user_events, 3);
+  messageDesc(file_impulse_events_user_events, 4);
 
 /**
  * @generated from message impulse.events.users.UserUnblocked
@@ -170,7 +233,7 @@ export type UserUnblocked = Message<"impulse.events.users.UserUnblocked"> & {
  * Use `create(UserUnblockedSchema)` to create a new message.
  */
 export const UserUnblockedSchema: GenMessage<UserUnblocked> = /*@__PURE__*/
-  messageDesc(file_impulse_events_user_events, 4);
+  messageDesc(file_impulse_events_user_events, 5);
 
 /**
  * @generated from message impulse.events.users.UserStatusChanged
@@ -227,7 +290,7 @@ export type UserStatusChanged = Message<"impulse.events.users.UserStatusChanged"
  * Use `create(UserStatusChangedSchema)` to create a new message.
  */
 export const UserStatusChangedSchema: GenMessage<UserStatusChanged> = /*@__PURE__*/
-  messageDesc(file_impulse_events_user_events, 5);
+  messageDesc(file_impulse_events_user_events, 6);
 
 /**
  * @generated from message impulse.events.users.TopPeersToggled
@@ -249,7 +312,7 @@ export type TopPeersToggled = Message<"impulse.events.users.TopPeersToggled"> & 
  * Use `create(TopPeersToggledSchema)` to create a new message.
  */
 export const TopPeersToggledSchema: GenMessage<TopPeersToggled> = /*@__PURE__*/
-  messageDesc(file_impulse_events_user_events, 6);
+  messageDesc(file_impulse_events_user_events, 7);
 
 /**
  * @generated from message impulse.events.users.TopPeerReset
@@ -276,7 +339,7 @@ export type TopPeerReset = Message<"impulse.events.users.TopPeerReset"> & {
  * Use `create(TopPeerResetSchema)` to create a new message.
  */
 export const TopPeerResetSchema: GenMessage<TopPeerReset> = /*@__PURE__*/
-  messageDesc(file_impulse_events_user_events, 7);
+  messageDesc(file_impulse_events_user_events, 8);
 
 /**
  * @generated from message impulse.events.users.UserUpdated
@@ -323,7 +386,7 @@ export type UserUpdated = Message<"impulse.events.users.UserUpdated"> & {
  * Use `create(UserUpdatedSchema)` to create a new message.
  */
 export const UserUpdatedSchema: GenMessage<UserUpdated> = /*@__PURE__*/
-  messageDesc(file_impulse_events_user_events, 8);
+  messageDesc(file_impulse_events_user_events, 9);
 
 /**
  * @generated from message impulse.events.users.PrivacyUpdated
@@ -343,6 +406,18 @@ export type PrivacyUpdated = Message<"impulse.events.users.PrivacyUpdated"> & {
    * @generated from field: int32 pts_count = 3;
    */
   ptsCount: number;
+
+  /**
+   * The canonical `updatePrivacy#ee3b272a key:PrivacyKey rules:Vector<PrivacyRule>` (Update) as
+   * serialized bytes, built by the producer from the rules it just stored with the same codec
+   * account.getPrivacy answers through. Absent for the internal, non-canonical storage keys (no
+   * updatePrivacy exists for them) and for events enqueued before this field existed: those carry
+   * no rule vector the other sessions could be given, and Sync announces nothing for them.
+   * pts_count is no longer read: updatePrivacy declares no pts, so it consumes none.
+   *
+   * @generated from field: bytes client_update = 4;
+   */
+  clientUpdate: Uint8Array;
 };
 
 /**
@@ -350,5 +425,118 @@ export type PrivacyUpdated = Message<"impulse.events.users.PrivacyUpdated"> & {
  * Use `create(PrivacyUpdatedSchema)` to create a new message.
  */
 export const PrivacyUpdatedSchema: GenMessage<PrivacyUpdated> = /*@__PURE__*/
-  messageDesc(file_impulse_events_user_events, 9);
+  messageDesc(file_impulse_events_user_events, 10);
+
+/**
+ * updatePeerWallpaper#ae3f101d wallpaper_overridden:flags.1?true peer:Peer wallpaper:flags.0?WallPaper
+ * (api.tl:437), owed to owner_user_id's sessions.
+ *
+ * @generated from message impulse.events.users.PeerWallpaperChanged
+ */
+export type PeerWallpaperChanged = Message<"impulse.events.users.PeerWallpaperChanged"> & {
+  /**
+   * @generated from field: int64 owner_user_id = 1;
+   */
+  ownerUserId: bigint;
+
+  /**
+   * The peer as the OWNER sees it (the other user of a private chat, or the channel).
+   *
+   * @generated from field: impulse.Peer peer = 2;
+   */
+  peer?: Peer | undefined;
+
+  /**
+   * Serialized telegram WallPaper, document file_reference empty; absent = removed.
+   *
+   * @generated from field: optional bytes wallpaper_wire = 3;
+   */
+  wallpaperWire?: Uint8Array | undefined;
+
+  /**
+   * @generated from field: bool wallpaper_overridden = 4;
+   */
+  wallpaperOverridden: boolean;
+};
+
+/**
+ * Describes the message impulse.events.users.PeerWallpaperChanged.
+ * Use `create(PeerWallpaperChangedSchema)` to create a new message.
+ */
+export const PeerWallpaperChangedSchema: GenMessage<PeerWallpaperChanged> = /*@__PURE__*/
+  messageDesc(file_impulse_events_user_events, 11);
+
+/**
+ * updateWebBrowserSettings#c39a2ade (api.tl:479).
+ *
+ * @generated from message impulse.events.users.WebBrowserSettingsChanged
+ */
+export type WebBrowserSettingsChanged = Message<"impulse.events.users.WebBrowserSettingsChanged"> & {
+  /**
+   * @generated from field: int64 user_id = 1;
+   */
+  userId: bigint;
+
+  /**
+   * @generated from field: bool open_external_browser = 2;
+   */
+  openExternalBrowser: boolean;
+
+  /**
+   * @generated from field: bool display_close_button = 3;
+   */
+  displayCloseButton: boolean;
+};
+
+/**
+ * Describes the message impulse.events.users.WebBrowserSettingsChanged.
+ * Use `create(WebBrowserSettingsChangedSchema)` to create a new message.
+ */
+export const WebBrowserSettingsChangedSchema: GenMessage<WebBrowserSettingsChanged> = /*@__PURE__*/
+  messageDesc(file_impulse_events_user_events, 12);
+
+/**
+ * updateWebBrowserException#140502d1 delete:flags.1?true open_external_browser:flags.0?Bool
+ * exception:WebDomainException (api.tl:480); webDomainException#933ca597 (api.tl:2214).
+ *
+ * @generated from message impulse.events.users.WebBrowserExceptionChanged
+ */
+export type WebBrowserExceptionChanged = Message<"impulse.events.users.WebBrowserExceptionChanged"> & {
+  /**
+   * @generated from field: int64 user_id = 1;
+   */
+  userId: bigint;
+
+  /**
+   * @generated from field: bool delete = 2;
+   */
+  delete: boolean;
+
+  /**
+   * @generated from field: optional bool open_external_browser = 3;
+   */
+  openExternalBrowser?: boolean | undefined;
+
+  /**
+   * @generated from field: string domain = 4;
+   */
+  domain: string;
+
+  /**
+   * @generated from field: string url = 5;
+   */
+  url: string;
+
+  /**
+   * @generated from field: string title = 6;
+   */
+  title: string;
+};
+
+/**
+ * Describes the message impulse.events.users.WebBrowserExceptionChanged.
+ * Use `create(WebBrowserExceptionChangedSchema)` to create a new message.
+ */
+export const WebBrowserExceptionChangedSchema: GenMessage<WebBrowserExceptionChanged> = /*@__PURE__*/
+  messageDesc(file_impulse_events_user_events, 13);
 

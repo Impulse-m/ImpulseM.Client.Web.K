@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/chats/chat_types.proto.
  */
 export const file_impulse_chats_chat_types: GenFile = /*@__PURE__*/
-  fileDesc("Ch5pbXB1bHNlL2NoYXRzL2NoYXRfdHlwZXMucHJvdG8SDWltcHVsc2UuY2hhdHMiRwoKTWlncmF0ZWRUbxIPCgdjaGF0X2lkGAEgASgDEhgKC2FjY2Vzc19oYXNoGAIgASgDSACIAQFCDgoMX2FjY2Vzc19oYXNoIkcKC0FwaVVzZXJuYW1lEhAKCHVzZXJuYW1lGAEgASgJEhEKCWlzX2FjdGl2ZRgCIAEoCBITCgtpc19lZGl0YWJsZRgDIAEoCCJpCglQZWVyQ29sb3ISFQoIY29sb3JfaWQYASABKAVIAIgBARIgChNiYWNrZ3JvdW5kX2Vtb2ppX2lkGAIgASgDSAGIAQFCCwoJX2NvbG9yX2lkQhYKFF9iYWNrZ3JvdW5kX2Vtb2ppX2lkIkAKC0Vtb2ppU3RhdHVzEhMKC2RvY3VtZW50X2lkGAEgASgDEhIKBXVudGlsGAIgASgDSACIAQFCCAoGX3VudGlsIksKCFNsb3dNb2RlEg8KB3NlY29uZHMYASABKAUSGwoObmV4dF9zZW5kX2RhdGUYAiABKANIAIgBAUIRCg9fbmV4dF9zZW5kX2RhdGUiTwoMTWlncmF0ZWRGcm9tEg8KB2NoYXRfaWQYASABKAMSGwoObWF4X21lc3NhZ2VfaWQYAiABKANIAIgBAUIRCg9fbWF4X21lc3NhZ2VfaWQiXwoISm9pbkluZm8SEwoLam9pbmVkX2RhdGUYASABKAMSFwoKaW52aXRlcl9pZBgCIAEoA0gAiAEBEhYKDmlzX3ZpYV9yZXF1ZXN0GAMgASgIQg0KC19pbnZpdGVyX2lkIk4KDUNoYXRSZWFjdGlvbnMSDAoEdHlwZRgBIAEoCRIZChFhbGxvd2VkX3JlYWN0aW9ucxgCIAMoCRIUCgxhbGxvd19jdXN0b20YAyABKAgiQwoRUmVzdHJpY3Rpb25SZWFzb24SEAoIcGxhdGZvcm0YASABKAkSDgoGcmVhc29uGAIgASgJEgwKBHRleHQYAyABKAkiRAoPQm90VmVyaWZpY2F0aW9uEg4KBmJvdF9pZBgBIAEoAxIMCgRpY29uGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJIjMKDFNlbmRBc1BlZXJJZBIPCgdwZWVyX2lkGAEgASgDEhIKCmlzX3ByZW1pdW0YAiABKAgipBEKBENoYXQSCgoCaWQYASABKAMSJQoEdHlwZRgCIAEoDjIXLmltcHVsc2UuY2hhdHMuQ2hhdFR5cGUSEgoFdGl0bGUYAyABKAlIAIgBARIVCgh1c2VybmFtZRgEIAEoCUgBiAEBEiwKBXBob3RvGAUgASgLMhguaW1wdWxzZS5jaGF0cy5DaGF0UGhvdG9IAogBARIaChJwYXJ0aWNpcGFudHNfY291bnQYBiABKAUSDAoEZGF0ZRgHIAEoAxIPCgd2ZXJzaW9uGAggASgFEhMKC2FjY2Vzc19oYXNoGAkgASgDEhMKC2lzX3ZlcmlmaWVkGAogASgIEg8KB2lzX3NjYW0YCyABKAgSDwoHaXNfZmFrZRgMIAEoCBIUCgxpc19wcm90ZWN0ZWQYDSABKAgSEAoIaXNfZm9ydW0YDiABKAgSEgoKY3JlYXRvcl9pZBg5IAEoAxIVCg1pc19ub3Rfam9pbmVkGBAgASgIEhQKDGlzX2ZvcmJpZGRlbhgRIAEoCBIVCg1pc19yZXN0cmljdGVkGBIgASgIEjkKDGFkbWluX3JpZ2h0cxgTIAEoCzIeLmltcHVsc2UuY2hhdHMuQ2hhdEFkbWluUmlnaHRzSAOIAQESSAoaY3VycmVudF91c2VyX2Jhbm5lZF9yaWdodHMYFCABKAsyHy5pbXB1bHNlLmNoYXRzLkNoYXRCYW5uZWRSaWdodHNIBIgBARJDChVkZWZhdWx0X2Jhbm5lZF9yaWdodHMYFSABKAsyHy5pbXB1bHNlLmNoYXRzLkNoYXRCYW5uZWRSaWdodHNIBYgBARIzCgttaWdyYXRlZF90bxgWIAEoCzIZLmltcHVsc2UuY2hhdHMuTWlncmF0ZWRUb0gGiAEBEhYKCWZvbGRlcl9pZBgXIAEoBUgHiAEBEhcKD2lzX2pvaW5fdG9fc2VuZBgYIAEoCBIXCg9pc19qb2luX3JlcXVlc3QYGSABKAgSLQoJdXNlcm5hbWVzGBogAygLMhouaW1wdWxzZS5jaGF0cy5BcGlVc2VybmFtZRIsCgVjb2xvchgbIAEoCzIYLmltcHVsc2UuY2hhdHMuUGVlckNvbG9ySAiIAQESNQoMZW1vamlfc3RhdHVzGBwgASgLMhouaW1wdWxzZS5jaGF0cy5FbW9qaVN0YXR1c0gJiAEBEhwKFGhhc19hdXRvX3RyYW5zbGF0aW9uGB0gASgIEhYKDmlzX2NhbGxfYWN0aXZlGB4gASgIEhkKEWlzX2NhbGxfbm90X2VtcHR5GB8gASgIEhEKCWlzX2xpc3RlZBggIAEoCBIYCgtib29zdF9sZXZlbBghIAEoBUgKiAEBEg4KBmlzX21pbhgiIAEoCBIcChRhcmVfc2lnbmF0dXJlc19zaG93bhgjIAEoCBIaChJhcmVfcHJvZmlsZXNfc2hvd24YJCABKAgSNAoNcHJvZmlsZV9jb2xvchglIAEoCzIYLmltcHVsc2UuY2hhdHMuUGVlckNvbG9ySAuIAQESPQoTcmVzdHJpY3Rpb25fcmVhc29ucxgmIAMoCzIgLmltcHVsc2UuY2hhdHMuUmVzdHJpY3Rpb25SZWFzb24SGgoSYXJlX3N0b3JpZXNfaGlkZGVuGCcgASgIEhMKC2hhc19zdG9yaWVzGCggASgIEhoKEmhhc191bnJlYWRfc3RvcmllcxgpIAEoCBIZCgxtYXhfc3RvcnlfaWQYKiABKAVIDIgBARIfChJzdWJzY3JpcHRpb25fdW50aWwYKyABKAVIDYgBARIgChNwYWlkX21lc3NhZ2VzX3N0YXJzGCwgASgDSA6IAQESJQoYYm90X3ZlcmlmaWNhdGlvbl9pY29uX2lkGC0gASgDSA+IAQESEgoFbGV2ZWwYLiABKAVIEIgBARIcChRpc19mb3J1bV9hc19tZXNzYWdlcxgvIAEoCBIUCgxpc19tb25vZm9ydW0YMCABKAgSFAoMaXNfYm90X2ZvcnVtGDEgASgIEhcKD3dpdGhfZm9ydW1fdGFicxgyIAEoCBIgChNsaW5rZWRfbW9ub2ZvcnVtX2lkGDMgASgDSBGIAQESJAocYXJlX2NoYW5uZWxfbWVzc2FnZXNfYWxsb3dlZBg0IAEoCBI1ChBzZW5kX2FzX3BlZXJfaWRzGDUgAygLMhsuaW1wdWxzZS5jaGF0cy5TZW5kQXNQZWVySWQSRAofc2VuZF9wYWlkX3JlYWN0aW9uc19hc19wZWVyX2lkcxg2IAMoCzIbLmltcHVsc2UuY2hhdHMuU2VuZEFzUGVlcklkEkIKGHNlbmRfcGFpZF9yZWFjdGlvbnNfcGVlchg3IAEoCzIbLmltcHVsc2UuY2hhdHMuU2VuZEFzUGVlcklkSBKIAQESFAoMaXNfZ2lnYWdyb3VwGDggASgIEh8KF3Jlc29sdmVkX3ZpZXdlcl91c2VyX2lkGDogASgDQggKBl90aXRsZUILCglfdXNlcm5hbWVCCAoGX3Bob3RvQg8KDV9hZG1pbl9yaWdodHNCHQobX2N1cnJlbnRfdXNlcl9iYW5uZWRfcmlnaHRzQhgKFl9kZWZhdWx0X2Jhbm5lZF9yaWdodHNCDgoMX21pZ3JhdGVkX3RvQgwKCl9mb2xkZXJfaWRCCAoGX2NvbG9yQg8KDV9lbW9qaV9zdGF0dXNCDgoMX2Jvb3N0X2xldmVsQhAKDl9wcm9maWxlX2NvbG9yQg8KDV9tYXhfc3RvcnlfaWRCFQoTX3N1YnNjcmlwdGlvbl91bnRpbEIWChRfcGFpZF9tZXNzYWdlc19zdGFyc0IbChlfYm90X3ZlcmlmaWNhdGlvbl9pY29uX2lkQggKBl9sZXZlbEIWChRfbGlua2VkX21vbm9mb3J1bV9pZEIbChlfc2VuZF9wYWlkX3JlYWN0aW9uc19wZWVySgQIDxAQIpMMCghDaGF0RnVsbBIKCgJpZBgBIAEoAxISCgVhYm91dBgCIAEoCUgAiAEBEhoKEnBhcnRpY2lwYW50c19jb3VudBgDIAEoBRIUCgxhZG1pbnNfY291bnQYBCABKAUSFAoMYmFubmVkX2NvdW50GAUgASgFEhQKDG9ubGluZV9jb3VudBgGIAEoBRIYCgtpbnZpdGVfbGluaxgHIAEoCUgBiAEBEhkKEXNsb3dfbW9kZV9zZWNvbmRzGAggASgFEhMKC2hpc3RvcnlfdHRsGAkgASgFEhgKEGNhbl9zZXRfdXNlcm5hbWUYCiABKAgSEQoJaGFzX2ZvcnVtGAsgASgIEhsKDmxpbmtlZF9jaGF0X2lkGAwgASgDSAKIAQESHQoVaXNfcHJlX2hpc3RvcnlfaGlkZGVuGA0gASgIEh8KF2FyZV9wYXJ0aWNpcGFudHNfaGlkZGVuGA4gASgIEhgKEGNhbl92aWV3X21lbWJlcnMYDyABKAgSLwoJc2xvd19tb2RlGBAgASgLMhcuaW1wdWxzZS5jaGF0cy5TbG93TW9kZUgDiAEBEjcKDW1pZ3JhdGVkX2Zyb20YESABKAsyGy5pbXB1bHNlLmNoYXRzLk1pZ3JhdGVkRnJvbUgEiAEBEjwKFmN1cnJlbnRfdXNlcl9qb2luX2luZm8YEiABKAsyFy5pbXB1bHNlLmNoYXRzLkpvaW5JbmZvSAWIAQESGgoNZ3JvdXBfY2FsbF9pZBgTIAEoCUgGiAEBEjwKEWVuYWJsZWRfcmVhY3Rpb25zGBQgASgLMhwuaW1wdWxzZS5jaGF0cy5DaGF0UmVhY3Rpb25zSAeIAQESHAoPcmVhY3Rpb25zX2xpbWl0GBUgASgFSAiIAQESFwoKc2VuZF9hc19pZBgWIAEoA0gJiAEBEhsKE2Nhbl92aWV3X3N0YXRpc3RpY3MYFyABKAgSHAoUcmVjZW50X3JlcXVlc3Rlcl9pZHMYGCADKAkSGAoQcmVxdWVzdHNfcGVuZGluZxgZIAEoBRIbCg5zdGlja2VyX3NldF9pZBgaIAEoA0gKiAEBEhkKDGVtb2ppX3NldF9pZBgbIAEoA0gLiAEBEh0KEHByb2ZpbGVfcGhvdG9faWQYHCABKANIDIgBARIeChZoYXNfc2NoZWR1bGVkX21lc3NhZ2VzGB0gASgIEh8KF2lzX3RyYW5zbGF0aW9uX2Rpc2FibGVkGB4gASgIEhoKEmhhc19waW5uZWRfc3RvcmllcxgfIAEoCBIdChVjYW5fdmlld19tb25ldGl6YXRpb24YICABKAgSFgoOYm9vc3RzX2FwcGxpZWQYISABKAUSIQoUYm9vc3RzX3RvX3VucmVzdHJpY3QYIiABKAVIDYgBARI9ChBib3RfdmVyaWZpY2F0aW9uGCMgASgLMh4uaW1wdWxzZS5jaGF0cy5Cb3RWZXJpZmljYXRpb25IDogBARIiChppc19wYWlkX3JlYWN0aW9uX2F2YWlsYWJsZRgkIAEoCBIXCg9zdGFyX2dpZnRfY291bnQYJSABKAUSIAoYYXJlX3N0YXJfZ2lmdHNfYXZhaWxhYmxlGCYgASgIEiMKG2FyZV9wYWlkX21lc3NhZ2VzX2F2YWlsYWJsZRgnIAEoCBIVCghtYWluX3RhYhgoIAEoCUgPiAEBQggKBl9hYm91dEIOCgxfaW52aXRlX2xpbmtCEQoPX2xpbmtlZF9jaGF0X2lkQgwKCl9zbG93X21vZGVCEAoOX21pZ3JhdGVkX2Zyb21CGQoXX2N1cnJlbnRfdXNlcl9qb2luX2luZm9CEAoOX2dyb3VwX2NhbGxfaWRCFAoSX2VuYWJsZWRfcmVhY3Rpb25zQhIKEF9yZWFjdGlvbnNfbGltaXRCDQoLX3NlbmRfYXNfaWRCEQoPX3N0aWNrZXJfc2V0X2lkQg8KDV9lbW9qaV9zZXRfaWRCEwoRX3Byb2ZpbGVfcGhvdG9faWRCFwoVX2Jvb3N0c190b191bnJlc3RyaWN0QhMKEV9ib3RfdmVyaWZpY2F0aW9uQgsKCV9tYWluX3RhYiJ+CglDaGF0UGhvdG8SEAoIcGhvdG9faWQYASABKAMSEQoJaGFzX3ZpZGVvGAIgASgIEhIKBWRjX2lkGAMgASgFSACIAQESGwoOc3RyaXBwZWRfdGh1bWIYBCABKAxIAYgBAUIICgZfZGNfaWRCEQoPX3N0cmlwcGVkX3RodW1iIsgDCg9DaGF0UGFydGljaXBhbnQSDwoHdXNlcl9pZBgBIAEoAxIsCgRyb2xlGAIgASgOMh4uaW1wdWxzZS5jaGF0cy5QYXJ0aWNpcGFudFJvbGUSEwoLam9pbmVkX2RhdGUYAyABKAMSEgoKaW52aXRlZF9ieRgEIAEoAxIeChFraWNrZWRfYnlfdXNlcl9pZBgFIAEoA0gAiAEBEiAKE3Byb21vdGVkX2J5X3VzZXJfaWQYBiABKANIAYgBARI7Cg1iYW5uZWRfcmlnaHRzGAcgASgLMh8uaW1wdWxzZS5jaGF0cy5DaGF0QmFubmVkUmlnaHRzSAKIAQESOQoMYWRtaW5fcmlnaHRzGAggASgLMh4uaW1wdWxzZS5jaGF0cy5DaGF0QWRtaW5SaWdodHNIA4gBARIZCgxjdXN0b21fdGl0bGUYCSABKAlIBIgBARIWCg5pc192aWFfcmVxdWVzdBgKIAEoCEIUChJfa2lja2VkX2J5X3VzZXJfaWRCFgoUX3Byb21vdGVkX2J5X3VzZXJfaWRCEAoOX2Jhbm5lZF9yaWdodHNCDwoNX2FkbWluX3JpZ2h0c0IPCg1fY3VzdG9tX3RpdGxlIpoDCg9DaGF0QWRtaW5SaWdodHMSEwoLY2hhbmdlX2luZm8YASABKAgSFQoNcG9zdF9tZXNzYWdlcxgCIAEoCBIVCg1lZGl0X21lc3NhZ2VzGAMgASgIEhcKD2RlbGV0ZV9tZXNzYWdlcxgEIAEoCBIRCgliYW5fdXNlcnMYBSABKAgSFAoMaW52aXRlX3VzZXJzGAYgASgIEhQKDHBpbl9tZXNzYWdlcxgHIAEoCBIVCg1tYW5hZ2VfdG9waWNzGAggASgIEhIKCmFkZF9hZG1pbnMYCSABKAgSEwoLbWFuYWdlX2NhbGwYCiABKAgSEQoJYW5vbnltb3VzGAsgASgIEhQKDHBvc3Rfc3RvcmllcxgMIAEoCBIUCgxlZGl0X3N0b3JpZXMYDSABKAgSFgoOZGVsZXRlX3N0b3JpZXMYDiABKAgSHgoWbWFuYWdlX2RpcmVjdF9tZXNzYWdlcxgPIAEoCBIUCgxtYW5hZ2VfcmFua3MYECABKAgSHwoXbWFuYWdlX3dlbGNvbWVfbWVzc2FnZXMYESABKAgi5AMKEENoYXRCYW5uZWRSaWdodHMSFQoNdmlld19tZXNzYWdlcxgBIAEoCBIVCg1zZW5kX21lc3NhZ2VzGAIgASgIEhIKCnNlbmRfbWVkaWEYAyABKAgSFQoNc2VuZF9zdGlja2VycxgEIAEoCBISCgpzZW5kX3BvbGxzGAUgASgIEhMKC2VtYmVkX2xpbmtzGAYgASgIEhQKDGludml0ZV91c2VycxgHIAEoCBIUCgxwaW5fbWVzc2FnZXMYCCABKAgSEwoLY2hhbmdlX2luZm8YCSABKAgSFQoNbWFuYWdlX3RvcGljcxgKIAEoCBISCgp1bnRpbF9kYXRlGAsgASgDEhEKCXNlbmRfZ2lmcxgMIAEoCBISCgpzZW5kX2dhbWVzGA0gASgIEhMKC3NlbmRfaW5saW5lGA4gASgIEhMKC3NlbmRfcGhvdG9zGA8gASgIEhMKC3NlbmRfdmlkZW9zGBAgASgIEhgKEHNlbmRfcm91bmR2aWRlb3MYESABKAgSEwoLc2VuZF9hdWRpb3MYEiABKAgSEwoLc2VuZF92b2ljZXMYEyABKAgSEQoJc2VuZF9kb2NzGBQgASgIEhIKCnNlbmRfcGxhaW4YFSABKAgSEQoJZWRpdF9yYW5rGBYgASgIIroDCgpGb3J1bVRvcGljEgoKAmlkGAEgASgDEg8KB2NoYXRfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSEgoKaWNvbl9jb2xvchgEIAEoBRIaCg1pY29uX2Vtb2ppX2lkGAUgASgDSACIAQESFgoOdG9wX21lc3NhZ2VfaWQYBiABKAMSFAoMdW5yZWFkX2NvdW50GAcgASgFEg4KBnBpbm5lZBgIIAEoCBIOCgZjbG9zZWQYCSABKAgSDgoGaGlkZGVuGAogASgIEgwKBGRhdGUYCyABKAMSGQoRcmVhZF9pbmJveF9tYXhfaWQYDCABKAMSGgoScmVhZF9vdXRib3hfbWF4X2lkGA0gASgDEh0KFXVucmVhZF9tZW50aW9uc19jb3VudBgOIAEoBRIeChZ1bnJlYWRfcmVhY3Rpb25zX2NvdW50GA8gASgFEg8KB2Zyb21faWQYECABKAMSDQoFaXNfbXkYESABKAgSEAoIaXNfc2hvcnQYEiABKAgSGQoMcGlubmVkX29yZGVyGBMgASgFSAGIAQFCEAoOX2ljb25fZW1vamlfaWRCDwoNX3Bpbm5lZF9vcmRlciK9AgoSRXhwb3J0ZWRDaGF0SW52aXRlEgwKBGxpbmsYASABKAkSEAoIYWRtaW5faWQYAiABKAMSDAoEZGF0ZRgDIAEoAxIYCgtleHBpcmVfZGF0ZRgEIAEoA0gAiAEBEhgKC3VzYWdlX2xpbWl0GAUgASgFSAGIAQESDQoFdXNhZ2UYBiABKAUSEQoJcmVxdWVzdGVkGAcgASgFEhIKBXRpdGxlGAggASgJSAKIAQESEQoJcGVybWFuZW50GAkgASgIEg8KB3Jldm9rZWQYCiABKAgSFwoKc3RhcnRfZGF0ZRgLIAEoA0gDiAEBEhkKEWlzX3JlcXVlc3RfbmVlZGVkGAwgASgIQg4KDF9leHBpcmVfZGF0ZUIOCgxfdXNhZ2VfbGltaXRCCAoGX3RpdGxlQg0KC19zdGFydF9kYXRlIuwDChhDaGF0QmFubmVkUmlnaHRzU25hcHNob3QSFQoNdmlld19tZXNzYWdlcxgBIAEoCBIVCg1zZW5kX21lc3NhZ2VzGAIgASgIEhIKCnNlbmRfbWVkaWEYAyABKAgSFQoNc2VuZF9zdGlja2VycxgEIAEoCBISCgpzZW5kX3BvbGxzGAUgASgIEhMKC2VtYmVkX2xpbmtzGAYgASgIEhQKDGludml0ZV91c2VycxgHIAEoCBIUCgxwaW5fbWVzc2FnZXMYCCABKAgSEwoLY2hhbmdlX2luZm8YCSABKAgSFQoNbWFuYWdlX3RvcGljcxgKIAEoCBISCgp1bnRpbF9kYXRlGAsgASgDEhEKCXNlbmRfZ2lmcxgMIAEoCBISCgpzZW5kX2dhbWVzGA0gASgIEhMKC3NlbmRfaW5saW5lGA4gASgIEhMKC3NlbmRfcGhvdG9zGA8gASgIEhMKC3NlbmRfdmlkZW9zGBAgASgIEhgKEHNlbmRfcm91bmR2aWRlb3MYESABKAgSEwoLc2VuZF9hdWRpb3MYEiABKAgSEwoLc2VuZF92b2ljZXMYEyABKAgSEQoJc2VuZF9kb2NzGBQgASgIEhIKCnNlbmRfcGxhaW4YFSABKAgSEQoJZWRpdF9yYW5rGBYgASgIKoIBCghDaGF0VHlwZRIZChVDSEFUX1RZUEVfVU5TUEVDSUZJRUQQABIVChFDSEFUX1RZUEVfUFJJVkFURRABEhMKD0NIQVRfVFlQRV9HUk9VUBACEhgKFENIQVRfVFlQRV9TVVBFUkdST1VQEAMSFQoRQ0hBVF9UWVBFX0NIQU5ORUwQBCqeAQoPUGFydGljaXBhbnRSb2xlEhsKF1BBUlRJQ0lQQU5UX1JPTEVfTUVNQkVSEAASGgoWUEFSVElDSVBBTlRfUk9MRV9BRE1JThABEhoKFlBBUlRJQ0lQQU5UX1JPTEVfT1dORVIQAhIbChdQQVJUSUNJUEFOVF9ST0xFX0JBTk5FRBADEhkKFVBBUlRJQ0lQQU5UX1JPTEVfTEVGVBAEQhiqAhVJbXB1bHNlTS5Qcm90b3MuQ2hhdHNiBnByb3RvMw");
+  fileDesc("Ch5pbXB1bHNlL2NoYXRzL2NoYXRfdHlwZXMucHJvdG8SDWltcHVsc2UuY2hhdHMiRwoKTWlncmF0ZWRUbxIPCgdjaGF0X2lkGAEgASgDEhgKC2FjY2Vzc19oYXNoGAIgASgDSACIAQFCDgoMX2FjY2Vzc19oYXNoIkcKC0FwaVVzZXJuYW1lEhAKCHVzZXJuYW1lGAEgASgJEhEKCWlzX2FjdGl2ZRgCIAEoCBITCgtpc19lZGl0YWJsZRgDIAEoCCJpCglQZWVyQ29sb3ISFQoIY29sb3JfaWQYASABKAVIAIgBARIgChNiYWNrZ3JvdW5kX2Vtb2ppX2lkGAIgASgDSAGIAQFCCwoJX2NvbG9yX2lkQhYKFF9iYWNrZ3JvdW5kX2Vtb2ppX2lkIkAKC0Vtb2ppU3RhdHVzEhMKC2RvY3VtZW50X2lkGAEgASgDEhIKBXVudGlsGAIgASgDSACIAQFCCAoGX3VudGlsIkMKEVJlc3RyaWN0aW9uUmVhc29uEhAKCHBsYXRmb3JtGAEgASgJEg4KBnJlYXNvbhgCIAEoCRIMCgR0ZXh0GAMgASgJIjMKDFNlbmRBc1BlZXJJZBIPCgdwZWVyX2lkGAEgASgDEhIKCmlzX3ByZW1pdW0YAiABKAgipBEKBENoYXQSCgoCaWQYASABKAMSJQoEdHlwZRgCIAEoDjIXLmltcHVsc2UuY2hhdHMuQ2hhdFR5cGUSEgoFdGl0bGUYAyABKAlIAIgBARIVCgh1c2VybmFtZRgEIAEoCUgBiAEBEiwKBXBob3RvGAUgASgLMhguaW1wdWxzZS5jaGF0cy5DaGF0UGhvdG9IAogBARIaChJwYXJ0aWNpcGFudHNfY291bnQYBiABKAUSDAoEZGF0ZRgHIAEoAxIPCgd2ZXJzaW9uGAggASgFEhMKC2FjY2Vzc19oYXNoGAkgASgDEhMKC2lzX3ZlcmlmaWVkGAogASgIEg8KB2lzX3NjYW0YCyABKAgSDwoHaXNfZmFrZRgMIAEoCBIUCgxpc19wcm90ZWN0ZWQYDSABKAgSEAoIaXNfZm9ydW0YDiABKAgSEgoKY3JlYXRvcl9pZBg5IAEoAxIVCg1pc19ub3Rfam9pbmVkGBAgASgIEhQKDGlzX2ZvcmJpZGRlbhgRIAEoCBIVCg1pc19yZXN0cmljdGVkGBIgASgIEjkKDGFkbWluX3JpZ2h0cxgTIAEoCzIeLmltcHVsc2UuY2hhdHMuQ2hhdEFkbWluUmlnaHRzSAOIAQESSAoaY3VycmVudF91c2VyX2Jhbm5lZF9yaWdodHMYFCABKAsyHy5pbXB1bHNlLmNoYXRzLkNoYXRCYW5uZWRSaWdodHNIBIgBARJDChVkZWZhdWx0X2Jhbm5lZF9yaWdodHMYFSABKAsyHy5pbXB1bHNlLmNoYXRzLkNoYXRCYW5uZWRSaWdodHNIBYgBARIzCgttaWdyYXRlZF90bxgWIAEoCzIZLmltcHVsc2UuY2hhdHMuTWlncmF0ZWRUb0gGiAEBEhYKCWZvbGRlcl9pZBgXIAEoBUgHiAEBEhcKD2lzX2pvaW5fdG9fc2VuZBgYIAEoCBIXCg9pc19qb2luX3JlcXVlc3QYGSABKAgSLQoJdXNlcm5hbWVzGBogAygLMhouaW1wdWxzZS5jaGF0cy5BcGlVc2VybmFtZRIsCgVjb2xvchgbIAEoCzIYLmltcHVsc2UuY2hhdHMuUGVlckNvbG9ySAiIAQESNQoMZW1vamlfc3RhdHVzGBwgASgLMhouaW1wdWxzZS5jaGF0cy5FbW9qaVN0YXR1c0gJiAEBEhwKFGhhc19hdXRvX3RyYW5zbGF0aW9uGB0gASgIEhYKDmlzX2NhbGxfYWN0aXZlGB4gASgIEhkKEWlzX2NhbGxfbm90X2VtcHR5GB8gASgIEhEKCWlzX2xpc3RlZBggIAEoCBIYCgtib29zdF9sZXZlbBghIAEoBUgKiAEBEg4KBmlzX21pbhgiIAEoCBIcChRhcmVfc2lnbmF0dXJlc19zaG93bhgjIAEoCBIaChJhcmVfcHJvZmlsZXNfc2hvd24YJCABKAgSNAoNcHJvZmlsZV9jb2xvchglIAEoCzIYLmltcHVsc2UuY2hhdHMuUGVlckNvbG9ySAuIAQESPQoTcmVzdHJpY3Rpb25fcmVhc29ucxgmIAMoCzIgLmltcHVsc2UuY2hhdHMuUmVzdHJpY3Rpb25SZWFzb24SGgoSYXJlX3N0b3JpZXNfaGlkZGVuGCcgASgIEhMKC2hhc19zdG9yaWVzGCggASgIEhoKEmhhc191bnJlYWRfc3RvcmllcxgpIAEoCBIZCgxtYXhfc3RvcnlfaWQYKiABKAVIDIgBARIfChJzdWJzY3JpcHRpb25fdW50aWwYKyABKAVIDYgBARIgChNwYWlkX21lc3NhZ2VzX3N0YXJzGCwgASgDSA6IAQESJQoYYm90X3ZlcmlmaWNhdGlvbl9pY29uX2lkGC0gASgDSA+IAQESEgoFbGV2ZWwYLiABKAVIEIgBARIcChRpc19mb3J1bV9hc19tZXNzYWdlcxgvIAEoCBIUCgxpc19tb25vZm9ydW0YMCABKAgSFAoMaXNfYm90X2ZvcnVtGDEgASgIEhcKD3dpdGhfZm9ydW1fdGFicxgyIAEoCBIgChNsaW5rZWRfbW9ub2ZvcnVtX2lkGDMgASgDSBGIAQESJAocYXJlX2NoYW5uZWxfbWVzc2FnZXNfYWxsb3dlZBg0IAEoCBI1ChBzZW5kX2FzX3BlZXJfaWRzGDUgAygLMhsuaW1wdWxzZS5jaGF0cy5TZW5kQXNQZWVySWQSRAofc2VuZF9wYWlkX3JlYWN0aW9uc19hc19wZWVyX2lkcxg2IAMoCzIbLmltcHVsc2UuY2hhdHMuU2VuZEFzUGVlcklkEkIKGHNlbmRfcGFpZF9yZWFjdGlvbnNfcGVlchg3IAEoCzIbLmltcHVsc2UuY2hhdHMuU2VuZEFzUGVlcklkSBKIAQESFAoMaXNfZ2lnYWdyb3VwGDggASgIEh8KF3Jlc29sdmVkX3ZpZXdlcl91c2VyX2lkGDogASgDQggKBl90aXRsZUILCglfdXNlcm5hbWVCCAoGX3Bob3RvQg8KDV9hZG1pbl9yaWdodHNCHQobX2N1cnJlbnRfdXNlcl9iYW5uZWRfcmlnaHRzQhgKFl9kZWZhdWx0X2Jhbm5lZF9yaWdodHNCDgoMX21pZ3JhdGVkX3RvQgwKCl9mb2xkZXJfaWRCCAoGX2NvbG9yQg8KDV9lbW9qaV9zdGF0dXNCDgoMX2Jvb3N0X2xldmVsQhAKDl9wcm9maWxlX2NvbG9yQg8KDV9tYXhfc3RvcnlfaWRCFQoTX3N1YnNjcmlwdGlvbl91bnRpbEIWChRfcGFpZF9tZXNzYWdlc19zdGFyc0IbChlfYm90X3ZlcmlmaWNhdGlvbl9pY29uX2lkQggKBl9sZXZlbEIWChRfbGlua2VkX21vbm9mb3J1bV9pZEIbChlfc2VuZF9wYWlkX3JlYWN0aW9uc19wZWVySgQIDxAQIn4KCUNoYXRQaG90bxIQCghwaG90b19pZBgBIAEoAxIRCgloYXNfdmlkZW8YAiABKAgSEgoFZGNfaWQYAyABKAVIAIgBARIbCg5zdHJpcHBlZF90aHVtYhgEIAEoDEgBiAEBQggKBl9kY19pZEIRCg9fc3RyaXBwZWRfdGh1bWIiyAMKD0NoYXRQYXJ0aWNpcGFudBIPCgd1c2VyX2lkGAEgASgDEiwKBHJvbGUYAiABKA4yHi5pbXB1bHNlLmNoYXRzLlBhcnRpY2lwYW50Um9sZRITCgtqb2luZWRfZGF0ZRgDIAEoAxISCgppbnZpdGVkX2J5GAQgASgDEh4KEWtpY2tlZF9ieV91c2VyX2lkGAUgASgDSACIAQESIAoTcHJvbW90ZWRfYnlfdXNlcl9pZBgGIAEoA0gBiAEBEjsKDWJhbm5lZF9yaWdodHMYByABKAsyHy5pbXB1bHNlLmNoYXRzLkNoYXRCYW5uZWRSaWdodHNIAogBARI5CgxhZG1pbl9yaWdodHMYCCABKAsyHi5pbXB1bHNlLmNoYXRzLkNoYXRBZG1pblJpZ2h0c0gDiAEBEhkKDGN1c3RvbV90aXRsZRgJIAEoCUgEiAEBEhYKDmlzX3ZpYV9yZXF1ZXN0GAogASgIQhQKEl9raWNrZWRfYnlfdXNlcl9pZEIWChRfcHJvbW90ZWRfYnlfdXNlcl9pZEIQCg5fYmFubmVkX3JpZ2h0c0IPCg1fYWRtaW5fcmlnaHRzQg8KDV9jdXN0b21fdGl0bGUimgMKD0NoYXRBZG1pblJpZ2h0cxITCgtjaGFuZ2VfaW5mbxgBIAEoCBIVCg1wb3N0X21lc3NhZ2VzGAIgASgIEhUKDWVkaXRfbWVzc2FnZXMYAyABKAgSFwoPZGVsZXRlX21lc3NhZ2VzGAQgASgIEhEKCWJhbl91c2VycxgFIAEoCBIUCgxpbnZpdGVfdXNlcnMYBiABKAgSFAoMcGluX21lc3NhZ2VzGAcgASgIEhUKDW1hbmFnZV90b3BpY3MYCCABKAgSEgoKYWRkX2FkbWlucxgJIAEoCBITCgttYW5hZ2VfY2FsbBgKIAEoCBIRCglhbm9ueW1vdXMYCyABKAgSFAoMcG9zdF9zdG9yaWVzGAwgASgIEhQKDGVkaXRfc3RvcmllcxgNIAEoCBIWCg5kZWxldGVfc3RvcmllcxgOIAEoCBIeChZtYW5hZ2VfZGlyZWN0X21lc3NhZ2VzGA8gASgIEhQKDG1hbmFnZV9yYW5rcxgQIAEoCBIfChdtYW5hZ2Vfd2VsY29tZV9tZXNzYWdlcxgRIAEoCCLkAwoQQ2hhdEJhbm5lZFJpZ2h0cxIVCg12aWV3X21lc3NhZ2VzGAEgASgIEhUKDXNlbmRfbWVzc2FnZXMYAiABKAgSEgoKc2VuZF9tZWRpYRgDIAEoCBIVCg1zZW5kX3N0aWNrZXJzGAQgASgIEhIKCnNlbmRfcG9sbHMYBSABKAgSEwoLZW1iZWRfbGlua3MYBiABKAgSFAoMaW52aXRlX3VzZXJzGAcgASgIEhQKDHBpbl9tZXNzYWdlcxgIIAEoCBITCgtjaGFuZ2VfaW5mbxgJIAEoCBIVCg1tYW5hZ2VfdG9waWNzGAogASgIEhIKCnVudGlsX2RhdGUYCyABKAMSEQoJc2VuZF9naWZzGAwgASgIEhIKCnNlbmRfZ2FtZXMYDSABKAgSEwoLc2VuZF9pbmxpbmUYDiABKAgSEwoLc2VuZF9waG90b3MYDyABKAgSEwoLc2VuZF92aWRlb3MYECABKAgSGAoQc2VuZF9yb3VuZHZpZGVvcxgRIAEoCBITCgtzZW5kX2F1ZGlvcxgSIAEoCBITCgtzZW5kX3ZvaWNlcxgTIAEoCBIRCglzZW5kX2RvY3MYFCABKAgSEgoKc2VuZF9wbGFpbhgVIAEoCBIRCgllZGl0X3JhbmsYFiABKAgiugMKCkZvcnVtVG9waWMSCgoCaWQYASABKAMSDwoHY2hhdF9pZBgCIAEoAxINCgV0aXRsZRgDIAEoCRISCgppY29uX2NvbG9yGAQgASgFEhoKDWljb25fZW1vamlfaWQYBSABKANIAIgBARIWCg50b3BfbWVzc2FnZV9pZBgGIAEoAxIUCgx1bnJlYWRfY291bnQYByABKAUSDgoGcGlubmVkGAggASgIEg4KBmNsb3NlZBgJIAEoCBIOCgZoaWRkZW4YCiABKAgSDAoEZGF0ZRgLIAEoAxIZChFyZWFkX2luYm94X21heF9pZBgMIAEoAxIaChJyZWFkX291dGJveF9tYXhfaWQYDSABKAMSHQoVdW5yZWFkX21lbnRpb25zX2NvdW50GA4gASgFEh4KFnVucmVhZF9yZWFjdGlvbnNfY291bnQYDyABKAUSDwoHZnJvbV9pZBgQIAEoAxINCgVpc19teRgRIAEoCBIQCghpc19zaG9ydBgSIAEoCBIZCgxwaW5uZWRfb3JkZXIYEyABKAVIAYgBAUIQCg5faWNvbl9lbW9qaV9pZEIPCg1fcGlubmVkX29yZGVyIuwDChhDaGF0QmFubmVkUmlnaHRzU25hcHNob3QSFQoNdmlld19tZXNzYWdlcxgBIAEoCBIVCg1zZW5kX21lc3NhZ2VzGAIgASgIEhIKCnNlbmRfbWVkaWEYAyABKAgSFQoNc2VuZF9zdGlja2VycxgEIAEoCBISCgpzZW5kX3BvbGxzGAUgASgIEhMKC2VtYmVkX2xpbmtzGAYgASgIEhQKDGludml0ZV91c2VycxgHIAEoCBIUCgxwaW5fbWVzc2FnZXMYCCABKAgSEwoLY2hhbmdlX2luZm8YCSABKAgSFQoNbWFuYWdlX3RvcGljcxgKIAEoCBISCgp1bnRpbF9kYXRlGAsgASgDEhEKCXNlbmRfZ2lmcxgMIAEoCBISCgpzZW5kX2dhbWVzGA0gASgIEhMKC3NlbmRfaW5saW5lGA4gASgIEhMKC3NlbmRfcGhvdG9zGA8gASgIEhMKC3NlbmRfdmlkZW9zGBAgASgIEhgKEHNlbmRfcm91bmR2aWRlb3MYESABKAgSEwoLc2VuZF9hdWRpb3MYEiABKAgSEwoLc2VuZF92b2ljZXMYEyABKAgSEQoJc2VuZF9kb2NzGBQgASgIEhIKCnNlbmRfcGxhaW4YFSABKAgSEQoJZWRpdF9yYW5rGBYgASgIKoIBCghDaGF0VHlwZRIZChVDSEFUX1RZUEVfVU5TUEVDSUZJRUQQABIVChFDSEFUX1RZUEVfUFJJVkFURRABEhMKD0NIQVRfVFlQRV9HUk9VUBACEhgKFENIQVRfVFlQRV9TVVBFUkdST1VQEAMSFQoRQ0hBVF9UWVBFX0NIQU5ORUwQBCrwAwoTR3JvdXBDYWxsVHJhbnNpdGlvbhIlCiFHUk9VUF9DQUxMX1RSQU5TSVRJT05fVU5TUEVDSUZJRUQQABIhCh1HUk9VUF9DQUxMX1RSQU5TSVRJT05fU1RBUlRFRBABEiMKH0dST1VQX0NBTExfVFJBTlNJVElPTl9TQ0hFRFVMRUQQAhIrCidHUk9VUF9DQUxMX1RSQU5TSVRJT05fU0NIRURVTEVEX1NUQVJURUQQAxIfChtHUk9VUF9DQUxMX1RSQU5TSVRJT05fRU5ERUQQBBIjCh9HUk9VUF9DQUxMX1RSQU5TSVRJT05fTk9OX0VNUFRZEAUSHwobR1JPVVBfQ0FMTF9UUkFOU0lUSU9OX0VNUFRZEAYSIQodR1JPVVBfQ0FMTF9UUkFOU0lUSU9OX0lOVklURUQQBxIrCidHUk9VUF9DQUxMX1RSQU5TSVRJT05fUEFSVElDSVBBTlRfTVVURUQQCBItCilHUk9VUF9DQUxMX1RSQU5TSVRJT05fUEFSVElDSVBBTlRfVU5NVVRFRBAJEiwKKEdST1VQX0NBTExfVFJBTlNJVElPTl9QQVJUSUNJUEFOVF9WT0xVTUUQChIpCiVHUk9VUF9DQUxMX1RSQU5TSVRJT05fU0VUVElOR19UT0dHTEVEEAsqngEKD1BhcnRpY2lwYW50Um9sZRIbChdQQVJUSUNJUEFOVF9ST0xFX01FTUJFUhAAEhoKFlBBUlRJQ0lQQU5UX1JPTEVfQURNSU4QARIaChZQQVJUSUNJUEFOVF9ST0xFX09XTkVSEAISGwoXUEFSVElDSVBBTlRfUk9MRV9CQU5ORUQQAxIZChVQQVJUSUNJUEFOVF9ST0xFX0xFRlQQBEIYqgIVSW1wdWxzZU0uUHJvdG9zLkNoYXRzYgZwcm90bzM");
 
 /**
  * Sub-messages used by Chat and ChatFull
@@ -108,106 +108,6 @@ export const EmojiStatusSchema: GenMessage<EmojiStatus> = /*@__PURE__*/
   messageDesc(file_impulse_chats_chat_types, 3);
 
 /**
- * @generated from message impulse.chats.SlowMode
- */
-export type SlowMode = Message<"impulse.chats.SlowMode"> & {
-  /**
-   * @generated from field: int32 seconds = 1;
-   */
-  seconds: number;
-
-  /**
-   * @generated from field: optional int64 next_send_date = 2;
-   */
-  nextSendDate?: bigint | undefined;
-};
-
-/**
- * Describes the message impulse.chats.SlowMode.
- * Use `create(SlowModeSchema)` to create a new message.
- */
-export const SlowModeSchema: GenMessage<SlowMode> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 4);
-
-/**
- * @generated from message impulse.chats.MigratedFrom
- */
-export type MigratedFrom = Message<"impulse.chats.MigratedFrom"> & {
-  /**
-   * @generated from field: int64 chat_id = 1;
-   */
-  chatId: bigint;
-
-  /**
-   * @generated from field: optional int64 max_message_id = 2;
-   */
-  maxMessageId?: bigint | undefined;
-};
-
-/**
- * Describes the message impulse.chats.MigratedFrom.
- * Use `create(MigratedFromSchema)` to create a new message.
- */
-export const MigratedFromSchema: GenMessage<MigratedFrom> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 5);
-
-/**
- * @generated from message impulse.chats.JoinInfo
- */
-export type JoinInfo = Message<"impulse.chats.JoinInfo"> & {
-  /**
-   * @generated from field: int64 joined_date = 1;
-   */
-  joinedDate: bigint;
-
-  /**
-   * @generated from field: optional int64 inviter_id = 2;
-   */
-  inviterId?: bigint | undefined;
-
-  /**
-   * @generated from field: bool is_via_request = 3;
-   */
-  isViaRequest: boolean;
-};
-
-/**
- * Describes the message impulse.chats.JoinInfo.
- * Use `create(JoinInfoSchema)` to create a new message.
- */
-export const JoinInfoSchema: GenMessage<JoinInfo> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 6);
-
-/**
- * @generated from message impulse.chats.ChatReactions
- */
-export type ChatReactions = Message<"impulse.chats.ChatReactions"> & {
-  /**
-   * type: "all" | "some" | "none"
-   *
-   * @generated from field: string type = 1;
-   */
-  type: string;
-
-  /**
-   * @generated from field: repeated string allowed_reactions = 2;
-   */
-  allowedReactions: string[];
-
-  /**
-   * @generated from field: bool allow_custom = 3;
-   */
-  allowCustom: boolean;
-};
-
-/**
- * Describes the message impulse.chats.ChatReactions.
- * Use `create(ChatReactionsSchema)` to create a new message.
- */
-export const ChatReactionsSchema: GenMessage<ChatReactions> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 7);
-
-/**
  * @generated from message impulse.chats.RestrictionReason
  */
 export type RestrictionReason = Message<"impulse.chats.RestrictionReason"> & {
@@ -232,34 +132,7 @@ export type RestrictionReason = Message<"impulse.chats.RestrictionReason"> & {
  * Use `create(RestrictionReasonSchema)` to create a new message.
  */
 export const RestrictionReasonSchema: GenMessage<RestrictionReason> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 8);
-
-/**
- * @generated from message impulse.chats.BotVerification
- */
-export type BotVerification = Message<"impulse.chats.BotVerification"> & {
-  /**
-   * @generated from field: int64 bot_id = 1;
-   */
-  botId: bigint;
-
-  /**
-   * @generated from field: string icon = 2;
-   */
-  icon: string;
-
-  /**
-   * @generated from field: string description = 3;
-   */
-  description: string;
-};
-
-/**
- * Describes the message impulse.chats.BotVerification.
- * Use `create(BotVerificationSchema)` to create a new message.
- */
-export const BotVerificationSchema: GenMessage<BotVerification> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 9);
+  messageDesc(file_impulse_chats_chat_types, 4);
 
 /**
  * @generated from message impulse.chats.SendAsPeerId
@@ -281,7 +154,7 @@ export type SendAsPeerId = Message<"impulse.chats.SendAsPeerId"> & {
  * Use `create(SendAsPeerIdSchema)` to create a new message.
  */
 export const SendAsPeerIdSchema: GenMessage<SendAsPeerId> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 10);
+  messageDesc(file_impulse_chats_chat_types, 5);
 
 /**
  * @generated from message impulse.chats.Chat
@@ -600,223 +473,7 @@ export type Chat = Message<"impulse.chats.Chat"> & {
  * Use `create(ChatSchema)` to create a new message.
  */
 export const ChatSchema: GenMessage<Chat> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 11);
-
-/**
- * @generated from message impulse.chats.ChatFull
- */
-export type ChatFull = Message<"impulse.chats.ChatFull"> & {
-  /**
-   * @generated from field: int64 id = 1;
-   */
-  id: bigint;
-
-  /**
-   * @generated from field: optional string about = 2;
-   */
-  about?: string | undefined;
-
-  /**
-   * @generated from field: int32 participants_count = 3;
-   */
-  participantsCount: number;
-
-  /**
-   * @generated from field: int32 admins_count = 4;
-   */
-  adminsCount: number;
-
-  /**
-   * @generated from field: int32 banned_count = 5;
-   */
-  bannedCount: number;
-
-  /**
-   * @generated from field: int32 online_count = 6;
-   */
-  onlineCount: number;
-
-  /**
-   * @generated from field: optional string invite_link = 7;
-   */
-  inviteLink?: string | undefined;
-
-  /**
-   * @generated from field: int32 slow_mode_seconds = 8;
-   */
-  slowModeSeconds: number;
-
-  /**
-   * @generated from field: int32 history_ttl = 9;
-   */
-  historyTtl: number;
-
-  /**
-   * @generated from field: bool can_set_username = 10;
-   */
-  canSetUsername: boolean;
-
-  /**
-   * @generated from field: bool has_forum = 11;
-   */
-  hasForum: boolean;
-
-  /**
-   * @generated from field: optional int64 linked_chat_id = 12;
-   */
-  linkedChatId?: bigint | undefined;
-
-  /**
-   * @generated from field: bool is_pre_history_hidden = 13;
-   */
-  isPreHistoryHidden: boolean;
-
-  /**
-   * @generated from field: bool are_participants_hidden = 14;
-   */
-  areParticipantsHidden: boolean;
-
-  /**
-   * @generated from field: bool can_view_members = 15;
-   */
-  canViewMembers: boolean;
-
-  /**
-   * @generated from field: optional impulse.chats.SlowMode slow_mode = 16;
-   */
-  slowMode?: SlowMode | undefined;
-
-  /**
-   * @generated from field: optional impulse.chats.MigratedFrom migrated_from = 17;
-   */
-  migratedFrom?: MigratedFrom | undefined;
-
-  /**
-   * @generated from field: optional impulse.chats.JoinInfo current_user_join_info = 18;
-   */
-  currentUserJoinInfo?: JoinInfo | undefined;
-
-  /**
-   * @generated from field: optional string group_call_id = 19;
-   */
-  groupCallId?: string | undefined;
-
-  /**
-   * @generated from field: optional impulse.chats.ChatReactions enabled_reactions = 20;
-   */
-  enabledReactions?: ChatReactions | undefined;
-
-  /**
-   * @generated from field: optional int32 reactions_limit = 21;
-   */
-  reactionsLimit?: number | undefined;
-
-  /**
-   * @generated from field: optional int64 send_as_id = 22;
-   */
-  sendAsId?: bigint | undefined;
-
-  /**
-   * @generated from field: bool can_view_statistics = 23;
-   */
-  canViewStatistics: boolean;
-
-  /**
-   * @generated from field: repeated string recent_requester_ids = 24;
-   */
-  recentRequesterIds: string[];
-
-  /**
-   * @generated from field: int32 requests_pending = 25;
-   */
-  requestsPending: number;
-
-  /**
-   * @generated from field: optional int64 sticker_set_id = 26;
-   */
-  stickerSetId?: bigint | undefined;
-
-  /**
-   * @generated from field: optional int64 emoji_set_id = 27;
-   */
-  emojiSetId?: bigint | undefined;
-
-  /**
-   * @generated from field: optional int64 profile_photo_id = 28;
-   */
-  profilePhotoId?: bigint | undefined;
-
-  /**
-   * @generated from field: bool has_scheduled_messages = 29;
-   */
-  hasScheduledMessages: boolean;
-
-  /**
-   * @generated from field: bool is_translation_disabled = 30;
-   */
-  isTranslationDisabled: boolean;
-
-  /**
-   * @generated from field: bool has_pinned_stories = 31;
-   */
-  hasPinnedStories: boolean;
-
-  /**
-   * P3 monetization fields
-   *
-   * @generated from field: bool can_view_monetization = 32;
-   */
-  canViewMonetization: boolean;
-
-  /**
-   * @generated from field: int32 boosts_applied = 33;
-   */
-  boostsApplied: number;
-
-  /**
-   * @generated from field: optional int32 boosts_to_unrestrict = 34;
-   */
-  boostsToUnrestrict?: number | undefined;
-
-  /**
-   * @generated from field: optional impulse.chats.BotVerification bot_verification = 35;
-   */
-  botVerification?: BotVerification | undefined;
-
-  /**
-   * @generated from field: bool is_paid_reaction_available = 36;
-   */
-  isPaidReactionAvailable: boolean;
-
-  /**
-   * @generated from field: int32 star_gift_count = 37;
-   */
-  starGiftCount: number;
-
-  /**
-   * @generated from field: bool are_star_gifts_available = 38;
-   */
-  areStarGiftsAvailable: boolean;
-
-  /**
-   * @generated from field: bool are_paid_messages_available = 39;
-   */
-  arePaidMessagesAvailable: boolean;
-
-  /**
-   * P3 main tab
-   *
-   * @generated from field: optional string main_tab = 40;
-   */
-  mainTab?: string | undefined;
-};
-
-/**
- * Describes the message impulse.chats.ChatFull.
- * Use `create(ChatFullSchema)` to create a new message.
- */
-export const ChatFullSchema: GenMessage<ChatFull> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 12);
+  messageDesc(file_impulse_chats_chat_types, 6);
 
 /**
  * @generated from message impulse.chats.ChatPhoto
@@ -848,7 +505,7 @@ export type ChatPhoto = Message<"impulse.chats.ChatPhoto"> & {
  * Use `create(ChatPhotoSchema)` to create a new message.
  */
 export const ChatPhotoSchema: GenMessage<ChatPhoto> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 13);
+  messageDesc(file_impulse_chats_chat_types, 7);
 
 /**
  * @generated from message impulse.chats.ChatParticipant
@@ -910,7 +567,7 @@ export type ChatParticipant = Message<"impulse.chats.ChatParticipant"> & {
  * Use `create(ChatParticipantSchema)` to create a new message.
  */
 export const ChatParticipantSchema: GenMessage<ChatParticipant> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 14);
+  messageDesc(file_impulse_chats_chat_types, 8);
 
 /**
  * @generated from message impulse.chats.ChatAdminRights
@@ -1014,7 +671,7 @@ export type ChatAdminRights = Message<"impulse.chats.ChatAdminRights"> & {
  * Use `create(ChatAdminRightsSchema)` to create a new message.
  */
 export const ChatAdminRightsSchema: GenMessage<ChatAdminRights> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 15);
+  messageDesc(file_impulse_chats_chat_types, 9);
 
 /**
  * @generated from message impulse.chats.ChatBannedRights
@@ -1139,7 +796,7 @@ export type ChatBannedRights = Message<"impulse.chats.ChatBannedRights"> & {
  * Use `create(ChatBannedRightsSchema)` to create a new message.
  */
 export const ChatBannedRightsSchema: GenMessage<ChatBannedRights> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 16);
+  messageDesc(file_impulse_chats_chat_types, 10);
 
 /**
  * @generated from message impulse.chats.ForumTopic
@@ -1246,79 +903,7 @@ export type ForumTopic = Message<"impulse.chats.ForumTopic"> & {
  * Use `create(ForumTopicSchema)` to create a new message.
  */
 export const ForumTopicSchema: GenMessage<ForumTopic> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 17);
-
-/**
- * @generated from message impulse.chats.ExportedChatInvite
- */
-export type ExportedChatInvite = Message<"impulse.chats.ExportedChatInvite"> & {
-  /**
-   * @generated from field: string link = 1;
-   */
-  link: string;
-
-  /**
-   * @generated from field: int64 admin_id = 2;
-   */
-  adminId: bigint;
-
-  /**
-   * @generated from field: int64 date = 3;
-   */
-  date: bigint;
-
-  /**
-   * @generated from field: optional int64 expire_date = 4;
-   */
-  expireDate?: bigint | undefined;
-
-  /**
-   * @generated from field: optional int32 usage_limit = 5;
-   */
-  usageLimit?: number | undefined;
-
-  /**
-   * @generated from field: int32 usage = 6;
-   */
-  usage: number;
-
-  /**
-   * @generated from field: int32 requested = 7;
-   */
-  requested: number;
-
-  /**
-   * @generated from field: optional string title = 8;
-   */
-  title?: string | undefined;
-
-  /**
-   * @generated from field: bool permanent = 9;
-   */
-  permanent: boolean;
-
-  /**
-   * @generated from field: bool revoked = 10;
-   */
-  revoked: boolean;
-
-  /**
-   * @generated from field: optional int64 start_date = 11;
-   */
-  startDate?: bigint | undefined;
-
-  /**
-   * @generated from field: bool is_request_needed = 12;
-   */
-  isRequestNeeded: boolean;
-};
-
-/**
- * Describes the message impulse.chats.ExportedChatInvite.
- * Use `create(ExportedChatInviteSchema)` to create a new message.
- */
-export const ExportedChatInviteSchema: GenMessage<ExportedChatInvite> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 18);
+  messageDesc(file_impulse_chats_chat_types, 11);
 
 /**
  * Banned-rights snapshot persisted in chat_banned_rights:{chatId}:{userId} Redis String.
@@ -1447,7 +1032,7 @@ export type ChatBannedRightsSnapshot = Message<"impulse.chats.ChatBannedRightsSn
  * Use `create(ChatBannedRightsSnapshotSchema)` to create a new message.
  */
 export const ChatBannedRightsSnapshotSchema: GenMessage<ChatBannedRightsSnapshot> = /*@__PURE__*/
-  messageDesc(file_impulse_chats_chat_types, 19);
+  messageDesc(file_impulse_chats_chat_types, 12);
 
 /**
  * @generated from enum impulse.chats.ChatType
@@ -1486,6 +1071,90 @@ export const ChatTypeSchema: GenEnum<ChatType> = /*@__PURE__*/
   enumDesc(file_impulse_chats_chat_types, 0);
 
 /**
+ * A change to a chat's group call (video chat / livestream) that the chat must record: its call flags,
+ * the service message canon sends to the group/channel, and the admin-log entry
+ * (api/group-calls.md "messageActionGroupCall ... sent to the group/channel when a video chat/livestream
+ * is scheduled, started or ended"). Appended, never inserted.
+ *
+ * @generated from enum impulse.chats.GroupCallTransition
+ */
+export enum GroupCallTransition {
+  /**
+   * @generated from enum value: GROUP_CALL_TRANSITION_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * The call was created to start now: chatFull.call is set, call_active is set.
+   *
+   * @generated from enum value: GROUP_CALL_TRANSITION_STARTED = 1;
+   */
+  STARTED = 1,
+
+  /**
+   * The call was created for later: chatFull.call is set, call_active is NOT (canon: "active or scheduled").
+   *
+   * @generated from enum value: GROUP_CALL_TRANSITION_SCHEDULED = 2;
+   */
+  SCHEDULED = 2,
+
+  /**
+   * A scheduled call was started: call_active is set.
+   *
+   * @generated from enum value: GROUP_CALL_TRANSITION_SCHEDULED_STARTED = 3;
+   */
+  SCHEDULED_STARTED = 3,
+
+  /**
+   * @generated from enum value: GROUP_CALL_TRANSITION_ENDED = 4;
+   */
+  ENDED = 4,
+
+  /**
+   * The call went from nobody to somebody (call_not_empty set) and back.
+   *
+   * @generated from enum value: GROUP_CALL_TRANSITION_NON_EMPTY = 5;
+   */
+  NON_EMPTY = 5,
+
+  /**
+   * @generated from enum value: GROUP_CALL_TRANSITION_EMPTY = 6;
+   */
+  EMPTY = 6,
+
+  /**
+   * @generated from enum value: GROUP_CALL_TRANSITION_INVITED = 7;
+   */
+  INVITED = 7,
+
+  /**
+   * @generated from enum value: GROUP_CALL_TRANSITION_PARTICIPANT_MUTED = 8;
+   */
+  PARTICIPANT_MUTED = 8,
+
+  /**
+   * @generated from enum value: GROUP_CALL_TRANSITION_PARTICIPANT_UNMUTED = 9;
+   */
+  PARTICIPANT_UNMUTED = 9,
+
+  /**
+   * @generated from enum value: GROUP_CALL_TRANSITION_PARTICIPANT_VOLUME = 10;
+   */
+  PARTICIPANT_VOLUME = 10,
+
+  /**
+   * @generated from enum value: GROUP_CALL_TRANSITION_SETTING_TOGGLED = 11;
+   */
+  SETTING_TOGGLED = 11,
+}
+
+/**
+ * Describes the enum impulse.chats.GroupCallTransition.
+ */
+export const GroupCallTransitionSchema: GenEnum<GroupCallTransition> = /*@__PURE__*/
+  enumDesc(file_impulse_chats_chat_types, 1);
+
+/**
  * @generated from enum impulse.chats.ParticipantRole
  */
 export enum ParticipantRole {
@@ -1519,5 +1188,5 @@ export enum ParticipantRole {
  * Describes the enum impulse.chats.ParticipantRole.
  */
 export const ParticipantRoleSchema: GenEnum<ParticipantRole> = /*@__PURE__*/
-  enumDesc(file_impulse_chats_chat_types, 1);
+  enumDesc(file_impulse_chats_chat_types, 2);
 

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/events/events_common.proto.
  */
 export const file_impulse_events_events_common: GenFile = /*@__PURE__*/
-  fileDesc("CiJpbXB1bHNlL2V2ZW50cy9ldmVudHNfY29tbW9uLnByb3RvEg5pbXB1bHNlLmV2ZW50cyK1AQoNRXZlbnRFbnZlbG9wZRIPCgd2ZXJzaW9uGAEgASgDEhAKCGV2ZW50X2lkGAIgASgJEhQKDGFnZ3JlZ2F0ZV9pZBgDIAEoAxIuCgplbWl0dGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIYCgt0cmFjZXBhcmVudBgFIAEoCUgAiAEBEhEKCWNoYXRfdHlwZRgGIAEoBUIOCgxfdHJhY2VwYXJlbnRCIKoCHUltcHVsc2VNLlByb3Rvcy5FdmVudHMuQ29tbW9uYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("CiJpbXB1bHNlL2V2ZW50cy9ldmVudHNfY29tbW9uLnByb3RvEg5pbXB1bHNlLmV2ZW50cyLqAQoNRXZlbnRFbnZlbG9wZRIPCgd2ZXJzaW9uGAEgASgDEhAKCGV2ZW50X2lkGAIgASgJEhQKDGFnZ3JlZ2F0ZV9pZBgDIAEoAxIuCgplbWl0dGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIYCgt0cmFjZXBhcmVudBgFIAEoCUgAiAEBEhEKCWNoYXRfdHlwZRgGIAEoBRIbChNvcmlnaW5fc2Vzc2lvbl9oYXNoGAcgASgDEhYKDm9yaWdpbl91c2VyX2lkGAggASgDQg4KDF90cmFjZXBhcmVudEIgqgIdSW1wdWxzZU0uUHJvdG9zLkV2ZW50cy5Db21tb25iBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * Envelope shared by every peer-projection event. Carries LWW version per
@@ -50,6 +50,18 @@ export type EventEnvelope = Message<"impulse.events.EventEnvelope"> & {
    * @generated from field: int32 chat_type = 6;
    */
   chatType: number;
+
+  /**
+   * The request that produced this event; both zero when no user session made the call.
+   *
+   * @generated from field: int64 origin_session_hash = 7;
+   */
+  originSessionHash: bigint;
+
+  /**
+   * @generated from field: int64 origin_user_id = 8;
+   */
+  originUserId: bigint;
 };
 
 /**

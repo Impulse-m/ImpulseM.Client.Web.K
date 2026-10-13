@@ -2,8 +2,8 @@
 // @generated from file impulse/events/auth_events.proto (package impulse.events.auth, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { EventEnvelope } from "./events_common_pb";
 import { file_impulse_events_events_common } from "./events_common_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/events/auth_events.proto.
  */
 export const file_impulse_events_auth_events: GenFile = /*@__PURE__*/
-  fileDesc("CiBpbXB1bHNlL2V2ZW50cy9hdXRoX2V2ZW50cy5wcm90bxITaW1wdWxzZS5ldmVudHMuYXV0aCLJAgoJQXV0aEV2ZW50Ei8KCGVudmVsb3BlGAEgASgLMh0uaW1wdWxzZS5ldmVudHMuRXZlbnRFbnZlbG9wZRI7Cg51c2VyX2xvZ2dlZF9pbhgKIAEoCzIhLmltcHVsc2UuZXZlbnRzLmF1dGguVXNlckxvZ2dlZEluSAASPQoPdXNlcl9sb2dnZWRfb3V0GAsgASgLMiIuaW1wdWxzZS5ldmVudHMuYXV0aC5Vc2VyTG9nZ2VkT3V0SAASRAoSc2Vzc2lvbl90ZXJtaW5hdGVkGAwgASgLMiYuaW1wdWxzZS5ldmVudHMuYXV0aC5TZXNzaW9uVGVybWluYXRlZEgAEj4KD3VzZXJfcmVnaXN0ZXJlZBgNIAEoCzIjLmltcHVsc2UuZXZlbnRzLmF1dGguVXNlclJlZ2lzdGVyZWRIAEIJCgdwYXlsb2FkIjIKDFVzZXJMb2dnZWRJbhIPCgd1c2VyX2lkGAEgASgDEhEKCXB0c19jb3VudBgCIAEoBSJJCg1Vc2VyTG9nZ2VkT3V0Eg8KB3VzZXJfaWQYASABKAMSFAoMc2Vzc2lvbl9oYXNoGAIgASgDEhEKCXB0c19jb3VudBgDIAEoBSJ6ChFTZXNzaW9uVGVybWluYXRlZBIPCgd1c2VyX2lkGAEgASgDEhkKDHNlc3Npb25faGFzaBgCIAEoA0gAiAEBEhUKDXJldm9rZWRfY291bnQYAyABKAUSEQoJcHRzX2NvdW50GAQgASgFQg8KDV9zZXNzaW9uX2hhc2girgEKDlVzZXJSZWdpc3RlcmVkEg8KB3VzZXJfaWQYASABKAMSGQoMcGhvbmVfbnVtYmVyGAIgASgJSACIAQESFwoKZmlyc3RfbmFtZRgDIAEoCUgBiAEBEhYKCWxhc3RfbmFtZRgEIAEoCUgCiAEBEhEKCXB0c19jb3VudBgFIAEoBUIPCg1fcGhvbmVfbnVtYmVyQg0KC19maXJzdF9uYW1lQgwKCl9sYXN0X25hbWVCHqoCG0ltcHVsc2VNLlByb3Rvcy5FdmVudHMuQXV0aGIGcHJvdG8z", [file_impulse_events_events_common]);
+  fileDesc("CiBpbXB1bHNlL2V2ZW50cy9hdXRoX2V2ZW50cy5wcm90bxITaW1wdWxzZS5ldmVudHMuYXV0aCKcAwoJQXV0aEV2ZW50Ei8KCGVudmVsb3BlGAEgASgLMh0uaW1wdWxzZS5ldmVudHMuRXZlbnRFbnZlbG9wZRI7Cg51c2VyX2xvZ2dlZF9pbhgKIAEoCzIhLmltcHVsc2UuZXZlbnRzLmF1dGguVXNlckxvZ2dlZEluSAASPQoPdXNlcl9sb2dnZWRfb3V0GAsgASgLMiIuaW1wdWxzZS5ldmVudHMuYXV0aC5Vc2VyTG9nZ2VkT3V0SAASRAoSc2Vzc2lvbl90ZXJtaW5hdGVkGAwgASgLMiYuaW1wdWxzZS5ldmVudHMuYXV0aC5TZXNzaW9uVGVybWluYXRlZEgAEj4KD3VzZXJfcmVnaXN0ZXJlZBgNIAEoCzIjLmltcHVsc2UuZXZlbnRzLmF1dGguVXNlclJlZ2lzdGVyZWRIABJRChlzZXNzaW9uX2xhbmd1YWdlX2RlY2xhcmVkGA4gASgLMiwuaW1wdWxzZS5ldmVudHMuYXV0aC5TZXNzaW9uTGFuZ3VhZ2VEZWNsYXJlZEgAQgkKB3BheWxvYWQiowEKDFVzZXJMb2dnZWRJbhIPCgd1c2VyX2lkGAEgASgDEhEKCXB0c19jb3VudBgCIAEoBRIUCgxzZXNzaW9uX2hhc2gYAyABKAMSIAoTZXhjZXB0X3Nlc3Npb25faGFzaBgEIAEoA0gAiAEBEh8KF3JlYWx0aW1lX3Nlc3Npb25faGFzaGVzGAUgAygDQhYKFF9leGNlcHRfc2Vzc2lvbl9oYXNoIkkKDVVzZXJMb2dnZWRPdXQSDwoHdXNlcl9pZBgBIAEoAxIUCgxzZXNzaW9uX2hhc2gYAiABKAMSEQoJcHRzX2NvdW50GAMgASgFIrEBChFTZXNzaW9uVGVybWluYXRlZBIPCgd1c2VyX2lkGAEgASgDEhkKDHNlc3Npb25faGFzaBgCIAEoA0gAiAEBEhUKDXJldm9rZWRfY291bnQYAyABKAUSEQoJcHRzX2NvdW50GAQgASgFEjUKBnJlYXNvbhgFIAEoDjIlLmltcHVsc2UuZXZlbnRzLmF1dGguU2Vzc2lvbkVuZFJlYXNvbkIPCg1fc2Vzc2lvbl9oYXNoIq4BCg5Vc2VyUmVnaXN0ZXJlZBIPCgd1c2VyX2lkGAEgASgDEhkKDHBob25lX251bWJlchgCIAEoCUgAiAEBEhcKCmZpcnN0X25hbWUYAyABKAlIAYgBARIWCglsYXN0X25hbWUYBCABKAlIAogBARIRCglwdHNfY291bnQYBSABKAVCDwoNX3Bob25lX251bWJlckINCgtfZmlyc3RfbmFtZUIMCgpfbGFzdF9uYW1lIp0BChdTZXNzaW9uTGFuZ3VhZ2VEZWNsYXJlZBIPCgd1c2VyX2lkGAEgASgDEhQKDHNlc3Npb25faGFzaBgCIAEoAxIRCglsYW5nX3BhY2sYAyABKAkSEQoJbGFuZ19jb2RlGAQgASgJEhgKEHN5c3RlbV9sYW5nX2NvZGUYBSABKAkSGwoTZGVjbGFyYXRpb25fdmVyc2lvbhgGIAEoAypcChBTZXNzaW9uRW5kUmVhc29uEiEKHVNFU1NJT05fRU5EX1JFQVNPTl9URVJNSU5BVEVEEAASJQohU0VTU0lPTl9FTkRfUkVBU09OX0lOQUNUSVZJVFlfVFRMEAFCHqoCG0ltcHVsc2VNLlByb3Rvcy5FdmVudHMuQXV0aGIGcHJvdG8z", [file_impulse_events_events_common]);
 
 /**
  * Top-level event for everything Auth publishes onto auth.events Kafka topic.
@@ -52,6 +52,12 @@ export type AuthEvent = Message<"impulse.events.auth.AuthEvent"> & {
      */
     value: UserRegistered;
     case: "userRegistered";
+  } | {
+    /**
+     * @generated from field: impulse.events.auth.SessionLanguageDeclared session_language_declared = 14;
+     */
+    value: SessionLanguageDeclared;
+    case: "sessionLanguageDeclared";
   } | { case: undefined; value?: undefined };
 };
 
@@ -75,6 +81,33 @@ export type UserLoggedIn = Message<"impulse.events.auth.UserLoggedIn"> & {
    * @generated from field: int32 pts_count = 2;
    */
   ptsCount: number;
+
+  /**
+   * The authorization this login created (the hash account.getAuthorizations hands the client).
+   * ip, device and location are deliberately NOT carried: this topic is not a place for them.
+   * Sync reads them from Auth at delivery (AuthService.GetNewAuthorizationNotice) to build
+   * updateNewAuthorization for the account's OTHER sessions. Zero means the producer predates this
+   * field (or a redelivered old record); the consumer skips such a record and counts it.
+   *
+   * @generated from field: int64 session_hash = 3;
+   */
+  sessionHash: bigint;
+
+  /**
+   * Set by a producer that addresses the login: the session that logged in, which is never told about its own
+   * login. Sync stores the notice with this exclusion and publishes its realtime copy to realtime_session_hashes
+   * only. Absent on a record written before addressing, which keeps the account inbox path.
+   *
+   * @generated from field: optional int64 except_session_hash = 4;
+   */
+  exceptSessionHash?: bigint | undefined;
+
+  /**
+   * The account's other authorizations, as Auth listed them in the transaction that committed this login.
+   *
+   * @generated from field: repeated int64 realtime_session_hashes = 5;
+   */
+  realtimeSessionHashes: bigint[];
 };
 
 /**
@@ -139,6 +172,18 @@ export type SessionTerminated = Message<"impulse.events.auth.SessionTerminated">
    * @generated from field: int32 pts_count = 4;
    */
   ptsCount: number;
+
+  /**
+   * Why the authorization ended. Every end of a session is announced with this one event, which is
+   * the one event every consumer of session-bound state reads whatever ended it (Sync's realtime
+   * revocation consumes it today; releasing a push device is the Notifications consumer of
+   * feat/push-senders-canon); the reason only tells a consumer what ELSE is true. INACTIVITY_TTL means the session
+   * outlived the account's TTL (account.setAuthorizationTTL): it provably holds no access token
+   * and no realtime socket, so nothing must be disconnected for it.
+   *
+   * @generated from field: impulse.events.auth.SessionEndReason reason = 5;
+   */
+  reason: SessionEndReason;
 };
 
 /**
@@ -184,4 +229,77 @@ export type UserRegistered = Message<"impulse.events.auth.UserRegistered"> & {
  */
 export const UserRegisteredSchema: GenMessage<UserRegistered> = /*@__PURE__*/
   messageDesc(file_impulse_events_auth_events, 4);
+
+/**
+ * One existing session's language declaration changed, including undeclared to declared. The three
+ * strings are the whole fact: device, platform and app version are deliberately NOT carried (see
+ * UserLoggedIn). declaration_version is the sessions.declarationVersion the change earned, which orders
+ * the fact in the caller-fact store. No event is emitted when a session is created.
+ *
+ * @generated from message impulse.events.auth.SessionLanguageDeclared
+ */
+export type SessionLanguageDeclared = Message<"impulse.events.auth.SessionLanguageDeclared"> & {
+  /**
+   * @generated from field: int64 user_id = 1;
+   */
+  userId: bigint;
+
+  /**
+   * @generated from field: int64 session_hash = 2;
+   */
+  sessionHash: bigint;
+
+  /**
+   * @generated from field: string lang_pack = 3;
+   */
+  langPack: string;
+
+  /**
+   * @generated from field: string lang_code = 4;
+   */
+  langCode: string;
+
+  /**
+   * @generated from field: string system_lang_code = 5;
+   */
+  systemLangCode: string;
+
+  /**
+   * @generated from field: int64 declaration_version = 6;
+   */
+  declarationVersion: bigint;
+};
+
+/**
+ * Describes the message impulse.events.auth.SessionLanguageDeclared.
+ * Use `create(SessionLanguageDeclaredSchema)` to create a new message.
+ */
+export const SessionLanguageDeclaredSchema: GenMessage<SessionLanguageDeclared> = /*@__PURE__*/
+  messageDesc(file_impulse_events_auth_events, 5);
+
+/**
+ * @generated from enum impulse.events.auth.SessionEndReason
+ */
+export enum SessionEndReason {
+  /**
+   * account.resetAuthorization, auth.resetAuthorizations, account deletion, application ban:
+   * the session was ended from elsewhere while it may still be connected.
+   *
+   * @generated from enum value: SESSION_END_REASON_TERMINATED = 0;
+   */
+  TERMINATED = 0,
+
+  /**
+   * The session stayed inactive longer than the account's session TTL.
+   *
+   * @generated from enum value: SESSION_END_REASON_INACTIVITY_TTL = 1;
+   */
+  INACTIVITY_TTL = 1,
+}
+
+/**
+ * Describes the enum impulse.events.auth.SessionEndReason.
+ */
+export const SessionEndReasonSchema: GenEnum<SessionEndReason> = /*@__PURE__*/
+  enumDesc(file_impulse_events_auth_events, 0);
 

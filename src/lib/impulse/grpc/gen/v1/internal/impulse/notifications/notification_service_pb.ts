@@ -4,427 +4,17 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { InputNotifyPeer, NotifyException, PeerNotifySettings, PeerNotifySettingsSchema, PushTokenType } from "./notification_types_pb";
+import type { PeerNotifySettings } from "./notification_types_pb";
 import { file_impulse_notifications_notification_types } from "./notification_types_pb";
+import type { Peer } from "../peer_pb";
+import { file_impulse_peer } from "../peer_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file impulse/notifications/notification_service.proto.
  */
 export const file_impulse_notifications_notification_service: GenFile = /*@__PURE__*/
-  fileDesc("CjBpbXB1bHNlL25vdGlmaWNhdGlvbnMvbm90aWZpY2F0aW9uX3NlcnZpY2UucHJvdG8SFWltcHVsc2Uubm90aWZpY2F0aW9ucyKrAQoVUmVnaXN0ZXJEZXZpY2VSZXF1ZXN0EjgKCnRva2VuX3R5cGUYASABKA4yJC5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuUHVzaFRva2VuVHlwZRINCgV0b2tlbhgCIAEoCRITCgthcHBfc2FuZGJveBgDIAEoCBIOCgZzZWNyZXQYBCABKAwSEgoKb3RoZXJfdWlkcxgFIAMoAxIQCghub19tdXRlZBgGIAEoCCIYChZSZWdpc3RlckRldmljZVJlc3BvbnNlInYKF1VucmVnaXN0ZXJEZXZpY2VSZXF1ZXN0EjgKCnRva2VuX3R5cGUYASABKA4yJC5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuUHVzaFRva2VuVHlwZRINCgV0b2tlbhgCIAEoCRISCgpvdGhlcl91aWRzGAMgAygDIhoKGFVucmVnaXN0ZXJEZXZpY2VSZXNwb25zZSJQChhHZXROb3RpZnlTZXR0aW5nc1JlcXVlc3QSNAoEcGVlchgBIAEoCzImLmltcHVsc2Uubm90aWZpY2F0aW9ucy5JbnB1dE5vdGlmeVBlZXIikAEKG1VwZGF0ZU5vdGlmeVNldHRpbmdzUmVxdWVzdBI0CgRwZWVyGAEgASgLMiYuaW1wdWxzZS5ub3RpZmljYXRpb25zLklucHV0Tm90aWZ5UGVlchI7CghzZXR0aW5ncxgCIAEoCzIpLmltcHVsc2Uubm90aWZpY2F0aW9ucy5QZWVyTm90aWZ5U2V0dGluZ3MiHgocVXBkYXRlTm90aWZ5U2V0dGluZ3NSZXNwb25zZSIcChpSZXNldE5vdGlmeVNldHRpbmdzUmVxdWVzdCIdChtSZXNldE5vdGlmeVNldHRpbmdzUmVzcG9uc2UikAEKGkdldE5vdGlmeUV4Y2VwdGlvbnNSZXF1ZXN0EhUKDWNvbXBhcmVfc291bmQYASABKAgSFwoPY29tcGFyZV9zdG9yaWVzGAIgASgIEjkKBHBlZXIYAyABKAsyJi5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuSW5wdXROb3RpZnlQZWVySACIAQFCBwoFX3BlZXIiWQobR2V0Tm90aWZ5RXhjZXB0aW9uc1Jlc3BvbnNlEjoKCmV4Y2VwdGlvbnMYASADKAsyJi5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuTm90aWZ5RXhjZXB0aW9uIiUKI0dldENvbnRhY3RTaWduVXBOb3RpZmljYXRpb25SZXF1ZXN0IjYKJEdldENvbnRhY3RTaWduVXBOb3RpZmljYXRpb25SZXNwb25zZRIOCgZzaWxlbnQYASABKAgiNQojU2V0Q29udGFjdFNpZ25VcE5vdGlmaWNhdGlvblJlcXVlc3QSDgoGc2lsZW50GAEgASgIIiYKJFNldENvbnRhY3RTaWduVXBOb3RpZmljYXRpb25SZXNwb25zZSJOChVVcGxvYWRSaW5ndG9uZVJlcXVlc3QSDwoHZmlsZV9pZBgBIAEoAxIRCglmaWxlX25hbWUYAiABKAkSEQoJbWltZV90eXBlGAMgASgJIi0KFlVwbG9hZFJpbmd0b25lUmVzcG9uc2USEwoLcmluZ3RvbmVfaWQYASABKAMiOgoTU2F2ZVJpbmd0b25lUmVxdWVzdBITCgtyaW5ndG9uZV9pZBgBIAEoAxIOCgZ1bnNhdmUYAiABKAgiJQoUU2F2ZVJpbmd0b25lUmVzcG9uc2USDQoFc2F2ZWQYASABKAgiKAoYR2V0U2F2ZWRSaW5ndG9uZXNSZXF1ZXN0EgwKBGhhc2gYASABKAMieAoZR2V0U2F2ZWRSaW5ndG9uZXNSZXNwb25zZRI3CglyaW5ndG9uZXMYASADKAsyJC5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuU2F2ZWRSaW5ndG9uZRIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCJhCiRBcHBseUdsb2JhbFByaXZhY3lBcmNoaXZlTXV0ZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoAxIUCgxwZWVyX3VzZXJfaWQYAiABKAMSEgoKbXV0ZV91bnRpbBgDIAEoAyInCiVBcHBseUdsb2JhbFByaXZhY3lBcmNoaXZlTXV0ZVJlc3BvbnNlIk0KIkFja25vd2xlZGdlUmVjZWl2ZWRNZXNzYWdlc1JlcXVlc3QSFgoObWF4X21lc3NhZ2VfaWQYASABKAMSDwoHdXNlcl9pZBgCIAEoAyJECiNBY2tub3dsZWRnZVJlY2VpdmVkTWVzc2FnZXNSZXNwb25zZRIdChVjYW5jZWxsZWRfbWVzc2FnZV9pZHMYASADKAMiUgoNU2F2ZWRSaW5ndG9uZRIKCgJpZBgBIAEoAxIPCgdmaWxlX2lkGAIgASgDEhEKCWZpbGVfbmFtZRgDIAEoCRIRCgltaW1lX3R5cGUYBCABKAkynw0KE05vdGlmaWNhdGlvblNlcnZpY2USbQoOUmVnaXN0ZXJEZXZpY2USLC5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuUmVnaXN0ZXJEZXZpY2VSZXF1ZXN0Gi0uaW1wdWxzZS5ub3RpZmljYXRpb25zLlJlZ2lzdGVyRGV2aWNlUmVzcG9uc2UScwoQVW5yZWdpc3RlckRldmljZRIuLmltcHVsc2Uubm90aWZpY2F0aW9ucy5VbnJlZ2lzdGVyRGV2aWNlUmVxdWVzdBovLmltcHVsc2Uubm90aWZpY2F0aW9ucy5VbnJlZ2lzdGVyRGV2aWNlUmVzcG9uc2USbwoRR2V0Tm90aWZ5U2V0dGluZ3MSLy5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuR2V0Tm90aWZ5U2V0dGluZ3NSZXF1ZXN0GikuaW1wdWxzZS5ub3RpZmljYXRpb25zLlBlZXJOb3RpZnlTZXR0aW5ncxJ/ChRVcGRhdGVOb3RpZnlTZXR0aW5ncxIyLmltcHVsc2Uubm90aWZpY2F0aW9ucy5VcGRhdGVOb3RpZnlTZXR0aW5nc1JlcXVlc3QaMy5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuVXBkYXRlTm90aWZ5U2V0dGluZ3NSZXNwb25zZRJ8ChNSZXNldE5vdGlmeVNldHRpbmdzEjEuaW1wdWxzZS5ub3RpZmljYXRpb25zLlJlc2V0Tm90aWZ5U2V0dGluZ3NSZXF1ZXN0GjIuaW1wdWxzZS5ub3RpZmljYXRpb25zLlJlc2V0Tm90aWZ5U2V0dGluZ3NSZXNwb25zZRJ8ChNHZXROb3RpZnlFeGNlcHRpb25zEjEuaW1wdWxzZS5ub3RpZmljYXRpb25zLkdldE5vdGlmeUV4Y2VwdGlvbnNSZXF1ZXN0GjIuaW1wdWxzZS5ub3RpZmljYXRpb25zLkdldE5vdGlmeUV4Y2VwdGlvbnNSZXNwb25zZRKXAQocR2V0Q29udGFjdFNpZ25VcE5vdGlmaWNhdGlvbhI6LmltcHVsc2Uubm90aWZpY2F0aW9ucy5HZXRDb250YWN0U2lnblVwTm90aWZpY2F0aW9uUmVxdWVzdBo7LmltcHVsc2Uubm90aWZpY2F0aW9ucy5HZXRDb250YWN0U2lnblVwTm90aWZpY2F0aW9uUmVzcG9uc2USlwEKHFNldENvbnRhY3RTaWduVXBOb3RpZmljYXRpb24SOi5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuU2V0Q29udGFjdFNpZ25VcE5vdGlmaWNhdGlvblJlcXVlc3QaOy5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuU2V0Q29udGFjdFNpZ25VcE5vdGlmaWNhdGlvblJlc3BvbnNlEm0KDlVwbG9hZFJpbmd0b25lEiwuaW1wdWxzZS5ub3RpZmljYXRpb25zLlVwbG9hZFJpbmd0b25lUmVxdWVzdBotLmltcHVsc2Uubm90aWZpY2F0aW9ucy5VcGxvYWRSaW5ndG9uZVJlc3BvbnNlEmcKDFNhdmVSaW5ndG9uZRIqLmltcHVsc2Uubm90aWZpY2F0aW9ucy5TYXZlUmluZ3RvbmVSZXF1ZXN0GisuaW1wdWxzZS5ub3RpZmljYXRpb25zLlNhdmVSaW5ndG9uZVJlc3BvbnNlEnYKEUdldFNhdmVkUmluZ3RvbmVzEi8uaW1wdWxzZS5ub3RpZmljYXRpb25zLkdldFNhdmVkUmluZ3RvbmVzUmVxdWVzdBowLmltcHVsc2Uubm90aWZpY2F0aW9ucy5HZXRTYXZlZFJpbmd0b25lc1Jlc3BvbnNlEpoBCh1BcHBseUdsb2JhbFByaXZhY3lBcmNoaXZlTXV0ZRI7LmltcHVsc2Uubm90aWZpY2F0aW9ucy5BcHBseUdsb2JhbFByaXZhY3lBcmNoaXZlTXV0ZVJlcXVlc3QaPC5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuQXBwbHlHbG9iYWxQcml2YWN5QXJjaGl2ZU11dGVSZXNwb25zZRKUAQobQWNrbm93bGVkZ2VSZWNlaXZlZE1lc3NhZ2VzEjkuaW1wdWxzZS5ub3RpZmljYXRpb25zLkFja25vd2xlZGdlUmVjZWl2ZWRNZXNzYWdlc1JlcXVlc3QaOi5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuQWNrbm93bGVkZ2VSZWNlaXZlZE1lc3NhZ2VzUmVzcG9uc2VCIKoCHUltcHVsc2VNLlByb3Rvcy5Ob3RpZmljYXRpb25zYgZwcm90bzM", [file_impulse_notifications_notification_types]);
-
-/**
- * @generated from message impulse.notifications.RegisterDeviceRequest
- */
-export type RegisterDeviceRequest = Message<"impulse.notifications.RegisterDeviceRequest"> & {
-  /**
-   * @generated from field: impulse.notifications.PushTokenType token_type = 1;
-   */
-  tokenType: PushTokenType;
-
-  /**
-   * @generated from field: string token = 2;
-   */
-  token: string;
-
-  /**
-   * @generated from field: bool app_sandbox = 3;
-   */
-  appSandbox: boolean;
-
-  /**
-   * auth key for push encryption
-   *
-   * @generated from field: bytes secret = 4;
-   */
-  secret: Uint8Array;
-
-  /**
-   * other logged-in user IDs on this device
-   *
-   * @generated from field: repeated int64 other_uids = 5;
-   */
-  otherUids: bigint[];
-
-  /**
-   * do not send pushes for muted chats
-   *
-   * @generated from field: bool no_muted = 6;
-   */
-  noMuted: boolean;
-};
-
-/**
- * Describes the message impulse.notifications.RegisterDeviceRequest.
- * Use `create(RegisterDeviceRequestSchema)` to create a new message.
- */
-export const RegisterDeviceRequestSchema: GenMessage<RegisterDeviceRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 0);
-
-/**
- * @generated from message impulse.notifications.RegisterDeviceResponse
- */
-export type RegisterDeviceResponse = Message<"impulse.notifications.RegisterDeviceResponse"> & {
-};
-
-/**
- * Describes the message impulse.notifications.RegisterDeviceResponse.
- * Use `create(RegisterDeviceResponseSchema)` to create a new message.
- */
-export const RegisterDeviceResponseSchema: GenMessage<RegisterDeviceResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 1);
-
-/**
- * @generated from message impulse.notifications.UnregisterDeviceRequest
- */
-export type UnregisterDeviceRequest = Message<"impulse.notifications.UnregisterDeviceRequest"> & {
-  /**
-   * @generated from field: impulse.notifications.PushTokenType token_type = 1;
-   */
-  tokenType: PushTokenType;
-
-  /**
-   * @generated from field: string token = 2;
-   */
-  token: string;
-
-  /**
-   * @generated from field: repeated int64 other_uids = 3;
-   */
-  otherUids: bigint[];
-};
-
-/**
- * Describes the message impulse.notifications.UnregisterDeviceRequest.
- * Use `create(UnregisterDeviceRequestSchema)` to create a new message.
- */
-export const UnregisterDeviceRequestSchema: GenMessage<UnregisterDeviceRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 2);
-
-/**
- * @generated from message impulse.notifications.UnregisterDeviceResponse
- */
-export type UnregisterDeviceResponse = Message<"impulse.notifications.UnregisterDeviceResponse"> & {
-};
-
-/**
- * Describes the message impulse.notifications.UnregisterDeviceResponse.
- * Use `create(UnregisterDeviceResponseSchema)` to create a new message.
- */
-export const UnregisterDeviceResponseSchema: GenMessage<UnregisterDeviceResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 3);
-
-/**
- * @generated from message impulse.notifications.GetNotifySettingsRequest
- */
-export type GetNotifySettingsRequest = Message<"impulse.notifications.GetNotifySettingsRequest"> & {
-  /**
-   * @generated from field: impulse.notifications.InputNotifyPeer peer = 1;
-   */
-  peer?: InputNotifyPeer | undefined;
-};
-
-/**
- * Describes the message impulse.notifications.GetNotifySettingsRequest.
- * Use `create(GetNotifySettingsRequestSchema)` to create a new message.
- */
-export const GetNotifySettingsRequestSchema: GenMessage<GetNotifySettingsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 4);
-
-/**
- * @generated from message impulse.notifications.UpdateNotifySettingsRequest
- */
-export type UpdateNotifySettingsRequest = Message<"impulse.notifications.UpdateNotifySettingsRequest"> & {
-  /**
-   * @generated from field: impulse.notifications.InputNotifyPeer peer = 1;
-   */
-  peer?: InputNotifyPeer | undefined;
-
-  /**
-   * @generated from field: impulse.notifications.PeerNotifySettings settings = 2;
-   */
-  settings?: PeerNotifySettings | undefined;
-};
-
-/**
- * Describes the message impulse.notifications.UpdateNotifySettingsRequest.
- * Use `create(UpdateNotifySettingsRequestSchema)` to create a new message.
- */
-export const UpdateNotifySettingsRequestSchema: GenMessage<UpdateNotifySettingsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 5);
-
-/**
- * @generated from message impulse.notifications.UpdateNotifySettingsResponse
- */
-export type UpdateNotifySettingsResponse = Message<"impulse.notifications.UpdateNotifySettingsResponse"> & {
-};
-
-/**
- * Describes the message impulse.notifications.UpdateNotifySettingsResponse.
- * Use `create(UpdateNotifySettingsResponseSchema)` to create a new message.
- */
-export const UpdateNotifySettingsResponseSchema: GenMessage<UpdateNotifySettingsResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 6);
-
-/**
- * @generated from message impulse.notifications.ResetNotifySettingsRequest
- */
-export type ResetNotifySettingsRequest = Message<"impulse.notifications.ResetNotifySettingsRequest"> & {
-};
-
-/**
- * Describes the message impulse.notifications.ResetNotifySettingsRequest.
- * Use `create(ResetNotifySettingsRequestSchema)` to create a new message.
- */
-export const ResetNotifySettingsRequestSchema: GenMessage<ResetNotifySettingsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 7);
-
-/**
- * @generated from message impulse.notifications.ResetNotifySettingsResponse
- */
-export type ResetNotifySettingsResponse = Message<"impulse.notifications.ResetNotifySettingsResponse"> & {
-};
-
-/**
- * Describes the message impulse.notifications.ResetNotifySettingsResponse.
- * Use `create(ResetNotifySettingsResponseSchema)` to create a new message.
- */
-export const ResetNotifySettingsResponseSchema: GenMessage<ResetNotifySettingsResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 8);
-
-/**
- * @generated from message impulse.notifications.GetNotifyExceptionsRequest
- */
-export type GetNotifyExceptionsRequest = Message<"impulse.notifications.GetNotifyExceptionsRequest"> & {
-  /**
-   * @generated from field: bool compare_sound = 1;
-   */
-  compareSound: boolean;
-
-  /**
-   * @generated from field: bool compare_stories = 2;
-   */
-  compareStories: boolean;
-
-  /**
-   * filter by peer type
-   *
-   * @generated from field: optional impulse.notifications.InputNotifyPeer peer = 3;
-   */
-  peer?: InputNotifyPeer | undefined;
-};
-
-/**
- * Describes the message impulse.notifications.GetNotifyExceptionsRequest.
- * Use `create(GetNotifyExceptionsRequestSchema)` to create a new message.
- */
-export const GetNotifyExceptionsRequestSchema: GenMessage<GetNotifyExceptionsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 9);
-
-/**
- * @generated from message impulse.notifications.GetNotifyExceptionsResponse
- */
-export type GetNotifyExceptionsResponse = Message<"impulse.notifications.GetNotifyExceptionsResponse"> & {
-  /**
-   * @generated from field: repeated impulse.notifications.NotifyException exceptions = 1;
-   */
-  exceptions: NotifyException[];
-};
-
-/**
- * Describes the message impulse.notifications.GetNotifyExceptionsResponse.
- * Use `create(GetNotifyExceptionsResponseSchema)` to create a new message.
- */
-export const GetNotifyExceptionsResponseSchema: GenMessage<GetNotifyExceptionsResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 10);
-
-/**
- * @generated from message impulse.notifications.GetContactSignUpNotificationRequest
- */
-export type GetContactSignUpNotificationRequest = Message<"impulse.notifications.GetContactSignUpNotificationRequest"> & {
-};
-
-/**
- * Describes the message impulse.notifications.GetContactSignUpNotificationRequest.
- * Use `create(GetContactSignUpNotificationRequestSchema)` to create a new message.
- */
-export const GetContactSignUpNotificationRequestSchema: GenMessage<GetContactSignUpNotificationRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 11);
-
-/**
- * @generated from message impulse.notifications.GetContactSignUpNotificationResponse
- */
-export type GetContactSignUpNotificationResponse = Message<"impulse.notifications.GetContactSignUpNotificationResponse"> & {
-  /**
-   * @generated from field: bool silent = 1;
-   */
-  silent: boolean;
-};
-
-/**
- * Describes the message impulse.notifications.GetContactSignUpNotificationResponse.
- * Use `create(GetContactSignUpNotificationResponseSchema)` to create a new message.
- */
-export const GetContactSignUpNotificationResponseSchema: GenMessage<GetContactSignUpNotificationResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 12);
-
-/**
- * @generated from message impulse.notifications.SetContactSignUpNotificationRequest
- */
-export type SetContactSignUpNotificationRequest = Message<"impulse.notifications.SetContactSignUpNotificationRequest"> & {
-  /**
-   * @generated from field: bool silent = 1;
-   */
-  silent: boolean;
-};
-
-/**
- * Describes the message impulse.notifications.SetContactSignUpNotificationRequest.
- * Use `create(SetContactSignUpNotificationRequestSchema)` to create a new message.
- */
-export const SetContactSignUpNotificationRequestSchema: GenMessage<SetContactSignUpNotificationRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 13);
-
-/**
- * @generated from message impulse.notifications.SetContactSignUpNotificationResponse
- */
-export type SetContactSignUpNotificationResponse = Message<"impulse.notifications.SetContactSignUpNotificationResponse"> & {
-};
-
-/**
- * Describes the message impulse.notifications.SetContactSignUpNotificationResponse.
- * Use `create(SetContactSignUpNotificationResponseSchema)` to create a new message.
- */
-export const SetContactSignUpNotificationResponseSchema: GenMessage<SetContactSignUpNotificationResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 14);
-
-/**
- * @generated from message impulse.notifications.UploadRingtoneRequest
- */
-export type UploadRingtoneRequest = Message<"impulse.notifications.UploadRingtoneRequest"> & {
-  /**
-   * @generated from field: int64 file_id = 1;
-   */
-  fileId: bigint;
-
-  /**
-   * @generated from field: string file_name = 2;
-   */
-  fileName: string;
-
-  /**
-   * @generated from field: string mime_type = 3;
-   */
-  mimeType: string;
-};
-
-/**
- * Describes the message impulse.notifications.UploadRingtoneRequest.
- * Use `create(UploadRingtoneRequestSchema)` to create a new message.
- */
-export const UploadRingtoneRequestSchema: GenMessage<UploadRingtoneRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 15);
-
-/**
- * @generated from message impulse.notifications.UploadRingtoneResponse
- */
-export type UploadRingtoneResponse = Message<"impulse.notifications.UploadRingtoneResponse"> & {
-  /**
-   * @generated from field: int64 ringtone_id = 1;
-   */
-  ringtoneId: bigint;
-};
-
-/**
- * Describes the message impulse.notifications.UploadRingtoneResponse.
- * Use `create(UploadRingtoneResponseSchema)` to create a new message.
- */
-export const UploadRingtoneResponseSchema: GenMessage<UploadRingtoneResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 16);
-
-/**
- * @generated from message impulse.notifications.SaveRingtoneRequest
- */
-export type SaveRingtoneRequest = Message<"impulse.notifications.SaveRingtoneRequest"> & {
-  /**
-   * @generated from field: int64 ringtone_id = 1;
-   */
-  ringtoneId: bigint;
-
-  /**
-   * @generated from field: bool unsave = 2;
-   */
-  unsave: boolean;
-};
-
-/**
- * Describes the message impulse.notifications.SaveRingtoneRequest.
- * Use `create(SaveRingtoneRequestSchema)` to create a new message.
- */
-export const SaveRingtoneRequestSchema: GenMessage<SaveRingtoneRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 17);
-
-/**
- * @generated from message impulse.notifications.SaveRingtoneResponse
- */
-export type SaveRingtoneResponse = Message<"impulse.notifications.SaveRingtoneResponse"> & {
-  /**
-   * @generated from field: bool saved = 1;
-   */
-  saved: boolean;
-};
-
-/**
- * Describes the message impulse.notifications.SaveRingtoneResponse.
- * Use `create(SaveRingtoneResponseSchema)` to create a new message.
- */
-export const SaveRingtoneResponseSchema: GenMessage<SaveRingtoneResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 18);
-
-/**
- * @generated from message impulse.notifications.GetSavedRingtonesRequest
- */
-export type GetSavedRingtonesRequest = Message<"impulse.notifications.GetSavedRingtonesRequest"> & {
-  /**
-   * @generated from field: int64 hash = 1;
-   */
-  hash: bigint;
-};
-
-/**
- * Describes the message impulse.notifications.GetSavedRingtonesRequest.
- * Use `create(GetSavedRingtonesRequestSchema)` to create a new message.
- */
-export const GetSavedRingtonesRequestSchema: GenMessage<GetSavedRingtonesRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 19);
-
-/**
- * @generated from message impulse.notifications.GetSavedRingtonesResponse
- */
-export type GetSavedRingtonesResponse = Message<"impulse.notifications.GetSavedRingtonesResponse"> & {
-  /**
-   * @generated from field: repeated impulse.notifications.SavedRingtone ringtones = 1;
-   */
-  ringtones: SavedRingtone[];
-
-  /**
-   * @generated from field: int64 hash = 2;
-   */
-  hash: bigint;
-
-  /**
-   * @generated from field: bool not_modified = 3;
-   */
-  notModified: boolean;
-};
-
-/**
- * Describes the message impulse.notifications.GetSavedRingtonesResponse.
- * Use `create(GetSavedRingtonesResponseSchema)` to create a new message.
- */
-export const GetSavedRingtonesResponseSchema: GenMessage<GetSavedRingtonesResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 20);
+  fileDesc("CjBpbXB1bHNlL25vdGlmaWNhdGlvbnMvbm90aWZpY2F0aW9uX3NlcnZpY2UucHJvdG8SFWltcHVsc2Uubm90aWZpY2F0aW9ucyJhCiRBcHBseUdsb2JhbFByaXZhY3lBcmNoaXZlTXV0ZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoAxIUCgxwZWVyX3VzZXJfaWQYAiABKAMSEgoKbXV0ZV91bnRpbBgDIAEoAyInCiVBcHBseUdsb2JhbFByaXZhY3lBcmNoaXZlTXV0ZVJlc3BvbnNlIlQKDVBlZXJOb3RpZnlLZXkSGwoEcGVlchgBIAEoCzINLmltcHVsc2UuUGVlchIXCgp0b3BfbXNnX2lkGAIgASgDSACIAQFCDQoLX3RvcF9tc2dfaWQiaAohR2V0UGVlck5vdGlmeVNldHRpbmdzQmF0Y2hSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAMSMgoEa2V5cxgCIAMoCzIkLmltcHVsc2Uubm90aWZpY2F0aW9ucy5QZWVyTm90aWZ5S2V5IokBChdQZWVyTm90aWZ5U2V0dGluZ3NFbnRyeRIxCgNrZXkYASABKAsyJC5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuUGVlck5vdGlmeUtleRI7CghzZXR0aW5ncxgCIAEoCzIpLmltcHVsc2Uubm90aWZpY2F0aW9ucy5QZWVyTm90aWZ5U2V0dGluZ3MiZQoiR2V0UGVlck5vdGlmeVNldHRpbmdzQmF0Y2hSZXNwb25zZRI/CgdlbnRyaWVzGAEgAygLMi4uaW1wdWxzZS5ub3RpZmljYXRpb25zLlBlZXJOb3RpZnlTZXR0aW5nc0VudHJ5Ik0KIkFja25vd2xlZGdlUmVjZWl2ZWRNZXNzYWdlc1JlcXVlc3QSFgoObWF4X21lc3NhZ2VfaWQYASABKAMSDwoHdXNlcl9pZBgCIAEoAyJECiNBY2tub3dsZWRnZVJlY2VpdmVkTWVzc2FnZXNSZXNwb25zZRIdChVjYW5jZWxsZWRfbWVzc2FnZV9pZHMYASADKAMy3QMKE05vdGlmaWNhdGlvblNlcnZpY2USmgEKHUFwcGx5R2xvYmFsUHJpdmFjeUFyY2hpdmVNdXRlEjsuaW1wdWxzZS5ub3RpZmljYXRpb25zLkFwcGx5R2xvYmFsUHJpdmFjeUFyY2hpdmVNdXRlUmVxdWVzdBo8LmltcHVsc2Uubm90aWZpY2F0aW9ucy5BcHBseUdsb2JhbFByaXZhY3lBcmNoaXZlTXV0ZVJlc3BvbnNlEpEBChpHZXRQZWVyTm90aWZ5U2V0dGluZ3NCYXRjaBI4LmltcHVsc2Uubm90aWZpY2F0aW9ucy5HZXRQZWVyTm90aWZ5U2V0dGluZ3NCYXRjaFJlcXVlc3QaOS5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuR2V0UGVlck5vdGlmeVNldHRpbmdzQmF0Y2hSZXNwb25zZRKUAQobQWNrbm93bGVkZ2VSZWNlaXZlZE1lc3NhZ2VzEjkuaW1wdWxzZS5ub3RpZmljYXRpb25zLkFja25vd2xlZGdlUmVjZWl2ZWRNZXNzYWdlc1JlcXVlc3QaOi5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuQWNrbm93bGVkZ2VSZWNlaXZlZE1lc3NhZ2VzUmVzcG9uc2VCIKoCHUltcHVsc2VNLlByb3Rvcy5Ob3RpZmljYXRpb25zYgZwcm90bzM", [file_impulse_notifications_notification_types, file_impulse_peer]);
 
 /**
  * @generated from message impulse.notifications.ApplyGlobalPrivacyArchiveMuteRequest
@@ -457,7 +47,7 @@ export type ApplyGlobalPrivacyArchiveMuteRequest = Message<"impulse.notification
  * Use `create(ApplyGlobalPrivacyArchiveMuteRequestSchema)` to create a new message.
  */
 export const ApplyGlobalPrivacyArchiveMuteRequestSchema: GenMessage<ApplyGlobalPrivacyArchiveMuteRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 21);
+  messageDesc(file_impulse_notifications_notification_service, 0);
 
 /**
  * @generated from message impulse.notifications.ApplyGlobalPrivacyArchiveMuteResponse
@@ -470,7 +60,96 @@ export type ApplyGlobalPrivacyArchiveMuteResponse = Message<"impulse.notificatio
  * Use `create(ApplyGlobalPrivacyArchiveMuteResponseSchema)` to create a new message.
  */
 export const ApplyGlobalPrivacyArchiveMuteResponseSchema: GenMessage<ApplyGlobalPrivacyArchiveMuteResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 22);
+  messageDesc(file_impulse_notifications_notification_service, 1);
+
+/**
+ * @generated from message impulse.notifications.PeerNotifyKey
+ */
+export type PeerNotifyKey = Message<"impulse.notifications.PeerNotifyKey"> & {
+  /**
+   * @generated from field: impulse.Peer peer = 1;
+   */
+  peer?: Peer | undefined;
+
+  /**
+   * set for a forum topic
+   *
+   * @generated from field: optional int64 top_msg_id = 2;
+   */
+  topMsgId?: bigint | undefined;
+};
+
+/**
+ * Describes the message impulse.notifications.PeerNotifyKey.
+ * Use `create(PeerNotifyKeySchema)` to create a new message.
+ */
+export const PeerNotifyKeySchema: GenMessage<PeerNotifyKey> = /*@__PURE__*/
+  messageDesc(file_impulse_notifications_notification_service, 2);
+
+/**
+ * @generated from message impulse.notifications.GetPeerNotifySettingsBatchRequest
+ */
+export type GetPeerNotifySettingsBatchRequest = Message<"impulse.notifications.GetPeerNotifySettingsBatchRequest"> & {
+  /**
+   * the VIEWER whose rows are read
+   *
+   * @generated from field: int64 user_id = 1;
+   */
+  userId: bigint;
+
+  /**
+   * @generated from field: repeated impulse.notifications.PeerNotifyKey keys = 2;
+   */
+  keys: PeerNotifyKey[];
+};
+
+/**
+ * Describes the message impulse.notifications.GetPeerNotifySettingsBatchRequest.
+ * Use `create(GetPeerNotifySettingsBatchRequestSchema)` to create a new message.
+ */
+export const GetPeerNotifySettingsBatchRequestSchema: GenMessage<GetPeerNotifySettingsBatchRequest> = /*@__PURE__*/
+  messageDesc(file_impulse_notifications_notification_service, 3);
+
+/**
+ * @generated from message impulse.notifications.PeerNotifySettingsEntry
+ */
+export type PeerNotifySettingsEntry = Message<"impulse.notifications.PeerNotifySettingsEntry"> & {
+  /**
+   * @generated from field: impulse.notifications.PeerNotifyKey key = 1;
+   */
+  key?: PeerNotifyKey | undefined;
+
+  /**
+   * @generated from field: impulse.notifications.PeerNotifySettings settings = 2;
+   */
+  settings?: PeerNotifySettings | undefined;
+};
+
+/**
+ * Describes the message impulse.notifications.PeerNotifySettingsEntry.
+ * Use `create(PeerNotifySettingsEntrySchema)` to create a new message.
+ */
+export const PeerNotifySettingsEntrySchema: GenMessage<PeerNotifySettingsEntry> = /*@__PURE__*/
+  messageDesc(file_impulse_notifications_notification_service, 4);
+
+/**
+ * @generated from message impulse.notifications.GetPeerNotifySettingsBatchResponse
+ */
+export type GetPeerNotifySettingsBatchResponse = Message<"impulse.notifications.GetPeerNotifySettingsBatchResponse"> & {
+  /**
+   * one per requested key, same order
+   *
+   * @generated from field: repeated impulse.notifications.PeerNotifySettingsEntry entries = 1;
+   */
+  entries: PeerNotifySettingsEntry[];
+};
+
+/**
+ * Describes the message impulse.notifications.GetPeerNotifySettingsBatchResponse.
+ * Use `create(GetPeerNotifySettingsBatchResponseSchema)` to create a new message.
+ */
+export const GetPeerNotifySettingsBatchResponseSchema: GenMessage<GetPeerNotifySettingsBatchResponse> = /*@__PURE__*/
+  messageDesc(file_impulse_notifications_notification_service, 5);
 
 /**
  * @generated from message impulse.notifications.AcknowledgeReceivedMessagesRequest
@@ -492,7 +171,7 @@ export type AcknowledgeReceivedMessagesRequest = Message<"impulse.notifications.
  * Use `create(AcknowledgeReceivedMessagesRequestSchema)` to create a new message.
  */
 export const AcknowledgeReceivedMessagesRequestSchema: GenMessage<AcknowledgeReceivedMessagesRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 23);
+  messageDesc(file_impulse_notifications_notification_service, 6);
 
 /**
  * @generated from message impulse.notifications.AcknowledgeReceivedMessagesResponse
@@ -509,132 +188,12 @@ export type AcknowledgeReceivedMessagesResponse = Message<"impulse.notifications
  * Use `create(AcknowledgeReceivedMessagesResponseSchema)` to create a new message.
  */
 export const AcknowledgeReceivedMessagesResponseSchema: GenMessage<AcknowledgeReceivedMessagesResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 24);
-
-/**
- * @generated from message impulse.notifications.SavedRingtone
- */
-export type SavedRingtone = Message<"impulse.notifications.SavedRingtone"> & {
-  /**
-   * @generated from field: int64 id = 1;
-   */
-  id: bigint;
-
-  /**
-   * @generated from field: int64 file_id = 2;
-   */
-  fileId: bigint;
-
-  /**
-   * @generated from field: string file_name = 3;
-   */
-  fileName: string;
-
-  /**
-   * @generated from field: string mime_type = 4;
-   */
-  mimeType: string;
-};
-
-/**
- * Describes the message impulse.notifications.SavedRingtone.
- * Use `create(SavedRingtoneSchema)` to create a new message.
- */
-export const SavedRingtoneSchema: GenMessage<SavedRingtone> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_service, 25);
+  messageDesc(file_impulse_notifications_notification_service, 7);
 
 /**
  * @generated from service impulse.notifications.NotificationService
  */
 export const NotificationService: GenService<{
-  /**
-   * @generated from rpc impulse.notifications.NotificationService.RegisterDevice
-   */
-  registerDevice: {
-    methodKind: "unary";
-    input: typeof RegisterDeviceRequestSchema;
-    output: typeof RegisterDeviceResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.notifications.NotificationService.UnregisterDevice
-   */
-  unregisterDevice: {
-    methodKind: "unary";
-    input: typeof UnregisterDeviceRequestSchema;
-    output: typeof UnregisterDeviceResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.notifications.NotificationService.GetNotifySettings
-   */
-  getNotifySettings: {
-    methodKind: "unary";
-    input: typeof GetNotifySettingsRequestSchema;
-    output: typeof PeerNotifySettingsSchema;
-  },
-  /**
-   * @generated from rpc impulse.notifications.NotificationService.UpdateNotifySettings
-   */
-  updateNotifySettings: {
-    methodKind: "unary";
-    input: typeof UpdateNotifySettingsRequestSchema;
-    output: typeof UpdateNotifySettingsResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.notifications.NotificationService.ResetNotifySettings
-   */
-  resetNotifySettings: {
-    methodKind: "unary";
-    input: typeof ResetNotifySettingsRequestSchema;
-    output: typeof ResetNotifySettingsResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.notifications.NotificationService.GetNotifyExceptions
-   */
-  getNotifyExceptions: {
-    methodKind: "unary";
-    input: typeof GetNotifyExceptionsRequestSchema;
-    output: typeof GetNotifyExceptionsResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.notifications.NotificationService.GetContactSignUpNotification
-   */
-  getContactSignUpNotification: {
-    methodKind: "unary";
-    input: typeof GetContactSignUpNotificationRequestSchema;
-    output: typeof GetContactSignUpNotificationResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.notifications.NotificationService.SetContactSignUpNotification
-   */
-  setContactSignUpNotification: {
-    methodKind: "unary";
-    input: typeof SetContactSignUpNotificationRequestSchema;
-    output: typeof SetContactSignUpNotificationResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.notifications.NotificationService.UploadRingtone
-   */
-  uploadRingtone: {
-    methodKind: "unary";
-    input: typeof UploadRingtoneRequestSchema;
-    output: typeof UploadRingtoneResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.notifications.NotificationService.SaveRingtone
-   */
-  saveRingtone: {
-    methodKind: "unary";
-    input: typeof SaveRingtoneRequestSchema;
-    output: typeof SaveRingtoneResponseSchema;
-  },
-  /**
-   * @generated from rpc impulse.notifications.NotificationService.GetSavedRingtones
-   */
-  getSavedRingtones: {
-    methodKind: "unary";
-    input: typeof GetSavedRingtonesRequestSchema;
-    output: typeof GetSavedRingtonesResponseSchema;
-  },
   /**
    * Cluster-internal: applies the server-side effect of
    * globalPrivacySettings.archive_and_mute_new_noncontact_peers (core.telegram.org/constructor/
@@ -651,6 +210,21 @@ export const NotificationService: GenService<{
     methodKind: "unary";
     input: typeof ApplyGlobalPrivacyArchiveMuteRequestSchema;
     output: typeof ApplyGlobalPrivacyArchiveMuteResponseSchema;
+  },
+  /**
+   * Cluster-internal: one viewer's own per-peer (and per-forum-topic) notify settings for a batch of
+   * peers, as stored -- a field the viewer never set stays ABSENT, because absent means "inherit the
+   * scope default" at the peer level (constructor/peerNotifySettings.md). Read by the services that
+   * build userFull / chatFull / channelFull / forumTopic, whose notify_settings must be the same value
+   * account.getNotifySettings answers for that peer. A key with no stored row is returned with an
+   * empty settings message, so the caller never has to guess between "no row" and "not asked".
+   *
+   * @generated from rpc impulse.notifications.NotificationService.GetPeerNotifySettingsBatch
+   */
+  getPeerNotifySettingsBatch: {
+    methodKind: "unary";
+    input: typeof GetPeerNotifySettingsBatchRequestSchema;
+    output: typeof GetPeerNotifySettingsBatchResponseSchema;
   },
   /**
    * @generated from rpc impulse.notifications.NotificationService.AcknowledgeReceivedMessages

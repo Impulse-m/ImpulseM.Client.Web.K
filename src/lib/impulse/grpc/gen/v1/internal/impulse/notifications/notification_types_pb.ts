@@ -2,15 +2,15 @@
 // @generated from file impulse/notifications/notification_types.proto (package impulse.notifications, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file impulse/notifications/notification_types.proto.
  */
 export const file_impulse_notifications_notification_types: GenFile = /*@__PURE__*/
-  fileDesc("Ci5pbXB1bHNlL25vdGlmaWNhdGlvbnMvbm90aWZpY2F0aW9uX3R5cGVzLnByb3RvEhVpbXB1bHNlLm5vdGlmaWNhdGlvbnMiYAoRTm90aWZpY2F0aW9uU291bmQSFwoNZGVmYXVsdF9zb3VuZBgBIAEoCEgAEhUKC3Jpbmd0b25lX2lkGAIgASgDSAASEgoIbm9fc291bmQYAyABKAhIAEIHCgVzb3VuZCKaBgoSUGVlck5vdGlmeVNldHRpbmdzEhoKDXNob3dfcHJldmlld3MYASABKAhIAIgBARITCgZzaWxlbnQYAiABKAhIAYgBARIXCgptdXRlX3VudGlsGAMgASgDSAKIAQESGgoNc3Rvcmllc19tdXRlZBgEIAEoCEgDiAEBEkAKCWlvc19zb3VuZBgFIAEoCzIoLmltcHVsc2Uubm90aWZpY2F0aW9ucy5Ob3RpZmljYXRpb25Tb3VuZEgEiAEBEkQKDWFuZHJvaWRfc291bmQYBiABKAsyKC5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuTm90aWZpY2F0aW9uU291bmRIBYgBARJCCgtvdGhlcl9zb3VuZBgHIAEoCzIoLmltcHVsc2Uubm90aWZpY2F0aW9ucy5Ob3RpZmljYXRpb25Tb3VuZEgGiAEBEiAKE3N0b3JpZXNfaGlkZV9zZW5kZXIYCCABKAhIB4gBARJIChFzdG9yaWVzX2lvc19zb3VuZBgJIAEoCzIoLmltcHVsc2Uubm90aWZpY2F0aW9ucy5Ob3RpZmljYXRpb25Tb3VuZEgIiAEBEkwKFXN0b3JpZXNfYW5kcm9pZF9zb3VuZBgKIAEoCzIoLmltcHVsc2Uubm90aWZpY2F0aW9ucy5Ob3RpZmljYXRpb25Tb3VuZEgJiAEBEkoKE3N0b3JpZXNfb3RoZXJfc291bmQYCyABKAsyKC5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuTm90aWZpY2F0aW9uU291bmRICogBAUIQCg5fc2hvd19wcmV2aWV3c0IJCgdfc2lsZW50Qg0KC19tdXRlX3VudGlsQhAKDl9zdG9yaWVzX211dGVkQgwKCl9pb3Nfc291bmRCEAoOX2FuZHJvaWRfc291bmRCDgoMX290aGVyX3NvdW5kQhYKFF9zdG9yaWVzX2hpZGVfc2VuZGVyQhQKEl9zdG9yaWVzX2lvc19zb3VuZEIYChZfc3Rvcmllc19hbmRyb2lkX3NvdW5kQhYKFF9zdG9yaWVzX290aGVyX3NvdW5kIjUKDkZvcnVtVG9waWNQZWVyEg8KB2NoYXRfaWQYASABKAMSEgoKdG9wX21zZ19pZBgCIAEoAyKuAQoPSW5wdXROb3RpZnlQZWVyEhEKB2NoYXRfaWQYASABKANIABITCglhbGxfdXNlcnMYAiABKAhIABITCglhbGxfY2hhdHMYAyABKAhIABIYCg5hbGxfYnJvYWRjYXN0cxgEIAEoCEgAEjwKC2ZvcnVtX3RvcGljGAUgASgLMiUuaW1wdWxzZS5ub3RpZmljYXRpb25zLkZvcnVtVG9waWNQZWVySABCBgoEcGVlciJfCg9Ob3RpZnlFeGNlcHRpb24SDwoHY2hhdF9pZBgBIAEoAxI7CghzZXR0aW5ncxgCIAEoCzIpLmltcHVsc2Uubm90aWZpY2F0aW9ucy5QZWVyTm90aWZ5U2V0dGluZ3MqigIKDVB1c2hUb2tlblR5cGUSHwobUFVTSF9UT0tFTl9UWVBFX1VOU1BFQ0lGSUVEEAASGAoUUFVTSF9UT0tFTl9UWVBFX0FQTlMQARIXChNQVVNIX1RPS0VOX1RZUEVfRkNNEAISGAoUUFVTSF9UT0tFTl9UWVBFX01QTlMQAxIdChlQVVNIX1RPS0VOX1RZUEVfTVBOU19WT0lQEAcSFwoTUFVTSF9UT0tFTl9UWVBFX1dOUxAIEhwKGFBVU0hfVE9LRU5fVFlQRV9XRUJfUFVTSBAKEhkKFVBVU0hfVE9LRU5fVFlQRV9USVpFThAMEhoKFlBVU0hfVE9LRU5fVFlQRV9IVUFXRUkQDUIgqgIdSW1wdWxzZU0uUHJvdG9zLk5vdGlmaWNhdGlvbnNiBnByb3RvMw");
+  fileDesc("Ci5pbXB1bHNlL25vdGlmaWNhdGlvbnMvbm90aWZpY2F0aW9uX3R5cGVzLnByb3RvEhVpbXB1bHNlLm5vdGlmaWNhdGlvbnMiYAoRTm90aWZpY2F0aW9uU291bmQSFwoNZGVmYXVsdF9zb3VuZBgBIAEoCEgAEhUKC3Jpbmd0b25lX2lkGAIgASgDSAASEgoIbm9fc291bmQYAyABKAhIAEIHCgVzb3VuZCKaBgoSUGVlck5vdGlmeVNldHRpbmdzEhoKDXNob3dfcHJldmlld3MYASABKAhIAIgBARITCgZzaWxlbnQYAiABKAhIAYgBARIXCgptdXRlX3VudGlsGAMgASgDSAKIAQESGgoNc3Rvcmllc19tdXRlZBgEIAEoCEgDiAEBEkAKCWlvc19zb3VuZBgFIAEoCzIoLmltcHVsc2Uubm90aWZpY2F0aW9ucy5Ob3RpZmljYXRpb25Tb3VuZEgEiAEBEkQKDWFuZHJvaWRfc291bmQYBiABKAsyKC5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuTm90aWZpY2F0aW9uU291bmRIBYgBARJCCgtvdGhlcl9zb3VuZBgHIAEoCzIoLmltcHVsc2Uubm90aWZpY2F0aW9ucy5Ob3RpZmljYXRpb25Tb3VuZEgGiAEBEiAKE3N0b3JpZXNfaGlkZV9zZW5kZXIYCCABKAhIB4gBARJIChFzdG9yaWVzX2lvc19zb3VuZBgJIAEoCzIoLmltcHVsc2Uubm90aWZpY2F0aW9ucy5Ob3RpZmljYXRpb25Tb3VuZEgIiAEBEkwKFXN0b3JpZXNfYW5kcm9pZF9zb3VuZBgKIAEoCzIoLmltcHVsc2Uubm90aWZpY2F0aW9ucy5Ob3RpZmljYXRpb25Tb3VuZEgJiAEBEkoKE3N0b3JpZXNfb3RoZXJfc291bmQYCyABKAsyKC5pbXB1bHNlLm5vdGlmaWNhdGlvbnMuTm90aWZpY2F0aW9uU291bmRICogBAUIQCg5fc2hvd19wcmV2aWV3c0IJCgdfc2lsZW50Qg0KC19tdXRlX3VudGlsQhAKDl9zdG9yaWVzX211dGVkQgwKCl9pb3Nfc291bmRCEAoOX2FuZHJvaWRfc291bmRCDgoMX290aGVyX3NvdW5kQhYKFF9zdG9yaWVzX2hpZGVfc2VuZGVyQhQKEl9zdG9yaWVzX2lvc19zb3VuZEIYChZfc3Rvcmllc19hbmRyb2lkX3NvdW5kQhYKFF9zdG9yaWVzX290aGVyX3NvdW5kQiCqAh1JbXB1bHNlTS5Qcm90b3MuTm90aWZpY2F0aW9uc2IGcHJvdG8z");
 
 /**
  * @generated from message impulse.notifications.NotificationSound
@@ -119,155 +119,4 @@ export type PeerNotifySettings = Message<"impulse.notifications.PeerNotifySettin
  */
 export const PeerNotifySettingsSchema: GenMessage<PeerNotifySettings> = /*@__PURE__*/
   messageDesc(file_impulse_notifications_notification_types, 1);
-
-/**
- * @generated from message impulse.notifications.ForumTopicPeer
- */
-export type ForumTopicPeer = Message<"impulse.notifications.ForumTopicPeer"> & {
-  /**
-   * @generated from field: int64 chat_id = 1;
-   */
-  chatId: bigint;
-
-  /**
-   * @generated from field: int64 top_msg_id = 2;
-   */
-  topMsgId: bigint;
-};
-
-/**
- * Describes the message impulse.notifications.ForumTopicPeer.
- * Use `create(ForumTopicPeerSchema)` to create a new message.
- */
-export const ForumTopicPeerSchema: GenMessage<ForumTopicPeer> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_types, 2);
-
-/**
- * @generated from message impulse.notifications.InputNotifyPeer
- */
-export type InputNotifyPeer = Message<"impulse.notifications.InputNotifyPeer"> & {
-  /**
-   * @generated from oneof impulse.notifications.InputNotifyPeer.peer
-   */
-  peer: {
-    /**
-     * @generated from field: int64 chat_id = 1;
-     */
-    value: bigint;
-    case: "chatId";
-  } | {
-    /**
-     * @generated from field: bool all_users = 2;
-     */
-    value: boolean;
-    case: "allUsers";
-  } | {
-    /**
-     * @generated from field: bool all_chats = 3;
-     */
-    value: boolean;
-    case: "allChats";
-  } | {
-    /**
-     * @generated from field: bool all_broadcasts = 4;
-     */
-    value: boolean;
-    case: "allBroadcasts";
-  } | {
-    /**
-     * @generated from field: impulse.notifications.ForumTopicPeer forum_topic = 5;
-     */
-    value: ForumTopicPeer;
-    case: "forumTopic";
-  } | { case: undefined; value?: undefined };
-};
-
-/**
- * Describes the message impulse.notifications.InputNotifyPeer.
- * Use `create(InputNotifyPeerSchema)` to create a new message.
- */
-export const InputNotifyPeerSchema: GenMessage<InputNotifyPeer> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_types, 3);
-
-/**
- * @generated from message impulse.notifications.NotifyException
- */
-export type NotifyException = Message<"impulse.notifications.NotifyException"> & {
-  /**
-   * @generated from field: int64 chat_id = 1;
-   */
-  chatId: bigint;
-
-  /**
-   * @generated from field: impulse.notifications.PeerNotifySettings settings = 2;
-   */
-  settings?: PeerNotifySettings | undefined;
-};
-
-/**
- * Describes the message impulse.notifications.NotifyException.
- * Use `create(NotifyExceptionSchema)` to create a new message.
- */
-export const NotifyExceptionSchema: GenMessage<NotifyException> = /*@__PURE__*/
-  messageDesc(file_impulse_notifications_notification_types, 4);
-
-/**
- * @generated from enum impulse.notifications.PushTokenType
- */
-export enum PushTokenType {
-  /**
-   * @generated from enum value: PUSH_TOKEN_TYPE_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: PUSH_TOKEN_TYPE_APNS = 1;
-   */
-  APNS = 1,
-
-  /**
-   * @generated from enum value: PUSH_TOKEN_TYPE_FCM = 2;
-   */
-  FCM = 2,
-
-  /**
-   * was incorrectly labeled WNS
-   *
-   * @generated from enum value: PUSH_TOKEN_TYPE_MPNS = 3;
-   */
-  MPNS = 3,
-
-  /**
-   * @generated from enum value: PUSH_TOKEN_TYPE_MPNS_VOIP = 7;
-   */
-  MPNS_VOIP = 7,
-
-  /**
-   * correct value per Telegram
-   *
-   * @generated from enum value: PUSH_TOKEN_TYPE_WNS = 8;
-   */
-  WNS = 8,
-
-  /**
-   * @generated from enum value: PUSH_TOKEN_TYPE_WEB_PUSH = 10;
-   */
-  WEB_PUSH = 10,
-
-  /**
-   * @generated from enum value: PUSH_TOKEN_TYPE_TIZEN = 12;
-   */
-  TIZEN = 12,
-
-  /**
-   * @generated from enum value: PUSH_TOKEN_TYPE_HUAWEI = 13;
-   */
-  HUAWEI = 13,
-}
-
-/**
- * Describes the enum impulse.notifications.PushTokenType.
- */
-export const PushTokenTypeSchema: GenEnum<PushTokenType> = /*@__PURE__*/
-  enumDesc(file_impulse_notifications_notification_types, 0);
 

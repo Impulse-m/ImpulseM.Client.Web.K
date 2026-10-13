@@ -370,10 +370,12 @@ export function protoToTL(value: any, schema?: DescMessage): any {
     return value.map((item) => protoToTL(item, schema));
   }
 
-  // A successful empty BoolResponse stands for TL `boolTrue`; a false outcome
-  // arrives as an error, never as this message.
   if(value.$typeName === 'v1.BoolResponse') {
-    return true;
+    if(typeof value.value !== 'boolean') {
+      throw new Error('v1.BoolResponse arrived without a value');
+    }
+
+    return value.value;
   }
 
   // Without a schema we cannot restore snake_case names, so fall back to the

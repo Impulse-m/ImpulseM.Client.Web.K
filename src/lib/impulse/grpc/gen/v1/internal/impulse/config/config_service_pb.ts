@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { GiftCodeOption, LangPackString, Language, LanguageSchema, PremiumFeature, Theme, ThemeSchema, WallPaper, WallPaperSchema } from "./config_types_pb";
+import type { GiftCodeOption, Theme, ThemeSchema } from "./config_types_pb";
 import { file_impulse_config_config_types } from "./config_types_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/config/config_service.proto.
  */
 export const file_impulse_config_config_service: GenFile = /*@__PURE__*/
-  fileDesc("CiNpbXB1bHNlL2NvbmZpZy9jb25maWdfc2VydmljZS5wcm90bxIOaW1wdWxzZS5jb25maWciXwoPR2V0VGhlbWVSZXF1ZXN0EhAKCHRoZW1lX2lkGAEgASgDEhMKBmZvcm1hdBgCIAEoCUgAiAEBEhEKBHNsdWcYAyABKAlIAYgBAUIJCgdfZm9ybWF0QgcKBV9zbHVnIiAKEEdldFRoZW1lc1JlcXVlc3QSDAoEaGFzaBgBIAEoAyJeChFHZXRUaGVtZXNSZXNwb25zZRIlCgZ0aGVtZXMYASADKAsyFS5pbXB1bHNlLmNvbmZpZy5UaGVtZRIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCJdChNJbnN0YWxsVGhlbWVSZXF1ZXN0EhAKCHRoZW1lX2lkGAEgASgDEgwKBGRhcmsYAiABKAgSFwoKYmFzZV90aGVtZRgDIAEoCUgAiAEBQg0KC19iYXNlX3RoZW1lIhYKFEluc3RhbGxUaGVtZVJlc3BvbnNlIiQKFEdldENoYXRUaGVtZXNSZXF1ZXN0EgwKBGhhc2gYASABKAMiYgoVR2V0Q2hhdFRoZW1lc1Jlc3BvbnNlEiUKBnRoZW1lcxgBIAMoCzIVLmltcHVsc2UuY29uZmlnLlRoZW1lEgwKBGhhc2gYAiABKAMSFAoMbm90X21vZGlmaWVkGAMgASgIIiQKFEdldFdhbGxQYXBlcnNSZXF1ZXN0EgwKBGhhc2gYASABKAMiagoVR2V0V2FsbFBhcGVyc1Jlc3BvbnNlEi0KCndhbGxwYXBlcnMYASADKAsyGS5pbXB1bHNlLmNvbmZpZy5XYWxsUGFwZXISDAoEaGFzaBgCIAEoAxIUCgxub3RfbW9kaWZpZWQYAyABKAgiRwoTR2V0V2FsbFBhcGVyUmVxdWVzdBIWCgx3YWxscGFwZXJfaWQYASABKANIABIOCgRzbHVnGAIgASgJSABCCAoGbG9va3VwInwKFlVwbG9hZFdhbGxQYXBlclJlcXVlc3QSDwoHZmlsZV9pZBgBIAEoAxIRCgltaW1lX3R5cGUYAiABKAkSEAoIZm9yX2NoYXQYAyABKAgSGgoNc2V0dGluZ3NfanNvbhgEIAEoCUgAiAEBQhAKDl9zZXR0aW5nc19qc29uImoKFFNhdmVXYWxsUGFwZXJSZXF1ZXN0EhQKDHdhbGxwYXBlcl9pZBgBIAEoAxIOCgZ1bnNhdmUYAiABKAgSGgoNc2V0dGluZ3NfanNvbhgDIAEoCUgAiAEBQhAKDl9zZXR0aW5nc19qc29uIhcKFVNhdmVXYWxsUGFwZXJSZXNwb25zZSIYChZSZXNldFdhbGxQYXBlcnNSZXF1ZXN0IhkKF1Jlc2V0V2FsbFBhcGVyc1Jlc3BvbnNlIhgKFkdldFByZW1pdW1Qcm9tb1JlcXVlc3QiewoZUHJlbWl1bVN1YnNjcmlwdGlvbk9wdGlvbhIOCgZtb250aHMYASABKAUSEAoIY3VycmVuY3kYAiABKAkSDgoGYW1vdW50GAMgASgDEhoKDXN0b3JlX3Byb2R1Y3QYBCABKAlIAIgBAUIQCg5fc3RvcmVfcHJvZHVjdCLTAQoXR2V0UHJlbWl1bVByb21vUmVzcG9uc2USEwoLZGVzY3JpcHRpb24YASABKAkSMAoIZmVhdHVyZXMYAiADKAsyHi5pbXB1bHNlLmNvbmZpZy5QcmVtaXVtRmVhdHVyZRIWCg52aWRlb19zZWN0aW9ucxgDIAMoCRIWCg52aWRlb19maWxlX2lkcxgEIAMoAxJBCg5wZXJpb2Rfb3B0aW9ucxgFIAMoCzIpLmltcHVsc2UuY29uZmlnLlByZW1pdW1TdWJzY3JpcHRpb25PcHRpb24iUAogR2V0UHJlbWl1bUdpZnRDb2RlT3B0aW9uc1JlcXVlc3QSGgoNYm9vc3RfcGVlcl9pZBgBIAEoA0gAiAEBQhAKDl9ib29zdF9wZWVyX2lkIlQKIUdldFByZW1pdW1HaWZ0Q29kZU9wdGlvbnNSZXNwb25zZRIvCgdvcHRpb25zGAEgAygLMh4uaW1wdWxzZS5jb25maWcuR2lmdENvZGVPcHRpb24iIwoTR2V0QXBwQ29uZmlnUmVxdWVzdBIMCgRoYXNoGAEgASgDIk8KFEdldEFwcENvbmZpZ1Jlc3BvbnNlEhMKC2NvbmZpZ19qc29uGAEgASgJEgwKBGhhc2gYAiABKAMSFAoMbm90X21vZGlmaWVkGAMgASgIIiUKE0dldEFwcFVwZGF0ZVJlcXVlc3QSDgoGc291cmNlGAEgASgJIpgBChRHZXRBcHBVcGRhdGVSZXNwb25zZRIQCgN1cmwYASABKAlIAIgBARIRCgR0ZXh0GAIgASgJSAGIAQESEAoIY2FuX3NraXAYAyABKAgSDwoCaWQYBCABKAVIAogBARIUCgd2ZXJzaW9uGAUgASgJSAOIAQFCBgoEX3VybEIHCgVfdGV4dEIFCgNfaWRCCgoIX3ZlcnNpb24iFQoTR2V0TmVhcmVzdERjUmVxdWVzdCJHChRHZXROZWFyZXN0RGNSZXNwb25zZRIPCgdjb3VudHJ5GAEgASgJEg0KBWRjX2lkGAIgASgFEg8KB3RoaXNfZGMYAyABKAUiIwoTR2V0TGFuZ3VhZ2VzUmVxdWVzdBIMCgRoYXNoGAEgASgDImcKFEdldExhbmd1YWdlc1Jlc3BvbnNlEisKCWxhbmd1YWdlcxgBIAMoCzIYLmltcHVsc2UuY29uZmlnLkxhbmd1YWdlEgwKBGhhc2gYAiABKAMSFAoMbm90X21vZGlmaWVkGAMgASgIIjoKEkdldExhbmd1YWdlUmVxdWVzdBIRCglsYW5nX2NvZGUYASABKAkSEQoJbGFuZ19wYWNrGAIgASgJIjoKEkdldExhbmdQYWNrUmVxdWVzdBIRCglsYW5nX2NvZGUYASABKAkSEQoJbGFuZ19wYWNrGAIgASgJIoABChNHZXRMYW5nUGFja1Jlc3BvbnNlEi8KB3N0cmluZ3MYASADKAsyHi5pbXB1bHNlLmNvbmZpZy5MYW5nUGFja1N0cmluZxIRCglsYW5nX2NvZGUYAiABKAkSDwoHdmVyc2lvbhgDIAEoBRIUCgxmcm9tX3ZlcnNpb24YBCABKAUiRwoRR2V0U3RyaW5nc1JlcXVlc3QSEQoJbGFuZ19jb2RlGAEgASgJEgwKBGtleXMYAiADKAkSEQoJbGFuZ19wYWNrGAMgASgJIkUKEkdldFN0cmluZ3NSZXNwb25zZRIvCgdzdHJpbmdzGAEgAygLMh4uaW1wdWxzZS5jb25maWcuTGFuZ1BhY2tTdHJpbmciVgoYR2V0TGFuZ0RpZmZlcmVuY2VSZXF1ZXN0EhEKCWxhbmdfY29kZRgBIAEoCRIUCgxmcm9tX3ZlcnNpb24YAiABKAUSEQoJbGFuZ19wYWNrGAMgASgJIhIKEEdldENvbmZpZ1JlcXVlc3QixgIKEUdldENvbmZpZ1Jlc3BvbnNlEg8KB2V4cGlyZXMYASABKAUSGgoSbWF4X21lc3NhZ2VfbGVuZ3RoGAIgASgFEhcKD2VkaXRfdGltZV9saW1pdBgDIAEoBRIWCg5tYXhfZ3JvdXBfc2l6ZRgEIAEoBRIbChNtYXhfZm9yd2FyZGVkX2NvdW50GAUgASgFEh0KEGRlZmF1bHRfcmVhY3Rpb24YBiABKAlIAIgBARIgChNnaWZfc2VhcmNoX3VzZXJuYW1lGAcgASgJSAGIAQESHAoPYXV0b2xvZ2luX3Rva2VuGAggASgJSAKIAQESFgoOaXNfdGVzdF9zZXJ2ZXIYCSABKAhCEwoRX2RlZmF1bHRfcmVhY3Rpb25CFgoUX2dpZl9zZWFyY2hfdXNlcm5hbWVCEgoQX2F1dG9sb2dpbl90b2tlbiI0ChBTYXZlVGhlbWVSZXF1ZXN0EhAKCHRoZW1lX2lkGAEgASgDEg4KBnVuc2F2ZRgCIAEoCCIiChFTYXZlVGhlbWVSZXNwb25zZRINCgVzYXZlZBgBIAEoCCJKCg5UZXJtc09mU2VydmljZRIKCgJpZBgBIAEoCRIMCgR0ZXh0GAIgASgJEg8KB21pbl9hZ2UYAyABKAUSDQoFcG9wdXAYBCABKAgiIAoeR2V0VGVybXNPZlNlcnZpY2VVcGRhdGVSZXF1ZXN0ImwKH0dldFRlcm1zT2ZTZXJ2aWNlVXBkYXRlUmVzcG9uc2USMAoDdG9zGAEgASgLMh4uaW1wdWxzZS5jb25maWcuVGVybXNPZlNlcnZpY2VIAIgBARIPCgdleHBpcmVzGAIgASgDQgYKBF90b3MiLQobQWNjZXB0VGVybXNPZlNlcnZpY2VSZXF1ZXN0Eg4KBnRvc19pZBgBIAEoCSIeChxBY2NlcHRUZXJtc09mU2VydmljZVJlc3BvbnNlIsABCg9QZWVyQ29sb3JPcHRpb24SEAoIY29sb3JfaWQYASABKAUSDgoGY29sb3JzGAIgAygFEhMKC2RhcmtfY29sb3JzGAMgAygFEg4KBmhpZGRlbhgEIAEoCBIeChFjaGFubmVsX21pbl9sZXZlbBgFIAEoA0gAiAEBEhwKD2dyb3VwX21pbl9sZXZlbBgGIAEoA0gBiAEBQhQKEl9jaGFubmVsX21pbl9sZXZlbEISChBfZ3JvdXBfbWluX2xldmVsIiQKFEdldFBlZXJDb2xvcnNSZXF1ZXN0EgwKBGhhc2gYASABKAMibAoVR2V0UGVlckNvbG9yc1Jlc3BvbnNlEi8KBmNvbG9ycxgBIAMoCzIfLmltcHVsc2UuY29uZmlnLlBlZXJDb2xvck9wdGlvbhIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCIrChtHZXRQZWVyUHJvZmlsZUNvbG9yc1JlcXVlc3QSDAoEaGFzaBgBIAEoAyJzChxHZXRQZWVyUHJvZmlsZUNvbG9yc1Jlc3BvbnNlEi8KBmNvbG9ycxgBIAMoCzIfLmltcHVsc2UuY29uZmlnLlBlZXJDb2xvck9wdGlvbhIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCI9Cg1UaW1lem9uZUVudHJ5EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEgoKdXRjX29mZnNldBgDIAEoBSInChdHZXRUaW1lem9uZXNMaXN0UmVxdWVzdBIMCgRoYXNoGAEgASgDInAKGEdldFRpbWV6b25lc0xpc3RSZXNwb25zZRIwCgl0aW1lem9uZXMYASADKAsyHS5pbXB1bHNlLmNvbmZpZy5UaW1lem9uZUVudHJ5EgwKBGhhc2gYAiABKAMSFAoMbm90X21vZGlmaWVkGAMgASgIInwKDENvdW50cnlFbnRyeRIMCgRpc28yGAEgASgJEhQKDGRlZmF1bHRfbmFtZRgCIAEoCRIMCgRuYW1lGAMgASgJEioKBWNvZGVzGAQgAygLMhsuaW1wdWxzZS5jb25maWcuQ291bnRyeUNvZGUSDgoGaGlkZGVuGAUgASgIIj8KC0NvdW50cnlDb2RlEgwKBGNvZGUYASABKAkSEAoIcHJlZml4ZXMYAiADKAkSEAoIcGF0dGVybnMYAyADKAkiOgoXR2V0Q291bnRyaWVzTGlzdFJlcXVlc3QSEQoJbGFuZ19jb2RlGAEgASgJEgwKBGhhc2gYAiABKAMibwoYR2V0Q291bnRyaWVzTGlzdFJlc3BvbnNlEi8KCWNvdW50cmllcxgBIAMoCzIcLmltcHVsc2UuY29uZmlnLkNvdW50cnlFbnRyeRIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCIVChNHZXRQcm9tb0RhdGFSZXF1ZXN0It8BChRHZXRQcm9tb0RhdGFSZXNwb25zZRIaCg1wcm9tb19jaGF0X2lkGAEgASgDSACIAQESFQoIcHNhX3R5cGUYAiABKAlIAYgBARIYCgtwc2FfbWVzc2FnZRgDIAEoCUgCiAEBEg8KB2V4cGlyZXMYBCABKAMSGwoTcGVuZGluZ19zdWdnZXN0aW9ucxgFIAMoCRIdChVkaXNtaXNzZWRfc3VnZ2VzdGlvbnMYBiADKAlCEAoOX3Byb21vX2NoYXRfaWRCCwoJX3BzYV90eXBlQg4KDF9wc2FfbWVzc2FnZSJQChhEaXNtaXNzU3VnZ2VzdGlvblJlcXVlc3QSEgoKc3VnZ2VzdGlvbhgBIAEoCRIUCgdwZWVyX2lkGAIgASgDSACIAQFCCgoIX3BlZXJfaWQiGwoZRGlzbWlzc1N1Z2dlc3Rpb25SZXNwb25zZTLMFQoNQ29uZmlnU2VydmljZRJCCghHZXRUaGVtZRIfLmltcHVsc2UuY29uZmlnLkdldFRoZW1lUmVxdWVzdBoVLmltcHVsc2UuY29uZmlnLlRoZW1lElAKCUdldFRoZW1lcxIgLmltcHVsc2UuY29uZmlnLkdldFRoZW1lc1JlcXVlc3QaIS5pbXB1bHNlLmNvbmZpZy5HZXRUaGVtZXNSZXNwb25zZRJZCgxJbnN0YWxsVGhlbWUSIy5pbXB1bHNlLmNvbmZpZy5JbnN0YWxsVGhlbWVSZXF1ZXN0GiQuaW1wdWxzZS5jb25maWcuSW5zdGFsbFRoZW1lUmVzcG9uc2USXAoNR2V0Q2hhdFRoZW1lcxIkLmltcHVsc2UuY29uZmlnLkdldENoYXRUaGVtZXNSZXF1ZXN0GiUuaW1wdWxzZS5jb25maWcuR2V0Q2hhdFRoZW1lc1Jlc3BvbnNlElwKDUdldFdhbGxQYXBlcnMSJC5pbXB1bHNlLmNvbmZpZy5HZXRXYWxsUGFwZXJzUmVxdWVzdBolLmltcHVsc2UuY29uZmlnLkdldFdhbGxQYXBlcnNSZXNwb25zZRJOCgxHZXRXYWxsUGFwZXISIy5pbXB1bHNlLmNvbmZpZy5HZXRXYWxsUGFwZXJSZXF1ZXN0GhkuaW1wdWxzZS5jb25maWcuV2FsbFBhcGVyElQKD1VwbG9hZFdhbGxQYXBlchImLmltcHVsc2UuY29uZmlnLlVwbG9hZFdhbGxQYXBlclJlcXVlc3QaGS5pbXB1bHNlLmNvbmZpZy5XYWxsUGFwZXISXAoNU2F2ZVdhbGxQYXBlchIkLmltcHVsc2UuY29uZmlnLlNhdmVXYWxsUGFwZXJSZXF1ZXN0GiUuaW1wdWxzZS5jb25maWcuU2F2ZVdhbGxQYXBlclJlc3BvbnNlEmIKD1Jlc2V0V2FsbFBhcGVycxImLmltcHVsc2UuY29uZmlnLlJlc2V0V2FsbFBhcGVyc1JlcXVlc3QaJy5pbXB1bHNlLmNvbmZpZy5SZXNldFdhbGxQYXBlcnNSZXNwb25zZRJiCg9HZXRQcmVtaXVtUHJvbW8SJi5pbXB1bHNlLmNvbmZpZy5HZXRQcmVtaXVtUHJvbW9SZXF1ZXN0GicuaW1wdWxzZS5jb25maWcuR2V0UHJlbWl1bVByb21vUmVzcG9uc2USgAEKGUdldFByZW1pdW1HaWZ0Q29kZU9wdGlvbnMSMC5pbXB1bHNlLmNvbmZpZy5HZXRQcmVtaXVtR2lmdENvZGVPcHRpb25zUmVxdWVzdBoxLmltcHVsc2UuY29uZmlnLkdldFByZW1pdW1HaWZ0Q29kZU9wdGlvbnNSZXNwb25zZRJZCgxHZXRBcHBDb25maWcSIy5pbXB1bHNlLmNvbmZpZy5HZXRBcHBDb25maWdSZXF1ZXN0GiQuaW1wdWxzZS5jb25maWcuR2V0QXBwQ29uZmlnUmVzcG9uc2USWQoMR2V0QXBwVXBkYXRlEiMuaW1wdWxzZS5jb25maWcuR2V0QXBwVXBkYXRlUmVxdWVzdBokLmltcHVsc2UuY29uZmlnLkdldEFwcFVwZGF0ZVJlc3BvbnNlElkKDEdldE5lYXJlc3REYxIjLmltcHVsc2UuY29uZmlnLkdldE5lYXJlc3REY1JlcXVlc3QaJC5pbXB1bHNlLmNvbmZpZy5HZXROZWFyZXN0RGNSZXNwb25zZRJZCgxHZXRMYW5ndWFnZXMSIy5pbXB1bHNlLmNvbmZpZy5HZXRMYW5ndWFnZXNSZXF1ZXN0GiQuaW1wdWxzZS5jb25maWcuR2V0TGFuZ3VhZ2VzUmVzcG9uc2USSwoLR2V0TGFuZ3VhZ2USIi5pbXB1bHNlLmNvbmZpZy5HZXRMYW5ndWFnZVJlcXVlc3QaGC5pbXB1bHNlLmNvbmZpZy5MYW5ndWFnZRJWCgtHZXRMYW5nUGFjaxIiLmltcHVsc2UuY29uZmlnLkdldExhbmdQYWNrUmVxdWVzdBojLmltcHVsc2UuY29uZmlnLkdldExhbmdQYWNrUmVzcG9uc2USUwoKR2V0U3RyaW5ncxIhLmltcHVsc2UuY29uZmlnLkdldFN0cmluZ3NSZXF1ZXN0GiIuaW1wdWxzZS5jb25maWcuR2V0U3RyaW5nc1Jlc3BvbnNlEmIKEUdldExhbmdEaWZmZXJlbmNlEiguaW1wdWxzZS5jb25maWcuR2V0TGFuZ0RpZmZlcmVuY2VSZXF1ZXN0GiMuaW1wdWxzZS5jb25maWcuR2V0TGFuZ1BhY2tSZXNwb25zZRJQCglHZXRDb25maWcSIC5pbXB1bHNlLmNvbmZpZy5HZXRDb25maWdSZXF1ZXN0GiEuaW1wdWxzZS5jb25maWcuR2V0Q29uZmlnUmVzcG9uc2USUAoJU2F2ZVRoZW1lEiAuaW1wdWxzZS5jb25maWcuU2F2ZVRoZW1lUmVxdWVzdBohLmltcHVsc2UuY29uZmlnLlNhdmVUaGVtZVJlc3BvbnNlEnoKF0dldFRlcm1zT2ZTZXJ2aWNlVXBkYXRlEi4uaW1wdWxzZS5jb25maWcuR2V0VGVybXNPZlNlcnZpY2VVcGRhdGVSZXF1ZXN0Gi8uaW1wdWxzZS5jb25maWcuR2V0VGVybXNPZlNlcnZpY2VVcGRhdGVSZXNwb25zZRJxChRBY2NlcHRUZXJtc09mU2VydmljZRIrLmltcHVsc2UuY29uZmlnLkFjY2VwdFRlcm1zT2ZTZXJ2aWNlUmVxdWVzdBosLmltcHVsc2UuY29uZmlnLkFjY2VwdFRlcm1zT2ZTZXJ2aWNlUmVzcG9uc2USXAoNR2V0UGVlckNvbG9ycxIkLmltcHVsc2UuY29uZmlnLkdldFBlZXJDb2xvcnNSZXF1ZXN0GiUuaW1wdWxzZS5jb25maWcuR2V0UGVlckNvbG9yc1Jlc3BvbnNlEnEKFEdldFBlZXJQcm9maWxlQ29sb3JzEisuaW1wdWxzZS5jb25maWcuR2V0UGVlclByb2ZpbGVDb2xvcnNSZXF1ZXN0GiwuaW1wdWxzZS5jb25maWcuR2V0UGVlclByb2ZpbGVDb2xvcnNSZXNwb25zZRJlChBHZXRUaW1lem9uZXNMaXN0EicuaW1wdWxzZS5jb25maWcuR2V0VGltZXpvbmVzTGlzdFJlcXVlc3QaKC5pbXB1bHNlLmNvbmZpZy5HZXRUaW1lem9uZXNMaXN0UmVzcG9uc2USZQoQR2V0Q291bnRyaWVzTGlzdBInLmltcHVsc2UuY29uZmlnLkdldENvdW50cmllc0xpc3RSZXF1ZXN0GiguaW1wdWxzZS5jb25maWcuR2V0Q291bnRyaWVzTGlzdFJlc3BvbnNlElkKDEdldFByb21vRGF0YRIjLmltcHVsc2UuY29uZmlnLkdldFByb21vRGF0YVJlcXVlc3QaJC5pbXB1bHNlLmNvbmZpZy5HZXRQcm9tb0RhdGFSZXNwb25zZRJoChFEaXNtaXNzU3VnZ2VzdGlvbhIoLmltcHVsc2UuY29uZmlnLkRpc21pc3NTdWdnZXN0aW9uUmVxdWVzdBopLmltcHVsc2UuY29uZmlnLkRpc21pc3NTdWdnZXN0aW9uUmVzcG9uc2VCGaoCFkltcHVsc2VNLlByb3Rvcy5Db25maWdiBnByb3RvMw", [file_impulse_config_config_types]);
+  fileDesc("CiNpbXB1bHNlL2NvbmZpZy9jb25maWdfc2VydmljZS5wcm90bxIOaW1wdWxzZS5jb25maWciXwoPR2V0VGhlbWVSZXF1ZXN0EhAKCHRoZW1lX2lkGAEgASgDEhMKBmZvcm1hdBgCIAEoCUgAiAEBEhEKBHNsdWcYAyABKAlIAYgBAUIJCgdfZm9ybWF0QgcKBV9zbHVnIiAKEEdldFRoZW1lc1JlcXVlc3QSDAoEaGFzaBgBIAEoAyJeChFHZXRUaGVtZXNSZXNwb25zZRIlCgZ0aGVtZXMYASADKAsyFS5pbXB1bHNlLmNvbmZpZy5UaGVtZRIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCJdChNJbnN0YWxsVGhlbWVSZXF1ZXN0EhAKCHRoZW1lX2lkGAEgASgDEgwKBGRhcmsYAiABKAgSFwoKYmFzZV90aGVtZRgDIAEoCUgAiAEBQg0KC19iYXNlX3RoZW1lIhYKFEluc3RhbGxUaGVtZVJlc3BvbnNlIiQKFEdldENoYXRUaGVtZXNSZXF1ZXN0EgwKBGhhc2gYASABKAMiYgoVR2V0Q2hhdFRoZW1lc1Jlc3BvbnNlEiUKBnRoZW1lcxgBIAMoCzIVLmltcHVsc2UuY29uZmlnLlRoZW1lEgwKBGhhc2gYAiABKAMSFAoMbm90X21vZGlmaWVkGAMgASgIIh8KHUdldENoYXRBcHBlYXJhbmNlUnVsZXNSZXF1ZXN0ItwBCh5HZXRDaGF0QXBwZWFyYW5jZVJ1bGVzUmVzcG9uc2USHAoUY2hhdF90aGVtZV9lbW90aWNvbnMYASADKAkSIwobY2hhbm5lbF93YWxscGFwZXJfbGV2ZWxfbWluGAIgASgFEioKImNoYW5uZWxfY3VzdG9tX3dhbGxwYXBlcl9sZXZlbF9taW4YAyABKAUSIQoZZ3JvdXBfd2FsbHBhcGVyX2xldmVsX21pbhgEIAEoBRIoCiBncm91cF9jdXN0b21fd2FsbHBhcGVyX2xldmVsX21pbhgFIAEoBSJQCiBHZXRQcmVtaXVtR2lmdENvZGVPcHRpb25zUmVxdWVzdBIaCg1ib29zdF9wZWVyX2lkGAEgASgDSACIAQFCEAoOX2Jvb3N0X3BlZXJfaWQiVAohR2V0UHJlbWl1bUdpZnRDb2RlT3B0aW9uc1Jlc3BvbnNlEi8KB29wdGlvbnMYASADKAsyHi5pbXB1bHNlLmNvbmZpZy5HaWZ0Q29kZU9wdGlvbiI7ChdHZXRTZXJ2ZXJTdHJpbmdzUmVxdWVzdBISCgpsYW5nX2NvZGVzGAEgAygJEgwKBGtleXMYAiADKAkiSQoYR2V0U2VydmVyU3RyaW5nc1Jlc3BvbnNlEi0KBHNldHMYASADKAsyHy5pbXB1bHNlLmNvbmZpZy5TZXJ2ZXJTdHJpbmdTZXQirwEKD1NlcnZlclN0cmluZ1NldBIRCglsYW5nX2NvZGUYASABKAkSGgoScmVzb2x2ZWRfbGFuZ19jb2RlGAIgASgJEj0KB3N0cmluZ3MYAyADKAsyLC5pbXB1bHNlLmNvbmZpZy5TZXJ2ZXJTdHJpbmdTZXQuU3RyaW5nc0VudHJ5Gi4KDFN0cmluZ3NFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIjQKEFNhdmVUaGVtZVJlcXVlc3QSEAoIdGhlbWVfaWQYASABKAMSDgoGdW5zYXZlGAIgASgIIiIKEVNhdmVUaGVtZVJlc3BvbnNlEg0KBXNhdmVkGAEgASgIIsABCg9QZWVyQ29sb3JPcHRpb24SEAoIY29sb3JfaWQYASABKAUSDgoGY29sb3JzGAIgAygFEhMKC2RhcmtfY29sb3JzGAMgAygFEg4KBmhpZGRlbhgEIAEoCBIeChFjaGFubmVsX21pbl9sZXZlbBgFIAEoA0gAiAEBEhwKD2dyb3VwX21pbl9sZXZlbBgGIAEoA0gBiAEBQhQKEl9jaGFubmVsX21pbl9sZXZlbEISChBfZ3JvdXBfbWluX2xldmVsIiQKFEdldFBlZXJDb2xvcnNSZXF1ZXN0EgwKBGhhc2gYASABKAMibAoVR2V0UGVlckNvbG9yc1Jlc3BvbnNlEi8KBmNvbG9ycxgBIAMoCzIfLmltcHVsc2UuY29uZmlnLlBlZXJDb2xvck9wdGlvbhIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCIrChtHZXRQZWVyUHJvZmlsZUNvbG9yc1JlcXVlc3QSDAoEaGFzaBgBIAEoAyJzChxHZXRQZWVyUHJvZmlsZUNvbG9yc1Jlc3BvbnNlEi8KBmNvbG9ycxgBIAMoCzIfLmltcHVsc2UuY29uZmlnLlBlZXJDb2xvck9wdGlvbhIMCgRoYXNoGAIgASgDEhQKDG5vdF9tb2RpZmllZBgDIAEoCCI9Cg1UaW1lem9uZUVudHJ5EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEgoKdXRjX29mZnNldBgDIAEoBSInChdHZXRUaW1lem9uZXNMaXN0UmVxdWVzdBIMCgRoYXNoGAEgASgDInAKGEdldFRpbWV6b25lc0xpc3RSZXNwb25zZRIwCgl0aW1lem9uZXMYASADKAsyHS5pbXB1bHNlLmNvbmZpZy5UaW1lem9uZUVudHJ5EgwKBGhhc2gYAiABKAMSFAoMbm90X21vZGlmaWVkGAMgASgIMssICg1Db25maWdTZXJ2aWNlEkIKCEdldFRoZW1lEh8uaW1wdWxzZS5jb25maWcuR2V0VGhlbWVSZXF1ZXN0GhUuaW1wdWxzZS5jb25maWcuVGhlbWUSUAoJR2V0VGhlbWVzEiAuaW1wdWxzZS5jb25maWcuR2V0VGhlbWVzUmVxdWVzdBohLmltcHVsc2UuY29uZmlnLkdldFRoZW1lc1Jlc3BvbnNlElkKDEluc3RhbGxUaGVtZRIjLmltcHVsc2UuY29uZmlnLkluc3RhbGxUaGVtZVJlcXVlc3QaJC5pbXB1bHNlLmNvbmZpZy5JbnN0YWxsVGhlbWVSZXNwb25zZRJQCglTYXZlVGhlbWUSIC5pbXB1bHNlLmNvbmZpZy5TYXZlVGhlbWVSZXF1ZXN0GiEuaW1wdWxzZS5jb25maWcuU2F2ZVRoZW1lUmVzcG9uc2USXAoNR2V0Q2hhdFRoZW1lcxIkLmltcHVsc2UuY29uZmlnLkdldENoYXRUaGVtZXNSZXF1ZXN0GiUuaW1wdWxzZS5jb25maWcuR2V0Q2hhdFRoZW1lc1Jlc3BvbnNlEncKFkdldENoYXRBcHBlYXJhbmNlUnVsZXMSLS5pbXB1bHNlLmNvbmZpZy5HZXRDaGF0QXBwZWFyYW5jZVJ1bGVzUmVxdWVzdBouLmltcHVsc2UuY29uZmlnLkdldENoYXRBcHBlYXJhbmNlUnVsZXNSZXNwb25zZRKAAQoZR2V0UHJlbWl1bUdpZnRDb2RlT3B0aW9ucxIwLmltcHVsc2UuY29uZmlnLkdldFByZW1pdW1HaWZ0Q29kZU9wdGlvbnNSZXF1ZXN0GjEuaW1wdWxzZS5jb25maWcuR2V0UHJlbWl1bUdpZnRDb2RlT3B0aW9uc1Jlc3BvbnNlEmUKEEdldFNlcnZlclN0cmluZ3MSJy5pbXB1bHNlLmNvbmZpZy5HZXRTZXJ2ZXJTdHJpbmdzUmVxdWVzdBooLmltcHVsc2UuY29uZmlnLkdldFNlcnZlclN0cmluZ3NSZXNwb25zZRJcCg1HZXRQZWVyQ29sb3JzEiQuaW1wdWxzZS5jb25maWcuR2V0UGVlckNvbG9yc1JlcXVlc3QaJS5pbXB1bHNlLmNvbmZpZy5HZXRQZWVyQ29sb3JzUmVzcG9uc2UScQoUR2V0UGVlclByb2ZpbGVDb2xvcnMSKy5pbXB1bHNlLmNvbmZpZy5HZXRQZWVyUHJvZmlsZUNvbG9yc1JlcXVlc3QaLC5pbXB1bHNlLmNvbmZpZy5HZXRQZWVyUHJvZmlsZUNvbG9yc1Jlc3BvbnNlEmUKEEdldFRpbWV6b25lc0xpc3QSJy5pbXB1bHNlLmNvbmZpZy5HZXRUaW1lem9uZXNMaXN0UmVxdWVzdBooLmltcHVsc2UuY29uZmlnLkdldFRpbWV6b25lc0xpc3RSZXNwb25zZUIZqgIWSW1wdWxzZU0uUHJvdG9zLkNvbmZpZ2IGcHJvdG8z", [file_impulse_config_config_types]);
 
 /**
  * @generated from message impulse.config.GetThemeRequest
@@ -172,259 +172,59 @@ export const GetChatThemesResponseSchema: GenMessage<GetChatThemesResponse> = /*
   messageDesc(file_impulse_config_config_service, 6);
 
 /**
- * @generated from message impulse.config.GetWallPapersRequest
+ * @generated from message impulse.config.GetChatAppearanceRulesRequest
  */
-export type GetWallPapersRequest = Message<"impulse.config.GetWallPapersRequest"> & {
-  /**
-   * @generated from field: int64 hash = 1;
-   */
-  hash: bigint;
+export type GetChatAppearanceRulesRequest = Message<"impulse.config.GetChatAppearanceRulesRequest"> & {
 };
 
 /**
- * Describes the message impulse.config.GetWallPapersRequest.
- * Use `create(GetWallPapersRequestSchema)` to create a new message.
+ * Describes the message impulse.config.GetChatAppearanceRulesRequest.
+ * Use `create(GetChatAppearanceRulesRequestSchema)` to create a new message.
  */
-export const GetWallPapersRequestSchema: GenMessage<GetWallPapersRequest> = /*@__PURE__*/
+export const GetChatAppearanceRulesRequestSchema: GenMessage<GetChatAppearanceRulesRequest> = /*@__PURE__*/
   messageDesc(file_impulse_config_config_service, 7);
 
 /**
- * @generated from message impulse.config.GetWallPapersResponse
+ * @generated from message impulse.config.GetChatAppearanceRulesResponse
  */
-export type GetWallPapersResponse = Message<"impulse.config.GetWallPapersResponse"> & {
+export type GetChatAppearanceRulesResponse = Message<"impulse.config.GetChatAppearanceRulesResponse"> & {
   /**
-   * @generated from field: repeated impulse.config.WallPaper wallpapers = 1;
-   */
-  wallpapers: WallPaper[];
-
-  /**
-   * @generated from field: int64 hash = 2;
-   */
-  hash: bigint;
-
-  /**
-   * @generated from field: bool not_modified = 3;
-   */
-  notModified: boolean;
-};
-
-/**
- * Describes the message impulse.config.GetWallPapersResponse.
- * Use `create(GetWallPapersResponseSchema)` to create a new message.
- */
-export const GetWallPapersResponseSchema: GenMessage<GetWallPapersResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 8);
-
-/**
- * @generated from message impulse.config.GetWallPaperRequest
- */
-export type GetWallPaperRequest = Message<"impulse.config.GetWallPaperRequest"> & {
-  /**
-   * @generated from oneof impulse.config.GetWallPaperRequest.lookup
-   */
-  lookup: {
-    /**
-     * @generated from field: int64 wallpaper_id = 1;
-     */
-    value: bigint;
-    case: "wallpaperId";
-  } | {
-    /**
-     * @generated from field: string slug = 2;
-     */
-    value: string;
-    case: "slug";
-  } | { case: undefined; value?: undefined };
-};
-
-/**
- * Describes the message impulse.config.GetWallPaperRequest.
- * Use `create(GetWallPaperRequestSchema)` to create a new message.
- */
-export const GetWallPaperRequestSchema: GenMessage<GetWallPaperRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 9);
-
-/**
- * @generated from message impulse.config.UploadWallPaperRequest
- */
-export type UploadWallPaperRequest = Message<"impulse.config.UploadWallPaperRequest"> & {
-  /**
-   * @generated from field: int64 file_id = 1;
-   */
-  fileId: bigint;
-
-  /**
-   * @generated from field: string mime_type = 2;
-   */
-  mimeType: string;
-
-  /**
-   * @generated from field: bool for_chat = 3;
-   */
-  forChat: boolean;
-
-  /**
-   * @generated from field: optional string settings_json = 4;
-   */
-  settingsJson?: string | undefined;
-};
-
-/**
- * Describes the message impulse.config.UploadWallPaperRequest.
- * Use `create(UploadWallPaperRequestSchema)` to create a new message.
- */
-export const UploadWallPaperRequestSchema: GenMessage<UploadWallPaperRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 10);
-
-/**
- * @generated from message impulse.config.SaveWallPaperRequest
- */
-export type SaveWallPaperRequest = Message<"impulse.config.SaveWallPaperRequest"> & {
-  /**
-   * @generated from field: int64 wallpaper_id = 1;
-   */
-  wallpaperId: bigint;
-
-  /**
-   * @generated from field: bool unsave = 2;
-   */
-  unsave: boolean;
-
-  /**
-   * @generated from field: optional string settings_json = 3;
-   */
-  settingsJson?: string | undefined;
-};
-
-/**
- * Describes the message impulse.config.SaveWallPaperRequest.
- * Use `create(SaveWallPaperRequestSchema)` to create a new message.
- */
-export const SaveWallPaperRequestSchema: GenMessage<SaveWallPaperRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 11);
-
-/**
- * @generated from message impulse.config.SaveWallPaperResponse
- */
-export type SaveWallPaperResponse = Message<"impulse.config.SaveWallPaperResponse"> & {
-};
-
-/**
- * Describes the message impulse.config.SaveWallPaperResponse.
- * Use `create(SaveWallPaperResponseSchema)` to create a new message.
- */
-export const SaveWallPaperResponseSchema: GenMessage<SaveWallPaperResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 12);
-
-/**
- * @generated from message impulse.config.ResetWallPapersRequest
- */
-export type ResetWallPapersRequest = Message<"impulse.config.ResetWallPapersRequest"> & {
-};
-
-/**
- * Describes the message impulse.config.ResetWallPapersRequest.
- * Use `create(ResetWallPapersRequestSchema)` to create a new message.
- */
-export const ResetWallPapersRequestSchema: GenMessage<ResetWallPapersRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 13);
-
-/**
- * @generated from message impulse.config.ResetWallPapersResponse
- */
-export type ResetWallPapersResponse = Message<"impulse.config.ResetWallPapersResponse"> & {
-};
-
-/**
- * Describes the message impulse.config.ResetWallPapersResponse.
- * Use `create(ResetWallPapersResponseSchema)` to create a new message.
- */
-export const ResetWallPapersResponseSchema: GenMessage<ResetWallPapersResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 14);
-
-/**
- * @generated from message impulse.config.GetPremiumPromoRequest
- */
-export type GetPremiumPromoRequest = Message<"impulse.config.GetPremiumPromoRequest"> & {
-};
-
-/**
- * Describes the message impulse.config.GetPremiumPromoRequest.
- * Use `create(GetPremiumPromoRequestSchema)` to create a new message.
- */
-export const GetPremiumPromoRequestSchema: GenMessage<GetPremiumPromoRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 15);
-
-/**
- * @generated from message impulse.config.PremiumSubscriptionOption
- */
-export type PremiumSubscriptionOption = Message<"impulse.config.PremiumSubscriptionOption"> & {
-  /**
-   * @generated from field: int32 months = 1;
-   */
-  months: number;
-
-  /**
-   * @generated from field: string currency = 2;
-   */
-  currency: string;
-
-  /**
-   * @generated from field: int64 amount = 3;
-   */
-  amount: bigint;
-
-  /**
-   * @generated from field: optional string store_product = 4;
-   */
-  storeProduct?: string | undefined;
-};
-
-/**
- * Describes the message impulse.config.PremiumSubscriptionOption.
- * Use `create(PremiumSubscriptionOptionSchema)` to create a new message.
- */
-export const PremiumSubscriptionOptionSchema: GenMessage<PremiumSubscriptionOption> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 16);
-
-/**
- * @generated from message impulse.config.GetPremiumPromoResponse
- */
-export type GetPremiumPromoResponse = Message<"impulse.config.GetPremiumPromoResponse"> & {
-  /**
-   * @generated from field: string description = 1;
-   */
-  description: string;
-
-  /**
-   * @generated from field: repeated impulse.config.PremiumFeature features = 2;
-   */
-  features: PremiumFeature[];
-
-  /**
-   * P3-5: Video sections and subscription options
+   * Every emoticon account.getChatThemes serves.
    *
-   * @generated from field: repeated string video_sections = 3;
+   * @generated from field: repeated string chat_theme_emoticons = 1;
    */
-  videoSections: string[];
+  chatThemeEmoticons: string[];
 
   /**
-   * @generated from field: repeated int64 video_file_ids = 4;
+   * help.getAppConfig channel_wallpaper_level_min / channel_custom_wallpaper_level_min /
+   * group_wallpaper_level_min / group_custom_wallpaper_level_min.
+   *
+   * @generated from field: int32 channel_wallpaper_level_min = 2;
    */
-  videoFileIds: bigint[];
+  channelWallpaperLevelMin: number;
 
   /**
-   * @generated from field: repeated impulse.config.PremiumSubscriptionOption period_options = 5;
+   * @generated from field: int32 channel_custom_wallpaper_level_min = 3;
    */
-  periodOptions: PremiumSubscriptionOption[];
+  channelCustomWallpaperLevelMin: number;
+
+  /**
+   * @generated from field: int32 group_wallpaper_level_min = 4;
+   */
+  groupWallpaperLevelMin: number;
+
+  /**
+   * @generated from field: int32 group_custom_wallpaper_level_min = 5;
+   */
+  groupCustomWallpaperLevelMin: number;
 };
 
 /**
- * Describes the message impulse.config.GetPremiumPromoResponse.
- * Use `create(GetPremiumPromoResponseSchema)` to create a new message.
+ * Describes the message impulse.config.GetChatAppearanceRulesResponse.
+ * Use `create(GetChatAppearanceRulesResponseSchema)` to create a new message.
  */
-export const GetPremiumPromoResponseSchema: GenMessage<GetPremiumPromoResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 17);
+export const GetChatAppearanceRulesResponseSchema: GenMessage<GetChatAppearanceRulesResponse> = /*@__PURE__*/
+  messageDesc(file_impulse_config_config_service, 8);
 
 /**
  * @generated from message impulse.config.GetPremiumGiftCodeOptionsRequest
@@ -441,7 +241,7 @@ export type GetPremiumGiftCodeOptionsRequest = Message<"impulse.config.GetPremiu
  * Use `create(GetPremiumGiftCodeOptionsRequestSchema)` to create a new message.
  */
 export const GetPremiumGiftCodeOptionsRequestSchema: GenMessage<GetPremiumGiftCodeOptionsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 18);
+  messageDesc(file_impulse_config_config_service, 9);
 
 /**
  * @generated from message impulse.config.GetPremiumGiftCodeOptionsResponse
@@ -458,406 +258,81 @@ export type GetPremiumGiftCodeOptionsResponse = Message<"impulse.config.GetPremi
  * Use `create(GetPremiumGiftCodeOptionsResponseSchema)` to create a new message.
  */
 export const GetPremiumGiftCodeOptionsResponseSchema: GenMessage<GetPremiumGiftCodeOptionsResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 19);
+  messageDesc(file_impulse_config_config_service, 10);
 
 /**
- * @generated from message impulse.config.GetAppConfigRequest
+ * @generated from message impulse.config.GetServerStringsRequest
  */
-export type GetAppConfigRequest = Message<"impulse.config.GetAppConfigRequest"> & {
+export type GetServerStringsRequest = Message<"impulse.config.GetServerStringsRequest"> & {
   /**
-   * @generated from field: int64 hash = 1;
+   * The languages wanted, as a client declared them in initConnection (any case, "ru", "pt-br"). Each is
+   * answered with the full requested key set: a language, or a key within it, that the pack lacks is
+   * answered from the default language, never left empty.
+   *
+   * @generated from field: repeated string lang_codes = 1;
    */
-  hash: bigint;
-};
-
-/**
- * Describes the message impulse.config.GetAppConfigRequest.
- * Use `create(GetAppConfigRequestSchema)` to create a new message.
- */
-export const GetAppConfigRequestSchema: GenMessage<GetAppConfigRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 20);
-
-/**
- * @generated from message impulse.config.GetAppConfigResponse
- */
-export type GetAppConfigResponse = Message<"impulse.config.GetAppConfigResponse"> & {
-  /**
-   * @generated from field: string config_json = 1;
-   */
-  configJson: string;
-
-  /**
-   * @generated from field: int64 hash = 2;
-   */
-  hash: bigint;
-
-  /**
-   * @generated from field: bool not_modified = 3;
-   */
-  notModified: boolean;
-};
-
-/**
- * Describes the message impulse.config.GetAppConfigResponse.
- * Use `create(GetAppConfigResponseSchema)` to create a new message.
- */
-export const GetAppConfigResponseSchema: GenMessage<GetAppConfigResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 21);
-
-/**
- * @generated from message impulse.config.GetAppUpdateRequest
- */
-export type GetAppUpdateRequest = Message<"impulse.config.GetAppUpdateRequest"> & {
-  /**
-   * @generated from field: string source = 1;
-   */
-  source: string;
-};
-
-/**
- * Describes the message impulse.config.GetAppUpdateRequest.
- * Use `create(GetAppUpdateRequestSchema)` to create a new message.
- */
-export const GetAppUpdateRequestSchema: GenMessage<GetAppUpdateRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 22);
-
-/**
- * @generated from message impulse.config.GetAppUpdateResponse
- */
-export type GetAppUpdateResponse = Message<"impulse.config.GetAppUpdateResponse"> & {
-  /**
-   * @generated from field: optional string url = 1;
-   */
-  url?: string | undefined;
-
-  /**
-   * @generated from field: optional string text = 2;
-   */
-  text?: string | undefined;
-
-  /**
-   * @generated from field: bool can_skip = 3;
-   */
-  canSkip: boolean;
-
-  /**
-   * @generated from field: optional int32 id = 4;
-   */
-  id?: number | undefined;
-
-  /**
-   * @generated from field: optional string version = 5;
-   */
-  version?: string | undefined;
-};
-
-/**
- * Describes the message impulse.config.GetAppUpdateResponse.
- * Use `create(GetAppUpdateResponseSchema)` to create a new message.
- */
-export const GetAppUpdateResponseSchema: GenMessage<GetAppUpdateResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 23);
-
-/**
- * @generated from message impulse.config.GetNearestDcRequest
- */
-export type GetNearestDcRequest = Message<"impulse.config.GetNearestDcRequest"> & {
-};
-
-/**
- * Describes the message impulse.config.GetNearestDcRequest.
- * Use `create(GetNearestDcRequestSchema)` to create a new message.
- */
-export const GetNearestDcRequestSchema: GenMessage<GetNearestDcRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 24);
-
-/**
- * @generated from message impulse.config.GetNearestDcResponse
- */
-export type GetNearestDcResponse = Message<"impulse.config.GetNearestDcResponse"> & {
-  /**
-   * @generated from field: string country = 1;
-   */
-  country: string;
-
-  /**
-   * @generated from field: int32 dc_id = 2;
-   */
-  dcId: number;
-
-  /**
-   * @generated from field: int32 this_dc = 3;
-   */
-  thisDc: number;
-};
-
-/**
- * Describes the message impulse.config.GetNearestDcResponse.
- * Use `create(GetNearestDcResponseSchema)` to create a new message.
- */
-export const GetNearestDcResponseSchema: GenMessage<GetNearestDcResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 25);
-
-/**
- * @generated from message impulse.config.GetLanguagesRequest
- */
-export type GetLanguagesRequest = Message<"impulse.config.GetLanguagesRequest"> & {
-  /**
-   * @generated from field: int64 hash = 1;
-   */
-  hash: bigint;
-};
-
-/**
- * Describes the message impulse.config.GetLanguagesRequest.
- * Use `create(GetLanguagesRequestSchema)` to create a new message.
- */
-export const GetLanguagesRequestSchema: GenMessage<GetLanguagesRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 26);
-
-/**
- * @generated from message impulse.config.GetLanguagesResponse
- */
-export type GetLanguagesResponse = Message<"impulse.config.GetLanguagesResponse"> & {
-  /**
-   * @generated from field: repeated impulse.config.Language languages = 1;
-   */
-  languages: Language[];
-
-  /**
-   * @generated from field: int64 hash = 2;
-   */
-  hash: bigint;
-
-  /**
-   * @generated from field: bool not_modified = 3;
-   */
-  notModified: boolean;
-};
-
-/**
- * Describes the message impulse.config.GetLanguagesResponse.
- * Use `create(GetLanguagesResponseSchema)` to create a new message.
- */
-export const GetLanguagesResponseSchema: GenMessage<GetLanguagesResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 27);
-
-/**
- * @generated from message impulse.config.GetLanguageRequest
- */
-export type GetLanguageRequest = Message<"impulse.config.GetLanguageRequest"> & {
-  /**
-   * @generated from field: string lang_code = 1;
-   */
-  langCode: string;
-
-  /**
-   * @generated from field: string lang_pack = 2;
-   */
-  langPack: string;
-};
-
-/**
- * Describes the message impulse.config.GetLanguageRequest.
- * Use `create(GetLanguageRequestSchema)` to create a new message.
- */
-export const GetLanguageRequestSchema: GenMessage<GetLanguageRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 28);
-
-/**
- * @generated from message impulse.config.GetLangPackRequest
- */
-export type GetLangPackRequest = Message<"impulse.config.GetLangPackRequest"> & {
-  /**
-   * @generated from field: string lang_code = 1;
-   */
-  langCode: string;
-
-  /**
-   * @generated from field: string lang_pack = 2;
-   */
-  langPack: string;
-};
-
-/**
- * Describes the message impulse.config.GetLangPackRequest.
- * Use `create(GetLangPackRequestSchema)` to create a new message.
- */
-export const GetLangPackRequestSchema: GenMessage<GetLangPackRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 29);
-
-/**
- * @generated from message impulse.config.GetLangPackResponse
- */
-export type GetLangPackResponse = Message<"impulse.config.GetLangPackResponse"> & {
-  /**
-   * @generated from field: repeated impulse.config.LangPackString strings = 1;
-   */
-  strings: LangPackString[];
-
-  /**
-   * @generated from field: string lang_code = 2;
-   */
-  langCode: string;
-
-  /**
-   * @generated from field: int32 version = 3;
-   */
-  version: number;
-
-  /**
-   * @generated from field: int32 from_version = 4;
-   */
-  fromVersion: number;
-};
-
-/**
- * Describes the message impulse.config.GetLangPackResponse.
- * Use `create(GetLangPackResponseSchema)` to create a new message.
- */
-export const GetLangPackResponseSchema: GenMessage<GetLangPackResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 30);
-
-/**
- * @generated from message impulse.config.GetStringsRequest
- */
-export type GetStringsRequest = Message<"impulse.config.GetStringsRequest"> & {
-  /**
-   * @generated from field: string lang_code = 1;
-   */
-  langCode: string;
+  langCodes: string[];
 
   /**
    * @generated from field: repeated string keys = 2;
    */
   keys: string[];
-
-  /**
-   * @generated from field: string lang_pack = 3;
-   */
-  langPack: string;
 };
 
 /**
- * Describes the message impulse.config.GetStringsRequest.
- * Use `create(GetStringsRequestSchema)` to create a new message.
+ * Describes the message impulse.config.GetServerStringsRequest.
+ * Use `create(GetServerStringsRequestSchema)` to create a new message.
  */
-export const GetStringsRequestSchema: GenMessage<GetStringsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 31);
+export const GetServerStringsRequestSchema: GenMessage<GetServerStringsRequest> = /*@__PURE__*/
+  messageDesc(file_impulse_config_config_service, 11);
 
 /**
- * @generated from message impulse.config.GetStringsResponse
+ * @generated from message impulse.config.GetServerStringsResponse
  */
-export type GetStringsResponse = Message<"impulse.config.GetStringsResponse"> & {
+export type GetServerStringsResponse = Message<"impulse.config.GetServerStringsResponse"> & {
   /**
-   * @generated from field: repeated impulse.config.LangPackString strings = 1;
+   * @generated from field: repeated impulse.config.ServerStringSet sets = 1;
    */
-  strings: LangPackString[];
+  sets: ServerStringSet[];
 };
 
 /**
- * Describes the message impulse.config.GetStringsResponse.
- * Use `create(GetStringsResponseSchema)` to create a new message.
+ * Describes the message impulse.config.GetServerStringsResponse.
+ * Use `create(GetServerStringsResponseSchema)` to create a new message.
  */
-export const GetStringsResponseSchema: GenMessage<GetStringsResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 32);
+export const GetServerStringsResponseSchema: GenMessage<GetServerStringsResponse> = /*@__PURE__*/
+  messageDesc(file_impulse_config_config_service, 12);
 
 /**
- * @generated from message impulse.config.GetLangDifferenceRequest
+ * @generated from message impulse.config.ServerStringSet
  */
-export type GetLangDifferenceRequest = Message<"impulse.config.GetLangDifferenceRequest"> & {
+export type ServerStringSet = Message<"impulse.config.ServerStringSet"> & {
   /**
+   * The language as it was asked for.
+   *
    * @generated from field: string lang_code = 1;
    */
   langCode: string;
 
   /**
-   * @generated from field: int32 from_version = 2;
+   * The language the strings are actually in (the asked-for one, its primary subtag, or the default).
+   *
+   * @generated from field: string resolved_lang_code = 2;
    */
-  fromVersion: number;
+  resolvedLangCode: string;
 
   /**
-   * @generated from field: string lang_pack = 3;
+   * @generated from field: map<string, string> strings = 3;
    */
-  langPack: string;
+  strings: { [key: string]: string };
 };
 
 /**
- * Describes the message impulse.config.GetLangDifferenceRequest.
- * Use `create(GetLangDifferenceRequestSchema)` to create a new message.
+ * Describes the message impulse.config.ServerStringSet.
+ * Use `create(ServerStringSetSchema)` to create a new message.
  */
-export const GetLangDifferenceRequestSchema: GenMessage<GetLangDifferenceRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 33);
-
-/**
- * @generated from message impulse.config.GetConfigRequest
- */
-export type GetConfigRequest = Message<"impulse.config.GetConfigRequest"> & {
-};
-
-/**
- * Describes the message impulse.config.GetConfigRequest.
- * Use `create(GetConfigRequestSchema)` to create a new message.
- */
-export const GetConfigRequestSchema: GenMessage<GetConfigRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 34);
-
-/**
- * @generated from message impulse.config.GetConfigResponse
- */
-export type GetConfigResponse = Message<"impulse.config.GetConfigResponse"> & {
-  /**
-   * @generated from field: int32 expires = 1;
-   */
-  expires: number;
-
-  /**
-   * @generated from field: int32 max_message_length = 2;
-   */
-  maxMessageLength: number;
-
-  /**
-   * @generated from field: int32 edit_time_limit = 3;
-   */
-  editTimeLimit: number;
-
-  /**
-   * @generated from field: int32 max_group_size = 4;
-   */
-  maxGroupSize: number;
-
-  /**
-   * @generated from field: int32 max_forwarded_count = 5;
-   */
-  maxForwardedCount: number;
-
-  /**
-   * @generated from field: optional string default_reaction = 6;
-   */
-  defaultReaction?: string | undefined;
-
-  /**
-   * @generated from field: optional string gif_search_username = 7;
-   */
-  gifSearchUsername?: string | undefined;
-
-  /**
-   * @generated from field: optional string autologin_token = 8;
-   */
-  autologinToken?: string | undefined;
-
-  /**
-   * @generated from field: bool is_test_server = 9;
-   */
-  isTestServer: boolean;
-};
-
-/**
- * Describes the message impulse.config.GetConfigResponse.
- * Use `create(GetConfigResponseSchema)` to create a new message.
- */
-export const GetConfigResponseSchema: GenMessage<GetConfigResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 35);
+export const ServerStringSetSchema: GenMessage<ServerStringSet> = /*@__PURE__*/
+  messageDesc(file_impulse_config_config_service, 13);
 
 /**
  * @generated from message impulse.config.SaveThemeRequest
@@ -879,7 +354,7 @@ export type SaveThemeRequest = Message<"impulse.config.SaveThemeRequest"> & {
  * Use `create(SaveThemeRequestSchema)` to create a new message.
  */
 export const SaveThemeRequestSchema: GenMessage<SaveThemeRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 36);
+  messageDesc(file_impulse_config_config_service, 14);
 
 /**
  * @generated from message impulse.config.SaveThemeResponse
@@ -896,104 +371,7 @@ export type SaveThemeResponse = Message<"impulse.config.SaveThemeResponse"> & {
  * Use `create(SaveThemeResponseSchema)` to create a new message.
  */
 export const SaveThemeResponseSchema: GenMessage<SaveThemeResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 37);
-
-/**
- * @generated from message impulse.config.TermsOfService
- */
-export type TermsOfService = Message<"impulse.config.TermsOfService"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * @generated from field: string text = 2;
-   */
-  text: string;
-
-  /**
-   * @generated from field: int32 min_age = 3;
-   */
-  minAge: number;
-
-  /**
-   * @generated from field: bool popup = 4;
-   */
-  popup: boolean;
-};
-
-/**
- * Describes the message impulse.config.TermsOfService.
- * Use `create(TermsOfServiceSchema)` to create a new message.
- */
-export const TermsOfServiceSchema: GenMessage<TermsOfService> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 38);
-
-/**
- * @generated from message impulse.config.GetTermsOfServiceUpdateRequest
- */
-export type GetTermsOfServiceUpdateRequest = Message<"impulse.config.GetTermsOfServiceUpdateRequest"> & {
-};
-
-/**
- * Describes the message impulse.config.GetTermsOfServiceUpdateRequest.
- * Use `create(GetTermsOfServiceUpdateRequestSchema)` to create a new message.
- */
-export const GetTermsOfServiceUpdateRequestSchema: GenMessage<GetTermsOfServiceUpdateRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 39);
-
-/**
- * @generated from message impulse.config.GetTermsOfServiceUpdateResponse
- */
-export type GetTermsOfServiceUpdateResponse = Message<"impulse.config.GetTermsOfServiceUpdateResponse"> & {
-  /**
-   * @generated from field: optional impulse.config.TermsOfService tos = 1;
-   */
-  tos?: TermsOfService | undefined;
-
-  /**
-   * @generated from field: int64 expires = 2;
-   */
-  expires: bigint;
-};
-
-/**
- * Describes the message impulse.config.GetTermsOfServiceUpdateResponse.
- * Use `create(GetTermsOfServiceUpdateResponseSchema)` to create a new message.
- */
-export const GetTermsOfServiceUpdateResponseSchema: GenMessage<GetTermsOfServiceUpdateResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 40);
-
-/**
- * @generated from message impulse.config.AcceptTermsOfServiceRequest
- */
-export type AcceptTermsOfServiceRequest = Message<"impulse.config.AcceptTermsOfServiceRequest"> & {
-  /**
-   * @generated from field: string tos_id = 1;
-   */
-  tosId: string;
-};
-
-/**
- * Describes the message impulse.config.AcceptTermsOfServiceRequest.
- * Use `create(AcceptTermsOfServiceRequestSchema)` to create a new message.
- */
-export const AcceptTermsOfServiceRequestSchema: GenMessage<AcceptTermsOfServiceRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 41);
-
-/**
- * @generated from message impulse.config.AcceptTermsOfServiceResponse
- */
-export type AcceptTermsOfServiceResponse = Message<"impulse.config.AcceptTermsOfServiceResponse"> & {
-};
-
-/**
- * Describes the message impulse.config.AcceptTermsOfServiceResponse.
- * Use `create(AcceptTermsOfServiceResponseSchema)` to create a new message.
- */
-export const AcceptTermsOfServiceResponseSchema: GenMessage<AcceptTermsOfServiceResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 42);
+  messageDesc(file_impulse_config_config_service, 15);
 
 /**
  * @generated from message impulse.config.PeerColorOption
@@ -1039,7 +417,7 @@ export type PeerColorOption = Message<"impulse.config.PeerColorOption"> & {
  * Use `create(PeerColorOptionSchema)` to create a new message.
  */
 export const PeerColorOptionSchema: GenMessage<PeerColorOption> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 43);
+  messageDesc(file_impulse_config_config_service, 16);
 
 /**
  * @generated from message impulse.config.GetPeerColorsRequest
@@ -1056,7 +434,7 @@ export type GetPeerColorsRequest = Message<"impulse.config.GetPeerColorsRequest"
  * Use `create(GetPeerColorsRequestSchema)` to create a new message.
  */
 export const GetPeerColorsRequestSchema: GenMessage<GetPeerColorsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 44);
+  messageDesc(file_impulse_config_config_service, 17);
 
 /**
  * @generated from message impulse.config.GetPeerColorsResponse
@@ -1083,7 +461,7 @@ export type GetPeerColorsResponse = Message<"impulse.config.GetPeerColorsRespons
  * Use `create(GetPeerColorsResponseSchema)` to create a new message.
  */
 export const GetPeerColorsResponseSchema: GenMessage<GetPeerColorsResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 45);
+  messageDesc(file_impulse_config_config_service, 18);
 
 /**
  * @generated from message impulse.config.GetPeerProfileColorsRequest
@@ -1100,7 +478,7 @@ export type GetPeerProfileColorsRequest = Message<"impulse.config.GetPeerProfile
  * Use `create(GetPeerProfileColorsRequestSchema)` to create a new message.
  */
 export const GetPeerProfileColorsRequestSchema: GenMessage<GetPeerProfileColorsRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 46);
+  messageDesc(file_impulse_config_config_service, 19);
 
 /**
  * @generated from message impulse.config.GetPeerProfileColorsResponse
@@ -1127,7 +505,7 @@ export type GetPeerProfileColorsResponse = Message<"impulse.config.GetPeerProfil
  * Use `create(GetPeerProfileColorsResponseSchema)` to create a new message.
  */
 export const GetPeerProfileColorsResponseSchema: GenMessage<GetPeerProfileColorsResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 47);
+  messageDesc(file_impulse_config_config_service, 20);
 
 /**
  * @generated from message impulse.config.TimezoneEntry
@@ -1156,7 +534,7 @@ export type TimezoneEntry = Message<"impulse.config.TimezoneEntry"> & {
  * Use `create(TimezoneEntrySchema)` to create a new message.
  */
 export const TimezoneEntrySchema: GenMessage<TimezoneEntry> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 48);
+  messageDesc(file_impulse_config_config_service, 21);
 
 /**
  * @generated from message impulse.config.GetTimezonesListRequest
@@ -1173,7 +551,7 @@ export type GetTimezonesListRequest = Message<"impulse.config.GetTimezonesListRe
  * Use `create(GetTimezonesListRequestSchema)` to create a new message.
  */
 export const GetTimezonesListRequestSchema: GenMessage<GetTimezonesListRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 49);
+  messageDesc(file_impulse_config_config_service, 22);
 
 /**
  * @generated from message impulse.config.GetTimezonesListResponse
@@ -1200,210 +578,7 @@ export type GetTimezonesListResponse = Message<"impulse.config.GetTimezonesListR
  * Use `create(GetTimezonesListResponseSchema)` to create a new message.
  */
 export const GetTimezonesListResponseSchema: GenMessage<GetTimezonesListResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 50);
-
-/**
- * @generated from message impulse.config.CountryEntry
- */
-export type CountryEntry = Message<"impulse.config.CountryEntry"> & {
-  /**
-   * @generated from field: string iso2 = 1;
-   */
-  iso2: string;
-
-  /**
-   * @generated from field: string default_name = 2;
-   */
-  defaultName: string;
-
-  /**
-   * @generated from field: string name = 3;
-   */
-  name: string;
-
-  /**
-   * @generated from field: repeated impulse.config.CountryCode codes = 4;
-   */
-  codes: CountryCode[];
-
-  /**
-   * @generated from field: bool hidden = 5;
-   */
-  hidden: boolean;
-};
-
-/**
- * Describes the message impulse.config.CountryEntry.
- * Use `create(CountryEntrySchema)` to create a new message.
- */
-export const CountryEntrySchema: GenMessage<CountryEntry> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 51);
-
-/**
- * @generated from message impulse.config.CountryCode
- */
-export type CountryCode = Message<"impulse.config.CountryCode"> & {
-  /**
-   * @generated from field: string code = 1;
-   */
-  code: string;
-
-  /**
-   * @generated from field: repeated string prefixes = 2;
-   */
-  prefixes: string[];
-
-  /**
-   * @generated from field: repeated string patterns = 3;
-   */
-  patterns: string[];
-};
-
-/**
- * Describes the message impulse.config.CountryCode.
- * Use `create(CountryCodeSchema)` to create a new message.
- */
-export const CountryCodeSchema: GenMessage<CountryCode> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 52);
-
-/**
- * @generated from message impulse.config.GetCountriesListRequest
- */
-export type GetCountriesListRequest = Message<"impulse.config.GetCountriesListRequest"> & {
-  /**
-   * @generated from field: string lang_code = 1;
-   */
-  langCode: string;
-
-  /**
-   * @generated from field: int64 hash = 2;
-   */
-  hash: bigint;
-};
-
-/**
- * Describes the message impulse.config.GetCountriesListRequest.
- * Use `create(GetCountriesListRequestSchema)` to create a new message.
- */
-export const GetCountriesListRequestSchema: GenMessage<GetCountriesListRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 53);
-
-/**
- * @generated from message impulse.config.GetCountriesListResponse
- */
-export type GetCountriesListResponse = Message<"impulse.config.GetCountriesListResponse"> & {
-  /**
-   * @generated from field: repeated impulse.config.CountryEntry countries = 1;
-   */
-  countries: CountryEntry[];
-
-  /**
-   * @generated from field: int64 hash = 2;
-   */
-  hash: bigint;
-
-  /**
-   * @generated from field: bool not_modified = 3;
-   */
-  notModified: boolean;
-};
-
-/**
- * Describes the message impulse.config.GetCountriesListResponse.
- * Use `create(GetCountriesListResponseSchema)` to create a new message.
- */
-export const GetCountriesListResponseSchema: GenMessage<GetCountriesListResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 54);
-
-/**
- * @generated from message impulse.config.GetPromoDataRequest
- */
-export type GetPromoDataRequest = Message<"impulse.config.GetPromoDataRequest"> & {
-};
-
-/**
- * Describes the message impulse.config.GetPromoDataRequest.
- * Use `create(GetPromoDataRequestSchema)` to create a new message.
- */
-export const GetPromoDataRequestSchema: GenMessage<GetPromoDataRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 55);
-
-/**
- * @generated from message impulse.config.GetPromoDataResponse
- */
-export type GetPromoDataResponse = Message<"impulse.config.GetPromoDataResponse"> & {
-  /**
-   * @generated from field: optional int64 promo_chat_id = 1;
-   */
-  promoChatId?: bigint | undefined;
-
-  /**
-   * @generated from field: optional string psa_type = 2;
-   */
-  psaType?: string | undefined;
-
-  /**
-   * @generated from field: optional string psa_message = 3;
-   */
-  psaMessage?: string | undefined;
-
-  /**
-   * @generated from field: int64 expires = 4;
-   */
-  expires: bigint;
-
-  /**
-   * @generated from field: repeated string pending_suggestions = 5;
-   */
-  pendingSuggestions: string[];
-
-  /**
-   * @generated from field: repeated string dismissed_suggestions = 6;
-   */
-  dismissedSuggestions: string[];
-};
-
-/**
- * Describes the message impulse.config.GetPromoDataResponse.
- * Use `create(GetPromoDataResponseSchema)` to create a new message.
- */
-export const GetPromoDataResponseSchema: GenMessage<GetPromoDataResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 56);
-
-/**
- * @generated from message impulse.config.DismissSuggestionRequest
- */
-export type DismissSuggestionRequest = Message<"impulse.config.DismissSuggestionRequest"> & {
-  /**
-   * @generated from field: string suggestion = 1;
-   */
-  suggestion: string;
-
-  /**
-   * @generated from field: optional int64 peer_id = 2;
-   */
-  peerId?: bigint | undefined;
-};
-
-/**
- * Describes the message impulse.config.DismissSuggestionRequest.
- * Use `create(DismissSuggestionRequestSchema)` to create a new message.
- */
-export const DismissSuggestionRequestSchema: GenMessage<DismissSuggestionRequest> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 57);
-
-/**
- * @generated from message impulse.config.DismissSuggestionResponse
- */
-export type DismissSuggestionResponse = Message<"impulse.config.DismissSuggestionResponse"> & {
-};
-
-/**
- * Describes the message impulse.config.DismissSuggestionResponse.
- * Use `create(DismissSuggestionResponseSchema)` to create a new message.
- */
-export const DismissSuggestionResponseSchema: GenMessage<DismissSuggestionResponse> = /*@__PURE__*/
-  messageDesc(file_impulse_config_config_service, 58);
+  messageDesc(file_impulse_config_config_service, 23);
 
 /**
  * --- Themes ---
@@ -1442,6 +617,16 @@ export const ConfigService: GenService<{
     output: typeof InstallThemeResponseSchema;
   },
   /**
+   * Save or remove a theme from the user's saved list (toggle)
+   *
+   * @generated from rpc impulse.config.ConfigService.SaveTheme
+   */
+  saveTheme: {
+    methodKind: "unary";
+    input: typeof SaveThemeRequestSchema;
+    output: typeof SaveThemeResponseSchema;
+  },
+  /**
    * Get available chat themes
    *
    * @generated from rpc impulse.config.ConfigService.GetChatThemes
@@ -1452,64 +637,18 @@ export const ConfigService: GenService<{
     output: typeof GetChatThemesResponseSchema;
   },
   /**
-   * Get all wallpapers available to the current user
+   * Service-only (capability config.read): the facts messages.setChatTheme and
+   * messages.setChatWallPaper are validated against -- the account.getChatThemes catalogue's
+   * emoticons and the four boost thresholds help.getAppConfig serves
+   * (.demo/telegram-docs-text/api/wallpapers.md:930-949). One owner, so the gate and the config a
+   * client reads can never disagree.
    *
-   * @generated from rpc impulse.config.ConfigService.GetWallPapers
+   * @generated from rpc impulse.config.ConfigService.GetChatAppearanceRules
    */
-  getWallPapers: {
+  getChatAppearanceRules: {
     methodKind: "unary";
-    input: typeof GetWallPapersRequestSchema;
-    output: typeof GetWallPapersResponseSchema;
-  },
-  /**
-   * Get a single wallpaper by ID
-   *
-   * @generated from rpc impulse.config.ConfigService.GetWallPaper
-   */
-  getWallPaper: {
-    methodKind: "unary";
-    input: typeof GetWallPaperRequestSchema;
-    output: typeof WallPaperSchema;
-  },
-  /**
-   * Upload a new wallpaper
-   *
-   * @generated from rpc impulse.config.ConfigService.UploadWallPaper
-   */
-  uploadWallPaper: {
-    methodKind: "unary";
-    input: typeof UploadWallPaperRequestSchema;
-    output: typeof WallPaperSchema;
-  },
-  /**
-   * Save or unsave a wallpaper for the current user
-   *
-   * @generated from rpc impulse.config.ConfigService.SaveWallPaper
-   */
-  saveWallPaper: {
-    methodKind: "unary";
-    input: typeof SaveWallPaperRequestSchema;
-    output: typeof SaveWallPaperResponseSchema;
-  },
-  /**
-   * Reset all wallpapers to defaults for the current user
-   *
-   * @generated from rpc impulse.config.ConfigService.ResetWallPapers
-   */
-  resetWallPapers: {
-    methodKind: "unary";
-    input: typeof ResetWallPapersRequestSchema;
-    output: typeof ResetWallPapersResponseSchema;
-  },
-  /**
-   * Get Premium promotion info and feature list
-   *
-   * @generated from rpc impulse.config.ConfigService.GetPremiumPromo
-   */
-  getPremiumPromo: {
-    methodKind: "unary";
-    input: typeof GetPremiumPromoRequestSchema;
-    output: typeof GetPremiumPromoResponseSchema;
+    input: typeof GetChatAppearanceRulesRequestSchema;
+    output: typeof GetChatAppearanceRulesResponseSchema;
   },
   /**
    * Get available Premium gift code purchase options
@@ -1522,124 +661,16 @@ export const ConfigService: GenService<{
     output: typeof GetPremiumGiftCodeOptionsResponseSchema;
   },
   /**
-   * Get application configuration JSON
+   * The strings the SERVER writes into history in a user's language (internal Messages -> Config). Read from
+   * the dedicated server pack, never from a client's pack: a message in a chat is one row every session of
+   * the account reads, so it is localized once, by the server, not once per client.
    *
-   * @generated from rpc impulse.config.ConfigService.GetAppConfig
+   * @generated from rpc impulse.config.ConfigService.GetServerStrings
    */
-  getAppConfig: {
+  getServerStrings: {
     methodKind: "unary";
-    input: typeof GetAppConfigRequestSchema;
-    output: typeof GetAppConfigResponseSchema;
-  },
-  /**
-   * Get application update information
-   *
-   * @generated from rpc impulse.config.ConfigService.GetAppUpdate
-   */
-  getAppUpdate: {
-    methodKind: "unary";
-    input: typeof GetAppUpdateRequestSchema;
-    output: typeof GetAppUpdateResponseSchema;
-  },
-  /**
-   * Get the nearest DC and country for the current client
-   *
-   * @generated from rpc impulse.config.ConfigService.GetNearestDc
-   */
-  getNearestDc: {
-    methodKind: "unary";
-    input: typeof GetNearestDcRequestSchema;
-    output: typeof GetNearestDcResponseSchema;
-  },
-  /**
-   * Get all available languages
-   *
-   * @generated from rpc impulse.config.ConfigService.GetLanguages
-   */
-  getLanguages: {
-    methodKind: "unary";
-    input: typeof GetLanguagesRequestSchema;
-    output: typeof GetLanguagesResponseSchema;
-  },
-  /**
-   * Get a single language by code
-   *
-   * @generated from rpc impulse.config.ConfigService.GetLanguage
-   */
-  getLanguage: {
-    methodKind: "unary";
-    input: typeof GetLanguageRequestSchema;
-    output: typeof LanguageSchema;
-  },
-  /**
-   * Get the full localization pack for a language
-   *
-   * @generated from rpc impulse.config.ConfigService.GetLangPack
-   */
-  getLangPack: {
-    methodKind: "unary";
-    input: typeof GetLangPackRequestSchema;
-    output: typeof GetLangPackResponseSchema;
-  },
-  /**
-   * Get specific localization strings by key
-   *
-   * @generated from rpc impulse.config.ConfigService.GetStrings
-   */
-  getStrings: {
-    methodKind: "unary";
-    input: typeof GetStringsRequestSchema;
-    output: typeof GetStringsResponseSchema;
-  },
-  /**
-   * Get incremental lang pack updates since a given version
-   *
-   * @generated from rpc impulse.config.ConfigService.GetLangDifference
-   */
-  getLangDifference: {
-    methodKind: "unary";
-    input: typeof GetLangDifferenceRequestSchema;
-    output: typeof GetLangPackResponseSchema;
-  },
-  /**
-   * Get structured server configuration (limits, defaults)
-   *
-   * @generated from rpc impulse.config.ConfigService.GetConfig
-   */
-  getConfig: {
-    methodKind: "unary";
-    input: typeof GetConfigRequestSchema;
-    output: typeof GetConfigResponseSchema;
-  },
-  /**
-   * Save or remove a theme from the user's saved list (toggle)
-   *
-   * @generated from rpc impulse.config.ConfigService.SaveTheme
-   */
-  saveTheme: {
-    methodKind: "unary";
-    input: typeof SaveThemeRequestSchema;
-    output: typeof SaveThemeResponseSchema;
-  },
-  /**
-   * Get the current Terms of Service info
-   *
-   * @generated from rpc impulse.config.ConfigService.GetTermsOfServiceUpdate
-   */
-  getTermsOfServiceUpdate: {
-    methodKind: "unary";
-    input: typeof GetTermsOfServiceUpdateRequestSchema;
-    output: typeof GetTermsOfServiceUpdateResponseSchema;
-  },
-  /**
-   * Record acceptance of the Terms of Service
-   *
-   * @generated from rpc impulse.config.ConfigService.AcceptTermsOfService
-   */
-  acceptTermsOfService: {
-    methodKind: "unary";
-    input: typeof AcceptTermsOfServiceRequestSchema;
-    output: typeof AcceptTermsOfServiceResponseSchema;
+    input: typeof GetServerStringsRequestSchema;
+    output: typeof GetServerStringsResponseSchema;
   },
   /**
    * Get available name peer colors
@@ -1670,36 +701,6 @@ export const ConfigService: GenService<{
     methodKind: "unary";
     input: typeof GetTimezonesListRequestSchema;
     output: typeof GetTimezonesListResponseSchema;
-  },
-  /**
-   * Get list of countries with phone codes
-   *
-   * @generated from rpc impulse.config.ConfigService.GetCountriesList
-   */
-  getCountriesList: {
-    methodKind: "unary";
-    input: typeof GetCountriesListRequestSchema;
-    output: typeof GetCountriesListResponseSchema;
-  },
-  /**
-   * Get promotion/PSA data
-   *
-   * @generated from rpc impulse.config.ConfigService.GetPromoData
-   */
-  getPromoData: {
-    methodKind: "unary";
-    input: typeof GetPromoDataRequestSchema;
-    output: typeof GetPromoDataResponseSchema;
-  },
-  /**
-   * Dismiss a suggestion for the current user
-   *
-   * @generated from rpc impulse.config.ConfigService.DismissSuggestion
-   */
-  dismissSuggestion: {
-    methodKind: "unary";
-    input: typeof DismissSuggestionRequestSchema;
-    output: typeof DismissSuggestionResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_impulse_config_config_service, 0);

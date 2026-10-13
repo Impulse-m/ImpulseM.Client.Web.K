@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file impulse/events/contact_events.proto.
  */
 export const file_impulse_events_contact_events: GenFile = /*@__PURE__*/
-  fileDesc("CiNpbXB1bHNlL2V2ZW50cy9jb250YWN0X2V2ZW50cy5wcm90bxIXaW1wdWxzZS5ldmVudHMuY29udGFjdHMijwEKDENvbnRhY3RFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSQwoMZWRnZV9jaGFuZ2VkGAogASgLMisuaW1wdWxzZS5ldmVudHMuY29udGFjdHMuQ29udGFjdEVkZ2VDaGFuZ2VkSABCCQoHcGF5bG9hZCLbAQoSQ29udGFjdEVkZ2VDaGFuZ2VkEhAKCG93bmVyX2lkGAEgASgDEhIKCmNvbnRhY3RfaWQYAiABKAMSQgoGYWN0aW9uGAMgASgOMjIuaW1wdWxzZS5ldmVudHMuY29udGFjdHMuQ29udGFjdEVkZ2VDaGFuZ2VkLkFjdGlvbiJbCgZBY3Rpb24SFgoSQUNUSU9OX1VOU1BFQ0lGSUVEEAASEAoMQUNUSU9OX0FEREVEEAESEgoOQUNUSU9OX1JFTU9WRUQQAhITCg9BQ1RJT05fQUNDRVBURUQQA0IiqgIfSW1wdWxzZU0uUHJvdG9zLkV2ZW50cy5Db250YWN0c2IGcHJvdG8z", [file_impulse_events_events_common]);
+  fileDesc("CiNpbXB1bHNlL2V2ZW50cy9jb250YWN0X2V2ZW50cy5wcm90bxIXaW1wdWxzZS5ldmVudHMuY29udGFjdHMijwEKDENvbnRhY3RFdmVudBIvCghlbnZlbG9wZRgBIAEoCzIdLmltcHVsc2UuZXZlbnRzLkV2ZW50RW52ZWxvcGUSQwoMZWRnZV9jaGFuZ2VkGAogASgLMisuaW1wdWxzZS5ldmVudHMuY29udGFjdHMuQ29udGFjdEVkZ2VDaGFuZ2VkSABCCQoHcGF5bG9hZCL2AQoSQ29udGFjdEVkZ2VDaGFuZ2VkEhAKCG93bmVyX2lkGAEgASgDEhIKCmNvbnRhY3RfaWQYAiABKAMSQgoGYWN0aW9uGAMgASgOMjIuaW1wdWxzZS5ldmVudHMuY29udGFjdHMuQ29udGFjdEVkZ2VDaGFuZ2VkLkFjdGlvbiJ2CgZBY3Rpb24SFgoSQUNUSU9OX1VOU1BFQ0lGSUVEEAASEAoMQUNUSU9OX0FEREVEEAESEgoOQUNUSU9OX1JFTU9WRUQQAhITCg9BQ1RJT05fQUNDRVBURUQQAxIZChVBQ1RJT05fTVVUVUFMX1JFVk9LRUQQBEIiqgIfSW1wdWxzZU0uUHJvdG9zLkV2ZW50cy5Db250YWN0c2IGcHJvdG8z", [file_impulse_events_events_common]);
 
 /**
  * @generated from message impulse.events.contacts.ContactEvent
@@ -92,6 +92,14 @@ export enum ContactEdgeChanged_Action {
    * @generated from enum value: ACTION_ACCEPTED = 3;
    */
   ACCEPTED = 3,
+
+  /**
+   * The owner's contact is no longer a mutual contact because the contact deleted the owner
+   * from their own list. The owner's edge itself is unchanged apart from is_mutual.
+   *
+   * @generated from enum value: ACTION_MUTUAL_REVOKED = 4;
+   */
+  MUTUAL_REVOKED = 4,
 }
 
 /**
