@@ -42,7 +42,10 @@ describeOrSkip('basic group: messages from the other member and from another ses
 
     // * a stray AUTH_KEY_DUPLICATED/SESSION_REVOKED would log the seed out on every dc
     for(const [tag, client] of Object.entries(clients)) {
-      (client.managers.apiManager as any).logOut = () => console.warn(`  [${tag}] logOut suppressed`);
+      (client.managers.apiManager as any).logOut = () => {
+        console.warn(`  [${tag}] logOut suppressed`);
+        return Promise.resolve();
+      };
     }
 
     let chatId: ChatId;

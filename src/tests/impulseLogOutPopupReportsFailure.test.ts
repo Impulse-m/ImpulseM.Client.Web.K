@@ -78,4 +78,25 @@ describe('the sign-out popup reports a failed sign-out', () => {
       process.off('unhandledRejection', recordUnhandled);
     }
   });
+
+  it('a cancelled sign-out popup signs nothing out and leaves no unhandled rejection behind', async() => {
+    const unhandled: unknown[] = [];
+    const recordUnhandled = (reason: unknown): void => {
+      unhandled.push(reason);
+    };
+    process.on('unhandledRejection', recordUnhandled);
+
+    try {
+      confirm.mockRejectedValue(undefined);
+      const {default: showLogOutPopup} = await import('@components/popups/logOut');
+
+      showLogOutPopup();
+
+      await settled();
+      expect(unhandled, 'cancelling the sign-out popup rejects its confirmation with undefined, and that rejection must be handled').toEqual([]);
+      expect(logOut, 'a cancelled sign-out popup does not sign out').not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', recordUnhandled);
+    }
+  });
 });

@@ -19,7 +19,10 @@ describeOrSkip('pinned orders vs folders', () => {
 
     // A stray AUTH_KEY_DUPLICATED/SESSION_REVOKED makes apiManager.logOut()
     // kill the authorization behind the seed — never from a test.
-    (client.apiManager as any).logOut = () => console.warn('  logOut suppressed');
+    (client.apiManager as any).logOut = () => {
+      console.warn('  logOut suppressed');
+      return Promise.resolve();
+    };
 
     managers = client.managers;
   }, 60_000);

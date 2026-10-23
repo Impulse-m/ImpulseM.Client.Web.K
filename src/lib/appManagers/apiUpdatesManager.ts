@@ -454,9 +454,9 @@ class ApiUpdatesManager {
 
   private async seedChannelFromDialog(channelId: ChatId): Promise<void> {
     const peerId: PeerId = channelId.toPeerId(true);
-    const result: MessagesPeerDialogs = await this.apiManager.invokeApi('messages.getPeerDialogs', {
-      peers: [this.appPeersManager.getInputDialogPeerById(peerId)]
-    }, {floodMaxTimeout: Infinity});
+    const result: MessagesPeerDialogs = await this.appMessagesManager.fetchPeerDialogs(
+      new Map([[peerId, this.appPeersManager.getInputDialogPeerById(peerId)]])
+    );
     this.dialogsStorage.applyDialogs(result);
 
     const dialog: Dialog.dialog | undefined = result.dialogs.find(
