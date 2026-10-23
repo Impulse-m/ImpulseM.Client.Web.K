@@ -2,7 +2,7 @@ import {createHash} from 'crypto';
 
 import type {Page} from '@playwright/test';
 
-import {fleetAnswers, recordGatewayCalls} from './carriers';
+import {fleetAnswers, fleetCountersOf, socketUrlOf} from './carriers';
 import {downloadedDigest, sendDocument} from './documentTransfer';
 import {liveLane} from './lane';
 import {expect, test} from './pair';
@@ -16,14 +16,9 @@ import {expect, test} from './pair';
  */
 test.skip(!liveLane.enabled, liveLane.skipReason);
 
-const WEBSOCKET_PATH: string = '/connection/websocket?cf_protocol=protobuf&cf_ws_frame_ping_pong=true';
 const MESSAGE_TEXT: string = 'carried by the update socket';
 const DOCUMENT_NAME: string = 'carried-by-the-update-socket.bin';
 const DOCUMENT_BYTES: number = 4 * 1024;
-
-async function fleetCounters(page: Page): Promise<{media: number, socket: number}> {
-  return page.evaluate(() => (window as any).rootScope.managers.apiManager.getFleetCounters());
-}
 
 function documentPayload(): Uint8Array {
   const payload = new Uint8Array(DOCUMENT_BYTES);
@@ -34,15 +29,22 @@ function documentPayload(): Uint8Array {
   return payload;
 }
 
+async function historyTextOf(page: Page): Promise<string[]> {
+  return page.evaluate(async() => {
+    const w = window as any;
+    const history = await w.rootScope.managers.appMessagesManager.getHistory({peerId: w.appImManager.chat.peerId, limit: 20});
+    const messages: any[] = await Promise.all((history?.history ?? []).map((mid: number) =>
+      w.rootScope.managers.appMessagesManager.getMessageByPeer(w.appImManager.chat.peerId, mid)
+    ));
+    return messages.map((entry: any) => entry?.message ?? '');
+  });
+}
+
 test('a message, its history and a file travel the update socket, and no page reaches the gateway gRPC-web paths', async({pair}) => {
-  const {sender, recipient} = pair;
-  const socketUrl = `${liveLane.gatewayOrigin.replace(/^http/, 'ws')}${WEBSOCKET_PATH}`;
+  const {sender, recipient, gateway} = pair;
+  const socketUrl = socketUrlOf(liveLane.gatewayOrigin);
   const probe = await fleetAnswers(socketUrl);
   test.skip(probe !== undefined, `the update socket at ${socketUrl} does not answer: ${probe}`);
-
-  const gatewayCalls: string[] = [];
-  await recordGatewayCalls(sender.page, gatewayCalls);
-  await recordGatewayCalls(recipient.page, gatewayCalls);
 
   await sender.typeAndSendText(MESSAGE_TEXT);
   await recipient.waitForIncomingText(MESSAGE_TEXT);
@@ -52,23 +54,16 @@ test('a message, its history and a file travel the update socket, and no page re
   await sendDocument(sender, payload, DOCUMENT_NAME);
   await recipient.waitForIncomingText(DOCUMENT_NAME);
 
-  const readBack = await recipient.page.evaluate(async() => {
-    const w = window as any;
-    const history = await w.rootScope.managers.appMessagesManager.getHistory({peerId: w.appImManager.chat.peerId, limit: 20});
-    const messages: any[] = await Promise.all((history?.history ?? []).map((mid: number) =>
-      w.rootScope.managers.appMessagesManager.getMessageByPeer(w.appImManager.chat.peerId, mid)
-    ));
-    return messages.map((entry: any) => entry?.message ?? '');
-  });
-  expect(readBack, 'the recipient reads the message back in the history of the dialog').toContain(MESSAGE_TEXT);
+  expect(await historyTextOf(recipient.page), 'the recipient reads the message back in the history of the dialog').toContain(MESSAGE_TEXT);
 
   const received = await downloadedDigest(recipient, DOCUMENT_NAME);
   expect(received.size, 'the downloaded file is the file that was sent').toBe(DOCUMENT_BYTES);
   expect(received.sha256, 'the bytes downloaded are the bytes uploaded').toBe(expectedSha256);
 
-  const sentBy = await fleetCounters(sender.page);
-  const readBy = await fleetCounters(recipient.page);
+  const sentBy = await fleetCountersOf(sender.page);
+  const readBy = await fleetCountersOf(recipient.page);
   expect(sentBy.socket, 'the sender\'s calls must be carried by the update socket').toBeGreaterThan(0);
   expect(readBy.socket, 'the recipient\'s calls must be carried by the update socket').toBeGreaterThan(0);
-  expect(gatewayCalls, 'no request of either page may travel the gateway gRPC-web paths').toEqual([]);
+  expect(gateway.workers, 'the workers of both pages must be watched, or the check below proves nothing').not.toEqual([]);
+  expect(gateway.calls, 'no request of either page may travel the gateway gRPC-web paths, from the sign-up on').toEqual([]);
 });

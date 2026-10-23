@@ -42,6 +42,7 @@ const SESSION_TOKEN: string = 'access-jwt-first';
 const RENEWED_TOKEN: string = 'access-jwt-renewed';
 const REFRESH_TOKEN: string = 'refresh-token-stored';
 const REFRESH: string = 'impulse.auth.refreshSession';
+const TOKEN_EXPIRED: number = 109;
 const UNAUTHORIZED_MUST_STOP_THE_SOCKET: string =
   'getToken must throw the SDK\'s UnauthorizedError on a refused session: any other error is retried forever';
 
@@ -87,18 +88,50 @@ describe('the update socket connects with the access JWT, and gets no token of i
     expect(fleetHarness.calls, 'a token nobody has refused costs no renewal').toHaveLength(0);
   });
 
-  it('renews the access JWT through the refresh when the SDK asks again for the one it holds', async() => {
+  it('renews the access JWT through the refresh only after the server refused the one it holds', async() => {
     const current = await identity();
     await current.getToken?.();
+    current.onRefused?.();
     fleetHarness.respond(REFRESH, () => ({data: renewedAuthorization()}));
 
     await expect(current.getToken?.()).resolves.toBe(RENEWED_TOKEN);
     expect(fleetHarness.calls.map((call) => call.method)).toEqual([REFRESH]);
   });
 
+  it('a new socket for the same identity presents the token it already holds, and spends no renewal', async() => {
+    const realtime = await import('@lib/impulse/realtime');
+    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+    await vi.waitFor(() => expect(socketHarness.sockets[0]?.presentedToken).toBe(SESSION_TOKEN));
+    realtime.stopImpulseRealtime(ACCOUNT);
+
+    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+
+    await vi.waitFor(() => expect(socketHarness.sockets, 'the second bring-up opens a second socket').toHaveLength(2));
+    await vi.waitFor(() => expect(
+      socketHarness.sockets[1].presentedToken,
+      'a connection the server has not refused presents the token the slot holds'
+    ).toBe(SESSION_TOKEN));
+    expect(fleetHarness.calls, 'a token nobody refused costs no renewal, however often a socket connects').toHaveLength(0);
+  });
+
+  it('a refusal the update socket reports renews the token on the next connection', async() => {
+    const realtime = await import('@lib/impulse/realtime');
+    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+    await vi.waitFor(() => expect(socketHarness.sockets[0]?.presentedToken).toBe(SESSION_TOKEN));
+    fleetHarness.respond(REFRESH, () => ({data: renewedAuthorization()}));
+    socketHarness.sockets[0].emit('error', {type: 'connect', error: {code: TOKEN_EXPIRED}});
+    realtime.stopImpulseRealtime(ACCOUNT);
+
+    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+
+    await vi.waitFor(() => expect(socketHarness.sockets[1]?.presentedToken).toBe(RENEWED_TOKEN));
+    expect(fleetHarness.calls.map((call) => call.method)).toEqual([REFRESH]);
+  });
+
   it('a refused renewal ends the connection with UnauthorizedError', async() => {
     const current = await identity();
     await current.getToken?.();
+    current.onRefused?.();
     fleetHarness.respond(REFRESH, () => {
       throw {code: 401, message: 'AUTH_KEY_UNREGISTERED', appCode: 401, appType: 'AUTH_KEY_UNREGISTERED'};
     });
@@ -109,6 +142,7 @@ describe('the update socket connects with the access JWT, and gets no token of i
   it('a renewal that fails in transit stays retryable, not a refusal', async() => {
     const current = await identity();
     await current.getToken?.();
+    current.onRefused?.();
     fleetHarness.respond(REFRESH, () => {
       throw {code: 100, message: 'INTERNAL_SERVER_ERROR', appCode: 500, appType: 'INTERNAL_SERVER_ERROR'};
     });

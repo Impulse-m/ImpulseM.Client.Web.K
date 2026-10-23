@@ -10,7 +10,7 @@ import {
   routesToMediaFleet
 } from '@lib/impulse/fleet/fleetRoute';
 import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
-import {protoToTL} from '@lib/impulse/grpc/adapter';
+import {protoToTL} from '@lib/impulse/grpc/protoToTL';
 import {ConfigSchema, DcOptionSchema} from '@lib/impulse/grpc/gen/v1/types_pb';
 
 

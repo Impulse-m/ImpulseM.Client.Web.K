@@ -4,8 +4,9 @@
  * One Centrifugo client per slot, speaking protobuf. It carries the server-initiated updates on the per-user channel
  * `user:{id}`, the session lane, and the channels of the dialogs on screen; and it carries every regular TL call of the
  * slot as an rpc (callUpdateSocket). The socket connects with the identity of its slot (session.ts fleetIdentityFor):
- * anonymous while signed out, the pending 2FA token while a challenge is pending, the access JWT while signed in. A change
- * of identity replaces the connection, and the replaced one closes once the calls it carries have settled.
+ * anonymous while signed out, the pending 2FA token while a challenge is pending, the access JWT while signed in. The
+ * slot's identity moves only through startImpulseRealtime and the session transitions (rekeyUpdateSocket); a call never
+ * replaces the socket. The replaced socket closes once the calls it carries have settled.
  *
  * Decoded updates go to the updates manager through the same entry point the MTProto updates loop used, so pts gating,
  * gap detection and getDifference keep working unchanged. It runs in the worker, next to the updates manager.
@@ -15,21 +16,22 @@
  */
 
 import Schema, {MTProtoConstructor} from '@lib/mtproto/schema';
-import {Centrifuge, type RpcResult, type Subscription} from '@impulsem/centrifuge/build/protobuf';
+import {Centrifuge, type RpcOptions, type RpcResult, type Subscription} from '@impulsem/centrifuge/build/protobuf';
 import {fromBinary} from '@bufbuild/protobuf';
 
 import {backendWsOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
 import type {TabState} from '@lib/apiManagerProxy';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {TOKEN_EXPIRED_CODE} from './centrifugoCodes';
+import {isTokenRefusalCode, TOKEN_EXPIRED_CODE} from './centrifugoCodes';
 import {countSocketCall, fleetFailure} from './fleet/fleet';
 import type {FleetIdentity} from './fleet/fleet';
-import {transportApiError} from './fleet/fleetError';
+import {isFleetRpcError, replyDataOf} from './fleet/fleetError';
 import {RealtimeSubscriptions} from './realtimeSubscriptions';
 import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
 import {getReconnectJitterMaxMs, ReconnectFloorMs} from './realtimeDiscipline';
-import {protoToTL} from './grpc/adapter';
+import {protoToTL} from './grpc/protoToTL';
+import {getGrpcQrExporterTicket, QR_EXPORTER_TICKET_HEADER} from './grpc/credentials';
 import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 
 const logger = getLogger('impulse-realtime');
@@ -44,9 +46,9 @@ export const ReconnectJitterMaxMs = getReconnectJitterMaxMs(import.meta.env.DEV)
 // The floor of the first reconnect: the SDK grows its random range from here.
 export const ReconnectJitterMinMs = ReconnectFloorMs;
 
-export type RealtimeUpdateSink = (updates: any, channelId?: ChatId) => void;
+type RealtimeUpdateSink = (updates: any, channelId?: ChatId) => void;
 
-export type Envelope = {
+type Envelope = {
   type?: number,
   pts?: number | string,
   ptsCount?: number | string,
@@ -57,12 +59,12 @@ export type Envelope = {
   oversize?: boolean
 };
 
-export type RealtimeCall = {
+type RealtimeCall = {
   callId: string,
   channelId: ChatId | undefined
 };
 
-export type UpdateSocketCall = {
+type UpdateSocketCall = {
   accountNumber: ActiveAccountNumber,
   identity: FleetIdentity,
   method: string,
@@ -72,8 +74,7 @@ export type UpdateSocketCall = {
 
 type UpdateSocket = {
   client: Centrifuge,
-  // The identity the socket was opened under: a different identity replaces it.
-  identityKey: string,
+  identity: FleetIdentity,
   // Calls in flight on the socket: a retired socket closes once they have settled.
   inflight: number,
   retired: boolean,
@@ -137,7 +138,7 @@ export function startImpulseRealtime(
   }
 
   const record = connectionFor(accountNumber);
-  if(record.activeUserId === userId && record.socket?.identityKey === identity.key && !record.socket.retired) {
+  if(record.activeUserId === userId && record.socket?.identity.key === identity.key) {
     return;
   }
 
@@ -148,7 +149,11 @@ export function startImpulseRealtime(
   record.activeUserId = userId;
   record.subscriptionSet = new RealtimeSubscriptions(userId);
   record.subscriptionSet.pin(record.call?.channelId);
-  socketFor(accountNumber, identity);
+  if(record.socket && record.socket.identity.key !== identity.key) {
+    retireSocket(record, record.socket);
+  }
+
+  socketOf(accountNumber, identity);
   applySubscriptions(accountNumber);
 }
 
@@ -166,7 +171,6 @@ export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
     logger.warn('Realtime teardown failed', {accountNumber}, err);
   }
 
-  record.socket = undefined;
   record.subscriptionSet = undefined;
   record.activeUserId = undefined;
   // call, sink and latestTabStates deliberately survive teardown: apiManager re-arms the sink on the
@@ -175,17 +179,38 @@ export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
 }
 
 /**
- * Sends one regular TL call as an rpc on the slot's update socket, under the identity the call presents. The socket is
- * the one for that identity: it is opened, or replaced, here. Rejects with an ApiError.
+ * Moves the slot's socket to the identity its credentials hold now. A socket that already presents that identity stays.
+ * A signed-in slot reconnects at once, with its subscriptions; any other slot connects with its next call.
+ */
+export function rekeyUpdateSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity): void {
+  const record = connectionFor(accountNumber);
+  const current = record.socket;
+  if(!current || current.identity.key === identity.key) {
+    return;
+  }
+
+  retireSocket(record, current);
+  if(record.activeUserId !== undefined) {
+    socketOf(accountNumber, identity);
+  }
+}
+
+/**
+ * Sends one regular TL call as an rpc on the slot's update socket. The socket is the slot's own: it is opened here only
+ * when the slot has none, under the identity the call presents. Rejects with an ApiError.
  */
 export async function callUpdateSocket(call: UpdateSocketCall): Promise<Uint8Array> {
-  const socket = socketFor(call.accountNumber, call.identity);
+  const socket = socketOf(call.accountNumber, call.identity);
   socket.inflight++;
 
   let reply: RpcResult;
   try {
-    reply = await socket.client.rpc(call.method, call.request, {signal: call.signal});
+    reply = await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
   } catch(err: unknown) {
+    if(isFleetRpcError(err) && isTokenRefusalCode(err.code)) {
+      socket.identity.onRefused?.();
+    }
+
     throw fleetFailure(call.method, err);
   } finally {
     socket.inflight--;
@@ -193,11 +218,17 @@ export async function callUpdateSocket(call: UpdateSocketCall): Promise<Uint8Arr
   }
 
   countSocketCall(call.accountNumber);
-  if(reply.data === undefined) {
-    throw transportApiError(reply);
+  return replyDataOf(reply);
+}
+
+function rpcOptionsOf(call: UpdateSocketCall): RpcOptions {
+  const options: RpcOptions = {signal: call.signal};
+  const qrExporterTicket = getGrpcQrExporterTicket(call.accountNumber);
+  if(qrExporterTicket !== undefined) {
+    options.headers = {[QR_EXPORTER_TICKET_HEADER]: qrExporterTicket};
   }
 
-  return reply.data as Uint8Array;
+  return options;
 }
 
 /**
@@ -265,16 +296,11 @@ function applyTabStates(accountNumber: ActiveAccountNumber): void {
   applySubscriptionDiff(accountNumber, record.subscriptionSet.showDialogs(visibleChannelIds));
 }
 
-/** The socket of the slot for this identity: the current one when it was opened under it, else a new one replacing it. */
-function socketFor(accountNumber: ActiveAccountNumber, identity: FleetIdentity): UpdateSocket {
+/** The socket of the slot: the one it has, else a new one under the identity the caller holds. */
+function socketOf(accountNumber: ActiveAccountNumber, identity: FleetIdentity): UpdateSocket {
   const record = connectionFor(accountNumber);
-  const current = record.socket;
-  if(current && !current.retired && current.identityKey === identity.key) {
-    return current;
-  }
-
-  if(current) {
-    retireSocket(record, current);
+  if(record.socket) {
+    return record.socket;
   }
 
   const socket = openSocket(accountNumber, identity);
@@ -295,12 +321,17 @@ function openSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity)
   });
 
   centrifuge.on('error', (ctx: any) => {
-    if(ctx?.error?.code === TOKEN_EXPIRED_CODE) {
+    const code: number | undefined = ctx?.error?.code;
+    if(isTokenRefusalCode(code)) {
+      identity.onRefused?.();
+    }
+
+    if(code === TOKEN_EXPIRED_CODE) {
       logger.info('Centrifugo token expired; refreshing');
       return;
     }
 
-    logger.warn('Centrifugo error', {code: ctx?.error?.code});
+    logger.warn('Centrifugo error', {code});
   });
 
   // The lifecycle of the socket, logged from the events the SDK emits.
@@ -323,7 +354,7 @@ function openSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity)
 
   const socket: UpdateSocket = {
     client: centrifuge,
-    identityKey: identity.key,
+    identity,
     inflight: 0,
     retired: false,
     closed: false
@@ -335,6 +366,10 @@ function openSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity)
 
 /** Ends a socket: its subscriptions are dropped now, and the socket closes once the calls it carries have settled. */
 function retireSocket(record: RealtimeConnection, socket: UpdateSocket): void {
+  if(record.socket === socket) {
+    record.socket = undefined;
+  }
+
   socket.retired = true;
   unsubscribeAll(record);
   closeIfIdle(socket);

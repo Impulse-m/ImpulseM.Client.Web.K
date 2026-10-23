@@ -25,12 +25,18 @@ export type ConnectionDeclarationValues = {
   tzOffset?: number
 };
 
+// The metadata the server reads the QR exporter ticket from (AuthContextExtensions.QrExporterTicketHeader).
+export const QR_EXPORTER_TICKET_HEADER: string = 'x-impulse-qr-exporter-ticket';
+
 type AccountCredentials = {
   sessionToken: string | undefined,
+  // The session token the server last refused as expired or invalid: the next connection asks for a renewal of it.
+  refusedSessionToken: string | undefined,
   // Bumped on every pendingToken transition (set OR clear, never read directly by callers), so a response that belongs to
   // an attempt something newer has superseded can be told apart from a current one (#675).
   pendingToken: string | undefined,
   pendingGeneration: number,
+  qrExporterTicket: string | undefined,
   declaration: ConnectionDeclarationValues | undefined,
   // Bumped whenever the declared values change or the binding is invalidated, so a handshake that belongs to an older
   // declaration cannot mark the current one as bound.
@@ -50,8 +56,10 @@ function credentialsFor(accountNumber: ActiveAccountNumber): AccountCredentials 
   if(!credentials) {
     credentials = {
       sessionToken: undefined,
+      refusedSessionToken: undefined,
       pendingToken: undefined,
       pendingGeneration: 0,
+      qrExporterTicket: undefined,
       declaration: undefined,
       declarationGeneration: 0,
       connectionInited: false
@@ -68,6 +76,25 @@ export function setGrpcSessionToken(accountNumber: ActiveAccountNumber, token: s
 
 export function getGrpcSessionToken(accountNumber: ActiveAccountNumber): string | undefined {
   return credentialsFor(accountNumber).sessionToken;
+}
+
+/** Records that the server refused this session token. A token that is later replaced is not refused any more. */
+export function markGrpcSessionTokenRefused(accountNumber: ActiveAccountNumber, token: string): void {
+  credentialsFor(accountNumber).refusedSessionToken = token;
+}
+
+/** Whether the server refused the session token this slot holds, and so it must be renewed before it is presented again. */
+export function isGrpcSessionTokenRefused(accountNumber: ActiveAccountNumber): boolean {
+  const credentials = credentialsFor(accountNumber);
+  return credentials.sessionToken !== undefined && credentials.refusedSessionToken === credentials.sessionToken;
+}
+
+export function setGrpcQrExporterTicket(accountNumber: ActiveAccountNumber, ticket: string | undefined): void {
+  credentialsFor(accountNumber).qrExporterTicket = ticket;
+}
+
+export function getGrpcQrExporterTicket(accountNumber: ActiveAccountNumber): string | undefined {
+  return credentialsFor(accountNumber).qrExporterTicket;
 }
 
 export function setGrpcPendingToken(accountNumber: ActiveAccountNumber, token: string | undefined): void {

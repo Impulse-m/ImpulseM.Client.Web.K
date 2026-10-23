@@ -688,4 +688,33 @@ describe('#675 pending two-factor credential', () => {
       ).toBeUndefined();
     }
   );
+
+  it(
+    'a method outside the pending set is refused by the server under the pending identity: the refusal reaches the caller as ' +
+    'its typed error, and the call is not retried',
+    async() => {
+      accountGet.mockResolvedValue(undefined);
+      respondAll({
+        [SIGN_IN]: rejecting('SESSION_PASSWORD_NEEDED', {'pending-token': 'fixture-pending-token-1'}),
+        [GET_LANG_PACK]: rejecting('AUTH_TOKEN_INVALID')
+      });
+
+      const {restoreImpulseSession} = await import('@lib/impulse/session');
+      const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
+
+      await restoreImpulseSession(1);
+      await grpcInvoke(SIGN_IN, SIGN_IN_ARGS, 1).catch(() => {});
+
+      const outcome = await grpcInvoke(GET_LANG_PACK, {}, 1)
+        .then(() => 'resolved', (error: any) => ({type: error?.type, code: error?.code}));
+
+      expect(
+        outcome,
+        'the connection presents the pending token to every method, and the server refuses a method outside the pending set: ' +
+        'the client does not gate it, so the refusal is what the caller sees'
+      ).toEqual({type: 'AUTH_TOKEN_INVALID', code: 400});
+      expect(callsOf(GET_LANG_PACK), 'a refused method is sent once: the refusal is not retried').toHaveLength(1);
+      expect(lastCallOf(GET_LANG_PACK)?.presentedToken).toBe('fixture-pending-token-1');
+    }
+  );
 });

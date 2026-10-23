@@ -1,6 +1,8 @@
 import {BrowserContextOptions, test as base, expect} from '@playwright/test';
 
 import {ephemeralPersona} from '../../src/tests/liveharness/personas';
+import {recordGatewayCalls} from './carriers';
+import type {GatewayRecorder} from './carriers';
 import {PersonaSession} from './personaSession';
 
 /*
@@ -17,7 +19,9 @@ import {PersonaSession} from './personaSession';
  */
 export type PersonaPair = {
   sender: PersonaSession,
-  recipient: PersonaSession
+  recipient: PersonaSession,
+  // The gateway gRPC-web requests of both sides, from before their sign-up.
+  gateway: GatewayRecorder
 };
 
 
@@ -42,8 +46,11 @@ export const test = base.extend<{
     const recipientOptions: BrowserContextOptions = forBrowser(recipientContextOptions ?? pairContextOptions);
     const sender = await PersonaSession.open(browser, ephemeralPersona(`sender-${testInfo.testId}`), {contextOptions: senderOptions});
     const recipient = await PersonaSession.open(browser, ephemeralPersona(`recipient-${testInfo.testId}`), {contextOptions: recipientOptions});
+    const gateway: GatewayRecorder = {calls: [], workers: []};
 
     try {
+      await recordGatewayCalls(sender.page, gateway);
+      await recordGatewayCalls(recipient.page, gateway);
       await Promise.all([
         sender.signUpThroughUi(),
         recipient.signUpThroughUi()
@@ -52,7 +59,7 @@ export const test = base.extend<{
       await sender.openDialogWithPhone(recipient.persona.phone);
       await recipient.openDialogWithPhone(sender.persona.phone);
 
-      await use({sender, recipient});
+      await use({sender, recipient, gateway});
 
       const combined = [
         ...[...new Set(sender.consoleClean.failures)].map((entry) => `[sender] ${entry}`),

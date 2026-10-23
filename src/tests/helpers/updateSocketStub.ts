@@ -24,7 +24,13 @@ export type UpdateSocketCallRecord = {
   method: string,
   data: Uint8Array,
   endpoint: string,
-  presentedToken: string | undefined
+  presentedToken: string | undefined,
+  headers: Record<string, string> | undefined
+};
+
+type UpdateSocketRpcOptions = {
+  headers?: Record<string, string>,
+  signal?: AbortSignal
 };
 
 export type SubscriptionStub = {
@@ -85,10 +91,10 @@ export function createUpdateSocketHarness(): UpdateSocketHarness {
     public disconnected: boolean = false;
     public readonly subscriptions: SubscriptionStub[] = [];
 
-    public readonly rpc = vi.fn(async(method: string, data: Uint8Array): Promise<UpdateSocketReply> => {
+    public readonly rpc = vi.fn(async(method: string, data: Uint8Array, options?: UpdateSocketRpcOptions): Promise<UpdateSocketReply> => {
       await this.waitForConnection();
 
-      calls.push({method, data, endpoint: this.url, presentedToken: this.presentedToken});
+      calls.push({method, data, endpoint: this.url, presentedToken: this.presentedToken, headers: options?.headers});
       const responder = nextResponder(method);
       if(!responder) {
         throw new Error(`no update socket responder registered for ${method}`);

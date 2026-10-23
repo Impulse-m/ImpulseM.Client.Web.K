@@ -162,3 +162,29 @@ describe('the update socket follows the identity of its slot', () => {
     ).toBe(RENEWED_TOKEN);
   });
 });
+
+describe('a call never moves the update socket to another identity', () => {
+  beforeEach(async() => {
+    signedInAccount();
+    const {restoreImpulseSession} = await import('@lib/impulse/session');
+    await restoreImpulseSession(ACCOUNT);
+  });
+
+  it('a call carrying another identity is answered by the slot\'s socket and leaves that socket in place', async() => {
+    const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
+    const {callUpdateSocket} = await import('@lib/impulse/realtime');
+    const {ANONYMOUS_IDENTITY} = await import('@lib/impulse/fleet/fleet');
+    socketHarness.respondOnce(GET_CONFIG, configReply);
+    await grpcInvoke(GET_CONFIG, {}, ACCOUNT);
+    socketHarness.respondOnce(GET_CONFIG, configReply);
+
+    await callUpdateSocket({accountNumber: ACCOUNT, identity: ANONYMOUS_IDENTITY, method: GET_CONFIG, request: new Uint8Array(0)});
+
+    expect(
+      socketHarness.sockets,
+      'a call of another identity must not open a socket that replaces the slot\'s own one'
+    ).toHaveLength(1);
+    expect(socketHarness.sockets[0].disconnected, 'the slot\'s socket stays connected').toBe(false);
+    expect(socketHarness.calls[1].presentedToken, 'the call goes out on the slot\'s socket, which presents the session').toBe(SESSION_TOKEN);
+  });
+});

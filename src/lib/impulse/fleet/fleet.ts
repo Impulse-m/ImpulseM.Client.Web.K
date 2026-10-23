@@ -10,12 +10,11 @@
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getLogger} from '@lib/impulseLogger';
-import {TOKEN_EXPIRED_CODE} from '@lib/impulse/centrifugoCodes';
-import {fleetApiError, transportApiError} from './fleetError';
-import type {FleetRpcError} from './fleetError';
-import {FleetLane, FleetLaneRetiredError} from './fleetLane';
+import {isTokenRefusalCode, METHOD_INVALID_CODE} from '@lib/impulse/centrifugoCodes';
+import {fleetApiError, isFleetRpcError, replyDataOf, transportApiError} from './fleetError';
+import {FleetLane} from './fleetLane';
 import type {FleetKind, FleetPoolReply} from './fleetLane';
-import {defaultRpcEndpoint, mediaEndpointOf, routesToMediaFleet} from './fleetRoute';
+import {defaultRpcEndpoint, mediaEndpointOf, REFRESH_SESSION_METHOD, routesToMediaFleet} from './fleetRoute';
 import type {FleetConfig} from './fleetRoute';
 
 const logger = getLogger('fleet');
@@ -29,14 +28,16 @@ const MEDIA_INFLIGHT_PER_CONNECTION: number = 2;
 const MEDIA_CONNECTIONS_PER_ENDPOINT: number = 2;
 const REFRESH_INFLIGHT_PER_CONNECTION: number = 1;
 const REFRESH_CONNECTIONS_PER_ENDPOINT: number = 1;
-const AUTH_TOKEN_INVALID_CODE: number = 103;
-const METHOD_INVALID_CODE: number = 104;
+// The calls a pool holds waiting for one of its slots, beyond which the pool refuses at once (the SDK's default).
+const MAX_QUEUED_CALLS_PER_POOL: number = 64;
 
 export type FleetIdentity = {
   kind: 'anonymous' | 'session' | 'pending',
   // Lanes are kept per key: two identities never share connections.
   key: string,
-  getToken: (() => Promise<string>) | undefined
+  getToken: (() => Promise<string>) | undefined,
+  // Called when the server refuses the token this identity presents, so the next connection asks for a renewed one.
+  onRefused?: () => void
 };
 
 export type FleetCall = {
@@ -136,12 +137,12 @@ export async function callMediaFleet(call: FleetCall): Promise<Uint8Array> {
  * Sends the session refresh on the anonymous pool of the RPC endpoint. The refresh carries its refresh token in the
  * body, and it must not wait for the update socket, which is itself waiting for the token this call renews.
  */
-export function callRefreshFleet(accountNumber: ActiveAccountNumber, method: string, request: Uint8Array): Promise<Uint8Array> {
+export function callRefreshFleet(accountNumber: ActiveAccountNumber, request: Uint8Array): Promise<Uint8Array> {
   return sendOnLane(
     fleetOf(accountNumber),
     {kind: 'refresh', endpoint: defaultRpcEndpoint()},
     ANONYMOUS_IDENTITY,
-    method,
+    REFRESH_SESSION_METHOD,
     request
   );
 }
@@ -154,25 +155,15 @@ async function sendOnLane(
   request: Uint8Array,
   signal?: AbortSignal
 ): Promise<Uint8Array> {
-  for(;;) {
-    const lane = laneFor(fleet, target, identity);
-    let reply: FleetPoolReply;
-    try {
-      reply = await lane.send(method, request, signal);
-    } catch(err: unknown) {
-      if(err instanceof FleetLaneRetiredError) {
-        continue;
-      }
-
-      throw failureOf(fleet, lane, method, identity, err);
-    }
-
-    if(reply.data === undefined) {
-      throw transportApiError(reply);
-    }
-
-    return reply.data;
+  const lane = laneFor(fleet, target, identity);
+  let reply: FleetPoolReply;
+  try {
+    reply = await lane.send(method, request, signal);
+  } catch(err: unknown) {
+    throw failureOf(fleet, lane, method, identity, err);
   }
+
+  return replyDataOf(reply);
 }
 
 function laneFor(fleet: AccountFleet, target: LaneTarget, identity: FleetIdentity): FleetLane {
@@ -197,6 +188,7 @@ function laneFor(fleet: AccountFleet, target: LaneTarget, identity: FleetIdentit
       timeoutMs: isMedia ? MEDIA_CALL_TIMEOUT_MS : REFRESH_CALL_TIMEOUT_MS,
       connectionsPerEndpoint: isMedia ? MEDIA_CONNECTIONS_PER_ENDPOINT : REFRESH_CONNECTIONS_PER_ENDPOINT,
       inflightPerConnection: isMedia ? MEDIA_INFLIGHT_PER_CONNECTION : REFRESH_INFLIGHT_PER_CONNECTION,
+      queuedCalls: MAX_QUEUED_CALLS_PER_POOL,
       getToken: identity.getToken
     });
     fleet.lanes.set(key, lane);
@@ -216,21 +208,24 @@ function retireLane(fleet: AccountFleet, lane: FleetLane): void {
 // A refused token ends the lane that presented it: its connections must not keep the refused token, and the next call
 // connects again with the token the identity hands out then.
 function failureOf(fleet: AccountFleet, lane: FleetLane, method: string, identity: FleetIdentity, err: unknown): ApiError {
-  const error = (err ?? {}) as FleetRpcError;
-  if(error.code === TOKEN_EXPIRED_CODE || error.code === AUTH_TOKEN_INVALID_CODE) {
+  if(isFleetRpcError(err) && isTokenRefusalCode(err.code)) {
     retireLane(fleet, lane);
-    logger.warn('Fleet refused the token of a call', {method, code: error.code, identity: identity.kind});
+    identity.onRefused?.();
+    logger.warn('Fleet refused the token of a call', {method, code: err.code, identity: identity.kind});
   }
 
-  return fleetFailure(method, error);
+  return fleetFailure(method, err);
 }
 
 /** The one mapping of a rejection of any carrier to the ApiError the caller sees; a method the registry lacks is traced. */
 export function fleetFailure(method: string, err: unknown): ApiError {
-  const error = (err ?? {}) as FleetRpcError;
-  if(error.code === METHOD_INVALID_CODE) {
-    logger.warn('Fleet registry lacks the method', {method, code: error.code});
+  if(!isFleetRpcError(err)) {
+    return transportApiError(err);
   }
 
-  return fleetApiError(error);
+  if(err.code === METHOD_INVALID_CODE) {
+    logger.warn('Fleet registry lacks the method', {method, code: err.code});
+  }
+
+  return fleetApiError(err);
 }

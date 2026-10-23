@@ -105,6 +105,7 @@ describe('the identity of a signed-in slot', () => {
   it('is renewed through the refresh, which travels its own anonymous pool and never the update socket', async() => {
     const identity = await identityOfSlot();
     await identity.getToken?.();
+    identity.onRefused?.();
     fleetHarness.respond(REFRESH_SESSION_METHOD, () => ({data: refreshedAuthorization('access-token-renewed')}));
 
     await expect(identity.getToken?.()).resolves.toBe('access-token-renewed');

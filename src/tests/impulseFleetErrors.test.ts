@@ -113,6 +113,19 @@ describe('an application error keeps the type and the code the server sent', () 
   });
 });
 
+describe('a refusal without an application type is the typed refusal of its code', () => {
+  it.each([
+    [103, 'AUTH_TOKEN_INVALID'],
+    [104, 'METHOD_INVALID'],
+    [109, 'AUTH_TOKEN_EXPIRED']
+  ])('maps the refusal code %s to %s, with the canon code 400', (code: number, type: string) => {
+    expect(
+      fleetApiError({code, message: type}),
+      'a refusal the transport reports is the typed refusal of its catalog type, never the 500 transport fault'
+    ).toMatchObject({type, code: 400});
+  });
+});
+
 describe('a fleet error without an application type is a typed transport error', () => {
   it('never takes the free text of the error as its catalog type', () => {
     expect(
@@ -121,11 +134,14 @@ describe('a fleet error without an application type is a typed transport error',
     ).toBe('NETWORK_BAD_RESPONSE');
   });
 
-  it('a token the fleet refused without a type is a typed transport error too, and keeps its raw code', () => {
+  it('a refusal of the token the fleet sends without a type is a typed refusal, and keeps its raw code', () => {
     const refused: FleetRpcError = {code: 109, message: 'token expired'};
     const apiError = fleetApiError(refused);
 
-    expect(apiError).toMatchObject({type: 'NETWORK_BAD_RESPONSE', code: 500});
+    expect(
+      apiError,
+      'a refused token is the typed AUTH_TOKEN_EXPIRED refusal, never the transport fault of a 500'
+    ).toMatchObject({type: 'AUTH_TOKEN_EXPIRED', code: 400});
     expect((apiError.originalError as FleetRpcError).code, 'the caller renews the session on the raw 109').toBe(109);
   });
 

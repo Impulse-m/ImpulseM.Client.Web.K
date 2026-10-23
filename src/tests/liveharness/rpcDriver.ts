@@ -49,10 +49,11 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
   };
 
   const invoke = async(method: string, params: any = {}): Promise<any> => {
-    const [{create, fromBinary, toBinary}, serviceMap, adapter] = await Promise.all([
+    const [{create, fromBinary, toBinary}, serviceMap, adapter, protoToTLModule] = await Promise.all([
       import('@bufbuild/protobuf'),
       import('@lib/impulse/grpc/serviceMap'),
-      import('@lib/impulse/grpc/adapter')
+      import('@lib/impulse/grpc/adapter'),
+      import('@lib/impulse/grpc/protoToTL')
     ]);
 
     const mapping = serviceMap.getServiceAndMethod(method);
@@ -66,7 +67,7 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
       throw new Error(`minimal RPC session: ${method} answered without data`);
     }
 
-    return adapter.protoToTL(fromBinary(mapping.method.output, reply.data), mapping.method.output);
+    return protoToTLModule.protoToTL(fromBinary(mapping.method.output, reply.data), mapping.method.output);
   };
 
   // The same auth sequence the client's login page drives (see ./authFlow.ts), issued

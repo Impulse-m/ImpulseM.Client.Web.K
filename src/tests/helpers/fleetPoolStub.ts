@@ -12,8 +12,16 @@ export type FleetPoolOptions = {
   endpoints: (endpointKey: string) => string[],
   connection: {getToken?: () => Promise<string>, token?: string, timeout?: number},
   maxConnectionsPerEndpoint?: number,
-  maxInflightPerConnection?: number
+  maxInflightPerConnection?: number,
+  maxQueued?: number
 };
+
+// The SDK's defaults (rpc_pool.d.ts): 2 connections, 1 call in flight per connection, 64 calls waiting for a slot.
+const SDK_CONNECTIONS_PER_ENDPOINT: number = 2;
+const SDK_INFLIGHT_PER_CONNECTION: number = 1;
+const SDK_MAX_QUEUED: number = 64;
+// errorCodes.limitExceeded of the SDK, the rejection of a call beyond the queue bound.
+const LIMIT_EXCEEDED_CODE: number = 16;
 
 export type FleetPoolStub = {
   options: FleetPoolOptions,
@@ -61,24 +69,63 @@ export function createFleetPoolHarness(): FleetPoolHarness {
     public readonly endpoint: string;
     public presentedToken: string | undefined = undefined;
     public readonly close = vi.fn();
+    private readonly slots: number;
+    private readonly maxQueued: number;
+    private inflight: number = 0;
+    private readonly waiting: Array<() => void> = [];
     public readonly rpc = vi.fn(async(method: string, data: Uint8Array): Promise<FleetPoolReply> => {
-      if(this.presentedToken === undefined && this.options.connection.getToken) {
-        this.presentedToken = await this.options.connection.getToken();
-      }
+      await this.acquireSlot();
+      try {
+        if(this.presentedToken === undefined && this.options.connection.getToken) {
+          this.presentedToken = await this.options.connection.getToken();
+        }
 
-      calls.push({method, data, endpoint: this.endpoint, presentedToken: this.presentedToken});
-      const responder = nextResponder(method);
-      if(!responder) {
-        throw new Error(`no fleet responder registered for ${method}`);
-      }
+        calls.push({method, data, endpoint: this.endpoint, presentedToken: this.presentedToken});
+        const responder = nextResponder(method);
+        if(!responder) {
+          throw new Error(`no fleet responder registered for ${method}`);
+        }
 
-      return responder(data);
+        return await responder(data);
+      } finally {
+        this.releaseSlot();
+      }
     });
 
     constructor(options: FleetPoolOptions) {
       this.options = options;
       this.endpoint = options.endpoints('')[0];
+      this.slots = (options.maxConnectionsPerEndpoint ?? SDK_CONNECTIONS_PER_ENDPOINT) *
+        (options.maxInflightPerConnection ?? SDK_INFLIGHT_PER_CONNECTION);
+      this.maxQueued = options.maxQueued ?? SDK_MAX_QUEUED;
       pools.push(this as unknown as FleetPoolStub);
+    }
+
+    // As the SDK: a call takes a free slot, else waits in the queue for a call of the pool to settle; beyond the queue bound
+    // it is refused with limitExceeded at once.
+    private async acquireSlot(): Promise<void> {
+      if(this.inflight < this.slots) {
+        this.inflight++;
+        return;
+      }
+
+      if(this.waiting.length >= this.maxQueued) {
+        throw {code: LIMIT_EXCEEDED_CODE, message: 'too many rpc calls waiting for a connection'};
+      }
+
+      await new Promise<void>((resolve: () => void): void => {
+        this.waiting.push(resolve);
+      });
+    }
+
+    private releaseSlot(): void {
+      const next = this.waiting.shift();
+      if(next) {
+        next();
+        return;
+      }
+
+      this.inflight--;
     }
   }
 

@@ -158,27 +158,51 @@ describe('a call is answered by the reply bytes of its pool', () => {
     ).rejects.toMatchObject({type: 'NETWORK_BAD_RESPONSE', code: 500});
   });
 
-  it('a call over the queue bound waits for a settled call of its pool and is sent again', async() => {
-    let finishFirst: ((reply: {data?: Uint8Array}) => void) | undefined;
-    fleetHarness.respondOnce(GET_FILE, () => new Promise((resolve: (reply: {data?: Uint8Array}) => void): void => {
-      finishFirst = resolve;
+  it('a call over the pool\'s slots waits for a settled call of its pool and is sent then', async() => {
+    const finishers: Array<() => void> = [];
+    fleetHarness.respond(GET_FILE, () => new Promise((resolve: (reply: {data?: Uint8Array}) => void): void => {
+      finishers.push(() => resolve({data: REPLY_BYTES}));
     }));
-    fleetHarness.respondOnce(GET_FILE, () => {
-      throw {code: errorCodes.limitExceeded, message: 'too many rpc calls waiting for a connection'};
-    });
-    fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
 
-    const first = callMediaFleet(fileCall());
-    const second = callMediaFleet(fileCall());
-    await vi.waitFor(() => expect(fleetHarness.calls).toHaveLength(2));
-    finishFirst?.({data: REPLY_BYTES});
+    const calls = [callMediaFleet(fileCall())];
+    const pool = fleetHarness.pools[0];
+    const slots = (pool.options.maxConnectionsPerEndpoint ?? 1) * (pool.options.maxInflightPerConnection ?? 1);
+    calls.push(...Array.from({length: slots}, () => callMediaFleet(fileCall())));
+    await vi.waitFor(() => expect(fleetHarness.calls).toHaveLength(slots));
 
-    await expect(first).resolves.toBe(REPLY_BYTES);
-    await expect(
-      second,
-      'a full queue is a wait for a slot: the call is sent to the fleet once one frees, never answered by another carrier'
-    ).resolves.toBe(REPLY_BYTES);
-    expect(fleetHarness.calls).toHaveLength(3);
+    finishers.shift()?.();
+    await vi.waitFor(() => expect(fleetHarness.calls, 'the call that waited is sent once a slot of its pool frees').toHaveLength(slots + 1));
+    while(finishers.length > 0) {
+      finishers.shift()?.();
+    }
+
+    await expect(Promise.all(calls)).resolves.toEqual(calls.map(() => REPLY_BYTES));
+  });
+
+  it('a call beyond the queue bound is refused at once with limitExceeded, and is not held or sent again', async() => {
+    fleetHarness.respond(GET_FILE, () => new Promise(() => {}));
+    void callMediaFleet(fileCall());
+    const pool = fleetHarness.pools[0];
+    const slots = (pool.options.maxConnectionsPerEndpoint ?? 1) * (pool.options.maxInflightPerConnection ?? 1);
+    const bound = pool.options.maxQueued ?? 0;
+    for(let i = 0; i < slots - 1 + bound; ++i) {
+      void callMediaFleet(fileCall());
+    }
+    await vi.waitFor(() => expect(fleetHarness.calls).toHaveLength(slots));
+    const callsBeforeRefusal = fleetHarness.calls.length;
+
+    const outcome = await Promise.race([
+      callMediaFleet(fileCall()).then(() => 'answered', (error: unknown) => error),
+      new Promise<string>((resolve: (value: string) => void): void => {
+        setTimeout(() => resolve('still waiting'), 100);
+      })
+    ]);
+
+    expect(
+      outcome,
+      'a call over the queue bound must be refused with the SDK\'s limitExceeded at once, as a typed transport fault, not held for a settled call'
+    ).toMatchObject({type: 'NETWORK_BAD_RESPONSE', code: 500});
+    expect(fleetHarness.calls.length, 'the refused call is never sent').toBe(callsBeforeRefusal);
   });
 
   it('counts the calls the media fleet answered', async() => {
