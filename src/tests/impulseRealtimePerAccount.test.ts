@@ -115,9 +115,11 @@ async function waitForInstances(count: number): Promise<void> {
 
 
 describe('realtime lifecycle is per account, not a SharedWorker-wide singleton (#436)', () => {
-  beforeEach(() => {
+  beforeEach(async() => {
     vi.resetModules();
     centrifugeInstances.length = 0;
+    const {setFleetIdentitySource} = await import('@lib/impulse/fleet/fleet');
+    setFleetIdentitySource(() => SESSION_IDENTITY);
   });
 
   afterEach(async() => {
@@ -133,11 +135,11 @@ describe('realtime lifecycle is per account, not a SharedWorker-wide singleton (
   it('bringing up account 2 does NOT disconnect account 1 (the singleton stopImpulseRealtime is gone)', async() => {
     const realtime = await importRealtime();
 
-    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
     const socketOne = centrifugeInstances[0];
 
-    realtime.startImpulseRealtime('user-B', 2, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-B', 2);
     await waitForInstances(2);
     const socketTwo = centrifugeInstances[1];
 
@@ -155,9 +157,9 @@ describe('realtime lifecycle is per account, not a SharedWorker-wide singleton (
   it('stopImpulseRealtime(1) tears down ONLY account 1 and leaves account 2 live', async() => {
     const realtime = await importRealtime();
 
-    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
-    realtime.startImpulseRealtime('user-B', 2, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-B', 2);
     await waitForInstances(2);
     const [socketOne, socketTwo] = centrifugeInstances;
 
@@ -179,9 +181,9 @@ describe('realtime lifecycle is per account, not a SharedWorker-wide singleton (
     realtime.setRealtimeSink(1, sinkA);
     realtime.setRealtimeSink(2, sinkB);
 
-    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
-    realtime.startImpulseRealtime('user-B', 2, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-B', 2);
     await waitForInstances(2);
     const [socketOne, socketTwo] = centrifugeInstances;
 

@@ -20,7 +20,7 @@ import {UnauthorizedError} from '@impulsem/centrifuge/build/protobuf';
 import AccountController from '@lib/accounts/accountController';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getLogger} from '@lib/impulseLogger';
-import {ANONYMOUS_IDENTITY, callRefreshFleet, resetFleetIdentity} from '@lib/impulse/fleet/fleet';
+import {ANONYMOUS_IDENTITY, callRefreshFleet, resetFleetIdentity, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
 import type {FleetIdentity} from '@lib/impulse/fleet/fleet';
 import {isApiError} from '@lib/impulse/fleet/fleetError';
 import {INIT_CONNECTION_METHOD} from '@lib/impulse/fleet/fleetRoute';
@@ -161,6 +161,8 @@ export function fleetIdentityFor(accountNumber: ActiveAccountNumber): FleetIdent
   return ANONYMOUS_IDENTITY;
 }
 
+setFleetIdentitySource(fleetIdentityFor);
+
 /**
  * The token a connection of the update socket presents. The token the slot holds is handed out unchanged, and renewed
  * through the refresh only once the server has refused it; a refused session ends the connection (UnauthorizedError),
@@ -252,7 +254,7 @@ function authorizationCarrier(result: object): object {
  */
 function identityChanged(accountNumber: ActiveAccountNumber): void {
   resetFleetIdentity(accountNumber);
-  rekeyUpdateSocket(accountNumber, fleetIdentityFor(accountNumber));
+  rekeyUpdateSocket(accountNumber);
 }
 
 async function persistTokens(account: ActiveAccountNumber, token: string, refresh: string): Promise<void> {
@@ -315,7 +317,6 @@ export async function clearPendingToken(accountNumber: ActiveAccountNumber): Pro
   await clearPersistedPendingToken(accountNumber);
 }
 
-/** Drops the pending-2FA token from memory. Reports whether there was one, so the caller moves the identity once. */
 function dropPendingToken(accountNumber: ActiveAccountNumber): boolean {
   const hadPendingToken = getGrpcPendingToken(accountNumber) !== undefined;
   setGrpcPendingToken(accountNumber, undefined);
@@ -323,11 +324,7 @@ function dropPendingToken(accountNumber: ActiveAccountNumber): boolean {
 }
 
 async function clearPersistedPendingToken(accountNumber: ActiveAccountNumber): Promise<void> {
-  try {
-    await AccountController.clearFields(accountNumber, ['impulse_pending_token']);
-  } catch(err) {
-    logger.warn('Failed to clear the persisted pending token', {accountNumber}, err);
-  }
+  await AccountController.clearFields(accountNumber, ['impulse_pending_token']);
 }
 
 /**
@@ -451,7 +448,6 @@ async function sendInitConnection(accountNumber: ActiveAccountNumber, declaratio
   const request = create(InitConnectionRequestSchema, {declaration: toDeclarationMessage(declaration)});
   await callUpdateSocket({
     accountNumber,
-    identity: fleetIdentityFor(accountNumber),
     method: INIT_CONNECTION_METHOD,
     request: toBinary(InitConnectionRequestSchema, request)
   });

@@ -1,7 +1,7 @@
 import type {Error as CentrifugeError} from '@impulsem/centrifuge/build/protobuf';
 import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 
-import canonErrorCatalog from '@/scripts/in/errors.json';
+import {ERROR_TYPE_IDENTIFIERS, ERROR_TYPE_PATTERNS} from '@/canonErrorIdentifiers';
 import {AUTH_TOKEN_INVALID_CODE, METHOD_INVALID_CODE, TOKEN_EXPIRED_CODE} from '@lib/impulse/centrifugoCodes';
 
 /** A fleet call's rejection as the SDK pool reports it. */
@@ -9,14 +9,11 @@ export type FleetRpcError = CentrifugeError;
 
 const TRANSPORT_ERROR_TYPE: ErrorType = 'NETWORK_BAD_RESPONSE';
 const UNKNOWN_ERROR_TYPE: ErrorType = 'UNKNOWN';
-// Catalog identifiers with a printf number (FLOOD_WAIT_%d) match any digits in its place.
+// A catalog pattern with a printf number (FLOOD_WAIT_%d) matches any digits in its place.
 const PRINTF_NUMBER: string = '%d';
-const CATALOG_IDENTIFIERS: ReadonlySet<string> = new Set<string>(
-  Object.keys(canonErrorCatalog).filter((identifier: string): boolean => !identifier.includes(PRINTF_NUMBER))
-);
-const CATALOG_TEMPLATES: RegExp[] = Object.keys(canonErrorCatalog)
-  .filter((identifier: string): boolean => identifier.includes(PRINTF_NUMBER))
-  .map((identifier: string): RegExp => new RegExp(`^${identifier.split(PRINTF_NUMBER).join('\\d+')}$`));
+const CATALOG_IDENTIFIERS: ReadonlySet<string> = new Set<string>(ERROR_TYPE_IDENTIFIERS);
+const CATALOG_TEMPLATES: RegExp[] = ERROR_TYPE_PATTERNS
+  .map((pattern: string): RegExp => new RegExp(`^${pattern.split(PRINTF_NUMBER).join('\\d+')}$`));
 // The numeric code of the registry's temporary INTERNAL_SERVER_ERROR (deploy/centrifugo/media/config.json).
 const TRANSPORT_ERROR_CODE: number = 500;
 const MIGRATE_CODE: number = 303;

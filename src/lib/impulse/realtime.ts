@@ -3,10 +3,10 @@
  *
  * One Centrifugo client per slot, speaking protobuf. It carries the server-initiated updates on the per-user channel
  * `user:{id}`, the session lane, and the channels of the dialogs on screen; and it carries every regular TL call of the
- * slot as an rpc (callUpdateSocket). The socket connects with the identity of its slot (session.ts fleetIdentityFor):
- * anonymous while signed out, the pending 2FA token while a challenge is pending, the access JWT while signed in. The
- * slot's identity moves only through startImpulseRealtime and the session transitions (rekeyUpdateSocket); a call never
- * replaces the socket. The replaced socket closes once the calls it carries have settled.
+ * slot as an rpc (callUpdateSocket). The socket connects with the identity of its slot, which the session registers
+ * (fleetIdentityOf): anonymous while signed out, the pending 2FA token while a challenge is pending, the access JWT while
+ * signed in. The slot's identity moves only through startImpulseRealtime and the session transitions (rekeyUpdateSocket);
+ * a call never replaces the socket. The replaced socket closes once the calls it carries have settled.
  *
  * Decoded updates go to the updates manager through the same entry point the MTProto updates loop used, so pts gating,
  * gap detection and getDifference keep working unchanged. It runs in the worker, next to the updates manager.
@@ -24,8 +24,9 @@ import {getLogger} from '@lib/impulseLogger';
 import type {TabState} from '@lib/apiManagerProxy';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {isTokenRefusalCode, TOKEN_EXPIRED_CODE} from './centrifugoCodes';
-import {countSocketCall, fleetFailure} from './fleet/fleet';
+import {countSocketCall, fleetFailure, fleetIdentityOf} from './fleet/fleet';
 import type {FleetIdentity} from './fleet/fleet';
+import {CENTRIFUGO_CONNECTION_PATH} from './fleet/fleetPath';
 import {isFleetRpcError, replyDataOf} from './fleet/fleetError';
 import {RealtimeSubscriptions} from './realtimeSubscriptions';
 import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
@@ -36,7 +37,7 @@ import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 
 const logger = getLogger('impulse-realtime');
 
-const CENTRIFUGO_WS = `${backendWsOrigin()}/connection/websocket`;
+const CENTRIFUGO_WS = `${backendWsOrigin()}${CENTRIFUGO_CONNECTION_PATH}`;
 // Every regular call is an rpc on this client, and an rpc deadline may not exceed the client timeout.
 const UPDATE_SOCKET_TIMEOUT_MS: number = 30_000;
 const NO_CONNECTION_TOKEN: string = '';
@@ -66,7 +67,6 @@ type RealtimeCall = {
 
 type UpdateSocketCall = {
   accountNumber: ActiveAccountNumber,
-  identity: FleetIdentity,
   method: string,
   request: Uint8Array,
   signal?: AbortSignal
@@ -124,20 +124,17 @@ export function setRealtimeSink(accountNumber: ActiveAccountNumber, fn: Realtime
 }
 
 /**
- * Brings the slot's update socket up for a signed-in user under the given identity, and subscribes its lanes. Without a
- * user the slot's socket is stopped.
+ * Brings the slot's update socket up for a signed-in user under the identity the slot holds, and subscribes its lanes.
+ * Without a user the slot's socket is stopped.
  */
-export function startImpulseRealtime(
-  userId: string | undefined,
-  accountNumber: ActiveAccountNumber,
-  identity: FleetIdentity
-): void {
+export function startImpulseRealtime(userId: string | undefined, accountNumber: ActiveAccountNumber): void {
   if(!userId) {
     stopImpulseRealtime(accountNumber);
     return;
   }
 
   const record = connectionFor(accountNumber);
+  const identity = fleetIdentityOf(accountNumber);
   if(record.activeUserId === userId && record.socket?.identity.key === identity.key) {
     return;
   }
@@ -153,7 +150,7 @@ export function startImpulseRealtime(
     retireSocket(record, record.socket);
   }
 
-  socketOf(accountNumber, identity);
+  socketOf(accountNumber);
   applySubscriptions(accountNumber);
 }
 
@@ -182,25 +179,25 @@ export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
  * Moves the slot's socket to the identity its credentials hold now. A socket that already presents that identity stays.
  * A signed-in slot reconnects at once, with its subscriptions; any other slot connects with its next call.
  */
-export function rekeyUpdateSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity): void {
+export function rekeyUpdateSocket(accountNumber: ActiveAccountNumber): void {
   const record = connectionFor(accountNumber);
   const current = record.socket;
-  if(!current || current.identity.key === identity.key) {
+  if(!current || current.identity.key === fleetIdentityOf(accountNumber).key) {
     return;
   }
 
   retireSocket(record, current);
   if(record.activeUserId !== undefined) {
-    socketOf(accountNumber, identity);
+    socketOf(accountNumber);
   }
 }
 
 /**
  * Sends one regular TL call as an rpc on the slot's update socket. The socket is the slot's own: it is opened here only
- * when the slot has none, under the identity the call presents. Rejects with an ApiError.
+ * when the slot has none, under the identity the slot holds. Rejects with an ApiError.
  */
 export async function callUpdateSocket(call: UpdateSocketCall): Promise<Uint8Array> {
-  const socket = socketOf(call.accountNumber, call.identity);
+  const socket = socketOf(call.accountNumber);
   socket.inflight++;
 
   let reply: RpcResult;
@@ -296,14 +293,14 @@ function applyTabStates(accountNumber: ActiveAccountNumber): void {
   applySubscriptionDiff(accountNumber, record.subscriptionSet.showDialogs(visibleChannelIds));
 }
 
-/** The socket of the slot: the one it has, else a new one under the identity the caller holds. */
-function socketOf(accountNumber: ActiveAccountNumber, identity: FleetIdentity): UpdateSocket {
+/** The socket of the slot: the one it has, else a new one under the identity the slot holds. */
+function socketOf(accountNumber: ActiveAccountNumber): UpdateSocket {
   const record = connectionFor(accountNumber);
   if(record.socket) {
     return record.socket;
   }
 
-  const socket = openSocket(accountNumber, identity);
+  const socket = openSocket(accountNumber, fleetIdentityOf(accountNumber));
   record.socket = socket;
   applySubscriptions(accountNumber);
   return socket;

@@ -8,7 +8,7 @@
  * Centrifugo's `allowed_origins`.
  *
  * Two consumers share this origin:
- *   - Centrifugo fleets (RPC and media) and the update socket -> `{wsOrigin}/connection/websocket`
+ *   - Centrifugo fleets (RPC and media) and the update socket -> `{wsOrigin}` + CENTRIFUGO_CONNECTION_PATH (fleet/fleetPath.ts)
  *   - Loki log push                                           -> `{origin}/loki/api/v1/push`
  */
 

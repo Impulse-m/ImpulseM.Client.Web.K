@@ -2,9 +2,9 @@ import {describe, expect, it} from 'vitest';
 import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 
 import {backendWsOrigin} from '@config/backendOrigin';
+import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import {
   defaultRpcEndpoint,
-  FLEET_CONNECTION_PATH,
   INIT_CONNECTION_METHOD,
   mediaEndpointOf,
   REFRESH_SESSION_METHOD,
@@ -93,7 +93,7 @@ describe('the endpoint the media option names', () => {
 
     expect(
       mediaEndpointOf(config),
-      'the media_only entry of this_dc must become wss://{host}:{port}/connection/websocket with the protobuf query'
+      'the media_only entry of this_dc must become wss://{host}:{port} with the fleet connection path and its protobuf query'
     ).toBe(`wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`);
   });
 

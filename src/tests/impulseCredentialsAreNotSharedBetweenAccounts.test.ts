@@ -1,9 +1,9 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {getGrpcSessionToken, setGrpcSessionToken} from '@lib/impulse/grpc/credentials';
+import {getGrpcSessionToken} from '@lib/impulse/grpc/credentials';
 import {resetFleetIdentity} from '@lib/impulse/fleet/fleet';
-import {restoreImpulseSession} from '@lib/impulse/session';
+import {captureImpulseSessionToken, clearImpulseSession, restoreImpulseSession} from '@lib/impulse/session';
 import {grpcInvoke} from '@lib/impulse/grpc/adapter';
 
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
@@ -55,6 +55,10 @@ const CONNECTIONS_MUST_NOT_BE_SHARED =
   'Each account needs its own update socket: one socket shared by two accounts presents one token to ' +
   'both, however carefully the credentials themselves are separated.';
 
+function sessionOf(sessionToken: string): {session_token: string, refresh_token: string} {
+  return {session_token: sessionToken, refresh_token: `refresh-${sessionToken}`};
+}
+
 
 describe('session credentials are per account, not per tab', () => {
   beforeEach(async() => {
@@ -65,13 +69,13 @@ describe('session credentials are per account, not per tab', () => {
     resetFleetIdentity(ACCOUNT_TWO);
     resetFleetIdentity(ACCOUNT_THREE);
     for(const account of [ACCOUNT_ONE, ACCOUNT_TWO, ACCOUNT_THREE]) {
-      setGrpcSessionToken(account, undefined);
+      await clearImpulseSession(account);
     }
   });
 
-  it('keeps one account\'s session token when another account signs in', () => {
-    setGrpcSessionToken(ACCOUNT_ONE, 'token-for-account-one');
-    setGrpcSessionToken(ACCOUNT_TWO, 'token-for-account-two');
+  it('keeps one account\'s session token when another account signs in', async() => {
+    await captureImpulseSessionToken(ACCOUNT_ONE, sessionOf('token-for-account-one'));
+    await captureImpulseSessionToken(ACCOUNT_TWO, sessionOf('token-for-account-two'));
 
     expect(getGrpcSessionToken(ACCOUNT_ONE), CREDENTIALS_MUST_NOT_BE_SHARED)
       .toBe('token-for-account-one');
@@ -79,11 +83,11 @@ describe('session credentials are per account, not per tab', () => {
       .toBe('token-for-account-two');
   });
 
-  it('signing one account out leaves the other signed in', () => {
-    setGrpcSessionToken(ACCOUNT_ONE, 'token-for-account-one');
-    setGrpcSessionToken(ACCOUNT_TWO, 'token-for-account-two');
+  it('signing one account out leaves the other signed in', async() => {
+    await captureImpulseSessionToken(ACCOUNT_ONE, sessionOf('token-for-account-one'));
+    await captureImpulseSessionToken(ACCOUNT_TWO, sessionOf('token-for-account-two'));
 
-    setGrpcSessionToken(ACCOUNT_TWO, undefined);
+    await clearImpulseSession(ACCOUNT_TWO);
 
     expect(getGrpcSessionToken(ACCOUNT_ONE), CREDENTIALS_MUST_NOT_BE_SHARED)
       .toBe('token-for-account-one');
@@ -91,8 +95,8 @@ describe('session credentials are per account, not per tab', () => {
   });
 
   it('gives each account its own update socket, each presenting its own token', async() => {
-    setGrpcSessionToken(ACCOUNT_ONE, 'token-for-account-one');
-    setGrpcSessionToken(ACCOUNT_TWO, 'token-for-account-two');
+    await captureImpulseSessionToken(ACCOUNT_ONE, sessionOf('token-for-account-one'));
+    await captureImpulseSessionToken(ACCOUNT_TWO, sessionOf('token-for-account-two'));
     socketHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
     socketHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
 
@@ -104,7 +108,7 @@ describe('session credentials are per account, not per tab', () => {
   });
 
   it('reuses the same update socket for repeated calls from one account', async() => {
-    setGrpcSessionToken(ACCOUNT_THREE, 'token-for-account-three');
+    await captureImpulseSessionToken(ACCOUNT_THREE, sessionOf('token-for-account-three'));
     socketHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
     socketHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
 

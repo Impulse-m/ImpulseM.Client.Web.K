@@ -77,6 +77,14 @@ describe('an application type the catalog does not publish is not taken as a cat
   });
 });
 
+describe('a type the client raises itself is a catalog type', () => {
+  it.each(['NETWORK_BAD_RESPONSE', 'CANCELED'])('keeps the client-only type %s unchanged', (type: string) => {
+    const apiError = fleetApiError({code: 100, message: type, appCode: 500, appType: type});
+
+    expect(apiError.type, 'a client-only type of ErrorType must reach the caller as itself, not as UNKNOWN').toBe(type);
+  });
+});
+
 describe('an SDK connection report is not an API error', () => {
   it('takes an ErrorContext, which names a category and carries no numeric code, for no API error', () => {
     const context = {type: 'transport', error: new Error('transport closed')};

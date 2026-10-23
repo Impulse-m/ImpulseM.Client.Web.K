@@ -1,6 +1,6 @@
 import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
 
-import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetRoute';
+import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import {loginCodeFor, Persona} from './personas';
 
 

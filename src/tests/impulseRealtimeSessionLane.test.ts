@@ -83,9 +83,11 @@ async function waitForInstances(count: number): Promise<void> {
 }
 
 describe('realtime delivers what the server addresses to this session', () => {
-  beforeEach(() => {
+  beforeEach(async() => {
     vi.resetModules();
     centrifugeInstances.length = 0;
+    const {setFleetIdentitySource} = await import('@lib/impulse/fleet/fleet');
+    setFleetIdentitySource(() => SESSION_IDENTITY);
   });
 
   afterEach(async() => {
@@ -99,9 +101,9 @@ describe('realtime delivers what the server addresses to this session', () => {
     const sinkB = vi.fn();
     realtime.setRealtimeSink(1, sinkA);
     realtime.setRealtimeSink(2, sinkB);
-    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
-    realtime.startImpulseRealtime('user-B', 2, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-B', 2);
     await waitForInstances(2);
     const [socketA, socketB] = centrifugeInstances;
 
@@ -119,7 +121,7 @@ describe('realtime delivers what the server addresses to this session', () => {
     const realtime = await import('@lib/impulse/realtime');
     const sink = vi.fn();
     realtime.setRealtimeSink(1, sink);
-    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
 
     centrifugeInstances[0].handlers.get('publication')!({channel: 'session:user-A:42'});
@@ -132,7 +134,7 @@ describe('realtime delivers what the server addresses to this session', () => {
     const realtime = await import('@lib/impulse/realtime');
     const sink = vi.fn();
     realtime.setRealtimeSink(1, sink);
-    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
 
     const published = new TextEncoder().encode(JSON.stringify({oversize: true, type: 500}));

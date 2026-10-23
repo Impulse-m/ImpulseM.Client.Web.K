@@ -45,10 +45,11 @@ export type FleetIdentity = {
 export type FleetCall = {
   accountNumber: ActiveAccountNumber,
   method: string,
-  identity: FleetIdentity,
   request: Uint8Array,
   signal?: AbortSignal
 };
+
+type FleetIdentitySource = (accountNumber: ActiveAccountNumber) => FleetIdentity;
 
 export type FleetCounters = {media: number, socket: number};
 
@@ -68,6 +69,21 @@ type LaneTarget = {
 export const ANONYMOUS_IDENTITY: FleetIdentity = {kind: 'anonymous', key: 'anonymous', getToken: undefined};
 
 const fleetByAccount = new Map<ActiveAccountNumber, AccountFleet>();
+let identitySource: FleetIdentitySource | undefined;
+
+/** Registers the function that names the identity a slot presents now. The session module registers it at load. */
+export function setFleetIdentitySource(source: FleetIdentitySource): void {
+  identitySource = source;
+}
+
+/** The identity a slot presents now: its access token, its pending challenge, or none. */
+export function fleetIdentityOf(accountNumber: ActiveAccountNumber): FleetIdentity {
+  if(identitySource === undefined) {
+    throw new Error('No fleet identity source is registered');
+  }
+
+  return identitySource(accountNumber);
+}
 
 function fleetOf(accountNumber: ActiveAccountNumber): AccountFleet {
   let fleet = fleetByAccount.get(accountNumber);
@@ -122,20 +138,21 @@ export function fleetCounters(accountNumber: ActiveAccountNumber): FleetCounters
   return {...fleetOf(accountNumber).counters};
 }
 
+/** The file-transfer calls of an account that wait for its config to publish a media option. */
+export function fleetConfigWaiters(accountNumber: ActiveAccountNumber): number {
+  return fleetOf(accountNumber).configWaiters.length;
+}
+
 /** Counts one call answered by the update socket of the account. */
 export function countSocketCall(accountNumber: ActiveAccountNumber): void {
   fleetOf(accountNumber).counters.socket++;
 }
 
 /**
- * Sends one file-transfer call on the media fleet, under the identity the call presents. A call issued before the config
- * publishes waits for it. Rejects with an ApiError.
+ * Sends one file-transfer call on the media fleet, under the identity the slot presents when the call is sent. A call issued
+ * before the config publishes waits for it. Rejects with an ApiError.
  */
 export function callMediaFleet(call: FleetCall): Promise<Uint8Array> {
-  if(!routesToMediaFleet(call.method)) {
-    return Promise.reject(new Error(`${call.method} is not a file-transfer call of the media fleet`));
-  }
-
   const fleet = fleetOf(call.accountNumber);
   if(fleet.configPublished) {
     return sendMediaCall(fleet, call);
@@ -152,7 +169,7 @@ async function sendMediaCall(fleet: AccountFleet, call: FleetCall): Promise<Uint
   const reply = await sendOnLane(
     fleet,
     {kind: 'media', endpoint: fleet.mediaEndpoint},
-    call.identity,
+    fleetIdentityOf(call.accountNumber),
     call.method,
     call.request,
     call.signal

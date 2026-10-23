@@ -9,7 +9,14 @@
 // audits against — so a build never depends on core.telegram.org being reachable.
 // Refresh it deliberately, the way ./in/schema.json is refreshed.
 //
+// Two outputs next to each other: canonErrors.d.ts, the union the type checker
+// reads, and canonErrorIdentifiers.ts, the names the runtime maps a server
+// application type against. The runtime module carries no catalog text, only
+// identifiers and printf patterns, so the worker never loads the snapshot.
+//
 //   node ./src/scripts/generate_error_types.js src/
+
+const fs = require('fs');
 
 const catalog = require(__dirname + '/in/errors.json');
 
@@ -20,6 +27,31 @@ const NEW_LINE = '\n';
 // number: FLOOD_WAIT_%d arrives as FLOOD_WAIT_42. A plain string literal would
 // never match those, so they become template literal types instead.
 const PLACEHOLDER = /%d/g;
+
+// The members of ErrorType the client raises itself are declared by hand in
+// global.d.ts, between these two markers. Reading them from there keeps the
+// runtime set equal to the type by construction.
+const GLOBAL_TYPES_PATH = __dirname + '/../global.d.ts';
+const CLIENT_TYPES_START = 'type ApiFileManagerError';
+const CLIENT_TYPES_END = 'type ErrorType =';
+const QUOTED_IDENTIFIER = /'([A-Z][A-Z0-9_]*)'/g;
+
+/** @returns {string[]} */
+function clientIdentifiers() {
+  const source = fs.readFileSync(GLOBAL_TYPES_PATH, 'utf8');
+  const start = source.indexOf(CLIENT_TYPES_START);
+  const end = source.indexOf(CLIENT_TYPES_END);
+  if(start === -1 || end < start) {
+    throw new Error(`${GLOBAL_TYPES_PATH} has no block from "${CLIENT_TYPES_START}" to "${CLIENT_TYPES_END}"`);
+  }
+
+  const identifiers = [...source.slice(start, end).matchAll(QUOTED_IDENTIFIER)].map((match) => match[1]);
+  if(identifiers.length === 0) {
+    throw new Error(`${GLOBAL_TYPES_PATH} declares no client error identifier`);
+  }
+
+  return identifiers;
+}
 
 const plain = [];
 const templated = [];
@@ -57,7 +89,34 @@ out += `${TABULATION}${TABULATION};${NEW_LINE}`;
 out += `}${NEW_LINE}${NEW_LINE}`;
 out += `export {};${NEW_LINE}`;
 
+/**
+ * @param {string[]} values
+ * @returns {string}
+ */
+function quotedList(values) {
+  return values.map((value) => `${TABULATION}'${value}'`).join(`,${NEW_LINE}`);
+}
+
+/** @type {string[]} */
+const identifiers = [...new Set([...plain, ...clientIdentifiers()])].sort();
+
+let runtime = '';
+runtime += `// GENERATED FILE — do not edit by hand.${NEW_LINE}`;
+runtime += `// Run \`pnpm run generate-error-types\` after refreshing src/scripts/in/errors.json or global.d.ts.${NEW_LINE}${NEW_LINE}`;
+runtime += `// Every identifier of ErrorType, and the printf patterns of the catalog, with no catalog text.${NEW_LINE}`;
+runtime += `export const ERROR_TYPE_IDENTIFIERS: readonly string[] = [${NEW_LINE}`;
+runtime += `${quotedList(identifiers)}${NEW_LINE}`;
+runtime += `];${NEW_LINE}${NEW_LINE}`;
+runtime += `// Numeric suffix supplied by the server: FLOOD_WAIT_%d arrives as FLOOD_WAIT_42.${NEW_LINE}`;
+runtime += `export const ERROR_TYPE_PATTERNS: readonly string[] = [${NEW_LINE}`;
+runtime += `${quotedList(templated)}${NEW_LINE}`;
+runtime += `];${NEW_LINE}`;
+
 const path = process.argv[2];
-const writePathTo = (path || __dirname + '/out/') + 'canonErrors.d.ts';
+const outputDirectory = path || __dirname + '/out/';
+const writePathTo = outputDirectory + 'canonErrors.d.ts';
+const runtimePathTo = outputDirectory + 'canonErrorIdentifiers.ts';
 console.log(`Writing ${plain.length + templated.length} error identifiers to:`, writePathTo);
-require('fs').writeFileSync(writePathTo, out);
+fs.writeFileSync(writePathTo, out);
+fs.writeFileSync(runtimePathTo, runtime);
+console.log(`Writing ${identifiers.length} runtime identifiers and ${templated.length} patterns to:`, runtimePathTo);

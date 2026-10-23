@@ -222,7 +222,7 @@ export async function grpcInvoke(
   const pendingTokenAtRequestStart = getGrpcPendingToken(accountNumber);
 
   try {
-    const reply = await carry({accountNumber, method, identity, request: requestBytes, signal: abortSignal});
+    const reply = await carry({accountNumber, method, request: requestBytes, signal: abortSignal});
     const result = protoToTL(fromBinary(descMethod.output, reply), descMethod.output);
     if(method === 'help.getAppConfig' && result?._ === 'help.appConfig') {
       result.config = formatJSONValue(result.config);
@@ -285,7 +285,6 @@ function carry(call: FleetCall): Promise<Uint8Array> {
 
   return callUpdateSocket({
     accountNumber: call.accountNumber,
-    identity: call.identity,
     method: call.method,
     request: call.request,
     signal: call.signal

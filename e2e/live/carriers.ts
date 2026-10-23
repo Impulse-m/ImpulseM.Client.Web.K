@@ -1,5 +1,7 @@
 import type {Browser, BrowserContext, Page, Route} from '@playwright/test';
 
+import {FLEET_CONNECTION_PATH} from '../../src/lib/impulse/fleet/fleetPath';
+
 /*
  * The Centrifugo carriers of the client as the live lane sees them: whether an endpoint answers, which requests of a
  * context name a gateway gRPC-web method, and the counters of the fleets of a page.
@@ -7,8 +9,6 @@ import type {Browser, BrowserContext, Page, Route} from '@playwright/test';
 
 // The gateway's gRPC-web paths: /v1.{namespace}.{Service}/{Method}.
 export const GRPC_WEB_ROUTE: RegExp = /\/v1\.[A-Za-z0-9_.]+\/[A-Za-z0-9_]+$/;
-
-const WEBSOCKET_PATH: string = '/connection/websocket?cf_protocol=protobuf&cf_ws_frame_ping_pong=true';
 
 const PROBE_TIMEOUT_MS: number = 5_000;
 // Playwright's route API does not see the requests of a SharedWorker, and the client's API worker is one.
@@ -25,13 +25,13 @@ export type GatewayRecorder = {
 
 /** The update socket of a gateway origin. */
 export function socketUrlOf(gatewayOrigin: string): string {
-  return `${gatewayOrigin.replace(/^http/, 'ws')}${WEBSOCKET_PATH}`;
+  return `${gatewayOrigin.replace(/^http/, 'ws')}${FLEET_CONNECTION_PATH}`;
 }
 
 /** The media fleet endpoint a config publishes, on the scheme of the gateway origin. */
 export function mediaUrlOf(gatewayOrigin: string, host: string, port: number): string {
   const origin = new URL(gatewayOrigin);
-  return `${origin.protocol === 'https:' ? 'wss' : 'ws'}://${host}:${port}${WEBSOCKET_PATH}`;
+  return `${origin.protocol === 'https:' ? 'wss' : 'ws'}://${host}:${port}${FLEET_CONNECTION_PATH}`;
 }
 
 /** Whether a carrier answers its WebSocket within the probe timeout, from the test runner. */

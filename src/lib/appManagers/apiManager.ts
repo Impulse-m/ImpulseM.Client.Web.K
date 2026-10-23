@@ -6,7 +6,8 @@
  */
 
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
-import {clearImpulseSession, fleetIdentityFor, restoreImpulseSession} from '@lib/impulse/session';
+import {clearImpulseSession, restoreImpulseSession} from '@lib/impulse/session';
+import {setFleetConfig} from '@lib/impulse/fleet/fleet';
 import {setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
@@ -166,7 +167,7 @@ export class ApiManager extends ApiManagerMethods {
       this.apiUpdatesManager.processUpdateMessage(updates);
     });
 
-    startImpulseRealtime(String(userId), accountNumber, fleetIdentityFor(accountNumber));
+    startImpulseRealtime(String(userId), accountNumber);
     this.reportImpulseConnected();
   }
 
@@ -202,6 +203,14 @@ export class ApiManager extends ApiManagerMethods {
       updateConfig: () => {
         this.getConfig(true);
         this.getAppConfig(true);
+      },
+      // updateDcOptions carries only dc_options, no this_dc (.demo/telegram-docs-text/constructor/updateDcOptions.md:3).
+      updateDcOptions: (update) => {
+        if(this.config) {
+          setFleetConfig(this.getAccountNumber(), {this_dc: this.config.this_dc, dc_options: update.dc_options});
+        } else {
+          this.getConfig(true);
+        }
       }
     });
 

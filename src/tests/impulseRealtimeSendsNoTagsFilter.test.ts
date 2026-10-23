@@ -74,9 +74,11 @@ async function settle(): Promise<void> {
 }
 
 describe('subscriptions carry no tags filter', () => {
-  beforeEach(() => {
+  beforeEach(async() => {
     vi.resetModules();
     centrifugeInstances.length = 0;
+    const {setFleetIdentitySource} = await import('@lib/impulse/fleet/fleet');
+    setFleetIdentitySource(() => SESSION_IDENTITY);
   });
 
   afterEach(async() => {
@@ -86,7 +88,7 @@ describe('subscriptions carry no tags filter', () => {
 
   it('opens user:, call: and channel: lanes without tagsFilter or tf, and asks for no tag', async() => {
     const realtime = await import('@lib/impulse/realtime');
-    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-A', 1);
     for(let i = 0; i < 200 && centrifugeInstances.length < 1; ++i) {
       await new Promise<void>((resolve) => setTimeout(resolve, 5));
     }

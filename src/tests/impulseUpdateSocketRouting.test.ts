@@ -4,7 +4,7 @@ import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 import {ConfigSchema, UploadFileSchema, UploadFileValueSchema} from '@lib/impulse/grpc/gen/v1/types_pb';
 import {GetFileRequestSchema} from '@lib/impulse/grpc/gen/upload_pb';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetRoute';
+import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';

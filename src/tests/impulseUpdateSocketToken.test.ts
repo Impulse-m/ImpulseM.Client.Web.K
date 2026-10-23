@@ -77,7 +77,7 @@ describe('the update socket connects with the access JWT, and gets no token of i
   it('starts with the access JWT and asks no separate realtime token of the fleet', async() => {
     const realtime = await import('@lib/impulse/realtime');
 
-    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+    realtime.startImpulseRealtime('42', ACCOUNT);
 
     await vi.waitFor(() => expect(socketHarness.sockets, 'signing in opens the update socket').toHaveLength(1));
     await vi.waitFor(() => expect(socketHarness.sockets[0].presentedToken).toBe(SESSION_TOKEN));
@@ -101,11 +101,11 @@ describe('the update socket connects with the access JWT, and gets no token of i
 
   it('a new socket for the same identity presents the token it already holds, and spends no renewal', async() => {
     const realtime = await import('@lib/impulse/realtime');
-    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+    realtime.startImpulseRealtime('42', ACCOUNT);
     await vi.waitFor(() => expect(socketHarness.sockets[0]?.presentedToken).toBe(SESSION_TOKEN));
     realtime.stopImpulseRealtime(ACCOUNT);
 
-    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+    realtime.startImpulseRealtime('42', ACCOUNT);
 
     await vi.waitFor(() => expect(socketHarness.sockets, 'the second bring-up opens a second socket').toHaveLength(2));
     await vi.waitFor(() => expect(
@@ -117,13 +117,13 @@ describe('the update socket connects with the access JWT, and gets no token of i
 
   it('a refusal the update socket reports renews the token on the next connection', async() => {
     const realtime = await import('@lib/impulse/realtime');
-    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+    realtime.startImpulseRealtime('42', ACCOUNT);
     await vi.waitFor(() => expect(socketHarness.sockets[0]?.presentedToken).toBe(SESSION_TOKEN));
     fleetHarness.respond(REFRESH, () => ({data: renewedAuthorization()}));
     socketHarness.sockets[0].emit('error', {type: 'connect', error: {code: TOKEN_EXPIRED}});
     realtime.stopImpulseRealtime(ACCOUNT);
 
-    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+    realtime.startImpulseRealtime('42', ACCOUNT);
 
     await vi.waitFor(() => expect(socketHarness.sockets[1]?.presentedToken).toBe(RENEWED_TOKEN));
     expect(fleetHarness.calls.map((call) => call.method)).toEqual([REFRESH]);
@@ -131,7 +131,7 @@ describe('the update socket connects with the access JWT, and gets no token of i
 
   it('a refusal the rpc of the update socket reports renews the token the next connection presents', async() => {
     const realtime = await import('@lib/impulse/realtime');
-    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+    realtime.startImpulseRealtime('42', ACCOUNT);
     await vi.waitFor(() => expect(socketHarness.sockets[0]?.presentedToken).toBe(SESSION_TOKEN));
     socketHarness.respondOnce(GET_CONFIG, () => {
       throw {code: TOKEN_EXPIRED, message: 'token expired'};
@@ -139,12 +139,12 @@ describe('the update socket connects with the access JWT, and gets no token of i
     fleetHarness.respond(REFRESH, () => ({data: renewedAuthorization()}));
 
     await expect(
-      realtime.callUpdateSocket({accountNumber: ACCOUNT, identity: await identity(), method: GET_CONFIG, request: new Uint8Array(0)}),
+      realtime.callUpdateSocket({accountNumber: ACCOUNT, method: GET_CONFIG, request: new Uint8Array(0)}),
       'the 109 of the rpc is the refusal the caller sees as AUTH_TOKEN_EXPIRED'
     ).rejects.toMatchObject({type: 'AUTH_TOKEN_EXPIRED'});
     realtime.stopImpulseRealtime(ACCOUNT);
 
-    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+    realtime.startImpulseRealtime('42', ACCOUNT);
 
     await vi.waitFor(() => expect(
       socketHarness.sockets[1]?.presentedToken,

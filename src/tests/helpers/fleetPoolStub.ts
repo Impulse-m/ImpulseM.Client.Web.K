@@ -22,7 +22,6 @@ export type SdkRpcPoolOptions = {
 const SDK_CONNECTIONS_PER_ENDPOINT: number = 2;
 const SDK_INFLIGHT_PER_CONNECTION: number = 1;
 const SDK_MAX_QUEUED: number = 64;
-// The rejection of a call beyond the queue bound.
 const LIMIT_EXCEEDED_CODE: number = errorCodes.limitExceeded;
 
 export type SdkRpcPoolStub = {

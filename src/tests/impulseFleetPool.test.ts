@@ -2,9 +2,9 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {callMediaFleet, fleetCounters, resetFleetIdentity, setFleetConfig} from '@lib/impulse/fleet/fleet';
+import {callMediaFleet, fleetCounters, resetFleetIdentity, setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
 import type {FleetCall, FleetIdentity} from '@lib/impulse/fleet/fleet';
-import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetRoute';
+import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 
@@ -56,12 +56,20 @@ function withMediaOption(host: string): FleetConfig {
 }
 
 function fileCall(overrides: Partial<FleetCall> = {}): FleetCall {
-  return {accountNumber: ACCOUNT, method: GET_FILE, identity: ANONYMOUS, request: REQUEST_BYTES, ...overrides};
+  return {accountNumber: ACCOUNT, method: GET_FILE, request: REQUEST_BYTES, ...overrides};
+}
+
+let presentedIdentity: FleetIdentity = ANONYMOUS;
+
+function presentIdentity(identity: FleetIdentity): void {
+  presentedIdentity = identity;
 }
 
 beforeEach(() => {
   resetFleetIdentity(ACCOUNT);
   resetFleetIdentity(OTHER_ACCOUNT);
+  setFleetIdentitySource(() => presentedIdentity);
+  presentIdentity(ANONYMOUS);
   fleetHarness.reset();
   warn.mockClear();
 });
@@ -122,10 +130,12 @@ describe('the media fleet is built from the media option of the current DC', () 
     setFleetConfig(ACCOUNT, withMediaOption('media.impulsem.io'));
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
-    await callMediaFleet(fileCall({identity: sessionIdentity('session-token-old')}));
+    presentIdentity(sessionIdentity('session-token-old'));
+    await callMediaFleet(fileCall());
     const previous = fleetHarness.pools[0];
 
-    await callMediaFleet(fileCall({identity: sessionIdentity('session-token-renewed')}));
+    presentIdentity(sessionIdentity('session-token-renewed'));
+    await callMediaFleet(fileCall());
 
     expect(previous.close, 'the connections that presented the refused token must not outlive the identity').toHaveBeenCalledTimes(1);
     expect(fleetHarness.calls[1].presentedToken).toBe('session-token-renewed');
@@ -227,7 +237,7 @@ describe('the identity a call presents decides the connection token of its pool'
   it('a signed-out call opens a pool whose connection carries no token', async() => {
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
 
-    await callMediaFleet(fileCall({identity: ANONYMOUS}));
+    await callMediaFleet(fileCall());
 
     expect(fleetHarness.pools[0].options.connection.getToken, 'an anonymous pool asks for no token').toBeUndefined();
     expect(fleetHarness.pools[0].options.connection.token).toBeUndefined();
@@ -236,16 +246,18 @@ describe('the identity a call presents decides the connection token of its pool'
 
   it('a pending call presents the pending token its identity hands out', async() => {
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
+    presentIdentity(pendingIdentity(PENDING_TOKEN));
 
-    await callMediaFleet(fileCall({identity: pendingIdentity(PENDING_TOKEN)}));
+    await callMediaFleet(fileCall());
 
     expect(fleetHarness.calls[0].presentedToken).toBe(PENDING_TOKEN);
   });
 
   it('a signed-in call presents the session token its identity hands out', async() => {
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
+    presentIdentity(sessionIdentity(SESSION_TOKEN));
 
-    await callMediaFleet(fileCall({identity: sessionIdentity(SESSION_TOKEN)}));
+    await callMediaFleet(fileCall());
 
     expect(fleetHarness.calls[0].presentedToken).toBe(SESSION_TOKEN);
   });
@@ -255,7 +267,9 @@ describe('the identity a call presents decides the connection token of its pool'
       throw {code: 103, message: 'AUTH_TOKEN_INVALID', appCode: 400, appType: 'AUTH_TOKEN_INVALID'};
     });
 
-    await expect(callMediaFleet(fileCall({identity: pendingIdentity(PENDING_TOKEN)})))
+    presentIdentity(pendingIdentity(PENDING_TOKEN));
+
+    await expect(callMediaFleet(fileCall()))
       .rejects.toMatchObject({type: 'AUTH_TOKEN_INVALID'});
     expect(fleetHarness.pools[0].close, 'a token the fleet refused must not keep its connection').toHaveBeenCalledTimes(1);
   });

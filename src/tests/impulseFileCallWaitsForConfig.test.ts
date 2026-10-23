@@ -3,7 +3,7 @@ import {create, toBinary} from '@bufbuild/protobuf';
 
 import {UploadFileSchema, UploadFileValueSchema} from '@lib/impulse/grpc/gen/v1/types_pb';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetRoute';
+import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
@@ -66,13 +66,6 @@ function uploadedFile(): {data: Uint8Array} {
   };
 }
 
-/** Lets the call issued just before run to its wait: every microtask it has queued settles before this resolves. */
-function settled(): Promise<void> {
-  return new Promise<void>((resolve: () => void): void => {
-    setTimeout(resolve, 0);
-  });
-}
-
 beforeEach(async() => {
   vi.resetModules();
   fleetHarness.reset();
@@ -90,10 +83,10 @@ describe('a file query issued before the config publishes its media option', () 
     socketHarness.respondOnce(GET_FILE, uploadedFile);
     fleetHarness.respondOnce(GET_FILE, uploadedFile);
     const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
-    const {setFleetConfig} = await import('@lib/impulse/fleet/fleet');
+    const {fleetConfigWaiters, setFleetConfig} = await import('@lib/impulse/fleet/fleet');
 
     const reply = grpcInvoke(GET_FILE, GET_FILE_PARAMS, ACCOUNT);
-    await settled();
+    await vi.waitFor(() => expect(fleetConfigWaiters(ACCOUNT), 'the file query is held for the config').toBe(1));
     setFleetConfig(ACCOUNT, withMediaOption());
 
     await expect(reply, 'the file query completes once the config publishes its media option').resolves.toMatchObject({bytes: FILE_PAYLOAD});
@@ -104,10 +97,10 @@ describe('a file query issued before the config publishes its media option', () 
   it('is refused with the typed transport error when the config publishes no media option, and touches no carrier', async() => {
     socketHarness.respondOnce(GET_FILE, uploadedFile);
     const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
-    const {setFleetConfig} = await import('@lib/impulse/fleet/fleet');
+    const {fleetConfigWaiters, setFleetConfig} = await import('@lib/impulse/fleet/fleet');
 
     const reply = grpcInvoke(GET_FILE, GET_FILE_PARAMS, ACCOUNT).then(() => 'resolved', (error: unknown) => error);
-    await settled();
+    await vi.waitFor(() => expect(fleetConfigWaiters(ACCOUNT), 'the file query is held for the config').toBe(1));
     setFleetConfig(ACCOUNT, withoutMediaOption());
 
     await expect(reply, 'a config without a media_only option fails the waiting file query with the typed error').resolves.toMatchObject({
@@ -121,15 +114,15 @@ describe('a file query issued before the config publishes its media option', () 
   it('is cancelled by its signal while it waits, and is not sent when the config arrives afterwards', async() => {
     const controller = new AbortController();
     const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
-    const {setFleetConfig} = await import('@lib/impulse/fleet/fleet');
+    const {fleetConfigWaiters, setFleetConfig} = await import('@lib/impulse/fleet/fleet');
 
     const reply = grpcInvoke(GET_FILE, GET_FILE_PARAMS, ACCOUNT, controller.signal).then(() => 'resolved', (error: unknown) => error);
-    await settled();
+    await vi.waitFor(() => expect(fleetConfigWaiters(ACCOUNT), 'the file query is held for the config').toBe(1));
     controller.abort();
 
     await expect(reply, 'the signal of the caller cancels the wait').resolves.toMatchObject({type: 'CANCELED'});
+    expect(fleetConfigWaiters(ACCOUNT), 'the cancelled query has left the wait').toBe(0);
     setFleetConfig(ACCOUNT, withMediaOption());
-    await settled();
     expect(fleetHarness.calls, 'a cancelled file query is never sent once the config arrives').toHaveLength(0);
     expect(socketHarness.calls, 'a cancelled file query never travels the update socket').toHaveLength(0);
   });

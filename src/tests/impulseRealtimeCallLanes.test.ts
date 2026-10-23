@@ -128,9 +128,11 @@ describe('RealtimeSubscriptions pin', () => {
 });
 
 describe('realtime lanes of a joined group call', () => {
-  beforeEach(() => {
+  beforeEach(async() => {
     vi.resetModules();
     centrifugeInstances.length = 0;
+    const {setFleetIdentitySource} = await import('@lib/impulse/fleet/fleet');
+    setFleetIdentitySource(() => SESSION_IDENTITY);
   });
 
   afterEach(async() => {
@@ -140,7 +142,7 @@ describe('realtime lanes of a joined group call', () => {
 
   it('subscribes call:{id} while joined and unsubscribes it on leave', async() => {
     const realtime = await import('@lib/impulse/realtime');
-    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
     const socket = centrifugeInstances[0];
 
@@ -154,7 +156,7 @@ describe('realtime lanes of a joined group call', () => {
 
   it('subscribes the channel lane of a channel call outside the window and releases it when the call closes', async() => {
     const realtime = await import('@lib/impulse/realtime');
-    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
     const socket = centrifugeInstances[0];
 
@@ -170,13 +172,13 @@ describe('realtime lanes of a joined group call', () => {
 
   it('brings the call lanes back when the socket is torn down and raised again during the call', async() => {
     const realtime = await import('@lib/impulse/realtime');
-    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
     realtime.setImpulseRealtimeCall(1, {callId: '557', channelId: 4243 as any});
     await settle();
 
     realtime.stopImpulseRealtime(1);
-    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(2);
     await settle();
 
