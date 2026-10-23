@@ -114,10 +114,14 @@ describe('realtime delivers what the server addresses to this session', () => {
     // channel, so the request is the inbox's: an oversize update is canon's updatesTooLong on whatever lane carried it.
     socketA.handlers.get('publication')!({channel: 'session:user-A:42', data: {oversize: true, type: 500}});
 
-    expect(recoveryA, 'the session lane asks the inbox for its difference, through the recovery of its own account').toHaveBeenCalledWith(undefined);
+    await vi.waitFor((): void => {
+      expect(recoveryA, 'the session lane asks the inbox for its difference, through the recovery of its own account').toHaveBeenCalledWith(undefined);
+    });
     expect(recoveryB).not.toHaveBeenCalled();
     socketB.handlers.get('publication')!({channel: 'session:user-B:43', data: {oversize: true, type: 500}});
-    expect(recoveryB).toHaveBeenCalledTimes(1);
+    await vi.waitFor((): void => {
+      expect(recoveryB).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('ignores a publication that carries nothing', async() => {
@@ -144,9 +148,11 @@ describe('realtime delivers what the server addresses to this session', () => {
     const published = new TextEncoder().encode(JSON.stringify({oversize: true, type: 500}));
     centrifugeInstances[0].handlers.get('publication')!({channel: 'session:user-A:42', data: published});
 
-    expect(
-      recovery,
-      'a publication arrives as bytes on the protobuf codec: its envelope is the JSON the server wrote, and must be read from it'
-    ).toHaveBeenCalledWith(undefined);
+    await vi.waitFor((): void => {
+      expect(
+        recovery,
+        'a publication arrives as bytes on the protobuf codec: its envelope is the JSON the server wrote, and must be read from it'
+      ).toHaveBeenCalledWith(undefined);
+    });
   });
 });

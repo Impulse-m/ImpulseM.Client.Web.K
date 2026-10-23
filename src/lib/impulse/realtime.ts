@@ -21,6 +21,7 @@ import {fromBinary} from '@bufbuild/protobuf';
 
 import {backendHttpOrigin, backendWsOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
+import makeError from '@helpers/makeError';
 import type {TabState} from '@lib/apiManagerProxy';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {isTokenRefusalCode, TOKEN_EXPIRED_CODE} from './centrifugoCodes';
@@ -28,6 +29,7 @@ import {countSocketCall, fleetFailure, fleetIdentityOf} from './fleet/fleet';
 import type {FleetIdentity} from './fleet/fleet';
 import {CENTRIFUGO_CONNECTION_PATH} from './fleet/fleetPath';
 import {isFleetRpcError, replyDataOf} from './fleet/fleetError';
+import {reportDifferenceFailure} from './backgroundFailures';
 import {RealtimeSubscriptions} from './realtimeSubscriptions';
 import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
 import {getReconnectJitterMaxMs, ReconnectFloorMs} from './realtimeDiscipline';
@@ -486,6 +488,7 @@ function envelopeOf(raw: unknown): Envelope | undefined {
 function handleEnvelope(accountNumber: ActiveAccountNumber, raw: unknown, channel: string): void {
   const dispatch = connectionFor(accountNumber).dispatch;
   if(!dispatch) {
+    logger.warn('Realtime publication has no dispatch; dropped', {accountNumber, channel});
     return;
   }
 
@@ -502,7 +505,16 @@ function handleEnvelope(accountNumber: ActiveAccountNumber, raw: unknown, channe
     return;
   }
 
-  const channelId = channel.startsWith('channel:') ? asNumber(channel.slice('channel:'.length)) : undefined;
+  const isChannelLane: boolean = channel.startsWith('channel:');
+  const channelId: ChatId | undefined = isChannelLane ? parseChannelId(channel.slice('channel:'.length)) : undefined;
+  if(isChannelLane && channelId === undefined) {
+    logger.error(
+      'Realtime channel lane names no channel; dropped',
+      {channel},
+      makeError('UNKNOWN', 'The channel lane carries no channel id')
+    );
+    return;
+  }
 
   // Too large to ride the push channel: canon's updatesTooLong means "too many updates to deliver here, fetch the
   // difference" (.demo/telegram-docs-text/constructor/updatesTooLong.md). The lane of the publication asks for it.
@@ -552,11 +564,10 @@ function handleEnvelope(accountNumber: ActiveAccountNumber, raw: unknown, channe
   }
 }
 
+// Deferred: the SDK's publication handler must not run the recovery inline, and a throw there disconnects the socket.
 function requestDifference(dispatch: RealtimeDispatch, channelId: ChatId | undefined): void {
-  new Promise<void>((resolve: (done: void | PromiseLike<void>) => void): void => {
-    resolve(dispatch.recovery(channelId));
-  }).catch((error: unknown): void => {
-    logger.error('Realtime difference request failed', {channelId}, error);
+  Promise.resolve().then(() => dispatch.recovery(channelId)).catch((error: unknown): void => {
+    reportDifferenceFailure(channelId, error);
   });
 }
 
@@ -633,6 +644,12 @@ function asNumber(value: number | string | undefined): number | undefined {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+const DECIMAL_ID_PATTERN: RegExp = /^\d+$/;
+
+function parseChannelId(text: string): ChatId | undefined {
+  return DECIMAL_ID_PATTERN.test(text) ? Number(text) : undefined;
 }
 
 function readBytes(value: unknown): Uint8Array | undefined {

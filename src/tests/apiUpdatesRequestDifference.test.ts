@@ -1,7 +1,24 @@
-import {describe, expect, it, vi} from 'vitest';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
 import '@helpers/peerIdPolyfill';
 import {ApiUpdatesManager} from '@appManagers/apiUpdatesManager';
-import {AppMessagesManager} from '@appManagers/appMessagesManager';
+
+const {recordedErrors} = vi.hoisted(() => ({recordedErrors: [] as unknown[][]}));
+
+vi.mock('@lib/impulseLogger', async(importActual) => {
+  const actual = await importActual<typeof import('@lib/impulseLogger')>();
+  const silent = (): void => {};
+  return {
+    ...actual,
+    getLogger: (): ReturnType<typeof actual.getLogger> => ({
+      debug: silent,
+      info: silent,
+      warn: silent,
+      error: (...args: unknown[]): void => {
+        recordedErrors.push(args);
+      }
+    })
+  };
+});
 
 /*
  * A lane whose pushed update could not be dispatched asks the manager for the difference of that lane: the inbox's through
@@ -13,6 +30,7 @@ import {AppMessagesManager} from '@appManagers/appMessagesManager';
 const CHANNEL_ID: number = 42;
 const CHANNEL_PTS: number = 7;
 const CHANNEL_PEER: PeerId = CHANNEL_ID.toPeerId(true);
+const DIALOG_REFUSAL: ApiError = {type: 'CHANNEL_PRIVATE', code: 400};
 
 function makeLog() {
   const makeLogger = () => Object.assign(vi.fn(), {warn: vi.fn(), error: vi.fn()});
@@ -34,26 +52,12 @@ function managerWithStubs() {
 }
 
 /**
- * A manager whose dialog path is the real AppMessagesManager.reloadConversation over stubbed collaborators: its
- * messages.getPeerDialogs answers with `peerDialogs`, and every other request never settles.
+ * A manager whose messages.getPeerDialogs is answered by `dialogRequest`, and every other request never settles.
  */
-function managerWithDialogPath(peerDialogs: unknown) {
+function managerWithDialogPath(dialogRequest: () => Promise<unknown>) {
   const invokeApi = vi.fn((method: string) => (
-    method === 'messages.getPeerDialogs' ? Promise.resolve(peerDialogs) : new Promise<never>(() => {})
+    method === 'messages.getPeerDialogs' ? dialogRequest() : new Promise<never>(() => {})
   ));
-  const messagesStub = {
-    log: makeLog(),
-    apiManager: {invokeApi},
-    apiUpdatesManager: {updatesState: {}},
-    appPeersManager: {
-      getPeerId: (peerId: PeerId): PeerId => peerId,
-      getInputDialogPeerById: (peerId: PeerId) => ({_: 'inputDialogPeer', peer_id: peerId})
-    },
-    dialogsStorage: {applyDialogs: vi.fn()},
-    getChannelAvailableMinIdGeneration: (): number => 0,
-    reloadConversationsPeers: new Map<PeerId, unknown>(),
-    reloadConversationsPromise: null as Promise<void> | null
-  };
   const manager = new ApiUpdatesManager() as any;
   Object.assign(manager, {
     log: makeLog(),
@@ -61,13 +65,10 @@ function managerWithDialogPath(peerDialogs: unknown) {
     appChatsManager: {
       getChannelInput: vi.fn(() => ({_: 'inputChannel', channel_id: CHANNEL_ID, access_hash: 'hash'}))
     },
-    dialogsStorage: {getDialogOnly: vi.fn((): undefined => undefined)},
-    appMessagesManager: {
-      reloadConversation: (peerId: PeerId) => AppMessagesManager.prototype.reloadConversation.call(
-        messagesStub as unknown as AppMessagesManager,
-        peerId
-      )
+    appPeersManager: {
+      getInputDialogPeerById: (peerId: PeerId) => ({_: 'inputDialogPeer', peer_id: peerId})
     },
+    dialogsStorage: {getDialogOnly: vi.fn((): undefined => undefined), applyDialogs: vi.fn()},
     rootScope: {dispatchEvent: vi.fn()}
   });
   return {manager, invokeApi};
@@ -76,6 +77,10 @@ function managerWithDialogPath(peerDialogs: unknown) {
 function settled(): Promise<void> {
   return new Promise<void>((resolve: () => void) => setTimeout(resolve, 0));
 }
+
+beforeEach(() => {
+  recordedErrors.length = 0;
+});
 
 describe('a recovery request of the inbox lane', () => {
   it('asks the inbox for its difference through updates.getDifference', async() => {
@@ -88,6 +93,20 @@ describe('a recovery request of the inbox lane', () => {
       invokeApi,
       'an inbox recovery is the updatesTooLong answer: a getDifference of the inbox state'
     ).toHaveBeenCalledWith('updates.getDifference', expect.anything(), expect.anything());
+  });
+
+  it('runs after the caller returns, so a publication handler never runs the recovery inline', async() => {
+    const {manager} = managerWithStubs();
+    const processUpdateMessage = vi.spyOn(manager, 'processUpdateMessage');
+
+    manager.requestDifference(undefined);
+
+    expect(
+      processUpdateMessage,
+      'the caller is the SDK publication handler: processUpdateMessage must not run inside the socket emit'
+    ).not.toHaveBeenCalled();
+    await settled();
+    expect(processUpdateMessage).toHaveBeenCalledWith({_: 'updatesTooLong'});
   });
 });
 
@@ -111,13 +130,13 @@ describe('a recovery request of a channel lane', () => {
   });
 
   it('an unseeded channel takes its dialog first, then asks for its difference from the dialog pts', async() => {
-    const {manager, invokeApi} = managerWithDialogPath({
+    const {manager, invokeApi} = managerWithDialogPath(() => Promise.resolve({
       dialogs: [{_: 'dialog', peerId: CHANNEL_PEER, pts: CHANNEL_PTS}],
       messages: [],
       chats: [],
       users: [],
       state: {}
-    });
+    }));
 
     manager.requestDifference(CHANNEL_ID);
 
@@ -134,13 +153,13 @@ describe('a recovery request of a channel lane', () => {
   });
 
   it('a channel whose dialog carries no pts fails the recovery with a typed error and asks for no difference', async() => {
-    const {manager, invokeApi} = managerWithDialogPath({
+    const {manager, invokeApi} = managerWithDialogPath(() => Promise.resolve({
       dialogs: [],
       messages: [],
       chats: [],
       users: [],
       state: {}
-    });
+    }));
 
     const outcome: unknown = await Promise.resolve()
     .then((): unknown => manager.requestDifference(CHANNEL_ID))
@@ -154,5 +173,51 @@ describe('a recovery request of a channel lane', () => {
       invokeApi,
       'the difference of a channel without a pts is never asked for'
     ).not.toHaveBeenCalledWith('updates.getChannelDifference', expect.anything(), expect.anything());
+  });
+
+  it('a dialog the server refuses fails the recovery with the server ApiError, not an UNKNOWN', async() => {
+    const {manager, invokeApi} = managerWithDialogPath(() => Promise.reject(DIALOG_REFUSAL));
+
+    const outcome: unknown = await Promise.resolve()
+    .then((): unknown => manager.requestDifference(CHANNEL_ID))
+    .then((): undefined => undefined, (error: unknown): unknown => error);
+
+    expect(
+      outcome,
+      'a refused dialog request reaches the recovery as the server ApiError: the swallow of reloadConversation must not turn it into UNKNOWN'
+    ).toBe(DIALOG_REFUSAL);
+    expect(
+      invokeApi,
+      'no difference is asked for a channel whose dialog could not be read'
+    ).not.toHaveBeenCalledWith('updates.getChannelDifference', expect.anything(), expect.anything());
+  });
+});
+
+describe('a channel update whose channel holds no pts', () => {
+  it('records a refused dialog of the throttled branch with its channel, and leaves no request unhandled', async() => {
+    const {manager} = managerWithDialogPath(() => Promise.reject(DIALOG_REFUSAL));
+    manager.channelStates = {[CHANNEL_ID]: {pendingPtsUpdates: [], syncPending: null, syncLoading: null}};
+    const unhandled: unknown[] = [];
+    const recordUnhandled = (reason: unknown): void => {
+      unhandled.push(reason);
+    };
+    process.on('unhandledRejection', recordUnhandled);
+
+    try {
+      manager.processUpdateMessage({_: 'updateShort', update: {_: 'updateChannelTooLong', channel_id: CHANNEL_ID}});
+
+      await vi.waitFor((): void => {
+        expect(
+          recordedErrors.some((args: unknown[]): boolean => (
+            args[2] === DIALOG_REFUSAL && (args[1] as {channelId?: number} | undefined)?.channelId === CHANNEL_ID
+          )),
+          'a failed difference request of the throttled branch is recorded with the error that failed it and its channel'
+        ).toBe(true);
+      });
+      await settled();
+      expect(unhandled, 'the throttled branch never leaves its difference request unhandled').toEqual([]);
+    } finally {
+      process.off('unhandledRejection', recordUnhandled);
+    }
   });
 });

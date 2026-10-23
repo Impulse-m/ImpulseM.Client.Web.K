@@ -9,6 +9,7 @@ import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
 import {clearImpulseSession, fleetIdentityFor, restoreImpulseSession} from '@lib/impulse/session';
 import {setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
 import {setRealtimeDispatch, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
+import {reportSignOutFailure} from '@lib/impulse/backgroundFailures';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
 import type {MethodDeclMap} from '@layer';
@@ -173,13 +174,6 @@ export class ApiManager extends ApiManagerMethods {
 
     // Restore the stored session, then bring up the
     // push channel -- but only for the account that is actually signed in.
-    //
-    // createManagers builds a manager for all four slots and calls after() on
-    // every one. `setRealtimeDispatch` is context-wide, so registering it here
-    // unconditionally meant the last slot to run owned it -- usually an empty one.
-    // Every Centrifugo update was then handed to an idle account's updates
-    // manager and quietly dropped: a sent message never received its
-    // confirmation and sat on the clock icon forever.
     restoreImpulseSession(this.getAccountNumber()).then(() => {
       AccountController.get(this.getAccountNumber()).then((data) => {
         if(data?.userId === undefined) {
@@ -431,15 +425,18 @@ export class ApiManager extends ApiManagerMethods {
     const accountData = await attempt(() => AccountController.get(accountNumber));
     const slotDataUnread: boolean = failures.length > failuresBeforeRead;
 
-    const logoutPromises: Promise<any>[] = [];
+    // tdlib logs a failed auth.logOut and destroys the local keys anyway (.demo/tdlib/td/telegram/AuthManager.cpp:1360-1363).
+    const revoke = (dcId: DcId): Promise<unknown> => this.invokeApi('auth.logOut', {}, {dcId, ignoreErrors: true})
+    .catch(reportSignOutFailure);
+    const logoutPromises: Promise<unknown>[] = [];
 
     if(slotDataUnread) {
-      logoutPromises.push(this.invokeApi('auth.logOut', {}, {dcId: currentDcId, ignoreErrors: true}));
+      logoutPromises.push(revoke(currentDcId));
     } else {
       for(let dcId = 1; dcId <= 5; dcId++) {
         const key = `dc${dcId as TrueDcId}_auth_key` as const;
         if(accountData?.[key]) {
-          logoutPromises.push(this.invokeApi('auth.logOut', {}, {dcId, ignoreErrors: true}));
+          logoutPromises.push(revoke(dcId));
         }
       }
     }
@@ -491,7 +488,7 @@ export class ApiManager extends ApiManagerMethods {
     const clearOnce = (): Promise<unknown> => clearing ??= attempt(clear);
     setTimeout(clearOnce, 1e3);
 
-    await attempt(() => Promise.all(logoutPromises));
+    await Promise.all(logoutPromises);
     await clearOnce();
 
     if(failures.length === 1) {
@@ -806,7 +803,7 @@ export class ApiManager extends ApiManagerMethods {
 
       if((error.code === 401 && error.type === 'SESSION_REVOKED') ||
         (error.code === 406 && error.type === 'AUTH_KEY_DUPLICATED')) {
-        this.logOut();
+        this.logOut().catch(reportSignOutFailure);
       }
 
       if(isNotModifiedError(error)) {
@@ -827,7 +824,7 @@ export class ApiManager extends ApiManagerMethods {
         setTimeout(() => {
           if(!error.handled) {
             if(error.code === 401) {
-              this.logOut();
+              this.logOut().catch(reportSignOutFailure);
             } else {
               // ErrorService.show({error: error}); // WARNING
             }

@@ -44,6 +44,24 @@ vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   return {...actual, Centrifuge: harness().CentrifugeStub};
 });
 
+const {recordedErrors} = vi.hoisted(() => ({recordedErrors: [] as unknown[][]}));
+
+vi.mock('@lib/impulseLogger', async(importActual) => {
+  const actual = await importActual<typeof import('@lib/impulseLogger')>();
+  const silent = (): void => {};
+  return {
+    ...actual,
+    getLogger: (): ReturnType<typeof actual.getLogger> => ({
+      debug: silent,
+      info: silent,
+      warn: silent,
+      error: (...args: unknown[]): void => {
+        recordedErrors.push(args);
+      }
+    })
+  };
+});
+
 const socketHarness = sharedUpdateSocketHarness();
 const ACCOUNT: ActiveAccountNumber = 2;
 const TOTAL_ACCOUNTS: number = 2;
@@ -78,6 +96,7 @@ function settled(): Promise<void> {
 
 beforeEach(() => {
   vi.resetModules();
+  recordedErrors.length = 0;
   accountGet.mockReset();
   accountUpdate.mockReset();
   accountClearFields.mockReset();
@@ -240,7 +259,7 @@ describe('the revocation of a sign-out', () => {
     ).toHaveBeenCalledWith('auth.logOut', {}, {dcId: App.baseDcId, ignoreErrors: true});
   });
 
-  it('a failed auth.logOut rejects the sign-out, and the local wipe still runs', async() => {
+  it('a failed auth.logOut is recorded and does not fail the sign-out, and the local wipe still runs', async() => {
     const LOGOUT_FAILURE: ApiError = {type: 'AUTH_KEY_UNREGISTERED', code: 401};
     accountGet.mockResolvedValue({dc2_auth_key: 'auth-key-of-the-slot'});
     const manager: SignedInManager = Object.assign(await signedInManager(), {
@@ -252,8 +271,12 @@ describe('the revocation of a sign-out', () => {
 
     await expect(
       manager.logOut(),
-      'a failed auth.logOut is a failure of the sign-out, not a silent success'
-    ).rejects.toBe(LOGOUT_FAILURE);
+      'tdlib destroys the local keys whatever auth.logOut answered, so the sign-out resolves'
+    ).resolves.toBeUndefined();
+    expect(
+      recordedErrors.some((args: unknown[]): boolean => args[2] === LOGOUT_FAILURE),
+      'the failed auth.logOut is recorded with the error that failed it'
+    ).toBe(true);
     expect(
       manager.rootScope.dispatchEvent,
       'the local wipe still runs after the failed revocation: it announces the logout of the slot'

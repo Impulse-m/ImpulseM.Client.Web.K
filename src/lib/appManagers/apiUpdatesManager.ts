@@ -5,7 +5,7 @@
  * https://github.com/zhukov/webogram/blob/master/LICENSE
  */
 
-import {ConstructorDeclMap, Message, MessageFwdHeader, Peer, StarsAmount, Update, Updates} from '@layer';
+import {ConstructorDeclMap, Dialog, Message, MessageFwdHeader, MessagesPeerDialogs, Peer, StarsAmount, Update, Updates} from '@layer';
 import {LogTypes} from '@lib/logger';
 import assumeType from '@helpers/assumeType';
 import App from '@config/app';
@@ -23,6 +23,7 @@ import noop from '@helpers/noop';
 import makeError from '@helpers/makeError';
 import pause from '@helpers/schedulers/pause';
 import {ConcurrentTaskQueue, MaxConcurrentChannelDifferences} from '@lib/impulse/realtimeDiscipline';
+import {reportDifferenceFailure} from '@lib/impulse/backgroundFailures';
 
 type UpdatesState = {
   pendingPtsUpdates: (Update & {pts: number, pts_count: number})[],
@@ -198,8 +199,8 @@ class ApiUpdatesManager {
 
   public async requestDifference(channelId: ChatId | undefined): Promise<void> {
     if(channelId === undefined) {
-      this.processUpdateMessage({_: 'updatesTooLong'});
-      return;
+      // Runs after the caller returns: the caller may be the SDK's publication handler.
+      return Promise.resolve().then(() => this.processUpdateMessage({_: 'updatesTooLong'}));
     }
 
     return this.requestChannelDifference(channelId);
@@ -452,7 +453,15 @@ class ApiUpdatesManager {
   }
 
   private async seedChannelFromDialog(channelId: ChatId): Promise<void> {
-    const dialog = await this.appMessagesManager.reloadConversation(channelId.toPeerId(true));
+    const peerId: PeerId = channelId.toPeerId(true);
+    const result: MessagesPeerDialogs = await this.apiManager.invokeApi('messages.getPeerDialogs', {
+      peers: [this.appPeersManager.getInputDialogPeerById(peerId)]
+    }, {floodMaxTimeout: Infinity});
+    this.dialogsStorage.applyDialogs(result);
+
+    const dialog: Dialog.dialog | undefined = result.dialogs.find(
+      (entry): entry is Dialog.dialog => entry._ === 'dialog' && entry.peerId === peerId
+    );
     if(!dialog?.pts) {
       throw makeError('UNKNOWN', 'The channel dialog carries no pts');
     }
@@ -719,7 +728,9 @@ class ApiUpdatesManager {
       if(!curState.lastPtsUpdateTime ||
           curState.lastPtsUpdateTime < (Date.now() - SYNC_DELAY)) {
         log.warn('channel too long, get diff');
-        this.requestChannelDifference(channelId);
+        this.requestDifference(channelId).catch((error: unknown): void => {
+          reportDifferenceFailure(channelId, error);
+        });
       }
       return false;
     }

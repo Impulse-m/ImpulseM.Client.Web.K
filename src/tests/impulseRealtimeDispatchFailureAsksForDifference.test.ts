@@ -19,7 +19,10 @@ const CHANNEL_ID: number = 42;
 const DISPATCH_FAILURE: Error = new Error('sink rejected the update');
 const RECOVERY_FAILURE: Error = new Error('difference request rejected');
 
-const {recordedErrors} = vi.hoisted(() => ({recordedErrors: [] as unknown[][]}));
+const {recordedErrors, recordedWarnings} = vi.hoisted(() => ({
+  recordedErrors: [] as unknown[][],
+  recordedWarnings: [] as unknown[][]
+}));
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
@@ -35,7 +38,9 @@ vi.mock('@lib/impulseLogger', async(importActual) => {
     getLogger: (): ReturnType<typeof actual.getLogger> => ({
       debug: silent,
       info: silent,
-      warn: silent,
+      warn: (...args: unknown[]): void => {
+        recordedWarnings.push(args);
+      },
       error: (...args: unknown[]): void => {
         recordedErrors.push(args);
       }
@@ -47,6 +52,7 @@ beforeEach(async() => {
   vi.resetModules();
   socketHarness.reset();
   recordedErrors.length = 0;
+  recordedWarnings.length = 0;
   await registerSessionIdentitySource();
 });
 
@@ -56,6 +62,12 @@ function pushedUpdatesTooLong(): Uint8Array {
 
 function publicationOf(channel: string): {channel: string, data: unknown} {
   return {channel, data: {type: 1, pts: 5, ptsCount: 1, date: 1, data: pushedUpdatesTooLong()}};
+}
+
+function settled(): Promise<void> {
+  return new Promise<void>((resolve: () => void): void => {
+    setTimeout(resolve, 0);
+  });
 }
 
 describe('a decoded update the sink cannot dispatch', () => {
@@ -88,10 +100,12 @@ describe('a decoded update the sink cannot dispatch', () => {
 
     socket.emit('publication', publicationOf(`channel:${CHANNEL_ID}`));
 
-    expect(
-      recovery,
-      'a channel:{id} update asks for that channel: updates.getChannelDifference is the channel\'s recovery, not the inbox\'s'
-    ).toHaveBeenCalledWith(CHANNEL_ID);
+    await vi.waitFor((): void => {
+      expect(
+        recovery,
+        'a channel:{id} update asks for that channel: updates.getChannelDifference is the channel\'s recovery, not the inbox\'s'
+      ).toHaveBeenCalledWith(CHANNEL_ID);
+    });
     expect(recovery).toHaveBeenCalledTimes(1);
   });
 
@@ -107,10 +121,12 @@ describe('a decoded update the sink cannot dispatch', () => {
 
     socket.emit('publication', publicationOf(`user:${USER_ID}`));
 
-    expect(
-      recovery,
-      'an update of the user lane asks for the inbox difference, updates.getDifference'
-    ).toHaveBeenCalledWith(undefined);
+    await vi.waitFor((): void => {
+      expect(
+        recovery,
+        'an update of the user lane asks for the inbox difference, updates.getDifference'
+      ).toHaveBeenCalledWith(undefined);
+    });
   });
 });
 
@@ -148,8 +164,10 @@ describe('the recovery of a failed dispatch cannot break the socket', () => {
 
     await vi.waitFor((): void => {
       expect(
-        recordedErrors.some((args: unknown[]): boolean => args[2] === RECOVERY_FAILURE),
-        'a failed difference request is recorded with the error that failed it'
+        recordedErrors.some((args: unknown[]): boolean => (
+          args[2] === RECOVERY_FAILURE && (args[1] as {channelId?: number} | undefined)?.channelId === CHANNEL_ID
+        )),
+        'a failed difference request is recorded with the error that failed it and the channel it was asked for'
       ).toBe(true);
     });
     expect(socket.disconnected, 'the socket of the slot stays connected when the difference request fails').toBe(false);
@@ -167,10 +185,91 @@ describe('an oversize publication asks for the difference of its own lane', () =
 
     socket.emit('publication', {channel: `channel:${CHANNEL_ID}`, data: {oversize: true, type: 500}});
 
+    await vi.waitFor((): void => {
+      expect(
+        recovery,
+        'an oversize channel publication asks for that channel: updates.getChannelDifference is the channel\'s recovery'
+      ).toHaveBeenCalledWith(CHANNEL_ID);
+    });
+    expect(sink, 'an oversize publication is not dispatched: the difference carries it').not.toHaveBeenCalled();
+  });
+});
+
+describe('the recovery of a publication runs after the publication handler returns', () => {
+  it('an oversize publication asks for its difference only once the socket emit has returned', async() => {
+    const {setRealtimeDispatch, startImpulseRealtime} = await import('@lib/impulse/realtime');
+    const recovery = vi.fn((): Promise<void> => Promise.resolve());
+    setRealtimeDispatch(ACCOUNT, {sink: vi.fn(), recovery});
+    startImpulseRealtime(USER_ID, ACCOUNT);
+    const [socket] = socketHarness.sockets;
+
+    socket.emit('publication', {channel: `user:${USER_ID}`, data: {oversize: true, type: 500}});
+
     expect(
       recovery,
-      'an oversize channel publication asks for that channel: updates.getChannelDifference is the channel\'s recovery'
-    ).toHaveBeenCalledWith(CHANNEL_ID);
-    expect(sink, 'an oversize publication is not dispatched: the difference carries it').not.toHaveBeenCalled();
+      'the recovery runs after the publication handler returns: inline, it would reach the updates manager inside the SDK handler'
+    ).not.toHaveBeenCalled();
+    await vi.waitFor((): void => {
+      expect(recovery).toHaveBeenCalledWith(undefined);
+    });
+  });
+});
+
+describe('a channel lane that names no channel', () => {
+  it('records a typed error naming the lane, and asks for no difference of any lane', async() => {
+    const {setRealtimeDispatch, startImpulseRealtime} = await import('@lib/impulse/realtime');
+    const recovery = vi.fn((): Promise<void> => Promise.resolve());
+    setRealtimeDispatch(ACCOUNT, {sink: vi.fn(), recovery});
+    startImpulseRealtime(USER_ID, ACCOUNT);
+    const [socket] = socketHarness.sockets;
+
+    socket.emit('publication', {channel: 'channel:not-a-number', data: {oversize: true, type: 500}});
+    await settled();
+
+    expect(
+      recovery,
+      'a malformed channel lane asks for no difference: the inbox difference would answer for a channel the lane does not name'
+    ).not.toHaveBeenCalled();
+    expect(
+      recordedErrors.some((args: unknown[]): boolean => (
+        (args[1] as {channel?: string} | undefined)?.channel === 'channel:not-a-number' &&
+        (args[2] as ApiError | undefined)?.type === 'UNKNOWN'
+      )),
+      'the malformed lane is recorded with a typed error that names the lane'
+    ).toBe(true);
+  });
+
+  it('dispatches no update of a channel lane it cannot name', async() => {
+    const {setRealtimeDispatch, startImpulseRealtime} = await import('@lib/impulse/realtime');
+    const sink = vi.fn();
+    setRealtimeDispatch(ACCOUNT, {sink, recovery: vi.fn((): Promise<void> => Promise.resolve())});
+    startImpulseRealtime(USER_ID, ACCOUNT);
+    const [socket] = socketHarness.sockets;
+
+    socket.emit('publication', publicationOf('channel:not-a-number'));
+    await settled();
+
+    expect(
+      sink,
+      'an update of a channel lane that names no channel is not dispatched to the inbox'
+    ).not.toHaveBeenCalled();
+  });
+});
+
+describe('a publication of a slot with no dispatch registered', () => {
+  it('is dropped with a warning that names the account and the channel', async() => {
+    const {startImpulseRealtime} = await import('@lib/impulse/realtime');
+    startImpulseRealtime(USER_ID, ACCOUNT);
+    const [socket] = socketHarness.sockets;
+
+    socket.emit('publication', publicationOf(`channel:${CHANNEL_ID}`));
+
+    expect(
+      recordedWarnings.some((args: unknown[]): boolean => {
+        const payload = args[1] as {accountNumber?: number, channel?: string} | undefined;
+        return payload?.accountNumber === ACCOUNT && payload?.channel === `channel:${CHANNEL_ID}`;
+      }),
+      'a publication with no dispatch to take it is recorded as a warning naming its account and channel'
+    ).toBe(true);
   });
 });

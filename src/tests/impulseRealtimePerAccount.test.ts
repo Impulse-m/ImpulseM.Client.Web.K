@@ -192,11 +192,15 @@ describe('realtime lifecycle is per account, not a SharedWorker-wide singleton (
     // An oversize envelope routes to its lane's recovery without needing a decodable payload — the shortest
     // path that still proves which account's dispatch was handed the publication.
     socketOne.subscriptionFor('user:user-A')!.emit('publication', {data: {oversize: true, type: 1}});
-    expect(recoveryA, 'account 1\'s socket must reach account 1\'s recovery').toHaveBeenCalledWith(undefined);
+    await vi.waitFor((): void => {
+      expect(recoveryA, 'account 1\'s socket must reach account 1\'s recovery').toHaveBeenCalledWith(undefined);
+    });
     expect(recoveryB, 'account 1\'s socket must NOT reach account 2\'s recovery').not.toHaveBeenCalled();
 
     socketTwo.subscriptionFor('user:user-B')!.emit('publication', {data: {oversize: true, type: 1}});
-    expect(recoveryB, 'account 2\'s socket must reach account 2\'s recovery').toHaveBeenCalledWith(undefined);
+    await vi.waitFor((): void => {
+      expect(recoveryB, 'account 2\'s socket must reach account 2\'s recovery').toHaveBeenCalledWith(undefined);
+    });
     expect(recoveryA, 'account 2\'s socket must not have re-triggered account 1\'s recovery').toHaveBeenCalledTimes(1);
     expect(sinkA, 'an oversize publication is not dispatched to any sink').not.toHaveBeenCalled();
     expect(sinkB, 'an oversize publication is not dispatched to any sink').not.toHaveBeenCalled();
