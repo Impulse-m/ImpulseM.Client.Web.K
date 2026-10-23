@@ -8,7 +8,7 @@
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
 import {clearImpulseSession, fleetIdentityFor, restoreImpulseSession} from '@lib/impulse/session';
 import {setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
-import {setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
+import {setRealtimeRecovery, setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
 import type {MethodDeclMap} from '@layer';
@@ -152,19 +152,31 @@ export class ApiManager extends ApiManagerMethods {
     const accountNumber = this.getAccountNumber();
 
     // impulse: seed a subscribed channel from cached dialog pts before TooLong reaches its guard.
+    const seedChannelState = (channelId: ChatId): void => {
+      const pts = this.dialogsStorage.getDialogOnly(channelId.toPeerId(true))?.pts;
+      if(pts) {
+        this.apiUpdatesManager.addChannelState(channelId, pts);
+      }
+    };
+
     setRealtimeSink(accountNumber, (updates, channelId) => {
       let hasChannelTooLong = false;
       for(const update of updates.updates ?? []) {
         hasChannelTooLong ||= update._ === 'updateChannelTooLong';
       }
       if(channelId !== undefined && hasChannelTooLong) {
-        const pts = this.dialogsStorage.getDialogOnly(channelId.toPeerId(true))?.pts;
-        if(pts) {
-          this.apiUpdatesManager.addChannelState(channelId, pts);
-        }
+        seedChannelState(channelId);
       }
 
       this.apiUpdatesManager.processUpdateMessage(updates);
+    });
+
+    setRealtimeRecovery(accountNumber, (channelId) => {
+      if(channelId !== undefined) {
+        seedChannelState(channelId);
+      }
+
+      this.apiUpdatesManager.requestDifference(channelId);
     });
 
     startImpulseRealtime(String(userId), accountNumber);
@@ -413,6 +425,7 @@ export class ApiManager extends ApiManagerMethods {
 
   private async wipeLocalSession(migrateAccountTo?: ActiveAccountNumber) {
     const accountNumber = this.getAccountNumber();
+    const currentDcId: DcId = this.baseDcId;
 
     // Every step of the wipe runs whatever the others answered (.demo/tdlib/td/telegram/AuthManager.cpp:1352-1364); the
     // failures are rethrown after the wipe.
@@ -431,24 +444,25 @@ export class ApiManager extends ApiManagerMethods {
     await attempt(() => clearImpulseSession(accountNumber));
 
     const totalAccounts: number | undefined = await attempt(() => AccountController.getTotalAccounts());
+    const failuresBeforeRead: number = failures.length;
     const accountData = await attempt(() => AccountController.get(accountNumber));
+    const slotDataUnread: boolean = failures.length > failuresBeforeRead;
 
     const logoutPromises: Promise<any>[] = [];
 
-    for(let dcId = 1; dcId <= 5; dcId++) {
-      const key = `dc${dcId as TrueDcId}_auth_key` as const;
-      if(accountData?.[key]) {
-        logoutPromises.push(this.invokeApi('auth.logOut', {}, {dcId, ignoreErrors: true}));
+    if(slotDataUnread) {
+      logoutPromises.push(this.invokeApi('auth.logOut', {}, {dcId: currentDcId, ignoreErrors: true}));
+    } else {
+      for(let dcId = 1; dcId <= 5; dcId++) {
+        const key = `dc${dcId as TrueDcId}_auth_key` as const;
+        if(accountData?.[key]) {
+          logoutPromises.push(this.invokeApi('auth.logOut', {}, {dcId, ignoreErrors: true}));
+        }
       }
     }
 
-    let wasCleared = false; // Prevent double logout 2 accounts in a row
     const clear = async() => {
-      if(wasCleared) return;
-      wasCleared = true;
-
       this.baseDcId = undefined;
-      // * totalAccounts can be 0 somehow
       // An unknown count takes the branch that removes only this slot.
       if(totalAccounts !== undefined && totalAccounts <= 1 && accountNumber === 1 && !migrateAccountTo) {
         await Promise.all([
@@ -490,12 +504,15 @@ export class ApiManager extends ApiManagerMethods {
       this.rootScope.dispatchEvent('logging_out', {accountNumber, migrateTo: migrateAccountTo});
     };
 
-    setTimeout(clear, 1e3);
+    // The timer and the awaited wipe share one run of the clear, so its failure is recorded once.
+    let clearing: Promise<unknown> | undefined;
+    const clearOnce = (): Promise<unknown> => clearing ??= attempt(clear);
+    setTimeout(clearOnce, 1e3);
 
     await Promise.all(logoutPromises).catch((error) => {
       error.handled = true;
     });
-    await attempt(clear);
+    await clearOnce();
 
     if(failures.length === 1) {
       throw failures[0];

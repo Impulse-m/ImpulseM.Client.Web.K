@@ -1,6 +1,6 @@
 import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
 
-import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
+import {socketUrlOf} from '../../../e2e/live/carriers';
 import {loginCodeFor, Persona} from './personas';
 
 
@@ -29,7 +29,7 @@ export type MinimalRpcSession = {
 
 export async function openMinimalRpcSession(gatewayOrigin: string, persona: Persona): Promise<MinimalRpcSession> {
   const identity: {userId?: string, sessionToken?: string} = {};
-  const socketUrl = `${gatewayOrigin.replace(/^http/, 'ws')}${FLEET_CONNECTION_PATH}`;
+  const socketUrl = socketUrlOf(gatewayOrigin);
   let socket: Centrifuge | undefined;
   let socketToken: string | undefined;
 

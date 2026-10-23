@@ -195,6 +195,14 @@ class ApiUpdatesManager {
     }
   }
 
+  // The caller is the SDK's publication handler, which disconnects the socket when the handler throws.
+  public requestDifference(channelId: ChatId | undefined): void {
+    Promise.resolve().then(() => channelId === undefined ?
+      this.processUpdateMessage({_: 'updatesTooLong'}) :
+      this.getChannelDifference(channelId)
+    );
+  }
+
   public processLocalUpdate(update: Update) {
     this.processUpdateMessage({
       _: 'updateShort',

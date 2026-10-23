@@ -1,7 +1,4 @@
-/*
- * The dcOption of a fleet config that the media fleet is published on, and the endpoint a media fleet connection dials.
- * Dependency-free on purpose: the live e2e lane imports it to dial the endpoint the client dials.
- */
+/* Imports only fleetPath, so the live e2e lane can load it without the client runtime. */
 
 import {FLEET_CONNECTION_PATH} from './fleetPath';
 

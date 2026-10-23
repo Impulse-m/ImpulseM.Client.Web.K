@@ -48,6 +48,7 @@ export const ReconnectJitterMaxMs = getReconnectJitterMaxMs(import.meta.env.DEV)
 export const ReconnectJitterMinMs = ReconnectFloorMs;
 
 type RealtimeUpdateSink = (updates: any, channelId?: ChatId) => void;
+type RealtimeRecovery = (channelId: ChatId | undefined) => void;
 
 type Envelope = {
   type?: number,
@@ -95,7 +96,8 @@ type RealtimeConnection = {
   call: RealtimeCall | undefined,
   latestTabStates: TabState[],
   subscriptions: Map<string, Subscription>,
-  sink: RealtimeUpdateSink | undefined
+  sink: RealtimeUpdateSink | undefined,
+  recovery: RealtimeRecovery | undefined
 };
 
 const connectionsByAccount = new Map<ActiveAccountNumber, RealtimeConnection>();
@@ -111,7 +113,8 @@ function connectionFor(accountNumber: ActiveAccountNumber): RealtimeConnection {
       call: undefined,
       latestTabStates: [],
       subscriptions: new Map<string, Subscription>(),
-      sink: undefined
+      sink: undefined,
+      recovery: undefined
     };
     connectionsByAccount.set(accountNumber, record);
   }
@@ -121,6 +124,11 @@ function connectionFor(accountNumber: ActiveAccountNumber): RealtimeConnection {
 
 export function setRealtimeSink(accountNumber: ActiveAccountNumber, fn: RealtimeUpdateSink): void {
   connectionFor(accountNumber).sink = fn;
+}
+
+/** Registers how a lane asks for the difference when the sink cannot take one of its publications. */
+export function setRealtimeRecovery(accountNumber: ActiveAccountNumber, fn: RealtimeRecovery): void {
+  connectionFor(accountNumber).recovery = fn;
 }
 
 /**
@@ -536,12 +544,12 @@ function handleEnvelope(accountNumber: ActiveAccountNumber, raw: unknown, channe
     channel
   });
 
+  const channelId = channel.startsWith('channel:') ? asNumber(channel.slice('channel:'.length)) : undefined;
   try {
-    const channelId = channel.startsWith('channel:') ? asNumber(channel.slice('channel:'.length)) : undefined;
     sink(updates, channelId);
   } catch(err) {
     logger.warn('Realtime update dispatch failed; asking for the difference', {type: envelope.type, channel}, err);
-    sink({_: 'updatesTooLong'});
+    connectionFor(accountNumber).recovery?.(channelId);
   }
 }
 

@@ -51,9 +51,11 @@ const USER_ID: string = '42';
 const STORAGE_FAILURE: Error = new Error('storage unavailable');
 const READ_FAILURE: Error = new Error('storage read unavailable');
 const CLOSE_FAILURE: Error = new Error('socket close failed');
+const CURRENT_DC: number = 2;
 
 type SignedInManager = {
   logOut(): Promise<void>,
+  invokeApi: ReturnType<typeof vi.fn>,
   rootScope: {dispatchEvent: ReturnType<typeof vi.fn>}
 };
 
@@ -64,6 +66,12 @@ async function signedInManager(): Promise<SignedInManager> {
     getAccountNumber: (): ActiveAccountNumber => ACCOUNT,
     invokeApi: vi.fn(async(): Promise<void> => undefined),
     rootScope: {dispatchEvent: vi.fn()}
+  });
+}
+
+function settled(): Promise<void> {
+  return new Promise<void>((resolve: () => void): void => {
+    setTimeout(resolve, 0);
   });
 }
 
@@ -166,6 +174,56 @@ describe('a storage read of the sign-out does not skip the local wipe', () => {
       manager.rootScope.dispatchEvent,
       'the local wipe still runs after a failed read of the slot data: it announces the logout of the slot'
     ).toHaveBeenCalledWith('logging_out', expect.objectContaining({accountNumber: ACCOUNT}));
+  });
+
+  it('a failed read of the slot data still asks the server to revoke the authorization on the current DC', async() => {
+    accountGet.mockRejectedValue(READ_FAILURE);
+    const manager: SignedInManager = Object.assign(await signedInManager(), {baseDcId: CURRENT_DC});
+
+    await expect(manager.logOut(), 'the read failure reaches the sign-out').rejects.toBe(READ_FAILURE);
+    expect(
+      manager.invokeApi,
+      'auth.logOut is the server revocation: it is sent on the current DC even when the keys of the slot cannot be read'
+    ).toHaveBeenCalledWith('auth.logOut', {}, {dcId: CURRENT_DC, ignoreErrors: true});
+  });
+});
+
+describe('the credential clear of the sign-out is recorded once when the timer runs it first', () => {
+  it('rejects logOut with the failure while auth.logOut is still in flight, and reports no unhandled rejection', async() => {
+    vi.useFakeTimers();
+    const unhandled: unknown[] = [];
+    const recordUnhandled = (reason: unknown): void => {
+      unhandled.push(reason);
+    };
+    process.on('unhandledRejection', recordUnhandled);
+    try {
+      accountGet.mockResolvedValue({dc2_auth_key: 'auth-key-of-the-slot'});
+      accountShift.mockRejectedValue(STORAGE_FAILURE);
+      let answerLogOut: () => void = (): void => {};
+      const manager: SignedInManager = Object.assign(await signedInManager(), {
+        baseDcId: CURRENT_DC,
+        invokeApi: vi.fn((): Promise<void> => new Promise<void>((resolve: () => void): void => {
+          answerLogOut = resolve;
+        }))
+      });
+      const outcome: Promise<unknown> = manager.logOut().then((): undefined => undefined, (error: unknown): unknown => error);
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(manager.invokeApi, 'auth.logOut is in flight when the one-second timer of the wipe fires').toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1e3);
+      answerLogOut();
+
+      expect(
+        await outcome,
+        'the failed clear reaches the sign-out once, whichever run of the clear reached it first'
+      ).toBe(STORAGE_FAILURE);
+      vi.useRealTimers();
+      await settled();
+      expect(unhandled, 'the run of the clear the timer started is not an unhandled rejection').toEqual([]);
+    } finally {
+      process.off('unhandledRejection', recordUnhandled);
+      vi.useRealTimers();
+    }
   });
 });
 
