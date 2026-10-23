@@ -6,8 +6,8 @@
  */
 
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
-import {clearImpulseSession, restoreImpulseSession} from '@lib/impulse/session';
-import {setFleetConfig} from '@lib/impulse/fleet/fleet';
+import {clearImpulseSession, fleetIdentityFor, restoreImpulseSession} from '@lib/impulse/session';
+import {setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
 import {setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
@@ -174,6 +174,8 @@ export class ApiManager extends ApiManagerMethods {
   protected after() {
     const result = super.after();
 
+    setFleetIdentitySource(fleetIdentityFor);
+
     // Restore the stored session, then bring up the
     // push channel -- but only for the account that is actually signed in.
     //
@@ -205,12 +207,14 @@ export class ApiManager extends ApiManagerMethods {
         this.getAppConfig(true);
       },
       // updateDcOptions carries only dc_options, no this_dc (.demo/telegram-docs-text/constructor/updateDcOptions.md:3).
+      // tdlib applies the options at once and expires the config, so help.getConfig is requested again
+      // (.demo/tdlib/td/telegram/ConfigManager.cpp:1015-1021).
       updateDcOptions: (update) => {
         if(this.config) {
           setFleetConfig(this.getAccountNumber(), {this_dc: this.config.this_dc, dc_options: update.dc_options});
-        } else {
-          this.getConfig(true);
         }
+
+        this.getConfig(true);
       }
     });
 
@@ -399,14 +403,33 @@ export class ApiManager extends ApiManagerMethods {
     }
 
     this.loggingOut = true;
+    try {
+      await this.wipeLocalSession(migrateAccountTo);
+    } catch(err: unknown) {
+      this.loggingOut = false;
+      throw err;
+    }
+  }
 
-    // Drop the push channel and the credentials first: a socket left open under the old identity would keep delivering
-    // that account's updates. Only this slot's socket is stopped (#436).
-    stopImpulseRealtime(this.getAccountNumber());
-    await clearImpulseSession(this.getAccountNumber());
+  private async wipeLocalSession(migrateAccountTo?: ActiveAccountNumber) {
+    const accountNumber = this.getAccountNumber();
+
+    // The push channel goes first, so no socket keeps delivering under the old identity. The wipe runs whatever the clear
+    // answered (.demo/tdlib/td/telegram/AuthManager.cpp:1352-1364); a failure of the clear is rethrown after it.
+    let credentialFailure: {error: unknown} | undefined;
+    try {
+      stopImpulseRealtime(accountNumber);
+    } catch(error: unknown) {
+      credentialFailure = {error};
+    }
+
+    try {
+      await clearImpulseSession(accountNumber);
+    } catch(error: unknown) {
+      credentialFailure ??= {error};
+    }
 
     const totalAccounts = await AccountController.getTotalAccounts();
-    const accountNumber = this.getAccountNumber();
     const accountData = await AccountController.get(accountNumber);
 
     const logoutPromises: Promise<any>[] = [];
@@ -467,13 +490,13 @@ export class ApiManager extends ApiManagerMethods {
 
     setTimeout(clear, 1e3);
 
-    // return;
-
-    return Promise.all(logoutPromises).catch((error) => {
+    await Promise.all(logoutPromises).catch((error) => {
       error.handled = true;
-    }).finally(clear)/* .then(() => {
-      location.pathname = '/';
-    }) */;
+    }).finally(clear);
+
+    if(credentialFailure !== undefined) {
+      throw credentialFailure.error;
+    }
   }
 
   public static async forceLogOutAll() {

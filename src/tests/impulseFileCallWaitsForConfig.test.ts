@@ -7,6 +7,7 @@ import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
+import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 
 /*
  * A file-transfer call has one carrier, the media fleet that the config names. A call issued before the config is
@@ -74,6 +75,7 @@ beforeEach(async() => {
   accountUpdate.mockReset();
   accountClearFields.mockReset();
   accountGet.mockResolvedValue(undefined);
+  await registerSessionIdentitySource();
   const {restoreImpulseSession} = await import('@lib/impulse/session');
   await restoreImpulseSession(ACCOUNT);
 });

@@ -1,7 +1,8 @@
-import {afterEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {UpdateSocketReply} from './helpers/updateSocketStub';
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
+import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 
 /*
  * #675 — the per-slot pending-2FA credential. Every test below drives ONLY existing exported entry points — grpcInvoke,
@@ -115,6 +116,8 @@ function lastCallOf(method: string): {method: string, presentedToken: string | u
   const calls = callsOf(method);
   return calls[calls.length - 1];
 }
+
+beforeEach(registerSessionIdentitySource);
 
 afterEach(() => {
   vi.resetModules();

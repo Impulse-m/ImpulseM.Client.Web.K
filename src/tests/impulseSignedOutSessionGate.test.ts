@@ -1,8 +1,9 @@
-import {afterEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {MAX_ACCOUNTS} from '@lib/accounts/constants';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
+import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 
 /*
  * Issue #137. A backend blip made a whole boot wave come back AUTH_TOKEN_INVALID, the 401
@@ -88,6 +89,8 @@ function everySlot(): ActiveAccountNumber[] {
 
 
 describe('Impulse session gate for a signed-out client', () => {
+  beforeEach(registerSessionIdentitySource);
+
   afterEach(() => {
     vi.resetModules();
     socketHarness.reset();

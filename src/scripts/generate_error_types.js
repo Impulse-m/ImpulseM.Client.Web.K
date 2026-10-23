@@ -9,11 +9,6 @@
 // audits against — so a build never depends on core.telegram.org being reachable.
 // Refresh it deliberately, the way ./in/schema.json is refreshed.
 //
-// Two outputs next to each other: canonErrors.d.ts, the union the type checker
-// reads, and canonErrorIdentifiers.ts, the names the runtime maps a server
-// application type against. The runtime module carries no catalog text, only
-// identifiers and printf patterns, so the worker never loads the snapshot.
-//
 //   node ./src/scripts/generate_error_types.js src/
 
 const fs = require('fs');
@@ -28,9 +23,6 @@ const NEW_LINE = '\n';
 // never match those, so they become template literal types instead.
 const PLACEHOLDER = /%d/g;
 
-// The members of ErrorType the client raises itself are declared by hand in
-// global.d.ts, between these two markers. Reading them from there keeps the
-// runtime set equal to the type by construction.
 const GLOBAL_TYPES_PATH = __dirname + '/../global.d.ts';
 const CLIENT_TYPES_START = 'type ApiFileManagerError';
 const CLIENT_TYPES_END = 'type ErrorType =';

@@ -8,6 +8,7 @@ import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
+import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 
 /*
  * Routing of a TL call to the carrier the client sends it on. The four file-transfer calls go to the media fleet when
@@ -75,6 +76,7 @@ beforeEach(async() => {
   fleetHarness.reset();
   socketHarness.reset();
   warn.mockClear();
+  await registerSessionIdentitySource();
   const {restoreImpulseSession} = await import('@lib/impulse/session');
   await restoreImpulseSession(ACCOUNT);
   const {setFleetConfig} = await import('@lib/impulse/fleet/fleet');

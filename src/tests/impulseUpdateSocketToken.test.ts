@@ -6,6 +6,7 @@ import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {AuthorizationSchema} from '@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_types_pb';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
+import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 
 /*
  * One credential. The update socket connects with the access JWT the Auth service returned, and its getToken hands out
@@ -64,6 +65,7 @@ beforeEach(async() => {
   accountUpdate.mockReset();
   accountClearFields.mockReset();
   accountGet.mockResolvedValue({userId: 42, impulse_session_token: SESSION_TOKEN, impulse_refresh_token: REFRESH_TOKEN});
+  await registerSessionIdentitySource();
   const {restoreImpulseSession} = await import('@lib/impulse/session');
   await restoreImpulseSession(ACCOUNT);
 });

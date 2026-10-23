@@ -160,12 +160,8 @@ export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
     return;
   }
 
-  try {
-    if(record.socket) {
-      retireSocket(record, record.socket);
-    }
-  } catch(err) {
-    logger.warn('Realtime teardown failed', {accountNumber}, err);
+  if(record.socket) {
+    retireSocket(record, record.socket);
   }
 
   record.subscriptionSet = undefined;

@@ -1,4 +1,4 @@
-import {afterEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {create, toBinary} from '@bufbuild/protobuf';
 
 import {
@@ -9,6 +9,7 @@ import {
 } from '@lib/impulse/grpc/gen/v1/types_pb';
 
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
+import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 
 /*
  * A QR login completes through auth.exportLoginToken, which answers auth.loginTokenSuccess.
@@ -64,6 +65,8 @@ function loginTokenSuccessPayload(): Uint8Array {
 
   return toBinary(AuthLoginTokenSchema, loginToken);
 }
+
+beforeEach(registerSessionIdentitySource);
 
 afterEach(() => {
   vi.resetModules();

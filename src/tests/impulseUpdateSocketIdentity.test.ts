@@ -6,6 +6,7 @@ import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {AuthorizationSchema} from '@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_types_pb';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
+import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 
 /*
  * The identity of the update socket follows the session of its slot: no token while signed out, the pending 2FA token
@@ -53,7 +54,7 @@ function signedInAccount(): void {
   accountGet.mockResolvedValue({userId: 42, impulse_session_token: SESSION_TOKEN, impulse_refresh_token: REFRESH_TOKEN});
 }
 
-beforeEach(() => {
+beforeEach(async() => {
   vi.resetModules();
   fleetHarness.reset();
   socketHarness.reset();
@@ -61,6 +62,7 @@ beforeEach(() => {
   accountUpdate.mockReset();
   accountClearFields.mockReset();
   accountGet.mockResolvedValue(undefined);
+  await registerSessionIdentitySource();
 });
 
 describe('the update socket of a signed-out slot', () => {

@@ -10,6 +10,7 @@ import {GetFileRequestSchema} from './gen/upload_pb';
 import {grpcInvoke} from './adapter';
 import {sharedFleetPoolHarness} from '../../../tests/helpers/fleetPoolStub';
 import {sharedUpdateSocketHarness} from '../../../tests/helpers/updateSocketStub';
+import {registerSessionIdentitySource} from '../../../tests/helpers/fleetIdentitySource';
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
@@ -50,6 +51,7 @@ describe('grpcInvoke sends the TL call to the carrier that serves it', () => {
   beforeEach(async() => {
     fleetHarness.reset();
     socketHarness.reset();
+    await registerSessionIdentitySource();
     const {restoreImpulseSession} = await import('@lib/impulse/session');
     await restoreImpulseSession(ACCOUNT);
     const {setFleetConfig} = await import('@lib/impulse/fleet/fleet');

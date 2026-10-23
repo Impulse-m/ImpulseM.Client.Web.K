@@ -32,6 +32,7 @@ const REFRESH_INFLIGHT_PER_CONNECTION: number = 1;
 const REFRESH_CONNECTIONS_PER_ENDPOINT: number = 1;
 // The calls a pool holds waiting for one of its slots, beyond which the pool refuses at once (the SDK's default).
 const MAX_QUEUED_CALLS_PER_POOL: number = 64;
+const INTERNAL_ERROR_CODE: number = 500;
 
 export type FleetIdentity = {
   kind: 'anonymous' | 'session' | 'pending',
@@ -58,7 +59,8 @@ type AccountFleet = {
   configPublished: boolean,
   configWaiters: Array<() => void>,
   lanes: Map<string, FleetLane>,
-  counters: FleetCounters
+  counters: FleetCounters,
+  identityMoves: number
 };
 
 type LaneTarget = {
@@ -71,15 +73,14 @@ export const ANONYMOUS_IDENTITY: FleetIdentity = {kind: 'anonymous', key: 'anony
 const fleetByAccount = new Map<ActiveAccountNumber, AccountFleet>();
 let identitySource: FleetIdentitySource | undefined;
 
-/** Registers the function that names the identity a slot presents now. The session module registers it at load. */
+/** Registers the function that names the identity a slot presents now. */
 export function setFleetIdentitySource(source: FleetIdentitySource): void {
   identitySource = source;
 }
 
-/** The identity a slot presents now: its access token, its pending challenge, or none. */
 export function fleetIdentityOf(accountNumber: ActiveAccountNumber): FleetIdentity {
   if(identitySource === undefined) {
-    throw new Error('No fleet identity source is registered');
+    throw apiErrorOf('FLEET_IDENTITY_UNREGISTERED', INTERNAL_ERROR_CODE, undefined, 'No fleet identity source is registered');
   }
 
   return identitySource(accountNumber);
@@ -93,7 +94,8 @@ function fleetOf(accountNumber: ActiveAccountNumber): AccountFleet {
       configPublished: false,
       configWaiters: [],
       lanes: new Map<string, FleetLane>(),
-      counters: {media: 0, socket: 0}
+      counters: {media: 0, socket: 0},
+      identityMoves: 0
     };
     fleetByAccount.set(accountNumber, fleet);
   }
@@ -123,10 +125,8 @@ export function setFleetConfig(accountNumber: ActiveAccountNumber, config: Fleet
 
 /** Retires every lane of an account: its connections drain their calls in flight and close. Used on every identity change. */
 export function resetFleetIdentity(accountNumber: ActiveAccountNumber): void {
-  const fleet = fleetByAccount.get(accountNumber);
-  if(!fleet) {
-    return;
-  }
+  const fleet: AccountFleet = fleetOf(accountNumber);
+  fleet.identityMoves++;
 
   for(const lane of [...fleet.lanes.values()]) {
     retireLane(fleet, lane);
@@ -141,6 +141,10 @@ export function fleetCounters(accountNumber: ActiveAccountNumber): FleetCounters
 /** The file-transfer calls of an account that wait for its config to publish a media option. */
 export function fleetConfigWaiters(accountNumber: ActiveAccountNumber): number {
   return fleetOf(accountNumber).configWaiters.length;
+}
+
+export function fleetIdentityMoves(accountNumber: ActiveAccountNumber): number {
+  return fleetOf(accountNumber).identityMoves;
 }
 
 /** Counts one call answered by the update socket of the account. */

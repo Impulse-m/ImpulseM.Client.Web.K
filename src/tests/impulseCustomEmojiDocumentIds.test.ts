@@ -4,6 +4,7 @@ import {fromBinary} from '@bufbuild/protobuf';
 import {getServiceAndMethod} from '@lib/impulse/grpc/serviceMap';
 
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
+import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 
 /**
  * Issue #179 / #260. `messages.getCustomEmojiDocuments` left the browser with an `undefined`
@@ -36,8 +37,9 @@ vi.mock('@lib/impulse/session', async(importActual) => {
 
 
 describe('custom emoji document ids at the gRPC boundary', () => {
-  beforeEach(() => {
+  beforeEach(async() => {
     socketHarness.reset();
+    await registerSessionIdentitySource();
     socketHarness.respond(GET_CUSTOM_EMOJI_DOCUMENTS, () => ({data: new Uint8Array(0)}));
   });
 

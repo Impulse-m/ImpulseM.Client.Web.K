@@ -3,6 +3,7 @@ import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {sharedUpdateSocketHarness} from '../../../tests/helpers/updateSocketStub';
+import {registerSessionIdentitySource} from '../../../tests/helpers/fleetIdentitySource';
 import {
   InitConnectionRequestSchema,
   InitConnectionResponseSchema
@@ -82,6 +83,7 @@ beforeEach(async() => {
   accountUpdate.mockReset();
   accountClearFields.mockReset();
   accountGet.mockResolvedValue(undefined);
+  await registerSessionIdentitySource();
   const {setGrpcSessionToken, resetConnectionInited, setConnectionDeclaration, restoreImpulseSession} = await load();
   // The boot opens every slot's gate; a call of this file has to pass it like any call of the app.
   await restoreImpulseSession(ACCOUNT_ONE);

@@ -7,6 +7,7 @@ import {captureImpulseSessionToken, clearImpulseSession, restoreImpulseSession} 
 import {grpcInvoke} from '@lib/impulse/grpc/adapter';
 
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
+import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 
 
 /*
@@ -63,6 +64,7 @@ function sessionOf(sessionToken: string): {session_token: string, refresh_token:
 describe('session credentials are per account, not per tab', () => {
   beforeEach(async() => {
     socketHarness.reset();
+    await registerSessionIdentitySource();
     // The boot opens every slot's gate before any call of the slot leaves.
     await Promise.all([ACCOUNT_ONE, ACCOUNT_TWO, ACCOUNT_THREE].map((account) => restoreImpulseSession(account)));
     resetFleetIdentity(ACCOUNT_ONE);

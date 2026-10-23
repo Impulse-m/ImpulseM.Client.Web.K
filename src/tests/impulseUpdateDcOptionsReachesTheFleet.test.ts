@@ -134,6 +134,34 @@ describe('a media_only option arriving by updateDcOptions reaches the media flee
     expect(fleetHarness.calls[1].endpoint, 'a later file call goes to the endpoint of the newer update').toBe(SECOND_MEDIA_URL);
   });
 
+  it('applies the update at once, then re-reads the config: the answer, not the update, names the endpoint later calls use', async() => {
+    const {manager, listeners} = await bootManager({this_dc: CURRENT_DC, dc_options: []});
+    const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
+    const {fleetConfigWaiters, setFleetConfig} = await import('@lib/impulse/fleet/fleet');
+    const refetched: FleetConfig = {this_dc: CURRENT_DC, dc_options: dcOptionsOf('media-2.impulsem.io')};
+    let publishRefetch: (() => void) | undefined;
+    (manager.getConfig as ReturnType<typeof vi.fn>).mockImplementation((): void => {
+      publishRefetch = (): void => setFleetConfig(ACCOUNT, refetched);
+    });
+    fleetHarness.respondOnce(GET_FILE, uploadedFile);
+    fleetHarness.respondOnce(GET_FILE, uploadedFile);
+
+    const first = grpcInvoke(GET_FILE, GET_FILE_PARAMS, ACCOUNT);
+    await vi.waitFor(() => expect(fleetConfigWaiters(ACCOUNT), 'the file call waits for the config').toBe(1));
+    dispatchUpdate(listeners, updateDcOptions('media.impulsem.io'));
+
+    await expect(first, 'the update releases the waiting file call').resolves.toMatchObject({bytes: FILE_PAYLOAD});
+    expect(fleetHarness.calls.map((call) => call.endpoint), 'the waiting call goes to the endpoint the update names')
+      .toEqual([FIRST_MEDIA_URL]);
+
+    expect(publishRefetch, 'the update re-requests help.getConfig, and the answer carries the config later calls use').toBeTypeOf('function');
+    publishRefetch?.();
+    await grpcInvoke(GET_FILE, GET_FILE_PARAMS, ACCOUNT);
+
+    expect(fleetHarness.calls[1].endpoint, 'a call after the re-read config goes to the endpoint that config names')
+      .toBe(SECOND_MEDIA_URL);
+  });
+
   it('without a cached config, the update re-reads the config, and the file call goes to the media option it publishes', async() => {
     const {manager, listeners} = await bootManager(undefined);
     const {setFleetConfig} = await import('@lib/impulse/fleet/fleet');

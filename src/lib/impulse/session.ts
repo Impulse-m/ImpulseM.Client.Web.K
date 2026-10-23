@@ -20,7 +20,7 @@ import {UnauthorizedError} from '@impulsem/centrifuge/build/protobuf';
 import AccountController from '@lib/accounts/accountController';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getLogger} from '@lib/impulseLogger';
-import {ANONYMOUS_IDENTITY, callRefreshFleet, resetFleetIdentity, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
+import {ANONYMOUS_IDENTITY, callRefreshFleet, resetFleetIdentity} from '@lib/impulse/fleet/fleet';
 import type {FleetIdentity} from '@lib/impulse/fleet/fleet';
 import {isApiError} from '@lib/impulse/fleet/fleetError';
 import {INIT_CONNECTION_METHOD} from '@lib/impulse/fleet/fleetRoute';
@@ -161,8 +161,6 @@ export function fleetIdentityFor(accountNumber: ActiveAccountNumber): FleetIdent
   return ANONYMOUS_IDENTITY;
 }
 
-setFleetIdentitySource(fleetIdentityFor);
-
 /**
  * The token a connection of the update socket presents. The token the slot holds is handed out unchanged, and renewed
  * through the refresh only once the server has refused it; a refused session ends the connection (UnauthorizedError),
@@ -297,12 +295,8 @@ export async function capturePendingToken(accountNumber: ActiveAccountNumber, to
 }
 
 async function persistPendingToken(accountNumber: ActiveAccountNumber, token: string): Promise<void> {
-  try {
-    await AccountController.update(accountNumber, {impulse_pending_token: token});
-    logger.info('Pending token persisted', {accountNumber});
-  } catch(err) {
-    logger.warn('Failed to persist the pending token', {accountNumber}, err);
-  }
+  await AccountController.update(accountNumber, {impulse_pending_token: token});
+  logger.info('Pending token persisted', {accountNumber});
 }
 
 /**
@@ -542,11 +536,5 @@ export async function clearImpulseSession(accountNumber: ActiveAccountNumber): P
   // logOut() is an exhaustive wipe of this slot's credentials: a pending 2FA challenge is one of them, too.
   dropPendingToken(accountNumber);
   identityChanged(accountNumber);
-  await clearPersistedPendingToken(accountNumber);
-
-  try {
-    await AccountController.clearFields(accountNumber, ['impulse_session_token', 'impulse_refresh_token']);
-  } catch(err) {
-    logger.warn('Failed to clear the session token', {accountNumber}, err);
-  }
+  await AccountController.clearFields(accountNumber, ['impulse_pending_token', 'impulse_session_token', 'impulse_refresh_token']);
 }

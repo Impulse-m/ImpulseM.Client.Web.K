@@ -207,12 +207,13 @@ export async function grpcInvoke(
 
   // A freshly (re)sent code starts a new login attempt the moment this is called: any pending 2FA challenge of an
   // earlier attempt is stale from this instant.
-  if(method === 'auth.sendCode') {
-    void clearPendingToken(accountNumber);
-  }
+  const staleChallengeCleared: Promise<void> = method === 'auth.sendCode'
+    ? clearPendingToken(accountNumber)
+    : Promise.resolve();
 
   // Snapshotted before the readiness wait, so an invalidation issued right after this call is seen as a change.
   const pendingGenerationAtRequestStart = getGrpcPendingGeneration(accountNumber);
+  await staleChallengeCleared;
 
   // Nothing may leave before the stored session has been put back in place.
   await whenImpulseSessionReady(accountNumber);
@@ -237,7 +238,7 @@ export async function grpcInvoke(
     if(apiError.type === 'SESSION_PASSWORD_NEEDED') {
       const token = pendingTokenOf(apiError);
       if(token !== undefined && getGrpcPendingGeneration(accountNumber) === pendingGenerationAtRequestStart) {
-        await capturePendingToken(accountNumber, token);
+        await recordStorageFailure(apiError, capturePendingToken(accountNumber, token));
       }
     }
 
@@ -248,7 +249,7 @@ export async function grpcInvoke(
       apiError.type === 'AUTH_TOKEN_INVALID' &&
       getGrpcPendingToken(accountNumber) === pendingTokenAtRequestStart
     ) {
-      await clearPendingToken(accountNumber);
+      await recordStorageFailure(apiError, clearPendingToken(accountNumber));
     }
 
     // The server asked for the declaration this call did not carry: declare the connection, then replay the call once.
@@ -289,4 +290,13 @@ function carry(call: FleetCall): Promise<Uint8Array> {
     request: call.request,
     signal: call.signal
   });
+}
+
+async function recordStorageFailure(apiError: ApiError, pendingWrite: Promise<void>): Promise<void> {
+  try {
+    await pendingWrite;
+  } catch(storageError: unknown) {
+    logger.warn('Failed to write the pending token of a failed call', {type: apiError.type}, storageError);
+    apiError.cause = storageError;
+  }
 }

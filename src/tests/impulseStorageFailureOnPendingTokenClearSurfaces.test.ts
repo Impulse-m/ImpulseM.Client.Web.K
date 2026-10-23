@@ -62,3 +62,15 @@ describe('a storage failure on the clear of the pending token', () => {
     ).rejects.toBe(STORAGE_FAILURE);
   });
 });
+
+describe('a storage failure on the write of a new pending token', () => {
+  it('rejects capturePendingToken, so a challenge that is not persisted is reported to its caller', async() => {
+    const {capturePendingToken} = await import('@lib/impulse/session');
+    accountUpdate.mockRejectedValue(STORAGE_FAILURE);
+
+    await expect(
+      capturePendingToken(ACCOUNT, 'fixture-pending-token'),
+      'a challenge that did not reach storage must be reported, not held in silence until a reload loses it'
+    ).rejects.toBe(STORAGE_FAILURE);
+  });
+});
