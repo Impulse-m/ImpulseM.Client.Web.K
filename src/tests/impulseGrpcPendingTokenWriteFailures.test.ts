@@ -95,10 +95,13 @@ describe('a storage failure of the pending token write reaches the caller of the
     const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
     await restoreImpulseSession(ACCOUNT);
 
-    await expect(
-      outcomeOf(grpcInvoke(SEND_CODE, SEND_CODE_ARGS, ACCOUNT)),
-      'the new code request must not report success while the stale challenge it supersedes stays in storage'
-    ).resolves.toBe(STORAGE_FAILURE);
+    const outcome = await outcomeOf(grpcInvoke(SEND_CODE, SEND_CODE_ARGS, ACCOUNT));
+
+    expect(
+      outcome,
+      'the new code request must not report success while the stale challenge it supersedes stays in storage; its failure is a typed error, not the raw storage error'
+    ).toMatchObject({type: 'LOCAL_STORAGE_WRITE_FAILED'});
+    expect((outcome as {cause?: unknown}).cause, 'the storage failure is the cause of that typed error').toBe(STORAGE_FAILURE);
   });
 
   it('a refused challenge keeps its AUTH_TOKEN_INVALID answer, with the failed clear recorded on it', async() => {

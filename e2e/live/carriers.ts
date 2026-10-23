@@ -1,6 +1,6 @@
 import type {Browser, BrowserContext, Page, Route} from '@playwright/test';
 
-import {FLEET_CONNECTION_PATH} from '../../src/lib/impulse/fleet/fleetPath';
+import {CENTRIFUGO_CONNECTION_PATH} from '../../src/lib/impulse/fleet/fleetPath';
 
 /*
  * The Centrifugo carriers of the client as the live lane sees them: whether an endpoint answers, which requests of a
@@ -11,6 +11,8 @@ import {FLEET_CONNECTION_PATH} from '../../src/lib/impulse/fleet/fleetPath';
 export const GRPC_WEB_ROUTE: RegExp = /\/v1\.[A-Za-z0-9_.]+\/[A-Za-z0-9_]+$/;
 
 const PROBE_TIMEOUT_MS: number = 5_000;
+// The subprotocol the protobuf client dials with (@impulsem/centrifuge build/protobuf/index.mjs, WebSocket transport).
+const PROTOBUF_SUBPROTOCOL: string = 'centrifuge-protobuf';
 // Playwright's route API does not see the requests of a SharedWorker, and the client's API worker is one.
 const WORKER_TARGET_TYPES: ReadonlySet<string> = new Set<string>(['shared_worker', 'worker', 'service_worker']);
 
@@ -23,22 +25,16 @@ export type GatewayRecorder = {
   attachFailures: string[]
 };
 
-/** The update socket of a gateway origin. */
+/** The update socket of a gateway origin, as the client dials it (realtime.ts, backendWsOrigin). */
 export function socketUrlOf(gatewayOrigin: string): string {
-  return `${gatewayOrigin.replace(/^http/, 'ws')}${FLEET_CONNECTION_PATH}`;
-}
-
-/** The media fleet endpoint a config publishes, on the scheme of the gateway origin. */
-export function mediaUrlOf(gatewayOrigin: string, host: string, port: number): string {
-  const origin = new URL(gatewayOrigin);
-  return `${origin.protocol === 'https:' ? 'wss' : 'ws'}://${host}:${port}${FLEET_CONNECTION_PATH}`;
+  return `${gatewayOrigin.replace(/^http/, 'ws')}${CENTRIFUGO_CONNECTION_PATH}`;
 }
 
 /** Whether a carrier answers its WebSocket within the probe timeout, from the test runner. */
 export async function fleetAnswers(url: string): Promise<string | undefined> {
   const WebSocketClass = (globalThis as any).WebSocket;
   return new Promise<string | undefined>((resolve: (reason: string | undefined) => void): void => {
-    const socket = new WebSocketClass(url);
+    const socket = new WebSocketClass(url, PROTOBUF_SUBPROTOCOL);
     const timer = setTimeout((): void => {
       socket.close();
       resolve(`no answer within ${PROBE_TIMEOUT_MS} ms`);

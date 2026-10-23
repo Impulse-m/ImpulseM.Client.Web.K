@@ -160,12 +160,14 @@ export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
     return;
   }
 
-  if(record.socket) {
-    retireSocket(record, record.socket);
+  try {
+    if(record.socket) {
+      retireSocket(record, record.socket);
+    }
+  } finally {
+    record.subscriptionSet = undefined;
+    record.activeUserId = undefined;
   }
-
-  record.subscriptionSet = undefined;
-  record.activeUserId = undefined;
   // call, sink and latestTabStates deliberately survive teardown: apiManager re-arms the sink on the
   // next bring-up (startRealtimeBringUp), and a reconnect for the same slot should keep the tab
   // lanes it already knew.
@@ -538,7 +540,8 @@ function handleEnvelope(accountNumber: ActiveAccountNumber, raw: unknown, channe
     const channelId = channel.startsWith('channel:') ? asNumber(channel.slice('channel:'.length)) : undefined;
     sink(updates, channelId);
   } catch(err) {
-    logger.warn('Realtime update dispatch failed', {type: envelope.type}, err);
+    logger.warn('Realtime update dispatch failed; asking for the difference', {type: envelope.type, channel}, err);
+    sink({_: 'updatesTooLong'});
   }
 }
 

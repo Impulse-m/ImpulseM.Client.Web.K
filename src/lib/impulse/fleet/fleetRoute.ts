@@ -7,7 +7,11 @@
  */
 
 import {backendWsOrigin} from '@config/backendOrigin';
+import type {FleetConfig} from './fleetEndpoint';
+import {endpointOf, mediaOptionOf} from './fleetEndpoint';
 import {FLEET_CONNECTION_PATH} from './fleetPath';
+
+export type {FleetConfig, FleetDcOption} from './fleetEndpoint';
 
 const MEDIA_FLEET_METHODS: ReadonlySet<string> = new Set<string>([
   'upload.saveFilePart',
@@ -22,28 +26,12 @@ export const INIT_CONNECTION_METHOD: string = 'impulse.auth.initConnection';
 
 const DEFAULT_FLEET_PORT: string = '443';
 
-// The TL flags of a dcOption (constructor/dcOption.md) are decoded into pFlags, as protoToTL places every flags.N?true.
-export type FleetDcOption = {
-  id: number,
-  ip_address: string,
-  port: number,
-  pFlags?: {ipv6?: boolean, media_only?: boolean}
-};
-
-export type FleetConfig = {
-  this_dc: number,
-  dc_options: FleetDcOption[]
-};
-
 export function routesToMediaFleet(method: string): boolean {
   return MEDIA_FLEET_METHODS.has(method);
 }
 
 export function mediaEndpointOf(config: FleetConfig): string | undefined {
-  const option = config.dc_options.find((entry: FleetDcOption): boolean => {
-    return entry.id === config.this_dc && entry.pFlags?.media_only === true;
-  });
-
+  const option = mediaOptionOf(config);
   return option === undefined ? undefined : endpointOf(option);
 }
 
@@ -51,9 +39,4 @@ export function mediaEndpointOf(config: FleetConfig): string | undefined {
 export function defaultRpcEndpoint(): string {
   const origin = new URL(backendWsOrigin());
   return `${origin.protocol}//${origin.hostname}:${origin.port || DEFAULT_FLEET_PORT}${FLEET_CONNECTION_PATH}`;
-}
-
-function endpointOf(option: FleetDcOption): string {
-  const host = option.pFlags?.ipv6 === true ? `[${option.ip_address}]` : option.ip_address;
-  return `wss://${host}:${option.port}${FLEET_CONNECTION_PATH}`;
 }

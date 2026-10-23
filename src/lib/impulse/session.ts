@@ -98,6 +98,7 @@ function gateFor(accountNumber: ActiveAccountNumber): SessionGate {
       resolve = res;
       reject = rej;
     });
+    // Without a handler, a gate nobody awaits reports an unhandled rejection; every awaiter still receives it.
     ready.catch(() => {});
 
     gate = {ready, resolve, reject, settled: false, restoreStarted: false};
@@ -224,9 +225,13 @@ export async function captureImpulseSessionToken(accountNumber: ActiveAccountNum
     throw new Error('Authorization carried no refresh token');
   }
 
+  resetConnectionInited(accountNumber);
+  await adoptSession(accountNumber, token, refresh);
+}
+
+async function adoptSession(accountNumber: ActiveAccountNumber, token: string, refresh: string): Promise<void> {
   setGrpcSessionToken(accountNumber, token);
   refreshTokenByAccount.set(accountNumber, refresh);
-  resetConnectionInited(accountNumber);
   // A real session now exists for this slot: any pending 2FA challenge it carried is obsolete, and every connection of
   // the slot reconnects with the new identity.
   dropPendingToken(accountNumber);
@@ -275,12 +280,7 @@ async function applyTokens(accountNumber: ActiveAccountNumber, token: string, re
     throw new Error('Authorization carried no refresh token');
   }
 
-  setGrpcSessionToken(accountNumber, token);
-  refreshTokenByAccount.set(accountNumber, effectiveRefresh);
-  dropPendingToken(accountNumber);
-  identityChanged(accountNumber);
-  await clearPersistedPendingToken(accountNumber);
-  await persistTokens(accountNumber, token, effectiveRefresh);
+  await adoptSession(accountNumber, token, effectiveRefresh);
 }
 
 /**

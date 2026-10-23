@@ -1,6 +1,8 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
+import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
 
 /*
  * The local credentials of a slot are destroyed whatever the storage answers (.demo/tdlib/td/telegram/AuthManager.cpp:1352-1364).
@@ -35,10 +37,20 @@ vi.mock('@lib/passcode/deferredIsUsingPasscode', () => ({
   default: {isUsingPasscode: passcodeUsed, resolveDeferred: vi.fn()}
 }));
 
+vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
+  const {sharedUpdateSocketHarness: harness} = await import('./helpers/updateSocketStub');
+  return {...actual, Centrifuge: harness().CentrifugeStub};
+});
+
+const socketHarness = sharedUpdateSocketHarness();
 const ACCOUNT: ActiveAccountNumber = 2;
 const TOTAL_ACCOUNTS: number = 2;
 const SESSION_TOKEN: string = 'access-jwt-signed-in';
+const USER_ID: string = '42';
 const STORAGE_FAILURE: Error = new Error('storage unavailable');
+const READ_FAILURE: Error = new Error('storage read unavailable');
+const CLOSE_FAILURE: Error = new Error('socket close failed');
 
 type SignedInManager = {
   logOut(): Promise<void>,
@@ -101,6 +113,59 @@ describe('the credential clear of a sign-out reports its storage failure', () =>
       manager.rootScope.dispatchEvent,
       'the retry must run its own wipe: a logOut left flagged by the failed one would return without wiping'
     ).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('the local wipe keeps every failure of its steps', () => {
+  beforeEach(async() => {
+    socketHarness.reset();
+    await registerSessionIdentitySource();
+  });
+
+  it('a socket that fails to close and a failed credential clear both reach the sign-out', async() => {
+    const {startImpulseRealtime} = await import('@lib/impulse/realtime');
+    startImpulseRealtime(USER_ID, ACCOUNT);
+    const [socket] = socketHarness.sockets;
+    socket.disconnect = (): void => {
+      throw CLOSE_FAILURE;
+    };
+    accountClearFields.mockRejectedValue(STORAGE_FAILURE);
+    const manager: SignedInManager = await signedInManager();
+
+    const outcome: unknown = await manager.logOut().then((): undefined => undefined, (error: unknown): unknown => error);
+
+    expect(
+      outcome,
+      'two failed steps of the wipe reach the sign-out as one AggregateError, not only the first of them'
+    ).toBeInstanceOf(AggregateError);
+    expect(
+      (outcome as AggregateError).errors,
+      'the socket close failure and the storage failure are both kept, in the order the steps failed'
+    ).toEqual([CLOSE_FAILURE, STORAGE_FAILURE]);
+  });
+});
+
+describe('a storage read of the sign-out does not skip the local wipe', () => {
+  it('a failed count of the slots still runs the wipe, and the read failure reaches the sign-out', async() => {
+    accountTotal.mockRejectedValue(READ_FAILURE);
+    const manager: SignedInManager = await signedInManager();
+
+    await expect(manager.logOut(), 'the read failure reaches the sign-out').rejects.toBe(READ_FAILURE);
+    expect(
+      manager.rootScope.dispatchEvent,
+      'the local wipe still runs after a failed count of the slots: it announces the logout of the slot'
+    ).toHaveBeenCalledWith('logging_out', expect.objectContaining({accountNumber: ACCOUNT}));
+  });
+
+  it('a failed read of the slot data still runs the wipe, and the read failure reaches the sign-out', async() => {
+    accountGet.mockRejectedValue(READ_FAILURE);
+    const manager: SignedInManager = await signedInManager();
+
+    await expect(manager.logOut(), 'the read failure reaches the sign-out').rejects.toBe(READ_FAILURE);
+    expect(
+      manager.rootScope.dispatchEvent,
+      'the local wipe still runs after a failed read of the slot data: it announces the logout of the slot'
+    ).toHaveBeenCalledWith('logging_out', expect.objectContaining({accountNumber: ACCOUNT}));
   });
 });
 

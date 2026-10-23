@@ -414,29 +414,30 @@ export class ApiManager extends ApiManagerMethods {
   private async wipeLocalSession(migrateAccountTo?: ActiveAccountNumber) {
     const accountNumber = this.getAccountNumber();
 
-    // The push channel goes first, so no socket keeps delivering under the old identity. The wipe runs whatever the clear
-    // answered (.demo/tdlib/td/telegram/AuthManager.cpp:1352-1364); a failure of the clear is rethrown after it.
-    let credentialFailure: {error: unknown} | undefined;
-    try {
-      stopImpulseRealtime(accountNumber);
-    } catch(error: unknown) {
-      credentialFailure = {error};
-    }
+    // Every step of the wipe runs whatever the others answered (.demo/tdlib/td/telegram/AuthManager.cpp:1352-1364); the
+    // failures are rethrown after the wipe.
+    const failures: unknown[] = [];
+    const attempt = async<T>(step: () => T | Promise<T>): Promise<T | undefined> => {
+      try {
+        return await step();
+      } catch(error: unknown) {
+        failures.push(error);
+        return undefined;
+      }
+    };
 
-    try {
-      await clearImpulseSession(accountNumber);
-    } catch(error: unknown) {
-      credentialFailure ??= {error};
-    }
+    // The push channel goes first, so no socket keeps delivering under the old identity.
+    await attempt(() => stopImpulseRealtime(accountNumber));
+    await attempt(() => clearImpulseSession(accountNumber));
 
-    const totalAccounts = await AccountController.getTotalAccounts();
-    const accountData = await AccountController.get(accountNumber);
+    const totalAccounts: number | undefined = await attempt(() => AccountController.getTotalAccounts());
+    const accountData = await attempt(() => AccountController.get(accountNumber));
 
     const logoutPromises: Promise<any>[] = [];
 
     for(let dcId = 1; dcId <= 5; dcId++) {
       const key = `dc${dcId as TrueDcId}_auth_key` as const;
-      if(accountData[key]) {
+      if(accountData?.[key]) {
         logoutPromises.push(this.invokeApi('auth.logOut', {}, {dcId, ignoreErrors: true}));
       }
     }
@@ -448,7 +449,8 @@ export class ApiManager extends ApiManagerMethods {
 
       this.baseDcId = undefined;
       // * totalAccounts can be 0 somehow
-      if(totalAccounts <= 1 && accountNumber === 1 && !migrateAccountTo) {
+      // An unknown count takes the branch that removes only this slot.
+      if(totalAccounts !== undefined && totalAccounts <= 1 && accountNumber === 1 && !migrateAccountTo) {
         await Promise.all([
           (async() => {
             const keys: Parameters<typeof sessionStorage['delete']>[0][] = [
@@ -492,10 +494,15 @@ export class ApiManager extends ApiManagerMethods {
 
     await Promise.all(logoutPromises).catch((error) => {
       error.handled = true;
-    }).finally(clear);
+    });
+    await attempt(clear);
 
-    if(credentialFailure !== undefined) {
-      throw credentialFailure.error;
+    if(failures.length === 1) {
+      throw failures[0];
+    }
+
+    if(failures.length > 1) {
+      throw new AggregateError(failures, 'The sign-out wipe failed in more than one step');
     }
   }
 

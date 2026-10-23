@@ -204,22 +204,22 @@ describe('a call is answered by the reply bytes of its pool', () => {
     await vi.waitFor(() => expect(fleetHarness.calls).toHaveLength(slots));
     const callsBeforeRefusal = fleetHarness.calls.length;
 
-    let settled: {answered: boolean, error?: unknown} | undefined;
+    const outcome: {settled?: {answered: boolean, error?: unknown}} = {};
     void callMediaFleet(fileCall()).then(
       (): void => {
-        settled = {answered: true};
+        outcome.settled = {answered: true};
       },
       (error: unknown): void => {
-        settled = {answered: false, error};
+        outcome.settled = {answered: false, error};
       }
     );
 
     await vi.waitFor(() => expect(
-      settled,
+      outcome.settled,
       'a call over the queue bound must settle at once, not be held for a settled call of the pool'
     ).toBeDefined());
     expect(
-      settled.error,
+      outcome.settled?.error,
       'a call over the queue bound must be refused with the SDK\'s limitExceeded at once, as a typed transport fault'
     ).toMatchObject({type: 'NETWORK_BAD_RESPONSE', code: 500});
     expect(fleetHarness.calls.length, 'the refused call is never sent').toBe(callsBeforeRefusal);

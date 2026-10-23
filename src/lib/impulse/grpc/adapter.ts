@@ -41,6 +41,12 @@ import {
 } from './credentials';
 
 const logger = getLogger('grpc-adapter');
+const LOCAL_STORAGE_FAILURE_CODE: number = 500;
+
+type GrpcRetry = {
+  isRetry?: boolean,
+  isReinitRetry?: boolean
+};
 
 // ── TL -> proto ────────────────────────────────────────────────────────────
 
@@ -193,8 +199,7 @@ export async function grpcInvoke(
   params: any = {},
   accountNumber: ActiveAccountNumber,
   abortSignal?: AbortSignal,
-  isRetry = false,
-  isReinitRetry = false
+  retry: GrpcRetry = {}
 ): Promise<any> {
   const mapping = getServiceAndMethod(method);
   if(!mapping) {
@@ -208,7 +213,7 @@ export async function grpcInvoke(
   // A freshly (re)sent code starts a new login attempt the moment this is called: any pending 2FA challenge of an
   // earlier attempt is stale from this instant.
   const staleChallengeCleared: Promise<void> = method === 'auth.sendCode'
-    ? clearPendingToken(accountNumber)
+    ? clearStaleChallenge(accountNumber)
     : Promise.resolve();
 
   // Snapshotted before the readiness wait, so an invalidation issued right after this call is seen as a change.
@@ -253,19 +258,19 @@ export async function grpcInvoke(
     }
 
     // The server asked for the declaration this call did not carry: declare the connection, then replay the call once.
-    if(apiError.type === CONNECTION_NOT_INITED && !isReinitRetry) {
+    if(apiError.type === CONNECTION_NOT_INITED && !retry.isReinitRetry) {
       resetConnectionInited(accountNumber);
       await ensureConnectionDeclared(accountNumber);
       logger.info('Retrying with the connection declaration', {method, accountNumber});
-      return grpcInvoke(method, params, accountNumber, abortSignal, isRetry, true);
+      return grpcInvoke(method, params, accountNumber, abortSignal, {...retry, isReinitRetry: true});
     }
 
     // The access token was refused as expired: renew it once through the refresh token and replay the call on the update
     // socket, which then connects with the renewed token.
     const tokenExpired: boolean = rawCode === TOKEN_EXPIRED_CODE;
-    if(tokenExpired && identity.kind === 'session' && !isRetry && await refreshImpulseSession(accountNumber)) {
+    if(tokenExpired && identity.kind === 'session' && !retry.isRetry && await refreshImpulseSession(accountNumber)) {
       logger.info('Retrying after session refresh', {method, accountNumber});
-      return grpcInvoke(method, params, accountNumber, abortSignal, true, isReinitRetry);
+      return grpcInvoke(method, params, accountNumber, abortSignal, {...retry, isRetry: true});
     }
 
     logger.debug('gRPC invocation failed', {
@@ -290,6 +295,21 @@ function carry(call: FleetCall): Promise<Uint8Array> {
     request: call.request,
     signal: call.signal
   });
+}
+
+async function clearStaleChallenge(accountNumber: ActiveAccountNumber): Promise<void> {
+  try {
+    await clearPendingToken(accountNumber);
+  } catch(storageError: unknown) {
+    const error: ApiError = apiErrorOf(
+      'LOCAL_STORAGE_WRITE_FAILED',
+      LOCAL_STORAGE_FAILURE_CODE,
+      undefined,
+      'The stale pending token could not be cleared from storage'
+    );
+    error.cause = storageError;
+    throw error;
+  }
 }
 
 async function recordStorageFailure(apiError: ApiError, pendingWrite: Promise<void>): Promise<void> {

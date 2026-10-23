@@ -12,7 +12,7 @@ import {expect, test} from './pair';
  * is read, and a small file is transferred. Every call is counted on the Centrifugo carriers of each page, and no request
  * of either page reaches the gateway's gRPC-web paths.
  *
- * The spec skips, with the reason, when the update socket of the dev stack does not answer: the server brings it up.
+ * The spec fails when the update socket of the dev stack does not answer.
  */
 test.skip(!liveLane.enabled, liveLane.skipReason);
 
@@ -44,7 +44,7 @@ test('a message, its history and a file travel the update socket, and no page re
   const {sender, recipient, gateway} = pair;
   const socketUrl = socketUrlOf(liveLane.gatewayOrigin);
   const probe = await fleetAnswers(socketUrl);
-  test.skip(probe !== undefined, `the update socket at ${socketUrl} does not answer: ${probe}`);
+  expect(probe, `the update socket at ${socketUrl} must answer its WebSocket`).toBeUndefined();
 
   await sender.typeAndSendText(MESSAGE_TEXT);
   await recipient.waitForIncomingText(MESSAGE_TEXT);

@@ -2,7 +2,9 @@ import {createHash} from 'crypto';
 
 import type {Page} from '@playwright/test';
 
-import {fleetAnswers, fleetCountersOf, mediaUrlOf, socketUrlOf} from './carriers';
+import {fleetAnswers, fleetCountersOf, socketUrlOf} from './carriers';
+import {endpointOf, mediaOptionOf} from '../../src/lib/impulse/fleet/fleetEndpoint';
+import type {FleetConfig} from '../../src/lib/impulse/fleet/fleetEndpoint';
 import {liveLane} from './lane';
 import {expect, test} from './pair';
 import {downloadedDigest, sendDocument} from './documentTransfer';
@@ -12,8 +14,7 @@ import {downloadedDigest, sendDocument} from './documentTransfer';
  * update socket keeps delivering while it does, and every call of the transfer travels a carrier: the four file-transfer
  * calls the media fleet, the rest the update socket. No request reaches the gateway's gRPC-web paths.
  *
- * The spec skips, with the reason, when the dev stack publishes no media_only dcOption for this DC or a carrier does not
- * answer on its endpoint: the carriers are the server's to bring up.
+ * The spec fails when the dev stack publishes no media_only dcOption for this DC or a carrier does not answer on its endpoint.
  */
 test.skip(!liveLane.enabled, liveLane.skipReason);
 
@@ -21,11 +22,6 @@ test.skip(!liveLane.enabled, liveLane.skipReason);
 const TWO_PART_BYTES: number = 700 * 1024;
 const DOCUMENT_NAME: string = 'two-part-transfer.bin';
 const IN_FLIGHT_TEXT: string = 'delivered while the file moves';
-
-type FleetConfig = {
-  this_dc: number,
-  dc_options: Array<{id: number, ip_address: string, port: number, pFlags?: {ipv6?: boolean, media_only?: boolean}}>
-};
 
 function twoPartPayload(): Uint8Array {
   const payload = new Uint8Array(TWO_PART_BYTES);
@@ -46,21 +42,18 @@ test('a two-part file crosses the media fleet whole while the update socket deli
   const expectedSha256 = createHash('sha256').update(payload).digest('hex');
 
   const senderConfig = await configOf(sender.page);
-  const mediaOption = senderConfig.dc_options.find((option) => option.id === senderConfig.this_dc && option.pFlags?.media_only === true);
-  test.skip(
-    mediaOption === undefined,
-    'the dev stack publishes no media_only dcOption for this DC: the file calls travel the update socket, and the media fleet has nothing to prove'
-  );
-  if(!mediaOption) {
-    return;
-  }
+  const mediaOption = mediaOptionOf(senderConfig);
+  expect(
+    mediaOption,
+    'the dev stack must publish a media_only dcOption for this DC: the file calls have no media fleet to travel without it'
+  ).toBeDefined();
 
-  const mediaUrl = mediaUrlOf(liveLane.gatewayOrigin, mediaOption.ip_address, mediaOption.port);
+  const mediaUrl = endpointOf(mediaOption);
   const socketUrl = socketUrlOf(liveLane.gatewayOrigin);
   const mediaProbe = await fleetAnswers(mediaUrl);
-  test.skip(mediaProbe !== undefined, `the media fleet at ${mediaUrl} does not answer: ${mediaProbe}`);
+  expect(mediaProbe, `the media fleet at ${mediaUrl} must answer its WebSocket`).toBeUndefined();
   const socketProbe = await fleetAnswers(socketUrl);
-  test.skip(socketProbe !== undefined, `the update socket at ${socketUrl} does not answer: ${socketProbe}`);
+  expect(socketProbe, `the update socket at ${socketUrl} must answer its WebSocket`).toBeUndefined();
 
   await sendDocument(sender, payload, DOCUMENT_NAME);
   await recipient.typeAndSendText(IN_FLIGHT_TEXT);
