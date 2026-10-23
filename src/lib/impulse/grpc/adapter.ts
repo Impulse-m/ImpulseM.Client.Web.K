@@ -1,10 +1,10 @@
 /*
- * Bridge between the TL call surface and the ImpulseM gRPC gateway.
+ * Bridge between the TL call surface and the ImpulseM fleets.
  *
- * Call sites keep using `invokeApi('messages.getDialogs', {...})`; this module
- * turns that into a protobuf request, issues it over gRPC-web, and converts the
- * response back into the plain `{_: 'messages.dialogs', ...}` objects the app
- * already understands. Nothing downstream of invokeApi has to change.
+ * Call sites keep using `invokeApi('messages.getDialogs', {...})`; this module turns that into a protobuf request,
+ * sends it over the Centrifugo RPC fleet (or the media fleet for the four file-transfer calls), and converts the
+ * response back into the plain `{_: 'messages.dialogs', ...}` objects the app already understands. Nothing downstream
+ * of invokeApi has to change.
  *
  * Two conversions carry the weight:
  *
@@ -20,56 +20,34 @@
  *                 ('v1.MessagesDialogs' -> 'messages.dialogs', not 'messagesDialogs').
  */
 
-import type {DescField, DescMessage, DescService} from '@bufbuild/protobuf';
+import type {DescField, DescMessage} from '@bufbuild/protobuf';
 import {create, fromBinary, ScalarType, toBinary} from '@bufbuild/protobuf';
-import {Code, ConnectError, createClient, createContextValues} from '@connectrpc/connect';
 
 import Schema from '@lib/mtproto/schema';
 import {formatJSONValue} from '@lib/mtproto/tl_utils';
 import {getLogger} from '@lib/impulseLogger';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {callMediaFleet, hasMediaFleetPool} from '@lib/impulse/media/mediaFleet';
-import {routesToMediaFleet} from '@lib/impulse/media/mediaFleetRoute';
-import {captureImpulseSessionToken, clearPendingToken, persistPendingToken, refreshImpulseSession, whenImpulseSessionReady} from '../session';
-import {apiErrorOf} from './apiError';
+import {TOKEN_EXPIRED_CODE} from '@lib/impulse/centrifugoCodes';
+import {callFleet, resetFleetIdentity} from '@lib/impulse/fleet/fleet';
+import {
+  captureImpulseSessionToken,
+  capturePendingToken,
+  clearPendingToken,
+  CONNECTION_NOT_INITED,
+  ensureConnectionDeclared,
+  fleetIdentityFor,
+  refreshImpulseSession,
+  whenImpulseSessionReady
+} from '../session';
+import {pendingTokenOf, transportApiError} from '@lib/impulse/fleet/fleetError';
 import {getServiceAndMethod} from './serviceMap';
 import {
-  bindDeclarationToNewSession,
-  CONNECTION_NOT_INITED,
   getGrpcPendingGeneration,
   getGrpcPendingToken,
-  getGrpcSessionToken,
-  getGrpcTransport,
-  isPendingSessionAllowedMethod,
-  resetConnectionInited,
-  setGrpcPendingToken,
-  stampedDeclarationGenerationKey
-} from './transport';
+  resetConnectionInited
+} from './credentials';
 
 const logger = getLogger('grpc-adapter');
-
-type GrpcClientMethod = (...args: any[]) => any;
-
-// Keyed by account first: each slot's clients are bound to that slot's own
-// transport (getGrpcTransport), so the same service cached for account 1 can
-// never be handed back to a call made on behalf of account 2.
-const clientCacheByAccount = new Map<ActiveAccountNumber, Map<string, Record<string, GrpcClientMethod>>>();
-
-function getOrCreateClient(service: DescService, accountNumber: ActiveAccountNumber): Record<string, GrpcClientMethod> {
-  let clientCache = clientCacheByAccount.get(accountNumber);
-  if(!clientCache) {
-    clientCache = new Map<string, Record<string, GrpcClientMethod>>();
-    clientCacheByAccount.set(accountNumber, clientCache);
-  }
-
-  let cached = clientCache.get(service.typeName);
-  if(!cached) {
-    cached = createClient(service, getGrpcTransport(accountNumber)) as any;
-    clientCache.set(service.typeName, cached);
-  }
-
-  return cached;
-}
 
 // ── `_` discriminator recovery ─────────────────────────────────────────────
 // Proto flattens the TL namespace into the type name (messages.dialogs ->
@@ -474,90 +452,15 @@ export function protoToTL(value: any, schema?: DescMessage): any {
   return out;
 }
 
-// ── errors ─────────────────────────────────────────────────────────────────
-
-/**
- * The gateway sends the canonical catalog code in the `error-code` trailer
- * (see ImpulseM.Common/Extensions/ErrorOrGrpcExtensions.cs). The numeric TL
- * code is NOT on the wire, so it is reconstructed here: the gRPC status narrows
- * it, and the code string disambiguates the pairs that share a status
- * (FailedPrecondition covers both 303 and 406).
- *
- * Keeping the catalog string as `error.type` is what lets the existing handlers
- * (FLOOD_WAIT_n, PHONE_MIGRATE_n, SESSION_PASSWORD_NEEDED, ...) keep working
- * untouched.
- */
-function toApiError(err: unknown): ApiError {
-  const connectError = ConnectError.from(err);
-  const trailerCode = connectError.metadata.get('error-code') || undefined;
-  const type = (trailerCode || connectError.rawMessage || 'ERROR_EMPTY') as ErrorType;
-  const description = connectError.metadata.get('error-description') || undefined;
-  const migrateDc = connectError.metadata.get('migrate-dc');
-
-  return apiErrorOf(type, resolveNumericCode(connectError.code, type as string, Boolean(migrateDc)), err, description);
-}
-
-/**
- * Picks the pending-2FA identity off a SESSION_PASSWORD_NEEDED ConnectError (gRPC trailer
- * `pending-token`, ErrorOrGrpcExtensions.cs:62-70), persists it, and retains it for this account
- * slot so the password card's immediately-following account.getPassword / auth.checkPassword
- * calls have something to authenticate with (#675). Mirrors captureImpulseSessionToken's role for
- * the success path — this is its error-path counterpart. Never touches userId: identity still
- * comes only from the eventual auth.authorization.
- *
- * `generationAtRequestStart` (transport.ts's pendingGeneration, snapshotted by the caller before
- * this signIn was even issued) is checked FIRST: if anything has invalidated this slot's pending
- * context since — a newer sendCode/signIn, a logout, a completed session — the generation has
- * already moved on, and this response belongs to an attempt nobody is waiting on any more. An
- * abandoned attempt's own late SESSION_PASSWORD_NEEDED must not resurrect a challenge over
- * whatever the slot has since moved on to (revision2's stale-response requirement).
- */
-async function capturePendingToken(
-  accountNumber: ActiveAccountNumber,
-  err: unknown,
-  generationAtRequestStart: number
-): Promise<void> {
-  if(getGrpcPendingGeneration(accountNumber) !== generationAtRequestStart) {
-    return;
-  }
-
-  const token = ConnectError.from(err).metadata.get('pending-token');
-  if(!token) {
-    return;
-  }
-
-  setGrpcPendingToken(accountNumber, token);
-  await persistPendingToken(accountNumber, token);
-}
-
-const MIGRATE_PATTERN = /^(PHONE_MIGRATE_|NETWORK_MIGRATE_|USER_MIGRATE_|STATS_MIGRATE_)\d+/;
-const FLOOD_PATTERN = /^(FLOOD_WAIT_|FLOOD_PREMIUM_WAIT_|SLOWMODE_WAIT_)/;
-
-function resolveNumericCode(status: Code, type: string, hasMigrateDc: boolean): number {
-  if(hasMigrateDc || MIGRATE_PATTERN.test(type)) {
-    return 303;
-  }
-
-  switch(status) {
-    case Code.Unauthenticated: return 401;
-    case Code.PermissionDenied: return 403;
-    case Code.ResourceExhausted: return FLOOD_PATTERN.test(type) ? 420 : 429;
-    case Code.FailedPrecondition: return 406;
-    case Code.Unimplemented: return 501;
-    case Code.Unavailable: return 503;
-    case Code.InvalidArgument:
-    case Code.NotFound:
-    case Code.AlreadyExists:
-    case Code.OutOfRange: return 400;
-    default: return 500;
-  }
-}
-
 // ── entry points ───────────────────────────────────────────────────────────
 
-/** Whether the gateway can serve this TL method over gRPC. */
+/** Whether the fleets can serve this TL method. */
 export function isGrpcAvailable(method: string): boolean {
   return Boolean(method) && getServiceAndMethod(method) !== undefined;
+}
+
+function isApiError(err: unknown): err is ApiError {
+  return typeof err === 'object' && err !== null && 'type' in err;
 }
 
 export async function grpcInvoke(
@@ -574,123 +477,68 @@ export async function grpcInvoke(
   }
 
   const {service, method: descMethod} = mapping;
-  const conversionContext: ProtoConversionContext = {method};
-  const requestInit: Record<string, unknown> = buildProtoInit(params, descMethod.input, conversionContext);
-  const request = create(descMethod.input, requestInit);
-  const client = getOrCreateClient(service, accountNumber);
-  const methodFn = client[descMethod.localName];
-  if(typeof methodFn !== 'function') {
-    throw {type: 'GRPC_METHOD_MISSING', message: `${descMethod.localName} absent on client`, code: 501} as ApiError;
-  }
+  const request = create(descMethod.input, buildProtoInit(params, descMethod.input, {method}));
+  const requestBytes: Uint8Array = toBinary(descMethod.input, request);
 
-  // Snapshotted here — BEFORE the readiness await below, not after — so it reflects the instant
-  // this call was actually issued, not whatever happened while it was suspended waiting for that
-  // await's microtask hop (#675 revision3, item A). A synchronous invalidation issued by the
-  // caller right after this call — clearImpulseSession() without awaiting it, or another
-  // grpcInvoke('auth.sendCode', ...) call — runs to completion in exactly that gap; snapshotting
-  // after the await let such an invalidation's generation bump land BEFORE this snapshot was
-  // taken, so the later staleness check compared the post-invalidation generation against itself
-  // and never saw a mismatch. Capturing it this early is safe now that restoring a persisted
-  // pending token from storage (restoreImpulseSession) uses restoreGrpcPendingToken instead of
-  // setGrpcPendingToken and therefore never bumps this generation — otherwise the very first
-  // legitimate call of a boot, issued before restore finishes, would see its own pre-restore
-  // snapshot mismatch the post-restore generation and wrongly discard its own real response.
-  const pendingGenerationAtRequestStart = getGrpcPendingGeneration(accountNumber);
-
+  // A freshly (re)sent code starts a new login attempt the moment this is called: any pending 2FA challenge of an
+  // earlier attempt is stale from this instant.
   if(method === 'auth.sendCode') {
-    // A freshly (re)sent code starts a new — or restarted — login attempt the MOMENT this is
-    // called, not once it reaches the network or succeeds (#675 revision3, item B): any pending
-    // 2FA challenge from an earlier, abandoned attempt is stale from this instant (its own srp_id
-    // is already gone server-side, single-use) and must not linger to be captured by a
-    // still-in-flight signIn's late SESSION_PASSWORD_NEEDED, however long THIS call itself takes.
-    // Not awaited — the generation bump (setGrpcPendingToken's synchronous prefix, transport.ts)
-    // is what has to happen before anything else runs; the persisted clear can finish in the
-    // background. clearPendingToken never rejects, so nothing here is an unhandled rejection.
-    // No second clear on success below any more: since this already invalidates unconditionally,
-    // a success-path clear could only ever be redundant (nothing changed) or actively wrong
-    // (wiping a NEWER token a different, later capture already established in the meantime) —
-    // "do not clear again on stale success".
     void clearPendingToken(accountNumber);
   }
 
-  // Nothing may leave before the stored session has been put back on the headers:
-  // the boot sequence fires its first wave in the same tick as the restore, and
-  // that wave used to travel unauthenticated. Already settled after boot, so this
-  // costs a microtask.
+  // Snapshotted before the readiness wait, so an invalidation issued right after this call is seen as a change.
+  const pendingGenerationAtRequestStart = getGrpcPendingGeneration(accountNumber);
+
+  // Nothing may leave before the stored session has been put back in place.
   await whenImpulseSessionReady(accountNumber);
+  void ensureConnectionDeclared(accountNumber);
 
-  // Snapshotted here, right before the request actually leaves, so the catch block below can tell
-  // a response that still belongs to the CURRENT pending attempt from a stale one (#675
-  // revision2's request-attempt correlation): for a call that is itself pending-scoped, the exact
-  // token it presented, since only a rejection of THAT specific token may ever clear it. Kept
-  // AFTER the readiness await, unlike pendingGenerationAtRequestStart above: these must reflect
-  // the credentials as restore actually left them (root's revision3 disposition), which is only
-  // settled once whenImpulseSessionReady resolves, not whatever they were before restore ran.
-  // Comparing values rather than only the generation is what lets a late rejection for an old
-  // token coexist safely with a newer pending token OR a completed full session already in place
-  // by the time it arrives (a rejection for a token that is no longer current is not a rejection
-  // of whatever is current now).
-  const sessionTokenAtRequestStart = getGrpcSessionToken(accountNumber);
+  const identity = fleetIdentityFor(accountNumber, method);
   const pendingTokenAtRequestStart = getGrpcPendingToken(accountNumber);
-  const wasPendingScopedRequest = !sessionTokenAtRequestStart &&
-    Boolean(pendingTokenAtRequestStart) &&
-    isPendingSessionAllowedMethod(service.typeName, descMethod.name);
 
-  if(routesToMediaFleet(method) && hasMediaFleetPool(accountNumber)) {
-    const fleetReply = await callMediaFleet(accountNumber, method, toBinary(descMethod.input, request), abortSignal);
-    if(fleetReply !== undefined) {
-      return protoToTL(fromBinary(descMethod.output, fleetReply), descMethod.output);
-    }
-  }
-
-  const contextValues = createContextValues();
   try {
-    const response = await methodFn.call(client, request, {signal: abortSignal, contextValues});
-    const result = protoToTL(response, descMethod.output);
+    const reply = await callFleet({accountNumber, method, identity, request: requestBytes, signal: abortSignal});
+    const result = protoToTL(fromBinary(descMethod.output, reply), descMethod.output);
     if(method === 'help.getAppConfig' && result?._ === 'help.appConfig') {
       result.config = formatJSONValue(result.config);
     }
-    if(await captureImpulseSessionToken(accountNumber, result)) {
-      // A new session was created by this call: it holds the declaration only if this call carried it.
-      bindDeclarationToNewSession(accountNumber, contextValues.get(stampedDeclarationGenerationKey));
-    }
 
+    await captureImpulseSessionToken(accountNumber, result);
     return result;
-  } catch(err) {
-    const apiError = toApiError(err);
+  } catch(err: unknown) {
+    const apiError: ApiError = isApiError(err) ? err : transportApiError(err);
+    const rawCode: number | undefined = (apiError.originalError as {code?: number} | undefined)?.code;
 
     if(apiError.type === 'SESSION_PASSWORD_NEEDED') {
-      await capturePendingToken(accountNumber, err, pendingGenerationAtRequestStart);
+      const token = pendingTokenOf(apiError);
+      if(token !== undefined && getGrpcPendingGeneration(accountNumber) === pendingGenerationAtRequestStart) {
+        await capturePendingToken(accountNumber, token);
+      }
     }
 
-    // The specific pending token THIS call presented has now been authoritatively rejected —
-    // expired (AUTH_KEY_UNREGISTERED, JwtValidationInterceptor.cs:208-209) or revoked/consumed
-    // (AUTH_TOKEN_INVALID, missingCap "pending-revoked", :286-295). Clear it — but only if it is
-    // still the CURRENT token: a late rejection for a token something newer has already replaced
-    // (a fresh challenge, a completed session) must not clear that newer state (revision2's
-    // control). Never for a call that wasn't pending-scoped to begin with (a real session's own
-    // 401, or an unrelated method) — this is not a blanket 401/400 handler.
+    // The pending token this call presented has been authoritatively rejected: expired or revoked. Clear it, but only
+    // while it is still the current one, so a late rejection cannot clear a newer challenge.
     if(
-      wasPendingScopedRequest &&
+      identity.kind === 'pending' &&
       (apiError.type === 'AUTH_KEY_UNREGISTERED' || apiError.type === 'AUTH_TOKEN_INVALID') &&
       getGrpcPendingToken(accountNumber) === pendingTokenAtRequestStart
     ) {
       await clearPendingToken(accountNumber);
     }
 
-    // Canon (tdesktop mtp_instance.cpp:1575-1598): the server asked for the declaration this call
-    // did not carry. Mark the connection not inited and resend the same call once; it is stamped
-    // now because the slot is no longer inited.
+    // The server asked for the declaration this call did not carry: declare the connection, then replay the call once.
     if(apiError.type === CONNECTION_NOT_INITED && !isReinitRetry) {
       resetConnectionInited(accountNumber);
+      await ensureConnectionDeclared(accountNumber);
       logger.info('Retrying with the connection declaration', {method, accountNumber});
       return grpcInvoke(method, params, accountNumber, abortSignal, isRetry, true);
     }
 
-    // The access token expires after AccessTokenExpiryMinutes and every call then
-    // comes back AUTH_KEY_UNREGISTERED. Renew once with the refresh token and
-    // replay, rather than dropping a signed-in user onto the login screen.
-    if(apiError.type === 'AUTH_KEY_UNREGISTERED' && !isRetry && await refreshImpulseSession(accountNumber)) {
+    // The access token expired: renew it once through the refresh token and replay, on connections that present the
+    // renewed token.
+    const tokenExpired: boolean = apiError.type === 'AUTH_KEY_UNREGISTERED' || rawCode === TOKEN_EXPIRED_CODE;
+    if(tokenExpired && identity.kind === 'session' && !isRetry && await refreshImpulseSession(accountNumber)) {
+      resetFleetIdentity(accountNumber);
       logger.info('Retrying after session refresh', {method, accountNumber});
       return grpcInvoke(method, params, accountNumber, abortSignal, true, isReinitRetry);
     }

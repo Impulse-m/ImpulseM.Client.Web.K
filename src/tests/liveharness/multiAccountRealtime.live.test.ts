@@ -19,7 +19,7 @@ import {waitUntil} from './wait';
  * REPORTED BY THE CEO: two accounts open in one browser, realtime updates break for one of them.
  *
  * ROOT CAUSE. #436 moved every per-account credential off a module singleton and into a map keyed
- * by account number (grpc/transport.ts credentialsByAccount, session.ts gatesByAccount). The
+ * by account number (grpc/credentials.ts credentialsByAccount, session.ts gatesByAccount). The
  * realtime CONNECTION lifecycle was the one piece that stayed a SharedWorker-wide singleton: one
  * `connection`/`activeUserId`, and a `startImpulseRealtime` that, on seeing a different user, called
  * `stopImpulseRealtime()` and tore the existing socket down (realtime.ts, pre-fix :105-107). So

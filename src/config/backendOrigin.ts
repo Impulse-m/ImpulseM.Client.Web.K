@@ -7,10 +7,9 @@
  * (frontend -> gateway) is allowed by the gateway's CORS policy and by
  * Centrifugo's `allowed_origins`.
  *
- * Three consumers share this origin:
- *   - gRPC-web transport   -> `{origin}` (unary RPC)
- *   - Centrifugo WebSocket -> `{wsOrigin}/connection/websocket`
- *   - Loki log push        -> `{origin}/loki/api/v1/push`
+ * Two consumers share this origin:
+ *   - Centrifugo fleets (RPC and media) and the update socket -> `{wsOrigin}/connection/websocket`
+ *   - Loki log push                                           -> `{origin}/loki/api/v1/push`
  */
 
 const BACKEND_URL = import.meta.env.VITE_IMPULSE_BACKEND_URL || 'http://localhost:9045';

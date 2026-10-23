@@ -52,7 +52,7 @@ describe('Impulse session gate', () => {
       finishRestore = resolve;
     }));
     const {restoreImpulseSession, whenImpulseSessionReady} = await import('@lib/impulse/session');
-    const {getGrpcSessionToken} = await import('@lib/impulse/grpc/transport');
+    const {getGrpcSessionToken} = await import('@lib/impulse/grpc/credentials');
     const send = vi.fn();
 
     const restore = restoreImpulseSession(1);

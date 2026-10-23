@@ -6,9 +6,8 @@
  */
 
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
-import {applyImpulseUserId, clearImpulseSession, restoreImpulseSession} from '@lib/impulse/session';
+import {clearImpulseSession, restoreImpulseSession} from '@lib/impulse/session';
 import {setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
-import {tearDownMediaFleet} from '@lib/impulse/media/mediaFleet';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
 import type {MethodDeclMap} from '@layer';
@@ -174,7 +173,7 @@ export class ApiManager extends ApiManagerMethods {
   protected after() {
     const result = super.after();
 
-    // Arm the gateway auth headers from stored session data, then bring up the
+    // Arm the fleet credentials from stored session data, then bring up the
     // push channel -- but only for the account that is actually signed in.
     //
     // createManagers builds a manager for all four slots and calls after() on
@@ -352,7 +351,6 @@ export class ApiManager extends ApiManagerMethods {
 
     this.rootScope.dispatchEvent('user_auth', userAuth);
 
-    applyImpulseUserId(this.getAccountNumber(), (userAuth as UserAuth).id as unknown as string);
     this.startRealtimeBringUp((userAuth as UserAuth).id);
 
     if(!userAuth.dcID) {
@@ -393,13 +391,10 @@ export class ApiManager extends ApiManagerMethods {
 
     this.loggingOut = true;
 
-    // Drop the push channel and the gateway credentials first: a socket left
-    // open under the old identity would keep delivering that account's updates.
-    // Stop ONLY this slot's socket -- logging out account A must leave account
-    // B's realtime alive (#436); tearing down the singleton here is exactly the
-    // cross-account bug this change removes.
+    // Drop the push channel and the credentials first: a socket left open under the old identity would keep delivering
+    // that account's updates. Only this slot's socket is stopped (#436). clearImpulseSession retires the fleet
+    // connections of this slot.
     stopImpulseRealtime(this.getAccountNumber());
-    tearDownMediaFleet(this.getAccountNumber());
     await clearImpulseSession(this.getAccountNumber());
 
     const totalAccounts = await AccountController.getTotalAccounts();
@@ -498,7 +493,7 @@ export class ApiManager extends ApiManagerMethods {
   }
 
   public getNetworker(dcId: DcId, options: InvokeApiOptions = {}): Promise<MTPNetworker> {
-    // ImpulseM: every request reaches the gateway over gRPC, so an MTProto
+    // ImpulseM: every request reaches the Centrifugo fleets, so an MTProto
     // connection is never established. Left to run, this path builds HTTP/WS
     // transports that retry unreachable DCs forever and never settle, so every
     // caller — getNetworkerVoid on the sign-in screen among them — hangs
@@ -810,7 +805,7 @@ export class ApiManager extends ApiManagerMethods {
       throw error;
     };
 
-    // ImpulseM transport: every mapped method goes to the gateway over gRPC-web
+    // ImpulseM transport: every mapped method goes to the Centrifugo RPC fleet
     // instead of MTProto, so no networker (and therefore no auth-key handshake,
     // no DC migration, no transport selection) is needed. Failures are still
     // routed through rejectPromise so 401 -> logOut and the error-box policy

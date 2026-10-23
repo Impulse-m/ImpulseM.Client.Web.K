@@ -1,7 +1,7 @@
 /*
  * Realtime push subscriber.
  *
- * gRPC-web is unary-only, so it cannot deliver server-initiated updates. This
+ * The RPC fleets are unary-only, so they cannot deliver server-initiated updates. This
  * module opens a Centrifugo WebSocket, listens on the per-user channel
  * `user:{id}`, decodes each envelope into a TL update and hands it to the
  * updates manager — the same entry point the MTProto updates loop used, so pts
@@ -19,26 +19,32 @@
 
 import Schema, {MTProtoConstructor} from '@lib/mtproto/schema';
 import {Centrifuge, UnauthorizedError, type Subscription} from '@impulsem/centrifuge';
-import {fromBinary} from '@bufbuild/protobuf';
-import {Code, ConnectError, createClient} from '@connectrpc/connect';
+import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 
 import {backendWsOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
 import type {TabState} from '@lib/apiManagerProxy';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {TOKEN_EXPIRED_CODE} from './centrifugoCodes';
-import {refreshImpulseSession, whenImpulseSessionReady} from './session';
+import {callFleet} from './fleet/fleet';
+import {GET_CENTRIFUGO_TOKEN_METHOD} from './fleet/fleetRoute';
+import {refreshImpulseSession, whenImpulseSessionReady, fleetIdentityFor} from './session';
 import {RealtimeSubscriptions} from './realtimeSubscriptions';
 import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
 import {getReconnectJitterMaxMs, ReconnectFloorMs} from './realtimeDiscipline';
 import {protoToTL} from './grpc/adapter';
 import {UpdatesSchema} from './grpc/gen/v1/types_pb';
-import {SyncService} from './grpc/gen/v1/internal/impulse/sync/sync_service_pb';
-import {getGrpcTransport, requireGrpcSessionToken} from './grpc/transport';
+import {
+  GetCentrifugoTokenRequestSchema,
+  GetCentrifugoTokenResponseSchema
+} from './grpc/gen/v1/internal/impulse/sync/sync_service_pb';
+import {requireGrpcSessionToken} from './grpc/credentials';
 
 const logger = getLogger('impulse-realtime');
 
 const CENTRIFUGO_WS = `${backendWsOrigin()}/connection/websocket`;
+const UNAUTHENTICATED_CODE: number = 401;
+const FORBIDDEN_CODE: number = 403;
 // Guards against a re-spin storm if module state is ever transiently reset.
 const SPIN_UP_COOLDOWN_MS = 30_000;
 // The exponential CAP on a reconnect delay, not a spread window -- the comment that used to
@@ -64,20 +70,8 @@ export type Envelope = {
 };
 
 /*
- * One live realtime connection per account slot.
- *
- * The connection LIFECYCLE was the last piece of per-account state left as a SharedWorker-wide
- * singleton after #436 moved credentials, the session gate and the gRPC transport to per-account
- * maps (grpc/transport.ts credentialsByAccount, session.ts gatesByAccount). A single SharedWorker
- * hosts all four account slots side by side (createManagers builds one manager set per slot), and
- * the Centrifugo token is already minted per account (fetchCentrifugoToken(accountNumber) below) --
- * so keeping ONE `connection`/`activeUserId` cell meant bringing up account B tore down account A's
- * socket, leaving only one account with a live `user:{id}` subscription while the other went silent.
- *
- * Each slot now owns its own record here, and every function reads only the slot it was handed --
- * so there is deliberately no module-level "current account" (mirrors the module comment at
- * grpc/transport.ts:17-19). `connectionFor(accountNumber)` is the exact analogue of
- * transport.ts's `credentialsFor(accountNumber)`.
+ * One live realtime connection per account slot: a slot's socket is torn down by its own identity change only, so
+ * bringing up one account never stops another account's push channel (#436).
  */
 type RealtimeConnection = {
   activeUserId: string | undefined,
@@ -127,8 +121,8 @@ export function setRealtimeSink(accountNumber: ActiveAccountNumber, fn: Realtime
 }
 
 export function startImpulseRealtime(userId: string | undefined, accountNumber: ActiveAccountNumber | undefined): void {
-  // Every downstream call (the token mint, the transport it travels on) is
-  // account-scoped now -- see grpc/transport.ts. There is no account-less
+  // Every downstream call (the token call, the fleet it travels on) is
+  // account-scoped -- see grpc/credentials.ts. There is no account-less
   // identity to fall back to, so refuse rather than spin up a connection nobody
   // can authenticate.
   if(accountNumber === undefined) {
@@ -268,22 +262,27 @@ export async function fetchCentrifugoToken(accountNumber: ActiveAccountNumber): 
   await whenImpulseSessionReady(accountNumber);
   requireGrpcSessionToken(accountNumber);
 
-  const client = createClient(SyncService, getGrpcTransport(accountNumber));
+  // A refused session is renewed through the refresh and the call replayed once, as every other call does: on a
+  // restored-but-expired session the push channel would otherwise stay down for the whole tab.
+  const requestBytes: Uint8Array = toBinary(GetCentrifugoTokenRequestSchema, create(GetCentrifugoTokenRequestSchema, {}));
+  const callToken = (): Promise<Uint8Array> => callFleet({
+    accountNumber,
+    method: GET_CENTRIFUGO_TOKEN_METHOD,
+    identity: fleetIdentityFor(accountNumber, GET_CENTRIFUGO_TOKEN_METHOD),
+    request: requestBytes
+  });
 
-  // This call goes straight through the generated client, so it never passes the
-  // 401-retry in grpcInvoke -- on a restored-but-expired session it just failed
-  // with AUTH_KEY_UNREGISTERED and the push channel stayed down for the whole
-  // tab. Renew and try once more, the same way every other call does.
-  const response = await client.getCentrifugoToken({}).catch(async(err: unknown) => {
-    if(!isUnauthenticated(err) || !await refreshImpulseSession(accountNumber)) {
+  const reply = await callToken().catch(async(err: ApiError) => {
+    if(err.code !== UNAUTHENTICATED_CODE || !await refreshImpulseSession(accountNumber)) {
       throw err;
     }
 
     logger.info('Retrying the Centrifugo token after a session refresh');
-    return client.getCentrifugoToken({});
+    return callToken();
   });
 
-  if(!response?.token) {
+  const response = fromBinary(GetCentrifugoTokenResponseSchema, reply);
+  if(!response.token) {
     throw new Error('Sync.GetCentrifugoToken returned no token');
   }
 
@@ -291,26 +290,21 @@ export async function fetchCentrifugoToken(accountNumber: ActiveAccountNumber): 
 }
 
 /**
- * The token callback of the SDK. A 401 or 403 from the token RPC means this session may not hold a
- * realtime connection; the SDK retries every other failure forever and stops only on its
- * UnauthorizedError.
+ * The token callback of the SDK. A 401 or 403 from the token call means this session may not hold a realtime
+ * connection; the SDK retries every other failure forever and stops only on its UnauthorizedError.
  */
 async function fetchCentrifugoTokenForSdk(accountNumber: ActiveAccountNumber): Promise<string> {
   try {
     return await fetchCentrifugoToken(accountNumber);
   } catch(err: unknown) {
-    const code: Code = ConnectError.from(err).code;
-    if(code === Code.Unauthenticated || code === Code.PermissionDenied) {
-      logger.warn('Centrifugo token refused; the connection stops', {code});
-      throw new UnauthorizedError(ConnectError.from(err).rawMessage);
+    const apiError = err as ApiError | undefined;
+    if(apiError?.code === UNAUTHENTICATED_CODE || apiError?.code === FORBIDDEN_CODE) {
+      logger.warn('Centrifugo token refused; the connection stops', {code: apiError.code});
+      throw new UnauthorizedError(apiError.type ?? 'refused');
     }
 
     throw err;
   }
-}
-
-function isUnauthenticated(err: unknown): boolean {
-  return ConnectError.from(err).code === Code.Unauthenticated;
 }
 
 async function spinUp(accountNumber: ActiveAccountNumber, userId: string): Promise<void> {

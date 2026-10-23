@@ -8,19 +8,27 @@ import {
   AuthLoginTokenSuccessSchema
 } from '@lib/impulse/grpc/gen/v1/types_pb';
 
-import {grpcWebUnaryReply} from './helpers/grpcWebFrames';
+import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 
 /*
  * A QR login completes through auth.exportLoginToken, which answers auth.loginTokenSuccess.
  * On the wire the session and refresh tokens sit one level down, under
  * AuthLoginTokenSuccess.authorization, so captureImpulseSessionToken must read them there.
- * These tests drive grpcInvoke with a real protobuf-encoded gRPC-web reply and observe the
+ * These tests drive grpcInvoke through the real fleet lane, answered by the pool stand-in, and observe the
  * persistence boundary (AccountController.update) and the in-memory session token.
  */
+
+const fleetHarness = sharedFleetPoolHarness();
 
 const accountGet = vi.fn();
 const accountClearFields = vi.fn();
 const accountUpdate = vi.fn();
+
+vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
+  const {sharedFleetPoolHarness: harness} = await import('./helpers/fleetPoolStub');
+  return {...actual, RpcPool: harness().RpcPoolStub};
+});
 
 vi.mock('@lib/accounts/accountController', () => ({
   default: {
@@ -30,7 +38,7 @@ vi.mock('@lib/accounts/accountController', () => ({
   }
 }));
 
-const EXPORT_LOGIN_TOKEN_PATH = '/v1.auth.Auth/ExportLoginToken';
+const EXPORT_LOGIN_TOKEN = 'auth.exportLoginToken';
 const FIXTURE_SESSION_TOKEN = 'fixture-login-session-token';
 const FIXTURE_REFRESH_TOKEN = 'fixture-login-refresh-token';
 
@@ -55,20 +63,9 @@ function loginTokenSuccessPayload(): Uint8Array {
   return toBinary(AuthLoginTokenSchema, loginToken);
 }
 
-function stubFetchReply(payload: Uint8Array): void {
-  vi.stubGlobal('fetch', vi.fn(async(url: unknown) => {
-    const path = new URL(String(url)).pathname;
-    if(path !== EXPORT_LOGIN_TOKEN_PATH) {
-      throw new Error(`stubFetchReply: unexpected gRPC-web path ${path}`);
-    }
-
-    return grpcWebUnaryReply(payload);
-  }));
-}
-
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.resetModules();
+  fleetHarness.reset();
   accountGet.mockReset();
   accountClearFields.mockReset();
   accountUpdate.mockReset();
@@ -80,18 +77,18 @@ describe('QR login session token capture', () => {
     async() => {
       accountGet.mockResolvedValue(undefined);
       accountUpdate.mockResolvedValue(undefined);
-      stubFetchReply(loginTokenSuccessPayload());
+      fleetHarness.respondOnce(EXPORT_LOGIN_TOKEN, () => ({data: loginTokenSuccessPayload()}));
 
       const {restoreImpulseSession} = await import('@lib/impulse/session');
       const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
-      const {getGrpcSessionToken} = await import('@lib/impulse/grpc/transport');
+      const {getGrpcSessionToken} = await import('@lib/impulse/grpc/credentials');
 
       await restoreImpulseSession(1);
       await grpcInvoke('auth.exportLoginToken', {}, 1);
 
       expect(
         getGrpcSessionToken(1),
-        'a loginTokenSuccess reply must put its session token on the transport for this slot; ' +
+        'a loginTokenSuccess reply must put its session token on the credentials of this slot; ' +
         'the token sits under authorization, not at the top level of the reply'
       ).toBe(FIXTURE_SESSION_TOKEN);
 

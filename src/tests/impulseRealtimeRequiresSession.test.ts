@@ -62,7 +62,7 @@ describe('Impulse realtime authentication', () => {
 
     const {restoreImpulseSession} = await import('@lib/impulse/session');
     const {fetchCentrifugoToken} = await import('@lib/impulse/realtime');
-    const {setGrpcSessionToken} = await import('@lib/impulse/grpc/transport');
+    const {setGrpcSessionToken} = await import('@lib/impulse/grpc/credentials');
 
     await Promise.all(everySlot().map((accountNumber) => restoreImpulseSession(accountNumber)));
     setGrpcSessionToken(1, undefined);

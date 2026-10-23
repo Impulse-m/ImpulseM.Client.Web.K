@@ -17,7 +17,7 @@ import {expect, Page} from '@playwright/test';
  *
  * Server-truth seam (documented honestly): messages.getHistory is invoked RAW through the
  * page's OWN apiManager proxy (window.rootScope.managers.apiManager.invokeApi) — the same
- * worker, session and gRPC-web transport the app itself uses, but bypassing
+ * worker, session and fleet lanes the app itself uses, but bypassing
  * appMessagesManager's message cache, so the returned ids are the server's answer, not an
  * echo of whatever local state the bug under test may have corrupted. Server ids are compared
  * after mapping DOM mids through the app's own getServerMessageId

@@ -16,11 +16,10 @@ import {describe} from 'vitest';
  *   IMPULSE_LIVE_GATEWAY     presence ENABLES the lane. Points at the native-gRPC gateway
  *                            endpoint of the dev stack (default there: http://localhost:5200).
  *   IMPULSE_LIVE_WS_GATEWAY  the HTTP/1.1-capable gateway endpoint (default
- *                            http://localhost:5100). The browser client speaks gRPC-web over
- *                            fetch and Centrifugo over WebSocket; BOTH require HTTP/1.1, so
- *                            this — not the pure-HTTP/2 5200 port — is the origin the manager
- *                            stack is pointed at. The gateway itself serves gRPC-web
- *                            (ImpulseM.Gateway/Program.cs: UseGrpcWeb, DefaultEnabled).
+ *                            http://localhost:5100). The browser client speaks Centrifugo over
+ *                            WebSocket (the RPC and media fleets and the update socket), which
+ *                            requires HTTP/1.1, so this origin is the one the manager stack is
+ *                            pointed at.
  *
  * Run the lane against the local dev stack (deploy/docker-compose.dev.yaml):
  *
@@ -28,7 +27,7 @@ import {describe} from 'vitest';
  */
 export type LiveLane = {
   enabled: boolean,
-  /** The origin the client's gRPC-web transport and Centrifugo WebSocket are pointed at. */
+  /** The origin the client's fleets and update socket are pointed at. */
   gatewayOrigin: string,
   skipReason?: string
 };

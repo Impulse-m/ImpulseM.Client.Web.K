@@ -7,8 +7,8 @@ import {AppManager} from '@appManagers/manager';
 import rootScope from '@lib/rootScope';
 import {UserAuth} from '@appManagers/constants';
 import {MTMessage} from '@lib/mtproto/networker';
-import {mediaFleetCounters, setMediaFleetConfig} from '@lib/impulse/media/mediaFleet';
-import type {MediaFleetCounters} from '@lib/impulse/media/mediaFleet';
+import {fleetCounters, setFleetConfig} from '@lib/impulse/fleet/fleet';
+import type {FleetCounters} from '@lib/impulse/fleet/fleet';
 
 type HashResult = {
   hash: number,
@@ -319,7 +319,7 @@ export default abstract class ApiManagerMethods extends AppManager {
       params: {},
       processResult: (config) => {
         this.config = config;
-        setMediaFleetConfig(this.getAccountNumber(), config);
+        setFleetConfig(this.getAccountNumber(), config);
         this.rootScope.dispatchEvent('config', config);
         return config;
       },
@@ -327,8 +327,8 @@ export default abstract class ApiManagerMethods extends AppManager {
     });
   }
 
-  public getMediaFleetCounters(): MediaFleetCounters {
-    return mediaFleetCounters(this.getAccountNumber());
+  public getFleetCounters(): FleetCounters {
+    return fleetCounters(this.getAccountNumber());
   }
 
   private applyAppConfig(appConfig: MTAppConfig, save?: boolean) {

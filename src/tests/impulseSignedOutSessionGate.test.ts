@@ -1,9 +1,8 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
-
 import {MAX_ACCOUNTS} from '@lib/accounts/constants';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 
-import {grpcWebUnaryReply} from './helpers/grpcWebFrames';
+import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 
 /*
  * Issue #137. A backend blip made a whole boot wave come back AUTH_TOKEN_INVALID, the 401
@@ -24,7 +23,15 @@ import {grpcWebUnaryReply} from './helpers/grpcWebFrames';
  * genuinely failed still stops the boot wave.
  */
 
+const fleetHarness = sharedFleetPoolHarness();
+
 const accountGet = vi.fn();
+
+vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
+  const {sharedFleetPoolHarness: harness} = await import('./helpers/fleetPoolStub');
+  return {...actual, RpcPool: harness().RpcPoolStub};
+});
 
 vi.mock('@lib/accounts/accountController', () => ({
   default: {
@@ -35,10 +42,10 @@ vi.mock('@lib/accounts/accountController', () => ({
 }));
 
 /**
- * `BootstrapExemptMethodContributor` lists this path as pre-auth exempt on purpose: canon needs
+ * `BootstrapExemptMethodContributor` lists this method as pre-auth exempt on purpose: canon needs
  * the langpack to render the login page itself, so it must be reachable with no session.
  */
-const GET_LANG_PACK_PATH = '/v1.langpack.Langpack/GetLangPack';
+const GET_LANG_PACK = 'langpack.getLangPack';
 
 /*
  * Exactly the storage state the CEO's browser was left in: the account record survives, its
@@ -54,21 +61,21 @@ const STUCK_ON_A_BLANK_PAGE =
 
 const LANGPACK_MUST_NOT_BE_BLOCKED =
   'langpack.getLangPack is served without a token by design -- the login page cannot draw its own ' +
-  'strings otherwise. The gate blocked it before it ever reached the transport, which is the ' +
+  'strings otherwise. The gate blocked it before it ever reached the fleet, which is the ' +
   '"[LANGPACK] getLangPack failed" the CEO saw one tick before the client went blank.';
 
 const LANGPACK_MUST_LEAVE_ONCE =
   'The pre-auth langpack call must actually leave the client once the gate opens. No request ' +
-  'reached the transport at all, so the sign-in screen has no strings to render.';
+  'reached the fleet at all, so the sign-in screen has no strings to render.';
 
 const LANGPACK_CARRIES_NO_TOKEN =
   'A signed-out client has no session token, and the pre-auth langpack call must travel without ' +
-  'an Authorization header rather than be held back waiting for one. Requiring a token here is ' +
-  'what turns a transient backend blip into a permanently bricked tab.';
+  'a token rather than be held back waiting for one. Requiring a token here is what turns a ' +
+  'transient backend blip into a permanently bricked tab.';
 
 const GATE_MUST_STILL_GUARD =
   'Treating a cleared token as the signed-out state must not degrade the gate into one that ' +
-  'always opens. The gate exists so no boot RPC leaves before the stored token is on the headers; ' +
+  'always opens. The gate exists so no boot RPC leaves before the stored token is in place; ' +
   'when the account store itself throws, nobody knows whether a token exists, and letting the ' +
   'wave go out unauthenticated is what signed a legitimately signed-in user out in the first place.';
 
@@ -82,8 +89,8 @@ function everySlot(): ActiveAccountNumber[] {
 
 describe('Impulse session gate for a signed-out client', () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
     vi.resetModules();
+    fleetHarness.reset();
     accountGet.mockReset();
   });
 
@@ -107,17 +114,11 @@ describe('Impulse session gate for a signed-out client', () => {
   });
 
 
-  it('lets the pre-auth langpack call leave without an Authorization header', async() => {
+  it('lets the pre-auth langpack call leave with no token', async() => {
     accountGet.mockImplementation(async(accountNumber: ActiveAccountNumber) => (
       accountNumber === 1 ? SIGNED_OUT_ACCOUNT : undefined
     ));
-
-    const observed: {url: string, authorization: string | null}[] = [];
-    vi.stubGlobal('fetch', vi.fn(async(url: unknown, init: {headers?: HeadersInit}) => {
-      const header = new Headers(init?.headers);
-      observed.push({url: String(url), authorization: header.get('authorization')});
-      return grpcWebUnaryReply();
-    }));
+    fleetHarness.respondOnce(GET_LANG_PACK, () => ({data: new Uint8Array(0)}));
 
     const {restoreImpulseSession} = await import('@lib/impulse/session');
     const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
@@ -125,15 +126,15 @@ describe('Impulse session gate for a signed-out client', () => {
     await Promise.all(everySlot().map((accountNumber) => restoreImpulseSession(accountNumber)));
 
     // Issued on behalf of slot 1, the signed-out account above.
-    const outcome = await grpcInvoke('langpack.getLangPack', {langPack: 'web', langCode: 'en'}, 1).then(
+    const outcome = await grpcInvoke(GET_LANG_PACK, {langPack: 'web', langCode: 'en'}, 1).then(
       () => 'served',
       (error: any) => `blocked: ${error?.message ?? error?.type ?? String(error)}`
     );
-    const langPackRequests = observed.filter((request) => request.url.endsWith(GET_LANG_PACK_PATH));
+    const langPackRequests = fleetHarness.calls.filter((request) => request.method === GET_LANG_PACK);
 
     expect(outcome, LANGPACK_MUST_NOT_BE_BLOCKED).toBe('served');
     expect(langPackRequests.length, LANGPACK_MUST_LEAVE_ONCE).toBe(1);
-    expect(langPackRequests[0].authorization, LANGPACK_CARRIES_NO_TOKEN).toBeNull();
+    expect(langPackRequests[0].presentedToken, LANGPACK_CARRIES_NO_TOKEN).toBeUndefined();
   });
 
 

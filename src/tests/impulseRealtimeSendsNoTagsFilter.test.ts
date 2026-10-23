@@ -65,26 +65,21 @@ vi.mock('@lib/impulse/session', async(importActual) => {
   };
 });
 
-vi.mock('@lib/impulse/grpc/transport', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/impulse/grpc/transport')>();
-  return {
-    ...actual,
-    requireGrpcSessionToken: vi.fn(() => 'session-token'),
-    getGrpcTransport: vi.fn(() => ({} as any))
-  };
+vi.mock('@lib/impulse/grpc/credentials', async(importActual) => {
+  const actual = await importActual<typeof import('@lib/impulse/grpc/credentials')>();
+  return {...actual, requireGrpcSessionToken: vi.fn(() => 'session-token')};
 });
 
-vi.mock('@connectrpc/connect', async(importActual) => {
-  const actual = await importActual<typeof import('@connectrpc/connect')>();
-  return {
-    ...actual,
-    createClient: vi.fn(() => new Proxy({}, {
-      get: (_target: object, method: string | symbol): (() => Promise<{token: string}>) => {
-        createClientCalls.push(String(method));
-        return async() => ({token: 'centrifugo-token'});
-      }
-    }))
-  };
+vi.mock('@lib/impulse/fleet/fleet', async(importActual) => {
+  const actual = await importActual<typeof import('@lib/impulse/fleet/fleet')>();
+  const {create, toBinary} = await import('@bufbuild/protobuf');
+  const {GetCentrifugoTokenResponseSchema} = await import('@lib/impulse/grpc/gen/v1/internal/impulse/sync/sync_service_pb');
+  const tokenReply = (): Uint8Array => toBinary(GetCentrifugoTokenResponseSchema, create(GetCentrifugoTokenResponseSchema, {token: 'centrifugo-token'}));
+  const callFleet = vi.fn(async(call: {method: string}): Promise<Uint8Array> => {
+    createClientCalls.push(call.method);
+    return tokenReply();
+  });
+  return {...actual, callFleet};
 });
 
 const NO_TAGS_FILTER = 'the server filters the echo itself; a subscription carrying a tags filter puts that work back on the client';

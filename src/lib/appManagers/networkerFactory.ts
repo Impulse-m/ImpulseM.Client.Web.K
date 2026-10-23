@@ -12,7 +12,7 @@ import {AppManager} from '@appManagers/manager';
 import AccountController from '@lib/accounts/accountController';
 import bytesToHex from '@helpers/bytes/bytesToHex';
 import {getEnvironment} from '@environment/utils';
-import {setConnectionDeclaration} from '@lib/impulse/grpc/transport';
+import {setConnectionDeclaration} from '@lib/impulse/grpc/credentials';
 
 const TimezoneRoundingSeconds = 900;
 

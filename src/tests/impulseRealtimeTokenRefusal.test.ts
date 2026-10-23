@@ -1,18 +1,19 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {UnauthorizedError} from '@impulsem/centrifuge';
-import {Code, ConnectError} from '@connectrpc/connect';
+import {create, toBinary} from '@bufbuild/protobuf';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import {GetCentrifugoTokenResponseSchema} from '@lib/impulse/grpc/gen/v1/internal/impulse/sync/sync_service_pb';
 
 
 /*
  * The SDK retries a failing getToken forever and stops only when it throws its UnauthorizedError.
- * A 401 or 403 from Sync.GetCentrifugoToken is a refusal of the session, not an outage: the
- * connection must stop instead of hammering the token RPC on every reconnect.
+ * A 401 or 403 from the Centrifugo token call is a refusal of the session, not an outage: the connection must stop
+ * instead of hammering the token call on every reconnect.
  */
-const {MockCentrifuge, centrifugeInstances, getCentrifugoToken} = vi.hoisted(() => {
+const {MockCentrifuge, centrifugeInstances, callFleet} = vi.hoisted(() => {
   const centrifugeInstances: MockCentrifuge[] = [];
-  const getCentrifugoToken = vi.fn();
+  const callFleet = vi.fn();
 
   class MockCentrifuge {
     constructor(
@@ -37,7 +38,7 @@ const {MockCentrifuge, centrifugeInstances, getCentrifugoToken} = vi.hoisted(() 
     public disconnect(): void {}
   }
 
-  return {MockCentrifuge, centrifugeInstances, getCentrifugoToken};
+  return {MockCentrifuge, centrifugeInstances, callFleet};
 });
 
 vi.mock('@impulsem/centrifuge', async(importActual) => {
@@ -54,27 +55,22 @@ vi.mock('@lib/impulse/session', async(importActual) => {
   };
 });
 
-vi.mock('@lib/impulse/grpc/transport', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/impulse/grpc/transport')>();
-  return {
-    ...actual,
-    requireGrpcSessionToken: vi.fn(() => 'session-token'),
-    getGrpcTransport: vi.fn(() => ({} as any))
-  };
+vi.mock('@lib/impulse/grpc/credentials', async(importActual) => {
+  const actual = await importActual<typeof import('@lib/impulse/grpc/credentials')>();
+  return {...actual, requireGrpcSessionToken: vi.fn(() => 'session-token')};
 });
 
-vi.mock('@connectrpc/connect', async(importActual) => {
-  const actual = await importActual<typeof import('@connectrpc/connect')>();
-  return {
-    ...actual,
-    createClient: vi.fn(() => ({
-      getCentrifugoToken
-    }))
-  };
+vi.mock('@lib/impulse/fleet/fleet', async(importActual) => {
+  const actual = await importActual<typeof import('@lib/impulse/fleet/fleet')>();
+  return {...actual, callFleet};
 });
 
 const SDK_MUST_STOP_ON_A_REFUSED_SESSION =
   'getToken must throw the SDK\'s UnauthorizedError on a refused session: any other error is retried forever';
+
+function tokenReply(token: string): Uint8Array {
+  return toBinary(GetCentrifugoTokenResponseSchema, create(GetCentrifugoTokenResponseSchema, {token}));
+}
 
 async function sdkGetToken(): Promise<() => Promise<string>> {
   const realtime = await import('@lib/impulse/realtime');
@@ -90,8 +86,8 @@ describe('getToken handed to the SDK', () => {
   beforeEach(() => {
     vi.resetModules();
     centrifugeInstances.length = 0;
-    getCentrifugoToken.mockReset();
-    getCentrifugoToken.mockResolvedValueOnce({token: 'first-token'});
+    callFleet.mockReset();
+    callFleet.mockResolvedValueOnce(tokenReply('first-token'));
   });
 
   afterEach(async() => {
@@ -101,37 +97,38 @@ describe('getToken handed to the SDK', () => {
 
   it('returns the minted token', async() => {
     const getToken = await sdkGetToken();
-    getCentrifugoToken.mockResolvedValueOnce({token: 'renewed-token'});
+    callFleet.mockResolvedValueOnce(tokenReply('renewed-token'));
 
     await expect(getToken()).resolves.toBe('renewed-token');
   });
 
   it.each([
-    ['401 Unauthenticated', Code.Unauthenticated],
-    ['403 PermissionDenied', Code.PermissionDenied]
-  ])('throws UnauthorizedError on %s', async(_name: string, code: Code) => {
+    ['401 unauthenticated', {type: 'AUTH_KEY_UNREGISTERED', code: 401}],
+    ['403 forbidden', {type: 'FORBIDDEN', code: 403}]
+  ])('throws UnauthorizedError on %s', async(_name: string, refusal: {type: string, code: number}) => {
     const getToken = await sdkGetToken();
-    getCentrifugoToken.mockRejectedValueOnce(new ConnectError('refused', code));
+    callFleet.mockRejectedValueOnce(refusal);
 
     await expect(getToken(), SDK_MUST_STOP_ON_A_REFUSED_SESSION).rejects.toBeInstanceOf(UnauthorizedError);
   });
 
   it('lets an outage through unchanged so the SDK keeps retrying', async() => {
     const getToken = await sdkGetToken();
-    getCentrifugoToken.mockRejectedValueOnce(new ConnectError('down', Code.Unavailable));
+    const outage = {type: 'NETWORK_BAD_RESPONSE', code: 500};
+    callFleet.mockRejectedValueOnce(outage);
 
     const error: unknown = await getToken().then((): undefined => undefined, (err: unknown): unknown => err);
 
-    expect(error).toBeInstanceOf(ConnectError);
+    expect(error).toBe(outage);
     expect(error).not.toBeInstanceOf(UnauthorizedError);
   });
 
   it('mints a fresh token each time the SDK asks after a refusal, instead of reusing the refused one', async() => {
     const getToken = await sdkGetToken();
-    getCentrifugoToken.mockResolvedValueOnce({token: 'after-refusal-token'});
+    callFleet.mockResolvedValueOnce(tokenReply('after-refusal-token'));
 
-    await expect(getToken(), 'the retry after a refused token must reach Sync for a new one').resolves.toBe('after-refusal-token');
-    expect(getCentrifugoToken).toHaveBeenCalledTimes(2);
+    await expect(getToken(), 'the retry after a refused token must reach the fleet for a new one').resolves.toBe('after-refusal-token');
+    expect(callFleet).toHaveBeenCalledTimes(2);
   });
 
   it('pins the refused-token retry to the SDK 1.0.0 behaviour, which sent the token getToken returned', async() => {
