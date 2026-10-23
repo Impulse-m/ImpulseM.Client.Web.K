@@ -8,6 +8,8 @@ import {
   AuthLoginTokenSuccessSchema
 } from '@lib/impulse/grpc/gen/v1/types_pb';
 
+import {grpcWebUnaryReply} from './helpers/grpcWebFrames';
+
 /*
  * A QR login completes through auth.exportLoginToken, which answers auth.loginTokenSuccess.
  * On the wire the session and refresh tokens sit one level down, under
@@ -31,33 +33,6 @@ vi.mock('@lib/accounts/accountController', () => ({
 const EXPORT_LOGIN_TOKEN_PATH = '/v1.auth.Auth/ExportLoginToken';
 const FIXTURE_SESSION_TOKEN = 'fixture-login-session-token';
 const FIXTURE_REFRESH_TOKEN = 'fixture-login-refresh-token';
-
-function envelope(flags: number, payload: Uint8Array): Uint8Array {
-  const frame = new Uint8Array(5 + payload.length);
-  frame[0] = flags;
-  new DataView(frame.buffer).setUint32(1, payload.length);
-  frame.set(payload, 5);
-  return frame;
-}
-
-function grpcWebReply(payload: Uint8Array): {status: number, headers: Headers, body: ReadableStream<Uint8Array>} {
-  const message = envelope(0, payload);
-  const trailer = envelope(0x80, new TextEncoder().encode('grpc-status:0\r\n'));
-  const frames = new Uint8Array(message.length + trailer.length);
-  frames.set(message);
-  frames.set(trailer, message.length);
-
-  return {
-    status: 200,
-    headers: new Headers({'content-type': 'application/grpc-web+proto'}),
-    body: new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(frames);
-        controller.close();
-      }
-    })
-  };
-}
 
 function loginTokenSuccessPayload(): Uint8Array {
   const loginToken = create(AuthLoginTokenSchema, {
@@ -87,7 +62,7 @@ function stubFetchReply(payload: Uint8Array): void {
       throw new Error(`stubFetchReply: unexpected gRPC-web path ${path}`);
     }
 
-    return grpcWebReply(payload);
+    return grpcWebUnaryReply(payload);
   }));
 }
 

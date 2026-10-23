@@ -26,6 +26,7 @@ import {backendWsOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
 import type {TabState} from '@lib/apiManagerProxy';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import {TOKEN_EXPIRED_CODE} from './centrifugoCodes';
 import {refreshImpulseSession, whenImpulseSessionReady} from './session';
 import {RealtimeSubscriptions} from './realtimeSubscriptions';
 import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
@@ -38,7 +39,6 @@ import {getGrpcTransport, requireGrpcSessionToken} from './grpc/transport';
 const logger = getLogger('impulse-realtime');
 
 const CENTRIFUGO_WS = `${backendWsOrigin()}/connection/websocket`;
-const TOKEN_EXPIRED_CODE = 109;
 // Guards against a re-spin storm if module state is ever transiently reset.
 const SPIN_UP_COOLDOWN_MS = 30_000;
 // The exponential CAP on a reconnect delay, not a spread window -- the comment that used to
@@ -325,6 +325,8 @@ async function spinUp(accountNumber: ActiveAccountNumber, userId: string): Promi
   const centrifuge = new Centrifuge(CENTRIFUGO_WS, {
     token,
     getToken: () => fetchCentrifugoTokenForSdk(accountNumber),
+    // SDK 1.0.0 had no refused-token memory: a retry sent the token getToken returned, and 1.6.0 blocks it by default.
+    stopOnRefusedToken: false,
     // Centrifuge 5's ladder is min(max, min + randInt(0, min(max, min * 2^attempt))) --
     // reproduced and asserted in realtimeDiscipline.sdkReconnectDelay. It is NOT full jitter:
     // the random range grows from the floor rather than covering the window, and

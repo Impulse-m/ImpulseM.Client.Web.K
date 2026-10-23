@@ -1,48 +1,44 @@
 import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 
+import {apiErrorOf} from '@lib/impulse/grpc/apiError';
+
 
 export type MediaFleetRpcError = {
   code: number,
   message?: string,
-  temporary?: boolean,
   appCode?: number,
   appType?: string
 };
 
-// Centrifugo built-in codes (protos/vendor/centrifugo/v6/client.proto). 100 and 111 are temporary by the proto;
-// 109 is renewed by the SDK, and a call the fleet still refuses goes to the gateway.
-const INTERNAL_SERVER_ERROR_CODE: number = 100;
-const TOKEN_EXPIRED_CODE: number = 109;
-const TOO_MANY_REQUESTS_CODE: number = 111;
-
-const FALLBACK_SERVER_CODES: ReadonlySet<number> = new Set<number>([
-  INTERNAL_SERVER_ERROR_CODE,
-  TOKEN_EXPIRED_CODE,
-  TOO_MANY_REQUESTS_CODE
-]);
-
-// Client-side failures of the connection, the call's deadline and the pool's wait queue. The four
-// methods are idempotent in the registry, so the gateway may run the same call.
+// Client-side failures of the connection, the call's deadline and the pool's teardown: no answer of the fleet
+// exists, and the four methods are idempotent in the registry, so the gateway may carry the same call.
 const FALLBACK_CLIENT_CODES: ReadonlySet<number> = new Set<number>([
   errorCodes.timeout,
   errorCodes.transportClosed,
   errorCodes.clientDisconnected,
   errorCodes.clientClosed,
   errorCodes.transportWriteError,
-  errorCodes.connectionClosed,
-  errorCodes.limitExceeded
+  errorCodes.connectionClosed
 ]);
 
-const UNMAPPED_ERROR_CODE: number = 500;
+const TRANSPORT_ERROR_TYPE: ErrorType = 'NETWORK_BAD_RESPONSE';
+// The numeric code of the registry's temporary INTERNAL_SERVER_ERROR (deploy/centrifugo/media/config.json).
+const TRANSPORT_ERROR_CODE: number = 500;
 
 export function isMediaFleetFallback(error: MediaFleetRpcError): boolean {
-  return FALLBACK_CLIENT_CODES.has(error.code) || FALLBACK_SERVER_CODES.has(error.code);
+  return FALLBACK_CLIENT_CODES.has(error.code);
 }
 
-export function toMediaFleetApiError(error: MediaFleetRpcError): ApiError {
-  return {
-    type: (error.appType ?? error.message ?? 'ERROR_EMPTY') as ErrorType,
-    code: error.appCode ?? UNMAPPED_ERROR_CODE,
-    originalError: error
-  };
+/** The registry's application error as the gRPC path maps one; a fleet error that names no application type is a transport error. */
+export function mediaFleetApiError(error: MediaFleetRpcError): ApiError {
+  if(error.appType === undefined || error.appCode === undefined) {
+    return transportApiError(error);
+  }
+
+  return apiErrorOf(error.appType as ErrorType, error.appCode, error);
+}
+
+/** A fleet answer that is not an application answer: no reply body, or an error without a catalog type. */
+export function transportApiError(originalError: unknown): ApiError {
+  return apiErrorOf(TRANSPORT_ERROR_TYPE, TRANSPORT_ERROR_CODE, originalError);
 }

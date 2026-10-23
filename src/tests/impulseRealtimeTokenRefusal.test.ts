@@ -15,7 +15,10 @@ const {MockCentrifuge, centrifugeInstances, getCentrifugoToken} = vi.hoisted(() 
   const getCentrifugoToken = vi.fn();
 
   class MockCentrifuge {
-    constructor(public readonly url: string, public readonly options: {getToken: () => Promise<string>}) {
+    constructor(
+      public readonly url: string,
+      public readonly options: {getToken: () => Promise<string>, stopOnRefusedToken?: boolean}
+    ) {
       centrifugeInstances.push(this);
     }
 
@@ -121,5 +124,22 @@ describe('getToken handed to the SDK', () => {
 
     expect(error).toBeInstanceOf(ConnectError);
     expect(error).not.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it('mints a fresh token each time the SDK asks after a refusal, instead of reusing the refused one', async() => {
+    const getToken = await sdkGetToken();
+    getCentrifugoToken.mockResolvedValueOnce({token: 'after-refusal-token'});
+
+    await expect(getToken(), 'the retry after a refused token must reach Sync for a new one').resolves.toBe('after-refusal-token');
+    expect(getCentrifugoToken).toHaveBeenCalledTimes(2);
+  });
+
+  it('pins the refused-token retry to the SDK 1.0.0 behaviour, which sent the token getToken returned', async() => {
+    await sdkGetToken();
+
+    expect(
+      centrifugeInstances[0].options.stopOnRefusedToken,
+      'SDK 1.6.0 blocks a token the server refused unless this is false; 1.0.0 had no such memory'
+    ).toBe(false);
   });
 });

@@ -3,6 +3,7 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 import {MAX_ACCOUNTS} from '@lib/accounts/constants';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 
+import {grpcWebUnaryReply} from './helpers/grpcWebFrames';
 
 /*
  * Issue #137. A backend blip made a whole boot wave come back AUTH_TOKEN_INVALID, the 401
@@ -79,40 +80,6 @@ function everySlot(): ActiveAccountNumber[] {
 }
 
 
-function envelope(flags: number, payload: Uint8Array): Uint8Array {
-  const frame = new Uint8Array(5 + payload.length);
-  frame[0] = flags;
-  new DataView(frame.buffer).setUint32(1, payload.length);
-  frame.set(payload, 5);
-  return frame;
-}
-
-
-/**
- * A minimal well-formed gRPC-web unary reply: one empty message frame followed by the trailer
- * frame carrying `grpc-status: 0`. Enough for the transport to hand the caller a decoded
- * response, which is what makes "served" distinguishable from "blocked".
- */
-function grpcWebOk(): {status: number, headers: Headers, body: ReadableStream<Uint8Array>} {
-  const message = envelope(0, new Uint8Array(0));
-  const trailer = envelope(0x80, new TextEncoder().encode('grpc-status:0\r\n'));
-  const frames = new Uint8Array(message.length + trailer.length);
-  frames.set(message);
-  frames.set(trailer, message.length);
-
-  return {
-    status: 200,
-    headers: new Headers({'content-type': 'application/grpc-web+proto'}),
-    body: new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(frames);
-        controller.close();
-      }
-    })
-  };
-}
-
-
 describe('Impulse session gate for a signed-out client', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -149,7 +116,7 @@ describe('Impulse session gate for a signed-out client', () => {
     vi.stubGlobal('fetch', vi.fn(async(url: unknown, init: {headers?: HeadersInit}) => {
       const header = new Headers(init?.headers);
       observed.push({url: String(url), authorization: header.get('authorization')});
-      return grpcWebOk();
+      return grpcWebUnaryReply();
     }));
 
     const {restoreImpulseSession} = await import('@lib/impulse/session');

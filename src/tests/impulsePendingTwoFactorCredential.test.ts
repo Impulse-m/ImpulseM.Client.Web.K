@@ -1,5 +1,8 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 
+import {grpcWebTrailersOnly, grpcWebUnaryReply} from './helpers/grpcWebFrames';
+import type {GrpcWebResponse} from './helpers/grpcWebFrames';
+
 /*
  * #675 supporting unit RED — the per-slot pending-2FA credential the accepted architecture
  * (cloud-password-worker-211-20260918.txt, released as cloud-password-production-20260918.txt)
@@ -36,38 +39,6 @@ vi.mock('@lib/accounts/accountController', () => ({
   }
 }));
 
-/*
- * gRPC-web wire framing, recreated locally rather than extracted from
- * impulseSignedOutSessionGate.test.ts (whose `envelope`/`grpcWebOk` are private to that file) —
- * same technique, not a parallel one, kept local so this supporting-tests slice does not have to
- * touch an unrelated, already-passing test file to share ~15 lines.
- */
-function envelope(flags: number, payload: Uint8Array): Uint8Array {
-  const frame = new Uint8Array(5 + payload.length);
-  frame[0] = flags;
-  new DataView(frame.buffer).setUint32(1, payload.length);
-  frame.set(payload, 5);
-  return frame;
-}
-
-function grpcWebOk(): {status: number, headers: Headers, body: ReadableStream<Uint8Array>} {
-  const message = envelope(0, new Uint8Array(0));
-  const trailer = envelope(0x80, new TextEncoder().encode('grpc-status:0\r\n'));
-  const frames = new Uint8Array(message.length + trailer.length);
-  frames.set(message);
-  frames.set(trailer, message.length);
-
-  return {
-    status: 200,
-    headers: new Headers({'content-type': 'application/grpc-web+proto'}),
-    body: new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(frames);
-        controller.close();
-      }
-    })
-  };
-}
 
 /**
  * A gRPC-web trailers-only ERROR response — the exact shape ErrorOrGrpcExtensions.ToRpcException
@@ -82,18 +53,7 @@ function grpcWebError(
 ): {status: number, headers: Headers, body: ReadableStream<Uint8Array>} {
   const lines = [`grpc-status:${status}`, ...Object.entries(trailers).map(([key, value]) => `${key}:${value}`)]
     .join('\r\n') + '\r\n';
-  const trailer = envelope(0x80, new TextEncoder().encode(lines));
-
-  return {
-    status: 200,
-    headers: new Headers({'content-type': 'application/grpc-web+proto'}),
-    body: new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(trailer);
-        controller.close();
-      }
-    })
-  };
+  return grpcWebTrailersOnly(lines);
 }
 
 const SIGN_IN_PATH = '/v1.auth.Auth/SignIn';
@@ -110,7 +70,7 @@ const SEND_CODE_PATH = '/v1.auth.Auth/SendCode';
 type ObservedRequest = {path: string, authorization: string | null};
 
 /** Stubs `fetch` and records every request's path + Authorization header, keyed by canned response. */
-function stubFetch(byPath: Record<string, () => ReturnType<typeof grpcWebOk>>): ObservedRequest[] {
+function stubFetch(byPath: Record<string, () => GrpcWebResponse>): ObservedRequest[] {
   const observed: ObservedRequest[] = [];
   vi.stubGlobal('fetch', vi.fn(async(url: unknown, init: {headers?: HeadersInit}) => {
     const path = new URL(String(url)).pathname;
@@ -138,10 +98,10 @@ function stubFetch(byPath: Record<string, () => ReturnType<typeof grpcWebOk>>): 
  */
 function stubFetchWithQueue(): {
   observed: ObservedRequest[],
-  enqueue: (path: string, responder: () => Promise<ReturnType<typeof grpcWebOk>>) => void
+  enqueue: (path: string, responder: () => Promise<GrpcWebResponse>) => void
 } {
   const observed: ObservedRequest[] = [];
-  const queues = new Map<string, Array<() => Promise<ReturnType<typeof grpcWebOk>>>>();
+  const queues = new Map<string, Array<() => Promise<GrpcWebResponse>>>();
 
   vi.stubGlobal('fetch', vi.fn(async(url: unknown, init: {headers?: HeadersInit}) => {
     const path = new URL(String(url)).pathname;
@@ -168,9 +128,9 @@ function stubFetchWithQueue(): {
 }
 
 /** A promise this test resolves on its own schedule, plus the resolver — for modelling a specific in-flight gRPC call arriving out of order. */
-function deferredResponse(): {promise: Promise<ReturnType<typeof grpcWebOk>>, resolve: (value: ReturnType<typeof grpcWebOk>) => void} {
-  let resolve!: (value: ReturnType<typeof grpcWebOk>) => void;
-  const promise = new Promise<ReturnType<typeof grpcWebOk>>((res) => {
+function deferredResponse(): {promise: Promise<GrpcWebResponse>, resolve: (value: GrpcWebResponse) => void} {
+  let resolve!: (value: GrpcWebResponse) => void;
+  const promise = new Promise<GrpcWebResponse>((res) => {
     resolve = res;
   });
   return {promise, resolve};
@@ -197,7 +157,7 @@ describe('#675 pending two-factor credential', () => {
           'error-description': 'Two-factor authentication required',
           'pending-token': 'fixture-pending-token-1'
         }),
-        [GET_PASSWORD_PATH]: () => grpcWebOk()
+        [GET_PASSWORD_PATH]: () => grpcWebUnaryReply()
       });
 
       const {restoreImpulseSession} = await import('@lib/impulse/session');
@@ -261,8 +221,8 @@ describe('#675 pending two-factor credential', () => {
         'error-code': 'SESSION_PASSWORD_NEEDED',
         'pending-token': 'fixture-pending-token-1'
       }),
-      [GET_PASSWORD_PATH]: () => grpcWebOk(),
-      [GET_LANG_PACK_PATH]: () => grpcWebOk()
+      [GET_PASSWORD_PATH]: () => grpcWebUnaryReply(),
+      [GET_LANG_PACK_PATH]: () => grpcWebUnaryReply()
     });
 
     const {restoreImpulseSession} = await import('@lib/impulse/session');
@@ -310,7 +270,7 @@ describe('#675 pending two-factor credential', () => {
           'error-code': 'SESSION_PASSWORD_NEEDED',
           'pending-token': 'fixture-pending-token-1'
         }),
-        [GET_PASSWORD_PATH]: () => grpcWebOk()
+        [GET_PASSWORD_PATH]: () => grpcWebUnaryReply()
       });
 
       const {restoreImpulseSession, clearImpulseSession} = await import('@lib/impulse/session');
@@ -365,7 +325,7 @@ describe('#675 pending two-factor credential', () => {
         accountNumber === 1 ? {impulse_pending_token: 'fixture-persisted-pending-token'} : undefined
       ));
 
-      const observed = stubFetch({[GET_PASSWORD_PATH]: () => grpcWebOk()});
+      const observed = stubFetch({[GET_PASSWORD_PATH]: () => grpcWebUnaryReply()});
 
       const {restoreImpulseSession} = await import('@lib/impulse/session');
       const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
@@ -584,7 +544,7 @@ describe('#675 pending two-factor credential', () => {
 
       // Attempt Y (a DIFFERENT phone) supersedes X: a fresh code is sent before X's signIn ever
       // settles — exactly "abandon X, start Y" with no cancellation, the concrete race named.
-      enqueue(SEND_CODE_PATH, () => Promise.resolve(grpcWebOk()));
+      enqueue(SEND_CODE_PATH, () => Promise.resolve(grpcWebUnaryReply()));
       await grpcInvoke(
         'auth.sendCode',
         {phone_number: '+9996622222', api_id: 1, api_hash: 'fixture-hash', settings: {_: 'codeSettings', pFlags: {}}},
@@ -666,7 +626,7 @@ describe('#675 pending two-factor credential', () => {
 
       // Let sendCode itself finish too, exactly as a real attempt would — settling every promise
       // this test created, and confirming its own success does not retroactively change anything.
-      sendCodeY.resolve(grpcWebOk());
+      sendCodeY.resolve(grpcWebUnaryReply());
       await sendCodeYCall;
 
       expect(
@@ -876,7 +836,7 @@ describe('#675 pending two-factor credential', () => {
         resolveAccountGet = resolve;
       }));
 
-      const observed = stubFetch({[GET_PASSWORD_PATH]: () => grpcWebOk()});
+      const observed = stubFetch({[GET_PASSWORD_PATH]: () => grpcWebUnaryReply()});
 
       const {restoreImpulseSession} = await import('@lib/impulse/session');
       const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
@@ -981,7 +941,7 @@ describe('#675 pending two-factor credential', () => {
       // The resurrected credential must not merely sit unused in memory — a subsequent allowed call
       // on this now-logged-out slot must not attach it either, or the resurrection is observable
       // beyond just this getter.
-      enqueue(GET_PASSWORD_PATH, () => Promise.resolve(grpcWebOk()));
+      enqueue(GET_PASSWORD_PATH, () => Promise.resolve(grpcWebUnaryReply()));
       await grpcInvoke('account.getPassword', {}, 1);
       const passwordRequest = observed.filter((request) => request.path === GET_PASSWORD_PATH).pop();
       expect(

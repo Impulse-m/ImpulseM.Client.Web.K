@@ -110,17 +110,14 @@ describe('grpcInvoke sends the four file-transfer methods to the media fleet fir
     expect(result.bytes).toEqual(GATEWAY_PAYLOAD);
   });
 
-  it('refreshes the session once and replays the call when the fleet refuses the access token', async() => {
-    callMediaFleet
-    .mockRejectedValueOnce({type: 'AUTH_KEY_UNREGISTERED', code: 401})
-    .mockResolvedValueOnce(uploadFileBytes(FLEET_PAYLOAD));
-    refreshImpulseSession.mockResolvedValueOnce(true);
+  it('a fleet refusal reaches the caller: the file call neither renews the session nor replays through the gateway', async() => {
+    callMediaFleet.mockRejectedValueOnce({type: 'AUTH_KEY_UNREGISTERED', code: 401});
 
-    const result = await grpcInvoke('upload.getFile', GET_FILE_PARAMS, ACCOUNT);
+    await expect(grpcInvoke('upload.getFile', GET_FILE_PARAMS, ACCOUNT)).rejects.toMatchObject({type: 'AUTH_KEY_UNREGISTERED'});
 
-    expect(refreshImpulseSession, 'an expired access token is renewed the way every gRPC call renews it').toHaveBeenCalledTimes(1);
-    expect(callMediaFleet, 'the replayed call goes back to the fleet').toHaveBeenCalledTimes(2);
-    expect(result.bytes).toEqual(FLEET_PAYLOAD);
+    expect(refreshImpulseSession, 'the fleet refusal is the answer of the registry, the session is renewed on the connection, not here').not.toHaveBeenCalled();
+    expect(callMediaFleet).toHaveBeenCalledTimes(1);
+    expect(gatewayCall, 'a fleet error is never sent to the gateway behind the caller\'s back').not.toHaveBeenCalled();
   });
 
   it('a method outside the four never reaches the fleet', async() => {

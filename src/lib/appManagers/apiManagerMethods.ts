@@ -7,7 +7,8 @@ import {AppManager} from '@appManagers/manager';
 import rootScope from '@lib/rootScope';
 import {UserAuth} from '@appManagers/constants';
 import {MTMessage} from '@lib/mtproto/networker';
-import {setMediaFleetConfig} from '@lib/impulse/media/mediaFleet';
+import {mediaFleetCounters, setMediaFleetConfig} from '@lib/impulse/media/mediaFleet';
+import type {MediaFleetCounters} from '@lib/impulse/media/mediaFleet';
 
 type HashResult = {
   hash: number,
@@ -324,6 +325,10 @@ export default abstract class ApiManagerMethods extends AppManager {
       },
       options: {overwrite}
     });
+  }
+
+  public getMediaFleetCounters(): MediaFleetCounters {
+    return mediaFleetCounters(this.getAccountNumber());
   }
 
   private applyAppConfig(appConfig: MTAppConfig, save?: boolean) {

@@ -1,19 +1,25 @@
 import {describe, expect, it} from 'vitest';
 import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 
-import {isMediaFleetFallback, toMediaFleetApiError} from '@lib/impulse/media/mediaFleetError';
+import {isMediaFleetFallback, mediaFleetApiError} from '@lib/impulse/media/mediaFleetError';
 import type {MediaFleetRpcError} from '@lib/impulse/media/mediaFleetError';
 
 
 const TEMPORARY_INTERNAL_ERROR: MediaFleetRpcError = {
   code: 100,
   message: 'INTERNAL_SERVER_ERROR',
-  temporary: true,
   appCode: 500,
   appType: 'INTERNAL_SERVER_ERROR'
 };
 
-const TOKEN_EXPIRED: MediaFleetRpcError = {code: 109, message: 'token expired', temporary: true};
+const OVERLOADED: MediaFleetRpcError = {
+  code: 111,
+  message: 'INTERNAL_SERVER_ERROR',
+  appCode: 500,
+  appType: 'INTERNAL_SERVER_ERROR'
+};
+
+const TOKEN_EXPIRED: MediaFleetRpcError = {code: 109, message: 'token expired'};
 
 const AUTH_TOKEN_INVALID: MediaFleetRpcError = {
   code: 103,
@@ -38,13 +44,11 @@ const FLOOD_WAIT: MediaFleetRpcError = {
 
 describe('a media fleet failure falls back to the gateway only when the transport failed', () => {
   it.each([
-    ['a temporary internal error', TEMPORARY_INTERNAL_ERROR],
-    ['an expired token, which the SDK refreshes and resends', TOKEN_EXPIRED],
     ['a lost connection', {code: errorCodes.connectionClosed, message: 'connection closed'}],
     ['a closed transport', {code: errorCodes.transportClosed, message: 'transport closed'}],
     ['a failed write', {code: errorCodes.transportWriteError, message: 'write error'}],
     ['a client disconnected for good', {code: errorCodes.clientDisconnected, message: 'client disconnected'}],
-    ['a call over the wait queue bound', {code: errorCodes.limitExceeded, message: 'limit'}],
+    ['a closed pool, torn down by logout or a new option', {code: errorCodes.clientClosed, message: 'rpc pool is closed'}],
     ['a deadline', {code: errorCodes.timeout, message: 'timeout'}]
   ])('falls back on %s', (_name: string, error: MediaFleetRpcError) => {
     expect(
@@ -54,20 +58,23 @@ describe('a media fleet failure falls back to the gateway only when the transpor
   });
 
   it.each([
+    ['a temporary internal error', TEMPORARY_INTERNAL_ERROR],
+    ['an expired token, which is renewed and never resent over gRPC-web', TOKEN_EXPIRED],
+    ['a call over the wait queue bound, which waits for a slot', {code: errorCodes.limitExceeded, message: 'limit'}],
     ['AUTH_TOKEN_INVALID', AUTH_TOKEN_INVALID],
     ['METHOD_INVALID', METHOD_INVALID],
     ['FLOOD_WAIT_30', FLOOD_WAIT]
-  ])('does not fall back on %s: it is an answer', (_name: string, error: MediaFleetRpcError) => {
+  ])('does not fall back on %s: it is an answer or a wait', (_name: string, error: MediaFleetRpcError) => {
     expect(
       isMediaFleetFallback(error),
-      'a protocol or application answer is an error for the caller, never a silent second send'
+      'a server answer or a full queue is an error or a wait for the caller, never a silent second send over gRPC-web'
     ).toBe(false);
   });
 });
 
 describe('an application error keeps the type and the code the server sent', () => {
   it('maps an error with an application type to that type and its application code', () => {
-    const apiError = toMediaFleetApiError(FLOOD_WAIT);
+    const apiError = mediaFleetApiError(FLOOD_WAIT);
 
     expect(
       apiError.type,
@@ -77,13 +84,36 @@ describe('an application error keeps the type and the code the server sent', () 
   });
 
   it('keeps AUTH_TOKEN_INVALID as its catalog type', () => {
-    const apiError = toMediaFleetApiError(AUTH_TOKEN_INVALID);
+    const apiError = mediaFleetApiError(AUTH_TOKEN_INVALID);
 
     expect(apiError.type).toBe('AUTH_TOKEN_INVALID');
     expect(apiError.code).toBe(400);
   });
 
+  it('maps the overloaded fleet to the registry\'s temporary INTERNAL_SERVER_ERROR 500', () => {
+    const apiError = mediaFleetApiError(OVERLOADED);
+
+    expect(apiError.type).toBe('INTERNAL_SERVER_ERROR');
+    expect(apiError.code).toBe(500);
+  });
+
   it('keeps the server error as the original error for diagnostics', () => {
-    expect(toMediaFleetApiError(METHOD_INVALID).originalError).toBe(METHOD_INVALID);
+    expect(mediaFleetApiError(METHOD_INVALID).originalError).toBe(METHOD_INVALID);
+  });
+});
+
+describe('a fleet error without an application type is a typed transport error', () => {
+  it('never takes the free text of the error as its catalog type', () => {
+    const apiError = mediaFleetApiError({code: errorCodes.badConfiguration, message: 'tokenFrom is exclusive'});
+
+    expect(
+      apiError.type,
+      'free text is not a catalog type: the transport error is the typed NETWORK_BAD_RESPONSE'
+    ).toBe('NETWORK_BAD_RESPONSE');
+    expect(apiError.code).toBe(500);
+  });
+
+  it('a token the fleet refused without a type is a typed transport error too', () => {
+    expect(mediaFleetApiError(TOKEN_EXPIRED).type).toBe('NETWORK_BAD_RESPONSE');
   });
 });

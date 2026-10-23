@@ -31,6 +31,7 @@ import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {callMediaFleet, hasMediaFleetPool} from '@lib/impulse/media/mediaFleet';
 import {routesToMediaFleet} from '@lib/impulse/media/mediaFleetRoute';
 import {captureImpulseSessionToken, clearPendingToken, persistPendingToken, refreshImpulseSession, whenImpulseSessionReady} from '../session';
+import {apiErrorOf} from './apiError';
 import {getServiceAndMethod} from './serviceMap';
 import {
   bindDeclarationToNewSession,
@@ -493,17 +494,7 @@ function toApiError(err: unknown): ApiError {
   const description = connectError.metadata.get('error-description') || undefined;
   const migrateDc = connectError.metadata.get('migrate-dc');
 
-  const error: ApiError = {
-    type,
-    code: resolveNumericCode(connectError.code, type as string, Boolean(migrateDc)),
-    originalError: err
-  };
-
-  if(description) {
-    error.message = description;
-  }
-
-  return error;
+  return apiErrorOf(type, resolveNumericCode(connectError.code, type as string, Boolean(migrateDc)), err, description);
 }
 
 /**
@@ -646,19 +637,7 @@ export async function grpcInvoke(
     isPendingSessionAllowedMethod(service.typeName, descMethod.name);
 
   if(routesToMediaFleet(method) && hasMediaFleetPool(accountNumber)) {
-    let fleetReply: Uint8Array | undefined;
-    try {
-      fleetReply = await callMediaFleet(accountNumber, method, toBinary(descMethod.input, request), abortSignal);
-    } catch(err: unknown) {
-      const apiError = err as ApiError;
-      if(apiError.type === 'AUTH_KEY_UNREGISTERED' && !isRetry && await refreshImpulseSession(accountNumber)) {
-        logger.info('Retrying the media fleet call after session refresh', {method, accountNumber});
-        return grpcInvoke(method, params, accountNumber, abortSignal, true, isReinitRetry);
-      }
-
-      throw err;
-    }
-
+    const fleetReply = await callMediaFleet(accountNumber, method, toBinary(descMethod.input, request), abortSignal);
     if(fleetReply !== undefined) {
       return protoToTL(fromBinary(descMethod.output, fleetReply), descMethod.output);
     }

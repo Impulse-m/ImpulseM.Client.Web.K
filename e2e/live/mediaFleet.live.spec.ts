@@ -4,6 +4,8 @@ import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 import type {Page, Route} from '@playwright/test';
 
 import {ConfigSchema, DcOptionSchema} from '../../src/lib/impulse/grpc/gen/v1/types_pb';
+import {GRPC_WEB_MESSAGE_FLAGS, joinGrpcWebFrames, splitGrpcWebFrames} from '../../src/tests/helpers/grpcWebFrames';
+import type {GrpcWebFrame} from '../../src/tests/helpers/grpcWebFrames';
 import {liveLane} from './lane';
 import {expect, test} from './pair';
 import type {PersonaSession} from './personaSession';
@@ -14,7 +16,7 @@ import type {PersonaSession} from './personaSession';
  *
  * The dev stack publishes no media_only dcOption yet (tests/ImpulseM.Smokes/Fixtures/LiveStackFixture.cs:322),
  * so the help.getConfig reply is rewritten in each page to carry one for this DC, the way a published option
- * would arrive. The fleet host is media.impulsem.io:443.
+ * would arrive. The fleet host is media.impulsem.io:443. The pool's own counters say which path carried the bytes.
  */
 test.skip(!liveLane.enabled, liveLane.skipReason);
 
@@ -23,8 +25,6 @@ const MEDIA_PORT: number = 443;
 const GET_CONFIG_ROUTE: string = '**/v1.help.Help/GetConfig';
 // A 512 KiB part is the client's minimum part size below 10 MiB (apiFileManager.getLimitPart), so this is two parts.
 const TWO_PART_BYTES: number = 700 * 1024;
-const GRPC_WEB_HEADER_BYTES: number = 5;
-const GRPC_WEB_DATA_FLAG: number = 0;
 const DOCUMENT_NAME: string = 'two-part-transfer.bin';
 const IN_FLIGHT_TEXT: string = 'delivered while the file moves';
 
@@ -49,41 +49,22 @@ function addMediaOption(message: Uint8Array): Uint8Array {
   return toBinary(ConfigSchema, config);
 }
 
-// Each gRPC-web frame is a flag byte and a big-endian length, then the message. Only data frames carry a Config.
-function rewriteDataFrames(body: Uint8Array, rewrite: (message: Uint8Array) => Uint8Array): Uint8Array {
-  const view = new DataView(body.buffer, body.byteOffset, body.byteLength);
-  const frames: Uint8Array[] = [];
-  let offset = 0;
-  while(offset < body.byteLength) {
-    const flag = view.getUint8(offset);
-    const length = view.getUint32(offset + 1);
-    const payload = body.subarray(offset + GRPC_WEB_HEADER_BYTES, offset + GRPC_WEB_HEADER_BYTES + length);
-    const message = flag === GRPC_WEB_DATA_FLAG ? rewrite(payload) : payload;
+// Only the message frames carry a Config; the trailer frame passes through unchanged.
+function rewriteMessageFrames(body: Uint8Array, rewrite: (message: Uint8Array) => Uint8Array): Uint8Array {
+  return joinGrpcWebFrames(splitGrpcWebFrames(body).map((frame: GrpcWebFrame): GrpcWebFrame => ({
+    flags: frame.flags,
+    payload: frame.flags === GRPC_WEB_MESSAGE_FLAGS ? rewrite(frame.payload) : frame.payload
+  })));
+}
 
-    const frame = new Uint8Array(GRPC_WEB_HEADER_BYTES + message.byteLength);
-    const frameView = new DataView(frame.buffer);
-    frameView.setUint8(0, flag);
-    frameView.setUint32(1, message.byteLength);
-    frame.set(message, GRPC_WEB_HEADER_BYTES);
-    frames.push(frame);
-    offset += GRPC_WEB_HEADER_BYTES + length;
-  }
-
-  const total = frames.reduce((sum: number, frame: Uint8Array): number => sum + frame.byteLength, 0);
-  const out = new Uint8Array(total);
-  let written = 0;
-  for(const frame of frames) {
-    out.set(frame, written);
-    written += frame.byteLength;
-  }
-
-  return out;
+async function fleetCounters(page: Page): Promise<{served: number, fallbacks: number}> {
+  return page.evaluate(() => (window as any).rootScope.managers.apiManager.getMediaFleetCounters());
 }
 
 async function publishMediaOption(page: Page): Promise<void> {
   await page.route(GET_CONFIG_ROUTE, async(route: Route) => {
     const response = await route.fetch();
-    const body = rewriteDataFrames(new Uint8Array(await response.body()), addMediaOption);
+    const body = rewriteMessageFrames(new Uint8Array(await response.body()), addMediaOption);
     const headers: Record<string, string> = {...response.headers()};
     delete headers['content-length'];
     await route.fulfill({status: response.status(), headers, body: Buffer.from(body)});
@@ -148,4 +129,11 @@ test('a two-part file crosses the media fleet whole while the update socket deli
   const received = await downloadedDigest(recipient);
   expect(received.size, 'the downloaded document must be the whole two-part file').toBe(TWO_PART_BYTES);
   expect(received.sha256, 'the bytes downloaded must be the bytes uploaded').toBe(expectedSha256);
+
+  const uploadedBy = await fleetCounters(sender.page);
+  const downloadedBy = await fleetCounters(recipient.page);
+  expect(uploadedBy.served, 'the upload parts must be carried by the media fleet').toBeGreaterThan(0);
+  expect(uploadedBy.fallbacks, 'no upload part may fall back to the gateway').toBe(0);
+  expect(downloadedBy.served, 'the download must be carried by the media fleet').toBeGreaterThan(0);
+  expect(downloadedBy.fallbacks, 'no download may fall back to the gateway').toBe(0);
 });
