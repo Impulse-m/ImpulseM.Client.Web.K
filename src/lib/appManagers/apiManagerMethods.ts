@@ -7,6 +7,7 @@ import {AppManager} from '@appManagers/manager';
 import rootScope from '@lib/rootScope';
 import {UserAuth} from '@appManagers/constants';
 import {MTMessage} from '@lib/mtproto/networker';
+import {setMediaFleetConfig} from '@lib/impulse/media/mediaFleet';
 
 type HashResult = {
   hash: number,
@@ -317,6 +318,7 @@ export default abstract class ApiManagerMethods extends AppManager {
       params: {},
       processResult: (config) => {
         this.config = config;
+        setMediaFleetConfig(this.getAccountNumber(), config);
         this.rootScope.dispatchEvent('config', config);
         return config;
       },

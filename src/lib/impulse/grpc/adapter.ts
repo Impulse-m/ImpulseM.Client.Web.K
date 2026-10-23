@@ -21,13 +21,15 @@
  */
 
 import type {DescField, DescMessage, DescService} from '@bufbuild/protobuf';
-import {create, ScalarType} from '@bufbuild/protobuf';
+import {create, fromBinary, ScalarType, toBinary} from '@bufbuild/protobuf';
 import {Code, ConnectError, createClient, createContextValues} from '@connectrpc/connect';
 
 import Schema from '@lib/mtproto/schema';
 import {formatJSONValue} from '@lib/mtproto/tl_utils';
 import {getLogger} from '@lib/impulseLogger';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import {callMediaFleet, hasMediaFleetPool} from '@lib/impulse/media/mediaFleet';
+import {routesToMediaFleet} from '@lib/impulse/media/mediaFleetRoute';
 import {captureImpulseSessionToken, clearPendingToken, persistPendingToken, refreshImpulseSession, whenImpulseSessionReady} from '../session';
 import {getServiceAndMethod} from './serviceMap';
 import {
@@ -642,6 +644,25 @@ export async function grpcInvoke(
   const wasPendingScopedRequest = !sessionTokenAtRequestStart &&
     Boolean(pendingTokenAtRequestStart) &&
     isPendingSessionAllowedMethod(service.typeName, descMethod.name);
+
+  if(routesToMediaFleet(method) && hasMediaFleetPool(accountNumber)) {
+    let fleetReply: Uint8Array | undefined;
+    try {
+      fleetReply = await callMediaFleet(accountNumber, method, toBinary(descMethod.input, request), abortSignal);
+    } catch(err: unknown) {
+      const apiError = err as ApiError;
+      if(apiError.type === 'AUTH_KEY_UNREGISTERED' && !isRetry && await refreshImpulseSession(accountNumber)) {
+        logger.info('Retrying the media fleet call after session refresh', {method, accountNumber});
+        return grpcInvoke(method, params, accountNumber, abortSignal, true, isReinitRetry);
+      }
+
+      throw err;
+    }
+
+    if(fleetReply !== undefined) {
+      return protoToTL(fromBinary(descMethod.output, fleetReply), descMethod.output);
+    }
+  }
 
   const contextValues = createContextValues();
   try {

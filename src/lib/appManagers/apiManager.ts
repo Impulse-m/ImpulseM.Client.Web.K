@@ -8,6 +8,7 @@
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
 import {applyImpulseUserId, clearImpulseSession, restoreImpulseSession} from '@lib/impulse/session';
 import {setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
+import {tearDownMediaFleet} from '@lib/impulse/media/mediaFleet';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
 import type {MethodDeclMap} from '@layer';
@@ -398,6 +399,7 @@ export class ApiManager extends ApiManagerMethods {
     // B's realtime alive (#436); tearing down the singleton here is exactly the
     // cross-account bug this change removes.
     stopImpulseRealtime(this.getAccountNumber());
+    tearDownMediaFleet(this.getAccountNumber());
     await clearImpulseSession(this.getAccountNumber());
 
     const totalAccounts = await AccountController.getTotalAccounts();
