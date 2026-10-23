@@ -8,7 +8,7 @@
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
 import {clearImpulseSession, fleetIdentityFor, restoreImpulseSession} from '@lib/impulse/session';
 import {setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
-import {setRealtimeRecovery, setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
+import {setRealtimeDispatch, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
 import type {MethodDeclMap} from '@layer';
@@ -145,38 +145,21 @@ export class ApiManager extends ApiManagerMethods {
   }
 
   private startRealtimeBringUp(userId: UserId): void {
-    // This slot's own account number, threaded into every realtime call. The realtime lane is
-    // per-account now (#436 moved credentials/session/transport per account; the connection
-    // lifecycle was the last singleton) -- so the sink this slot registers, and the socket it
-    // opens, belong to THIS slot and never touch another account's.
     const accountNumber = this.getAccountNumber();
 
-    // impulse: seed a subscribed channel from cached dialog pts before TooLong reaches its guard.
-    const seedChannelState = (channelId: ChatId): void => {
-      const pts = this.dialogsStorage.getDialogOnly(channelId.toPeerId(true))?.pts;
-      if(pts) {
-        this.apiUpdatesManager.addChannelState(channelId, pts);
-      }
-    };
+    setRealtimeDispatch(accountNumber, {
+      sink: (updates: any, channelId: ChatId | undefined): void => {
+        let hasChannelTooLong = false;
+        for(const update of updates.updates ?? []) {
+          hasChannelTooLong ||= update._ === 'updateChannelTooLong';
+        }
+        if(channelId !== undefined && hasChannelTooLong) {
+          this.apiUpdatesManager.seedChannelFromCache(channelId);
+        }
 
-    setRealtimeSink(accountNumber, (updates, channelId) => {
-      let hasChannelTooLong = false;
-      for(const update of updates.updates ?? []) {
-        hasChannelTooLong ||= update._ === 'updateChannelTooLong';
-      }
-      if(channelId !== undefined && hasChannelTooLong) {
-        seedChannelState(channelId);
-      }
-
-      this.apiUpdatesManager.processUpdateMessage(updates);
-    });
-
-    setRealtimeRecovery(accountNumber, (channelId) => {
-      if(channelId !== undefined) {
-        seedChannelState(channelId);
-      }
-
-      this.apiUpdatesManager.requestDifference(channelId);
+        this.apiUpdatesManager.processUpdateMessage(updates);
+      },
+      recovery: (channelId: ChatId | undefined): Promise<void> => this.apiUpdatesManager.requestDifference(channelId)
     });
 
     startImpulseRealtime(String(userId), accountNumber);
@@ -192,7 +175,7 @@ export class ApiManager extends ApiManagerMethods {
     // push channel -- but only for the account that is actually signed in.
     //
     // createManagers builds a manager for all four slots and calls after() on
-    // every one. `setRealtimeSink` is context-wide, so registering it here
+    // every one. `setRealtimeDispatch` is context-wide, so registering it here
     // unconditionally meant the last slot to run owned it -- usually an empty one.
     // Every Centrifugo update was then handed to an idle account's updates
     // manager and quietly dropped: a sent message never received its
@@ -425,7 +408,7 @@ export class ApiManager extends ApiManagerMethods {
 
   private async wipeLocalSession(migrateAccountTo?: ActiveAccountNumber) {
     const accountNumber = this.getAccountNumber();
-    const currentDcId: DcId = this.baseDcId;
+    const currentDcId: DcId = this.baseDcId || App.baseDcId;
 
     // Every step of the wipe runs whatever the others answered (.demo/tdlib/td/telegram/AuthManager.cpp:1352-1364); the
     // failures are rethrown after the wipe.
@@ -504,14 +487,11 @@ export class ApiManager extends ApiManagerMethods {
       this.rootScope.dispatchEvent('logging_out', {accountNumber, migrateTo: migrateAccountTo});
     };
 
-    // The timer and the awaited wipe share one run of the clear, so its failure is recorded once.
     let clearing: Promise<unknown> | undefined;
     const clearOnce = (): Promise<unknown> => clearing ??= attempt(clear);
     setTimeout(clearOnce, 1e3);
 
-    await Promise.all(logoutPromises).catch((error) => {
-      error.handled = true;
-    });
+    await attempt(() => Promise.all(logoutPromises));
     await clearOnce();
 
     if(failures.length === 1) {

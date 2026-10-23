@@ -17,6 +17,9 @@ const ACCOUNT: ActiveAccountNumber = 1;
 const USER_ID: string = '42';
 const CHANNEL_ID: number = 42;
 const DISPATCH_FAILURE: Error = new Error('sink rejected the update');
+const RECOVERY_FAILURE: Error = new Error('difference request rejected');
+
+const {recordedErrors} = vi.hoisted(() => ({recordedErrors: [] as unknown[][]}));
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
@@ -24,9 +27,26 @@ vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   return {...actual, Centrifuge: harness().CentrifugeStub};
 });
 
+vi.mock('@lib/impulseLogger', async(importActual) => {
+  const actual = await importActual<typeof import('@lib/impulseLogger')>();
+  const silent = (): void => {};
+  return {
+    ...actual,
+    getLogger: (): ReturnType<typeof actual.getLogger> => ({
+      debug: silent,
+      info: silent,
+      warn: silent,
+      error: (...args: unknown[]): void => {
+        recordedErrors.push(args);
+      }
+    })
+  };
+});
+
 beforeEach(async() => {
   vi.resetModules();
   socketHarness.reset();
+  recordedErrors.length = 0;
   await registerSessionIdentitySource();
 });
 
@@ -40,11 +60,11 @@ function publicationOf(channel: string): {channel: string, data: unknown} {
 
 describe('a decoded update the sink cannot dispatch', () => {
   it('leaves the socket connected and does not re-enter the sink', async() => {
-    const {setRealtimeSink, startImpulseRealtime} = await import('@lib/impulse/realtime');
+    const {setRealtimeDispatch, startImpulseRealtime} = await import('@lib/impulse/realtime');
     const sink = vi.fn((): void => {
       throw DISPATCH_FAILURE;
     });
-    setRealtimeSink(ACCOUNT, sink);
+    setRealtimeDispatch(ACCOUNT, {sink, recovery: vi.fn((): Promise<void> => Promise.resolve())});
     startImpulseRealtime(USER_ID, ACCOUNT);
     const [socket] = socketHarness.sockets;
 
@@ -57,13 +77,12 @@ describe('a decoded update the sink cannot dispatch', () => {
   });
 
   it('asks for the difference of the channel whose lane carried it', async() => {
-    const {setRealtimeRecovery, setRealtimeSink, startImpulseRealtime} = await import('@lib/impulse/realtime');
+    const {setRealtimeDispatch, startImpulseRealtime} = await import('@lib/impulse/realtime');
     const sink = vi.fn((): void => {
       throw DISPATCH_FAILURE;
     });
-    const recovery = vi.fn();
-    setRealtimeSink(ACCOUNT, sink);
-    setRealtimeRecovery(ACCOUNT, recovery);
+    const recovery = vi.fn((): Promise<void> => Promise.resolve());
+    setRealtimeDispatch(ACCOUNT, {sink, recovery});
     startImpulseRealtime(USER_ID, ACCOUNT);
     const [socket] = socketHarness.sockets;
 
@@ -77,13 +96,12 @@ describe('a decoded update the sink cannot dispatch', () => {
   });
 
   it('asks for the inbox difference when the inbox lane carried it', async() => {
-    const {setRealtimeRecovery, setRealtimeSink, startImpulseRealtime} = await import('@lib/impulse/realtime');
+    const {setRealtimeDispatch, startImpulseRealtime} = await import('@lib/impulse/realtime');
     const sink = vi.fn((): void => {
       throw DISPATCH_FAILURE;
     });
-    const recovery = vi.fn();
-    setRealtimeSink(ACCOUNT, sink);
-    setRealtimeRecovery(ACCOUNT, recovery);
+    const recovery = vi.fn((): Promise<void> => Promise.resolve());
+    setRealtimeDispatch(ACCOUNT, {sink, recovery});
     startImpulseRealtime(USER_ID, ACCOUNT);
     const [socket] = socketHarness.sockets;
 
@@ -93,5 +111,66 @@ describe('a decoded update the sink cannot dispatch', () => {
       recovery,
       'an update of the user lane asks for the inbox difference, updates.getDifference'
     ).toHaveBeenCalledWith(undefined);
+  });
+});
+
+describe('the recovery of a failed dispatch cannot break the socket', () => {
+  it('a recovery that throws leaves the socket connected', async() => {
+    const {setRealtimeDispatch, startImpulseRealtime} = await import('@lib/impulse/realtime');
+    const sink = (): void => {
+      throw DISPATCH_FAILURE;
+    };
+    const recovery = (): never => {
+      throw RECOVERY_FAILURE;
+    };
+    setRealtimeDispatch(ACCOUNT, {sink, recovery});
+    startImpulseRealtime(USER_ID, ACCOUNT);
+    const [socket] = socketHarness.sockets;
+
+    expect(
+      () => socket.emit('publication', publicationOf(`channel:${CHANNEL_ID}`)),
+      'a recovery that cannot run is a failed recovery, not a throw out of the publication handler'
+    ).not.toThrow();
+    expect(socket.disconnected, 'the socket of the slot stays connected when the recovery fails').toBe(false);
+  });
+
+  it('a failed recovery is recorded as an error with its cause, and the socket stays connected', async() => {
+    const {setRealtimeDispatch, startImpulseRealtime} = await import('@lib/impulse/realtime');
+    const sink = (): void => {
+      throw DISPATCH_FAILURE;
+    };
+    const recovery = (): Promise<void> => Promise.reject(RECOVERY_FAILURE);
+    setRealtimeDispatch(ACCOUNT, {sink, recovery});
+    startImpulseRealtime(USER_ID, ACCOUNT);
+    const [socket] = socketHarness.sockets;
+
+    socket.emit('publication', publicationOf(`channel:${CHANNEL_ID}`));
+
+    await vi.waitFor((): void => {
+      expect(
+        recordedErrors.some((args: unknown[]): boolean => args[2] === RECOVERY_FAILURE),
+        'a failed difference request is recorded with the error that failed it'
+      ).toBe(true);
+    });
+    expect(socket.disconnected, 'the socket of the slot stays connected when the difference request fails').toBe(false);
+  });
+});
+
+describe('an oversize publication asks for the difference of its own lane', () => {
+  it('an oversize channel publication asks for that channel and dispatches nothing', async() => {
+    const {setRealtimeDispatch, startImpulseRealtime} = await import('@lib/impulse/realtime');
+    const sink = vi.fn();
+    const recovery = vi.fn((): Promise<void> => Promise.resolve());
+    setRealtimeDispatch(ACCOUNT, {sink, recovery});
+    startImpulseRealtime(USER_ID, ACCOUNT);
+    const [socket] = socketHarness.sockets;
+
+    socket.emit('publication', {channel: `channel:${CHANNEL_ID}`, data: {oversize: true, type: 500}});
+
+    expect(
+      recovery,
+      'an oversize channel publication asks for that channel: updates.getChannelDifference is the channel\'s recovery'
+    ).toHaveBeenCalledWith(CHANNEL_ID);
+    expect(sink, 'an oversize publication is not dispatched: the difference carries it').not.toHaveBeenCalled();
   });
 });

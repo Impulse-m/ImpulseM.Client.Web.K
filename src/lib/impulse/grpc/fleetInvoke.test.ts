@@ -1,7 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 
-import {backendWsOrigin} from '@config/backendOrigin';
+import {backendHttpOrigin, backendWsOrigin} from '@config/backendOrigin';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {CENTRIFUGO_CONNECTION_PATH, FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import {BoolResponseSchema, ConfigSchema, UploadFileSchema, UploadFileValueSchema} from './gen/v1/types_pb';
@@ -38,7 +38,7 @@ const GET_CONFIG = 'help.getConfig';
 const STALE_SESSION_TOKEN: string = 'session-token-stale';
 const RENEWED_TOKEN: string = 'session-token-renewed';
 const MEDIA_URL: string = `wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`;
-const SOCKET_URL: string = `${backendWsOrigin()}${CENTRIFUGO_CONNECTION_PATH}`;
+const SOCKET_URL: string = `${backendWsOrigin(backendHttpOrigin())}${CENTRIFUGO_CONNECTION_PATH}`;
 const TOKEN_EXPIRED: number = 109;
 
 function uploadFileBytes(payload: Uint8Array): Uint8Array {

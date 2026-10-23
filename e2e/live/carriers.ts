@@ -1,5 +1,6 @@
 import type {Browser, BrowserContext, Page, Route} from '@playwright/test';
 
+import {backendWsOrigin} from '../../src/config/backendOrigin';
 import {CENTRIFUGO_CONNECTION_PATH} from '../../src/lib/impulse/fleet/fleetPath';
 
 /*
@@ -27,7 +28,7 @@ export type GatewayRecorder = {
 
 /** The update socket of a gateway origin, as the client dials it (realtime.ts, backendWsOrigin). */
 export function socketUrlOf(gatewayOrigin: string): string {
-  return `${gatewayOrigin.replace(/^http/, 'ws')}${CENTRIFUGO_CONNECTION_PATH}`;
+  return `${backendWsOrigin(gatewayOrigin)}${CENTRIFUGO_CONNECTION_PATH}`;
 }
 
 /** Whether a carrier answers its WebSocket within the probe timeout, from the test runner. */

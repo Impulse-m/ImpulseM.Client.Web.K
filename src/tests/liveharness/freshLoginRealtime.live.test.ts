@@ -15,7 +15,7 @@ import {waitUntil} from './wait';
  * B1 fresh-login realtime — issue #100: the fresh-login realtime hole.
  *
  * THE CONTRACT. apiManager.after() (apiManager.ts:154-167) performs the full realtime
- * bring-up trio — setRealtimeSink + startImpulseRealtime + reportImpulseConnected() — but
+ * bring-up trio — setRealtimeDispatch + startImpulseRealtime + reportImpulseConnected() — but
  * ONLY on the branch where a persisted signed-in account exists at boot. setUserAuth
  * (apiManager.ts:321), the seam every fresh login runs through (setUser -> setUserAuth),
  * calls startImpulseRealtime ALONE. A session that boots with NO persisted account and then
@@ -268,7 +268,7 @@ describeLive('B1 fresh-login realtime: a session signed in THIS boot (no persist
     ).toBe(true);
   }, 60_000);
 
-  it('fact A: a push driven after the fresh login is APPLIED by the managers — the missing setRealtimeSink half of the bring-up trio', async() => {
+  it('fact A: a push driven after the fresh login is APPLIED by the managers — the missing setRealtimeDispatch half of the bring-up trio', async() => {
     if(!onlineApplied) {
       let verdict = await diagnosePresenceHop({
         stack: stack1!,

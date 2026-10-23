@@ -281,7 +281,7 @@ describeLive('B1 multi-account realtime: two accounts in one browser both keep a
       inboundA.some((capture) => capture.text === markerA && capture.atMs >= sendStartMs),
       'account A\'s OWN updates manager never received the inbound message: even if a publication ' +
       'reached a socket, the singleton routes every publication through one shared sink (the last ' +
-      'account to call setRealtimeSink), so account A\'s manager is never handed its own push. Each ' +
+      'account to call setRealtimeDispatch), so account A\'s manager is never handed its own push. Each ' +
       `account\'s socket must route to that account\'s own updates manager. Captured on A: ` +
       `${JSON.stringify(inboundA)}`
     ).toBe(true);

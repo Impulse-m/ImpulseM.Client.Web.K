@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 
-import {backendWsOrigin} from '@config/backendOrigin';
+import {backendHttpOrigin, backendWsOrigin} from '@config/backendOrigin';
 import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import {
   defaultRpcEndpoint,
@@ -61,7 +61,7 @@ describe('the refresh endpoint is the host of the update socket', () => {
       defaultRpcEndpoint(),
       'the stand names rpc.impulsem.io in VITE_IMPULSE_BACKEND_URL; the anonymous refresh pool connects to that host'
     ).toBe(`wss://rpc.impulsem.io:443${FLEET_CONNECTION_PATH}`);
-    expect(backendWsOrigin()).toBe('wss://rpc.impulsem.io');
+    expect(backendWsOrigin(backendHttpOrigin())).toBe('wss://rpc.impulsem.io');
   });
 });
 

@@ -6,7 +6,7 @@
  * deploy/centrifugo/media/registry.json. Every other call is an rpc on the update socket (realtime.ts).
  */
 
-import {backendWsOrigin} from '@config/backendOrigin';
+import {backendHttpOrigin, backendWsOrigin} from '@config/backendOrigin';
 import type {FleetConfig} from './fleetEndpoint';
 import {endpointOf, mediaOptionOf} from './fleetEndpoint';
 import {FLEET_CONNECTION_PATH} from './fleetPath';
@@ -37,6 +37,6 @@ export function mediaEndpointOf(config: FleetConfig): string | undefined {
 
 /** The endpoint of the anonymous pool the session refresh uses: the host of the update socket, on port 443. */
 export function defaultRpcEndpoint(): string {
-  const origin = new URL(backendWsOrigin());
+  const origin = new URL(backendWsOrigin(backendHttpOrigin()));
   return `${origin.protocol}//${origin.hostname}:${origin.port || DEFAULT_FLEET_PORT}${FLEET_CONNECTION_PATH}`;
 }

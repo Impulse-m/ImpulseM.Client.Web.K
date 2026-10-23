@@ -1,5 +1,6 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
+import App from '@config/app';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
@@ -224,6 +225,39 @@ describe('the credential clear of the sign-out is recorded once when the timer r
       process.off('unhandledRejection', recordUnhandled);
       vi.useRealTimers();
     }
+  });
+});
+
+describe('the revocation of a sign-out', () => {
+  it.each([0, undefined])('a slot whose base DC is %s revokes the authorization on the App base DC', async(baseDcId: number | undefined) => {
+    accountGet.mockRejectedValue(READ_FAILURE);
+    const manager: SignedInManager = Object.assign(await signedInManager(), {baseDcId});
+
+    await expect(manager.logOut(), 'the read failure reaches the sign-out').rejects.toBe(READ_FAILURE);
+    expect(
+      manager.invokeApi,
+      'auth.logOut goes to the App base DC when the slot holds no base DC of its own'
+    ).toHaveBeenCalledWith('auth.logOut', {}, {dcId: App.baseDcId, ignoreErrors: true});
+  });
+
+  it('a failed auth.logOut rejects the sign-out, and the local wipe still runs', async() => {
+    const LOGOUT_FAILURE: ApiError = {type: 'AUTH_KEY_UNREGISTERED', code: 401};
+    accountGet.mockResolvedValue({dc2_auth_key: 'auth-key-of-the-slot'});
+    const manager: SignedInManager = Object.assign(await signedInManager(), {
+      baseDcId: CURRENT_DC,
+      invokeApi: vi.fn(async(): Promise<void> => {
+        throw LOGOUT_FAILURE;
+      })
+    });
+
+    await expect(
+      manager.logOut(),
+      'a failed auth.logOut is a failure of the sign-out, not a silent success'
+    ).rejects.toBe(LOGOUT_FAILURE);
+    expect(
+      manager.rootScope.dispatchEvent,
+      'the local wipe still runs after the failed revocation: it announces the logout of the slot'
+    ).toHaveBeenCalledWith('logging_out', expect.objectContaining({accountNumber: ACCOUNT}));
   });
 });
 

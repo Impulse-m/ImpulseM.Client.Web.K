@@ -19,7 +19,7 @@ import Schema, {MTProtoConstructor} from '@lib/mtproto/schema';
 import {Centrifuge, type RpcOptions, type RpcResult, type Subscription} from '@impulsem/centrifuge/build/protobuf';
 import {fromBinary} from '@bufbuild/protobuf';
 
-import {backendWsOrigin} from '@config/backendOrigin';
+import {backendHttpOrigin, backendWsOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
 import type {TabState} from '@lib/apiManagerProxy';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
@@ -37,7 +37,7 @@ import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 
 const logger = getLogger('impulse-realtime');
 
-const CENTRIFUGO_WS = `${backendWsOrigin()}${CENTRIFUGO_CONNECTION_PATH}`;
+const CENTRIFUGO_WS = `${backendWsOrigin(backendHttpOrigin())}${CENTRIFUGO_CONNECTION_PATH}`;
 // Every regular call is an rpc on this client, and an rpc deadline may not exceed the client timeout.
 const UPDATE_SOCKET_TIMEOUT_MS: number = 30_000;
 const NO_CONNECTION_TOKEN: string = '';
@@ -48,7 +48,12 @@ export const ReconnectJitterMaxMs = getReconnectJitterMaxMs(import.meta.env.DEV)
 export const ReconnectJitterMinMs = ReconnectFloorMs;
 
 type RealtimeUpdateSink = (updates: any, channelId?: ChatId) => void;
-type RealtimeRecovery = (channelId: ChatId | undefined) => void;
+type RealtimeRecovery = (channelId: ChatId | undefined) => Promise<void>;
+
+type RealtimeDispatch = {
+  sink: RealtimeUpdateSink,
+  recovery: RealtimeRecovery
+};
 
 type Envelope = {
   type?: number,
@@ -96,8 +101,7 @@ type RealtimeConnection = {
   call: RealtimeCall | undefined,
   latestTabStates: TabState[],
   subscriptions: Map<string, Subscription>,
-  sink: RealtimeUpdateSink | undefined,
-  recovery: RealtimeRecovery | undefined
+  dispatch: RealtimeDispatch | undefined
 };
 
 const connectionsByAccount = new Map<ActiveAccountNumber, RealtimeConnection>();
@@ -113,8 +117,7 @@ function connectionFor(accountNumber: ActiveAccountNumber): RealtimeConnection {
       call: undefined,
       latestTabStates: [],
       subscriptions: new Map<string, Subscription>(),
-      sink: undefined,
-      recovery: undefined
+      dispatch: undefined
     };
     connectionsByAccount.set(accountNumber, record);
   }
@@ -122,13 +125,9 @@ function connectionFor(accountNumber: ActiveAccountNumber): RealtimeConnection {
   return record;
 }
 
-export function setRealtimeSink(accountNumber: ActiveAccountNumber, fn: RealtimeUpdateSink): void {
-  connectionFor(accountNumber).sink = fn;
-}
-
-/** Registers how a lane asks for the difference when the sink cannot take one of its publications. */
-export function setRealtimeRecovery(accountNumber: ActiveAccountNumber, fn: RealtimeRecovery): void {
-  connectionFor(accountNumber).recovery = fn;
+/** Registers how a slot's publications are dispatched, and how its lanes ask for the difference when a dispatch fails. */
+export function setRealtimeDispatch(accountNumber: ActiveAccountNumber, dispatch: RealtimeDispatch): void {
+  connectionFor(accountNumber).dispatch = dispatch;
 }
 
 /**
@@ -176,9 +175,8 @@ export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
     record.subscriptionSet = undefined;
     record.activeUserId = undefined;
   }
-  // call, sink and latestTabStates deliberately survive teardown: apiManager re-arms the sink on the
-  // next bring-up (startRealtimeBringUp), and a reconnect for the same slot should keep the tab
-  // lanes it already knew.
+  // call, dispatch and latestTabStates deliberately survive teardown: apiManager re-arms the dispatch
+  // on the next bring-up, and a reconnect for the same slot keeps the tab lanes it already knew.
 }
 
 /**
@@ -486,8 +484,8 @@ function envelopeOf(raw: unknown): Envelope | undefined {
 }
 
 function handleEnvelope(accountNumber: ActiveAccountNumber, raw: unknown, channel: string): void {
-  const sink = connectionFor(accountNumber).sink;
-  if(!sink) {
+  const dispatch = connectionFor(accountNumber).dispatch;
+  if(!dispatch) {
     return;
   }
 
@@ -504,11 +502,13 @@ function handleEnvelope(accountNumber: ActiveAccountNumber, raw: unknown, channe
     return;
   }
 
+  const channelId = channel.startsWith('channel:') ? asNumber(channel.slice('channel:'.length)) : undefined;
+
   // Too large to ride the push channel: canon's updatesTooLong means "too many updates to deliver here, fetch the
-  // difference" (.demo/telegram-docs-text/constructor/updatesTooLong.md). The manager answers it by forcing that fetch.
+  // difference" (.demo/telegram-docs-text/constructor/updatesTooLong.md). The lane of the publication asks for it.
   if(envelope.oversize) {
     logger.info('Oversize realtime update; asking for the difference', {type: envelope.type});
-    sink({_: 'updatesTooLong'});
+    requestDifference(dispatch, channelId);
     return;
   }
 
@@ -544,13 +544,20 @@ function handleEnvelope(accountNumber: ActiveAccountNumber, raw: unknown, channe
     channel
   });
 
-  const channelId = channel.startsWith('channel:') ? asNumber(channel.slice('channel:'.length)) : undefined;
   try {
-    sink(updates, channelId);
+    dispatch.sink(updates, channelId);
   } catch(err) {
     logger.warn('Realtime update dispatch failed; asking for the difference', {type: envelope.type, channel}, err);
-    connectionFor(accountNumber).recovery?.(channelId);
+    requestDifference(dispatch, channelId);
   }
+}
+
+function requestDifference(dispatch: RealtimeDispatch, channelId: ChatId | undefined): void {
+  new Promise<void>((resolve: (done: void | PromiseLike<void>) => void): void => {
+    resolve(dispatch.recovery(channelId));
+  }).catch((error: unknown): void => {
+    logger.error('Realtime difference request failed', {channelId}, error);
+  });
 }
 
 export function decodeRealtimeEnvelope(envelope: Envelope): any | undefined {

@@ -148,7 +148,7 @@ export async function diagnosePresenceHop(args: {
     return prefix + 'SINK NOT WIRED — the envelope reached the socket AND decodes to ' +
       `updateUserStatus(${matches.map((m) => m.statusName).join(', ')}), but ` +
       'apiUpdatesManager.processUpdateMessage never received it: the realtime sink is not delivering ' +
-      '(setRealtimeSink registration in apiManager.after() vs handleEnvelope early-outs), so every ' +
+      '(setRealtimeDispatch registration in apiManager.after() vs handleEnvelope early-outs), so every ' +
       'push this session is silently discarded' +
       (args.sinkNote ? `. ${args.sinkNote}` : '');
   }

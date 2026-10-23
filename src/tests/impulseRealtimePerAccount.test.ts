@@ -173,13 +173,15 @@ describe('realtime lifecycle is per account, not a SharedWorker-wide singleton (
     ).toBe(false);
   });
 
-  it('setRealtimeSink routes each account\'s publications to that account\'s own sink only', async() => {
+  it('setRealtimeDispatch routes each account\'s publications to that account\'s own dispatch only', async() => {
     const realtime = await importRealtime();
 
     const sinkA = vi.fn();
     const sinkB = vi.fn();
-    realtime.setRealtimeSink(1, sinkA);
-    realtime.setRealtimeSink(2, sinkB);
+    const recoveryA = vi.fn((): Promise<void> => Promise.resolve());
+    const recoveryB = vi.fn((): Promise<void> => Promise.resolve());
+    realtime.setRealtimeDispatch(1, {sink: sinkA, recovery: recoveryA});
+    realtime.setRealtimeDispatch(2, {sink: sinkB, recovery: recoveryB});
 
     realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
@@ -187,14 +189,16 @@ describe('realtime lifecycle is per account, not a SharedWorker-wide singleton (
     await waitForInstances(2);
     const [socketOne, socketTwo] = centrifugeInstances;
 
-    // An oversize envelope routes to the sink without needing a decodable payload — the shortest
-    // path that still proves which account's sink was handed the publication.
+    // An oversize envelope routes to its lane's recovery without needing a decodable payload — the shortest
+    // path that still proves which account's dispatch was handed the publication.
     socketOne.subscriptionFor('user:user-A')!.emit('publication', {data: {oversize: true, type: 1}});
-    expect(sinkA, 'account 1\'s socket must reach account 1\'s sink').toHaveBeenCalledWith({_: 'updatesTooLong'});
-    expect(sinkB, 'account 1\'s socket must NOT reach account 2\'s sink').not.toHaveBeenCalled();
+    expect(recoveryA, 'account 1\'s socket must reach account 1\'s recovery').toHaveBeenCalledWith(undefined);
+    expect(recoveryB, 'account 1\'s socket must NOT reach account 2\'s recovery').not.toHaveBeenCalled();
 
     socketTwo.subscriptionFor('user:user-B')!.emit('publication', {data: {oversize: true, type: 1}});
-    expect(sinkB, 'account 2\'s socket must reach account 2\'s sink').toHaveBeenCalledWith({_: 'updatesTooLong'});
-    expect(sinkA, 'account 2\'s socket must not have re-triggered account 1\'s sink').toHaveBeenCalledTimes(1);
+    expect(recoveryB, 'account 2\'s socket must reach account 2\'s recovery').toHaveBeenCalledWith(undefined);
+    expect(recoveryA, 'account 2\'s socket must not have re-triggered account 1\'s recovery').toHaveBeenCalledTimes(1);
+    expect(sinkA, 'an oversize publication is not dispatched to any sink').not.toHaveBeenCalled();
+    expect(sinkB, 'an oversize publication is not dispatched to any sink').not.toHaveBeenCalled();
   });
 });

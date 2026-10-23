@@ -20,6 +20,7 @@ import formatStarsAmount from '@appManagers/utils/payments/formatStarsAmount';
 import debounce from '@helpers/schedulers/debounce';
 import copy from '@helpers/object/copy';
 import noop from '@helpers/noop';
+import makeError from '@helpers/makeError';
 import pause from '@helpers/schedulers/pause';
 import {ConcurrentTaskQueue, MaxConcurrentChannelDifferences} from '@lib/impulse/realtimeDiscipline';
 
@@ -195,12 +196,13 @@ class ApiUpdatesManager {
     }
   }
 
-  // The caller is the SDK's publication handler, which disconnects the socket when the handler throws.
-  public requestDifference(channelId: ChatId | undefined): void {
-    Promise.resolve().then(() => channelId === undefined ?
-      this.processUpdateMessage({_: 'updatesTooLong'}) :
-      this.getChannelDifference(channelId)
-    );
+  public async requestDifference(channelId: ChatId | undefined): Promise<void> {
+    if(channelId === undefined) {
+      this.processUpdateMessage({_: 'updatesTooLong'});
+      return;
+    }
+
+    return this.requestChannelDifference(channelId);
   }
 
   public processLocalUpdate(update: Update) {
@@ -437,6 +439,27 @@ class ApiUpdatesManager {
     return this.channelDifferenceQueue.run(() => this.getChannelDifferenceInner(channelId, streamedDraftState));
   }
 
+  // updates.getChannelDifference takes the channel's pts (.demo/telegram-docs-text/method/updates.getChannelDifference.md:94-96),
+  // which its dialog carries (.demo/telegram-docs-text/constructor/dialog.md:21-22).
+  private requestChannelDifference(channelId: ChatId): Promise<void> {
+    return this.channelDifferenceQueue.run(async() => {
+      if(!this.channelStates[channelId]?.pts && !this.seedChannelFromCache(channelId)) {
+        await this.seedChannelFromDialog(channelId);
+      }
+
+      return this.getChannelDifferenceInner(channelId);
+    });
+  }
+
+  private async seedChannelFromDialog(channelId: ChatId): Promise<void> {
+    const dialog = await this.appMessagesManager.reloadConversation(channelId.toPeerId(true));
+    if(!dialog?.pts) {
+      throw makeError('UNKNOWN', 'The channel dialog carries no pts');
+    }
+
+    this.addChannelState(channelId, dialog.pts);
+  }
+
   private getChannelDifferenceInner(
     channelId: ChatId,
     streamedDraftState?: StreamedMessageDraftDifferenceState
@@ -563,6 +586,17 @@ class ApiUpdatesManager {
     };
   }
 
+  /** Seeds a channel's state from the cached dialog's pts; false when the cache holds none. */
+  public seedChannelFromCache(channelId: ChatId): boolean {
+    const pts = this.dialogsStorage.getDialogOnly(channelId.toPeerId(true))?.pts;
+    if(!pts) {
+      return false;
+    }
+
+    this.addChannelState(channelId, pts);
+    return true;
+  }
+
   public getChannelState(channelId: ChatId, pts?: number) {
     if(this.channelStates[channelId] === undefined) {
       this.addChannelState(channelId, pts);
@@ -685,7 +719,7 @@ class ApiUpdatesManager {
       if(!curState.lastPtsUpdateTime ||
           curState.lastPtsUpdateTime < (Date.now() - SYNC_DELAY)) {
         log.warn('channel too long, get diff');
-        this.getChannelDifference(channelId);
+        this.requestChannelDifference(channelId);
       }
       return false;
     }
