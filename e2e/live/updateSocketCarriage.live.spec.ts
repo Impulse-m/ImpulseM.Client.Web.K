@@ -65,5 +65,6 @@ test('a message, its history and a file travel the update socket, and no page re
   expect(sentBy.socket, 'the sender\'s calls must be carried by the update socket').toBeGreaterThan(0);
   expect(readBy.socket, 'the recipient\'s calls must be carried by the update socket').toBeGreaterThan(0);
   expect(gateway.workers, 'the workers of both pages must be watched, or the check below proves nothing').not.toEqual([]);
+  expect(gateway.attachFailures, 'every worker the recorder saw must attach, or its requests go unrecorded').toEqual([]);
   expect(gateway.calls, 'no request of either page may travel the gateway gRPC-web paths, from the sign-up on').toEqual([]);
 });

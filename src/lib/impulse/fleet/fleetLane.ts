@@ -42,14 +42,6 @@ type FleetLaneOptions = {
   getToken: (() => Promise<string>) | undefined
 };
 
-/** Thrown to a call that finds its lane retired: the lane that replaces it is the one the next call opens. */
-class FleetLaneRetiredError extends Error {
-  public constructor() {
-    super('fleet lane retired');
-    this.name = 'FleetLaneRetiredError';
-  }
-}
-
 export class FleetLane {
   public readonly key: string;
   public readonly identityKey: string;
@@ -79,10 +71,6 @@ export class FleetLane {
 
   /** Sends one call on this lane. A call beyond the pool's slots waits in the pool's queue for a settled call of the pool. */
   public async send(method: string, data: Uint8Array, signal?: AbortSignal): Promise<FleetPoolReply> {
-    if(this.retired) {
-      throw new FleetLaneRetiredError();
-    }
-
     this.inflight++;
     try {
       return await this.pool.rpc(method, data, {signal});

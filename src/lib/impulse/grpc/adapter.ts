@@ -17,7 +17,7 @@ import {formatJSONValue} from '@lib/mtproto/tl_utils';
 import {getLogger} from '@lib/impulseLogger';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {TOKEN_EXPIRED_CODE} from '@lib/impulse/centrifugoCodes';
-import {callMediaFleet, mediaFleetEndpoint} from '@lib/impulse/fleet/fleet';
+import {callMediaFleet} from '@lib/impulse/fleet/fleet';
 import type {FleetCall} from '@lib/impulse/fleet/fleet';
 import {routesToMediaFleet} from '@lib/impulse/fleet/fleetRoute';
 import {apiErrorOf, isApiError, isFleetRpcError, pendingTokenOf, transportApiError} from '@lib/impulse/fleet/fleetError';
@@ -277,9 +277,9 @@ export async function grpcInvoke(
   }
 }
 
-/** The file-transfer calls of a published media fleet travel it; every other call is an rpc on the update socket. */
+/** The file-transfer calls travel the media fleet; every other call is an rpc on the update socket of its slot. */
 function carry(call: FleetCall): Promise<Uint8Array> {
-  if(routesToMediaFleet(call.method) && mediaFleetEndpoint(call.accountNumber) !== undefined) {
+  if(routesToMediaFleet(call.method)) {
     return callMediaFleet(call);
   }
 

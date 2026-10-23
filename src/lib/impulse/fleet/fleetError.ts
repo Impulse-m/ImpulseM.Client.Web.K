@@ -1,17 +1,22 @@
+import type {Error as CentrifugeError} from '@impulsem/centrifuge/build/protobuf';
 import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 
+import canonErrorCatalog from '@/scripts/in/errors.json';
 import {AUTH_TOKEN_INVALID_CODE, METHOD_INVALID_CODE, TOKEN_EXPIRED_CODE} from '@lib/impulse/centrifugoCodes';
 
-/** A fleet call's rejection as the pool reports it: a pool or connection code, or a server answer with its application type. */
-export type FleetRpcError = {
-  code: number,
-  message?: string,
-  appCode?: number,
-  appType?: string,
-  metadata?: Record<string, string>
-};
+/** A fleet call's rejection as the SDK pool reports it. */
+export type FleetRpcError = CentrifugeError;
 
 const TRANSPORT_ERROR_TYPE: ErrorType = 'NETWORK_BAD_RESPONSE';
+const UNKNOWN_ERROR_TYPE: ErrorType = 'UNKNOWN';
+// Catalog identifiers with a printf number (FLOOD_WAIT_%d) match any digits in its place.
+const PRINTF_NUMBER: string = '%d';
+const CATALOG_IDENTIFIERS: ReadonlySet<string> = new Set<string>(
+  Object.keys(canonErrorCatalog).filter((identifier: string): boolean => !identifier.includes(PRINTF_NUMBER))
+);
+const CATALOG_TEMPLATES: RegExp[] = Object.keys(canonErrorCatalog)
+  .filter((identifier: string): boolean => identifier.includes(PRINTF_NUMBER))
+  .map((identifier: string): RegExp => new RegExp(`^${identifier.split(PRINTF_NUMBER).join('\\d+')}$`));
 // The numeric code of the registry's temporary INTERNAL_SERVER_ERROR (deploy/centrifugo/media/config.json).
 const TRANSPORT_ERROR_CODE: number = 500;
 const MIGRATE_CODE: number = 303;
@@ -41,19 +46,27 @@ export function isFleetRpcError(err: unknown): err is FleetRpcError {
   return typeof err === 'object' && err !== null && 'code' in err && typeof err.code === 'number';
 }
 
+/** An SDK ErrorContext carries a category, not a numeric code, so it is not an ApiError. */
 export function isApiError(err: unknown): err is ApiError {
-  return typeof err === 'object' && err !== null && 'type' in err;
+  return typeof err === 'object' && err !== null
+    && 'type' in err && typeof err.type === 'string'
+    && 'code' in err && typeof err.code === 'number';
+}
+
+function isCatalogType(appType: string): appType is ErrorType {
+  return CATALOG_IDENTIFIERS.has(appType) || CATALOG_TEMPLATES.some((template: RegExp): boolean => template.test(appType));
 }
 
 /** The one mapper of a rejection of any carrier, whichever fleet and method it came from. */
 export function fleetApiError(error: FleetRpcError): ApiError {
   if(error.code === errorCodes.cancelled) {
-    return {type: 'CANCELED', originalError: error};
+    return apiErrorOf('CANCELED', error.code, error);
   }
 
   if(error.appType !== undefined && error.appCode !== undefined) {
     const code: number = error.metadata?.[MIGRATE_DC_METADATA] === undefined ? error.appCode : MIGRATE_CODE;
-    return apiErrorOf(error.appType as ErrorType, code, error, error.metadata?.[DESCRIPTION_METADATA]);
+    const type: ErrorType = isCatalogType(error.appType) ? error.appType : UNKNOWN_ERROR_TYPE;
+    return apiErrorOf(type, code, error, error.metadata?.[DESCRIPTION_METADATA]);
   }
 
   const refusal: ErrorType | undefined = REFUSAL_TYPE_BY_CODE.get(error.code);

@@ -3,6 +3,7 @@ import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 
 import {backendWsOrigin} from '@config/backendOrigin';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetRoute';
 import {BoolResponseSchema, ConfigSchema, UploadFileSchema, UploadFileValueSchema} from './gen/v1/types_pb';
 import {AuthorizationSchema} from './gen/v1/internal/impulse/auth/auth_types_pb';
 import {GetFileRequestSchema} from './gen/upload_pb';
@@ -35,7 +36,7 @@ const GET_FILE_PARAMS = {offset: 0, limit: 1024};
 const GET_CONFIG = 'help.getConfig';
 const STALE_SESSION_TOKEN: string = 'session-token-stale';
 const RENEWED_TOKEN: string = 'session-token-renewed';
-const MEDIA_URL: string = 'wss://media.impulsem.io:443/connection/websocket?cf_protocol=protobuf&cf_ws_frame_ping_pong=true';
+const MEDIA_URL: string = `wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`;
 const SOCKET_URL: string = `${backendWsOrigin()}/connection/websocket`;
 const TOKEN_EXPIRED: number = 109;
 

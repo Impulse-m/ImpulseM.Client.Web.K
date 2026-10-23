@@ -1,0 +1,136 @@
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {create, toBinary} from '@bufbuild/protobuf';
+
+import {UploadFileSchema, UploadFileValueSchema} from '@lib/impulse/grpc/gen/v1/types_pb';
+import type {ActiveAccountNumber} from '@lib/accounts/types';
+import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetRoute';
+import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
+import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
+import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
+
+/*
+ * A file-transfer call has one carrier, the media fleet that the config names. A call issued before the config is
+ * published waits for the config event that publishes it, and never travels the update socket in the meantime.
+ */
+
+const {accountGet, accountUpdate, accountClearFields} = vi.hoisted(() => ({
+  accountGet: vi.fn(),
+  accountUpdate: vi.fn(),
+  accountClearFields: vi.fn()
+}));
+
+vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
+  const {sharedFleetPoolHarness: pools} = await import('./helpers/fleetPoolStub');
+  const {sharedUpdateSocketHarness: sockets} = await import('./helpers/updateSocketStub');
+  return {...actual, RpcPool: pools().RpcPoolStub, Centrifuge: sockets().CentrifugeStub};
+});
+
+vi.mock('@lib/accounts/accountController', () => ({
+  default: {
+    get: accountGet,
+    update: accountUpdate,
+    clearFields: accountClearFields
+  }
+}));
+
+const fleetHarness = sharedFleetPoolHarness();
+const socketHarness = sharedUpdateSocketHarness();
+
+const ACCOUNT: ActiveAccountNumber = 1;
+const CURRENT_DC: number = 2;
+const GET_FILE: string = 'upload.getFile';
+const MEDIA_URL: string = `wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`;
+const FILE_PAYLOAD: Uint8Array = new Uint8Array([7, 7, 7]);
+const GET_FILE_PARAMS = {offset: 0, limit: 1024};
+
+function withMediaOption(): FleetConfig {
+  return {
+    this_dc: CURRENT_DC,
+    dc_options: [
+      {id: CURRENT_DC, ip_address: '149.154.167.50', port: 443},
+      {id: CURRENT_DC, ip_address: 'media.impulsem.io', port: 443, pFlags: {media_only: true}}
+    ]
+  };
+}
+
+function withoutMediaOption(): FleetConfig {
+  return {this_dc: CURRENT_DC, dc_options: [{id: CURRENT_DC, ip_address: '149.154.167.50', port: 443}]};
+}
+
+function uploadedFile(): {data: Uint8Array} {
+  return {
+    data: toBinary(UploadFileSchema, create(UploadFileSchema, {
+      value: {case: 'uploadFile', value: create(UploadFileValueSchema, {bytes: FILE_PAYLOAD})}
+    }))
+  };
+}
+
+/** Lets the call issued just before run to its wait: every microtask it has queued settles before this resolves. */
+function settled(): Promise<void> {
+  return new Promise<void>((resolve: () => void): void => {
+    setTimeout(resolve, 0);
+  });
+}
+
+beforeEach(async() => {
+  vi.resetModules();
+  fleetHarness.reset();
+  socketHarness.reset();
+  accountGet.mockReset();
+  accountUpdate.mockReset();
+  accountClearFields.mockReset();
+  accountGet.mockResolvedValue(undefined);
+  const {restoreImpulseSession} = await import('@lib/impulse/session');
+  await restoreImpulseSession(ACCOUNT);
+});
+
+describe('a file query issued before the config publishes its media option', () => {
+  it('waits for the config event, then completes on the media lane and never touches the update socket', async() => {
+    socketHarness.respondOnce(GET_FILE, uploadedFile);
+    fleetHarness.respondOnce(GET_FILE, uploadedFile);
+    const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
+    const {setFleetConfig} = await import('@lib/impulse/fleet/fleet');
+
+    const reply = grpcInvoke(GET_FILE, GET_FILE_PARAMS, ACCOUNT);
+    await settled();
+    setFleetConfig(ACCOUNT, withMediaOption());
+
+    await expect(reply, 'the file query completes once the config publishes its media option').resolves.toMatchObject({bytes: FILE_PAYLOAD});
+    expect(fleetHarness.calls.map((call) => call.endpoint), 'the file query travels the media endpoint the config published').toEqual([MEDIA_URL]);
+    expect(socketHarness.calls, 'a file query issued before the config must not travel the update socket').toHaveLength(0);
+  });
+
+  it('is refused with the typed transport error when the config publishes no media option, and touches no carrier', async() => {
+    socketHarness.respondOnce(GET_FILE, uploadedFile);
+    const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
+    const {setFleetConfig} = await import('@lib/impulse/fleet/fleet');
+
+    const reply = grpcInvoke(GET_FILE, GET_FILE_PARAMS, ACCOUNT).then(() => 'resolved', (error: unknown) => error);
+    await settled();
+    setFleetConfig(ACCOUNT, withoutMediaOption());
+
+    await expect(reply, 'a config without a media_only option fails the waiting file query with the typed error').resolves.toMatchObject({
+      type: 'NETWORK_BAD_RESPONSE',
+      code: 500
+    });
+    expect(socketHarness.calls, 'the file query never falls back to the update socket').toHaveLength(0);
+    expect(fleetHarness.pools, 'no media pool is opened for a config that publishes none').toHaveLength(0);
+  });
+
+  it('is cancelled by its signal while it waits, and is not sent when the config arrives afterwards', async() => {
+    const controller = new AbortController();
+    const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
+    const {setFleetConfig} = await import('@lib/impulse/fleet/fleet');
+
+    const reply = grpcInvoke(GET_FILE, GET_FILE_PARAMS, ACCOUNT, controller.signal).then(() => 'resolved', (error: unknown) => error);
+    await settled();
+    controller.abort();
+
+    await expect(reply, 'the signal of the caller cancels the wait').resolves.toMatchObject({type: 'CANCELED'});
+    setFleetConfig(ACCOUNT, withMediaOption());
+    await settled();
+    expect(fleetHarness.calls, 'a cancelled file query is never sent once the config arrives').toHaveLength(0);
+    expect(socketHarness.calls, 'a cancelled file query never travels the update socket').toHaveLength(0);
+  });
+});

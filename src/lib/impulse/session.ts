@@ -56,6 +56,8 @@ const REFRESH_REFUSED_MESSAGE: string = 'Impulse session was refused by the refr
 const REFRESH_FAILED_MESSAGE: string = 'Impulse session refresh failed; the connection retries';
 // The HTTP-style codes of a refresh the server refused: the refresh token no longer holds a session.
 const REFRESH_REFUSED_CODES: ReadonlySet<number> = new Set<number>([401, 403]);
+// The refresh token the server no longer holds is refused as AUTH_TOKEN_INVALID, code 400 (RefreshSessionCommand.cs:424).
+const REFRESH_REFUSED_TYPES: ReadonlySet<ErrorType> = new Set<ErrorType>(['AUTH_TOKEN_INVALID', 'AUTH_TOKEN_EXPIRED']);
 
 type RenewalOutcome = 'renewed' | 'refused' | 'failed';
 
@@ -227,8 +229,9 @@ export async function captureImpulseSessionToken(accountNumber: ActiveAccountNum
   resetConnectionInited(accountNumber);
   // A real session now exists for this slot: any pending 2FA challenge it carried is obsolete, and every connection of
   // the slot reconnects with the new identity.
+  dropPendingToken(accountNumber);
   identityChanged(accountNumber);
-  await clearPendingToken(accountNumber);
+  await clearPersistedPendingToken(accountNumber);
   await persistTokens(accountNumber, token, refresh);
 }
 
@@ -274,8 +277,9 @@ async function applyTokens(accountNumber: ActiveAccountNumber, token: string, re
 
   setGrpcSessionToken(accountNumber, token);
   refreshTokenByAccount.set(accountNumber, effectiveRefresh);
+  dropPendingToken(accountNumber);
   identityChanged(accountNumber);
-  await clearPendingToken(accountNumber);
+  await clearPersistedPendingToken(accountNumber);
   await persistTokens(accountNumber, token, effectiveRefresh);
 }
 
@@ -304,12 +308,21 @@ async function persistPendingToken(accountNumber: ActiveAccountNumber, token: st
  * session and refresh fields are never touched here.
  */
 export async function clearPendingToken(accountNumber: ActiveAccountNumber): Promise<void> {
-  const hadPendingToken = getGrpcPendingToken(accountNumber) !== undefined;
-  setGrpcPendingToken(accountNumber, undefined);
-  if(hadPendingToken) {
+  if(dropPendingToken(accountNumber)) {
     identityChanged(accountNumber);
   }
 
+  await clearPersistedPendingToken(accountNumber);
+}
+
+/** Drops the pending-2FA token from memory. Reports whether there was one, so the caller moves the identity once. */
+function dropPendingToken(accountNumber: ActiveAccountNumber): boolean {
+  const hadPendingToken = getGrpcPendingToken(accountNumber) !== undefined;
+  setGrpcPendingToken(accountNumber, undefined);
+  return hadPendingToken;
+}
+
+async function clearPersistedPendingToken(accountNumber: ActiveAccountNumber): Promise<void> {
   try {
     await AccountController.clearFields(accountNumber, ['impulse_pending_token']);
   } catch(err) {
@@ -374,9 +387,16 @@ async function runRefresh(accountNumber: ActiveAccountNumber, isReinitRetry: boo
     }
 
     logger.warn('Session refresh failed', {accountNumber}, err);
-    const code: number | undefined = isApiError(err) ? err.code : undefined;
-    return code !== undefined && REFRESH_REFUSED_CODES.has(code) ? 'refused' : 'failed';
+    return isRefusedRefresh(err) ? 'refused' : 'failed';
   }
+}
+
+function isRefusedRefresh(err: unknown): boolean {
+  if(!isApiError(err)) {
+    return false;
+  }
+
+  return REFRESH_REFUSED_TYPES.has(err.type) || (err.code !== undefined && REFRESH_REFUSED_CODES.has(err.code));
 }
 
 /**
@@ -461,10 +481,24 @@ export async function restoreImpulseSession(accountNumber: ActiveAccountNumber):
   try {
     const data = await AccountController.get(accountNumber);
 
-    // Restored before the no-session early return below: a persisted pending challenge has no signed-in identity to
-    // give this slot, only a token for the handful of methods that accept one (#675).
-    if(data?.impulse_pending_token && getGrpcPendingGeneration(accountNumber) === pendingGenerationAtRestoreStart) {
-      restoreGrpcPendingToken(accountNumber, data.impulse_pending_token);
+    // A persisted pending challenge carries no session: it is only a token for the methods that accept one.
+    const pendingToken: string | undefined = getGrpcPendingGeneration(accountNumber) === pendingGenerationAtRestoreStart
+      ? data?.impulse_pending_token
+      : undefined;
+    if(pendingToken) {
+      restoreGrpcPendingToken(accountNumber, pendingToken);
+    }
+
+    const restoresSession: boolean = data?.userId !== undefined && Boolean(data.impulse_session_token);
+    if(restoresSession) {
+      if(data.impulse_refresh_token) {
+        refreshTokenByAccount.set(accountNumber, data.impulse_refresh_token);
+      }
+
+      setGrpcSessionToken(accountNumber, data.impulse_session_token);
+    }
+
+    if(pendingToken || restoresSession) {
       identityChanged(accountNumber);
     }
 
@@ -483,13 +517,6 @@ export async function restoreImpulseSession(accountNumber: ActiveAccountNumber):
       });
       return;
     }
-
-    if(data.impulse_refresh_token) {
-      refreshTokenByAccount.set(accountNumber, data.impulse_refresh_token);
-    }
-
-    setGrpcSessionToken(accountNumber, data.impulse_session_token);
-    identityChanged(accountNumber);
 
     // Presence only -- never the values themselves.
     logger.info('Session restored from storage', {
@@ -516,9 +543,10 @@ export async function clearImpulseSession(accountNumber: ActiveAccountNumber): P
   setGrpcSessionToken(accountNumber, undefined);
   resetConnectionInited(accountNumber);
   refreshTokenByAccount.delete(accountNumber);
-  identityChanged(accountNumber);
   // logOut() is an exhaustive wipe of this slot's credentials: a pending 2FA challenge is one of them, too.
-  await clearPendingToken(accountNumber);
+  dropPendingToken(accountNumber);
+  identityChanged(accountNumber);
+  await clearPersistedPendingToken(accountNumber);
 
   try {
     await AccountController.clearFields(accountNumber, ['impulse_session_token', 'impulse_refresh_token']);

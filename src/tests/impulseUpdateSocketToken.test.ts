@@ -43,6 +43,7 @@ const RENEWED_TOKEN: string = 'access-jwt-renewed';
 const REFRESH_TOKEN: string = 'refresh-token-stored';
 const REFRESH: string = 'impulse.auth.refreshSession';
 const TOKEN_EXPIRED: number = 109;
+const GET_CONFIG: string = 'help.getConfig';
 const UNAUTHORIZED_MUST_STOP_THE_SOCKET: string =
   'getToken must throw the SDK\'s UnauthorizedError on a refused session: any other error is retried forever';
 
@@ -128,6 +129,30 @@ describe('the update socket connects with the access JWT, and gets no token of i
     expect(fleetHarness.calls.map((call) => call.method)).toEqual([REFRESH]);
   });
 
+  it('a refusal the rpc of the update socket reports renews the token the next connection presents', async() => {
+    const realtime = await import('@lib/impulse/realtime');
+    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+    await vi.waitFor(() => expect(socketHarness.sockets[0]?.presentedToken).toBe(SESSION_TOKEN));
+    socketHarness.respondOnce(GET_CONFIG, () => {
+      throw {code: TOKEN_EXPIRED, message: 'token expired'};
+    });
+    fleetHarness.respond(REFRESH, () => ({data: renewedAuthorization()}));
+
+    await expect(
+      realtime.callUpdateSocket({accountNumber: ACCOUNT, identity: await identity(), method: GET_CONFIG, request: new Uint8Array(0)}),
+      'the 109 of the rpc is the refusal the caller sees as AUTH_TOKEN_EXPIRED'
+    ).rejects.toMatchObject({type: 'AUTH_TOKEN_EXPIRED'});
+    realtime.stopImpulseRealtime(ACCOUNT);
+
+    realtime.startImpulseRealtime('42', ACCOUNT, await identity());
+
+    await vi.waitFor(() => expect(
+      socketHarness.sockets[1]?.presentedToken,
+      'the connection after the rpc refusal must present the renewed token, not the refused one'
+    ).toBe(RENEWED_TOKEN));
+    expect(fleetHarness.calls.map((call) => call.method), 'the renewal is the one refresh call').toEqual([REFRESH]);
+  });
+
   it('a refused renewal ends the connection with UnauthorizedError', async() => {
     const current = await identity();
     await current.getToken?.();
@@ -137,6 +162,21 @@ describe('the update socket connects with the access JWT, and gets no token of i
     });
 
     await expect(current.getToken?.(), UNAUTHORIZED_MUST_STOP_THE_SOCKET).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it('a refresh the server refuses as AUTH_TOKEN_INVALID with code 400 ends the connection on its first refusal', async() => {
+    const current = await identity();
+    await current.getToken?.();
+    current.onRefused?.();
+    fleetHarness.respond(REFRESH, () => {
+      throw {code: 103, message: 'AUTH_TOKEN_INVALID', appCode: 400, appType: 'AUTH_TOKEN_INVALID'};
+    });
+
+    await expect(current.getToken?.(), UNAUTHORIZED_MUST_STOP_THE_SOCKET).rejects.toBeInstanceOf(UnauthorizedError);
+    expect(
+      fleetHarness.calls.map((call) => call.method),
+      'a refresh token the server no longer holds is refused once: the SDK stops, and no reconnect asks for another renewal'
+    ).toEqual([REFRESH]);
   });
 
   it('a renewal that fails in transit stays retryable, not a refusal', async() => {

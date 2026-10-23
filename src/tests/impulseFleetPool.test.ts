@@ -4,6 +4,7 @@ import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {callMediaFleet, fleetCounters, resetFleetIdentity, setFleetConfig} from '@lib/impulse/fleet/fleet';
 import type {FleetCall, FleetIdentity} from '@lib/impulse/fleet/fleet';
+import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetRoute';
 import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 
@@ -26,9 +27,8 @@ const fleetHarness = sharedFleetPoolHarness();
 const ACCOUNT: ActiveAccountNumber = 1;
 const OTHER_ACCOUNT: ActiveAccountNumber = 2;
 const CURRENT_DC: number = 2;
-const FLEET_PATH: string = '/connection/websocket?cf_protocol=protobuf&cf_ws_frame_ping_pong=true';
-const MEDIA_URL: string = `wss://media.impulsem.io:443${FLEET_PATH}`;
-const OTHER_MEDIA_URL: string = `wss://media-2.impulsem.io:443${FLEET_PATH}`;
+const MEDIA_URL: string = `wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`;
+const OTHER_MEDIA_URL: string = `wss://media-2.impulsem.io:443${FLEET_CONNECTION_PATH}`;
 const REQUEST_BYTES: Uint8Array = new Uint8Array([1, 2, 3]);
 const REPLY_BYTES: Uint8Array = new Uint8Array([4, 5, 6]);
 const SESSION_TOKEN: string = 'session-token-current';
@@ -76,10 +76,13 @@ describe('the media fleet is built from the media option of the current DC', () 
     expect(fleetHarness.calls.map((call) => call.endpoint), 'the file call goes to the media endpoint').toEqual([MEDIA_URL]);
   });
 
-  it('a file call with no media option published is refused, never sent to another pool', async() => {
+  it('a file call with no media option published is refused with a typed error, never sent to another pool', async() => {
     setFleetConfig(ACCOUNT, {this_dc: CURRENT_DC, dc_options: [{id: CURRENT_DC, ip_address: '149.154.167.50', port: 443}]});
 
-    await expect(callMediaFleet(fileCall())).rejects.toThrow(/no media fleet endpoint/);
+    await expect(
+      callMediaFleet(fileCall()),
+      'a config that publishes no media option fails the call with the typed transport error'
+    ).rejects.toMatchObject({type: 'NETWORK_BAD_RESPONSE', code: 500});
     expect(fleetHarness.pools, 'no pool is opened for a call the media fleet cannot carry').toHaveLength(0);
   });
 

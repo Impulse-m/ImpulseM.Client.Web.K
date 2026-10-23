@@ -1,14 +1,16 @@
 import {vi} from 'vitest';
+import {errorCodes} from '@impulsem/centrifuge';
 
 /*
- * A stand-in for the SDK's RpcPool (@impulsem/centrifuge 1.6.0). Each pool the fleet opens is recorded with the
- * endpoint it was built for and the token its connection presents. A call is answered by the responder registered for
- * its registry method: a responder returns the reply, or throws the server or transport error the pool would reject with.
+ * A stand-in for the SDK's RpcPool (@impulsem/centrifuge 1.6.0): the SdkRpcPoolStub the fleet's lanes are built on. Each pool
+ * the fleet opens is recorded with the endpoint it was built for and the token its connection presents. A call is answered
+ * by the responder registered for its registry method: a responder returns the reply, or throws the server or transport
+ * error the pool would reject with.
  */
 
 export type FleetPoolReply = {data?: Uint8Array};
 
-export type FleetPoolOptions = {
+export type SdkRpcPoolOptions = {
   endpoints: (endpointKey: string) => string[],
   connection: {getToken?: () => Promise<string>, token?: string, timeout?: number},
   maxConnectionsPerEndpoint?: number,
@@ -20,11 +22,11 @@ export type FleetPoolOptions = {
 const SDK_CONNECTIONS_PER_ENDPOINT: number = 2;
 const SDK_INFLIGHT_PER_CONNECTION: number = 1;
 const SDK_MAX_QUEUED: number = 64;
-// errorCodes.limitExceeded of the SDK, the rejection of a call beyond the queue bound.
-const LIMIT_EXCEEDED_CODE: number = 16;
+// The rejection of a call beyond the queue bound.
+const LIMIT_EXCEEDED_CODE: number = errorCodes.limitExceeded;
 
-export type FleetPoolStub = {
-  options: FleetPoolOptions,
+export type SdkRpcPoolStub = {
+  options: SdkRpcPoolOptions,
   endpoint: string,
   presentedToken: string | undefined,
   rpc: ReturnType<typeof vi.fn>,
@@ -40,17 +42,17 @@ export type FleetCallRecord = {
 
 export type FleetResponder = (data: Uint8Array) => FleetPoolReply | Promise<FleetPoolReply>;
 
-export type FleetPoolHarness = {
-  pools: FleetPoolStub[],
+export type SdkRpcPoolHarness = {
+  pools: SdkRpcPoolStub[],
   calls: FleetCallRecord[],
   respond: (method: string, responder: FleetResponder) => void,
   respondOnce: (method: string, responder: FleetResponder) => void,
   reset: () => void,
-  RpcPoolStub: new (options: FleetPoolOptions) => FleetPoolStub
+  RpcPoolStub: new (options: SdkRpcPoolOptions) => SdkRpcPoolStub
 };
 
-export function createFleetPoolHarness(): FleetPoolHarness {
-  const pools: FleetPoolStub[] = [];
+export function createFleetPoolHarness(): SdkRpcPoolHarness {
+  const pools: SdkRpcPoolStub[] = [];
   const calls: FleetCallRecord[] = [];
   const responders = new Map<string, FleetResponder[]>();
   const persistent = new Map<string, FleetResponder>();
@@ -65,7 +67,7 @@ export function createFleetPoolHarness(): FleetPoolHarness {
   }
 
   class RpcPoolStub {
-    public readonly options: FleetPoolOptions;
+    public readonly options: SdkRpcPoolOptions;
     public readonly endpoint: string;
     public presentedToken: string | undefined = undefined;
     public readonly close = vi.fn();
@@ -92,13 +94,13 @@ export function createFleetPoolHarness(): FleetPoolHarness {
       }
     });
 
-    constructor(options: FleetPoolOptions) {
+    constructor(options: SdkRpcPoolOptions) {
       this.options = options;
       this.endpoint = options.endpoints('')[0];
       this.slots = (options.maxConnectionsPerEndpoint ?? SDK_CONNECTIONS_PER_ENDPOINT) *
         (options.maxInflightPerConnection ?? SDK_INFLIGHT_PER_CONNECTION);
       this.maxQueued = options.maxQueued ?? SDK_MAX_QUEUED;
-      pools.push(this as unknown as FleetPoolStub);
+      pools.push(this as unknown as SdkRpcPoolStub);
     }
 
     // As the SDK: a call takes a free slot, else waits in the queue for a call of the pool to settle; beyond the queue bound
@@ -146,7 +148,7 @@ export function createFleetPoolHarness(): FleetPoolHarness {
       responders.clear();
       persistent.clear();
     },
-    RpcPoolStub: RpcPoolStub as unknown as new (options: FleetPoolOptions) => FleetPoolStub
+    RpcPoolStub: RpcPoolStub as unknown as new (options: SdkRpcPoolOptions) => SdkRpcPoolStub
   };
 }
 
@@ -156,8 +158,8 @@ const SHARED_HARNESS_KEY: symbol = Symbol.for('impulsem.test.fleetPoolHarness');
  * The harness every test of a file shares with the RpcPool the mocked SDK hands out. It lives on the global object, so
  * a vi.resetModules() that re-evaluates the fleet modules still reaches the same pools and responders.
  */
-export function sharedFleetPoolHarness(): FleetPoolHarness {
-  const host = globalThis as unknown as Record<symbol, FleetPoolHarness | undefined>;
+export function sharedFleetPoolHarness(): SdkRpcPoolHarness {
+  const host = globalThis as unknown as Record<symbol, SdkRpcPoolHarness | undefined>;
   let harness = host[SHARED_HARNESS_KEY];
   if(!harness) {
     harness = createFleetPoolHarness();

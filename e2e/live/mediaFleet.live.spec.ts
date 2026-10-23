@@ -79,5 +79,6 @@ test('a two-part file crosses the media fleet whole while the update socket deli
   expect(uploadedBy.socket, 'the messages of the transfer must be carried by the update socket').toBeGreaterThan(0);
   expect(downloadedBy.media, 'the download must be carried by the media fleet').toBeGreaterThan(0);
   expect(gateway.workers, 'the workers of both pages must be watched, or the check below proves nothing').not.toEqual([]);
+  expect(gateway.attachFailures, 'every worker the recorder saw must attach, or its requests go unrecorded').toEqual([]);
   expect(gateway.calls, 'no call of either client may travel the gateway gRPC-web paths, from the sign-up on').toEqual([]);
 });

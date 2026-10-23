@@ -4,6 +4,7 @@ import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 import {backendWsOrigin} from '@config/backendOrigin';
 import {
   defaultRpcEndpoint,
+  FLEET_CONNECTION_PATH,
   INIT_CONNECTION_METHOD,
   mediaEndpointOf,
   REFRESH_SESSION_METHOD,
@@ -31,7 +32,6 @@ const REGULAR_METHODS: string[] = [
 ];
 
 const CURRENT_DC: number = 2;
-const FLEET_PATH: string = '/connection/websocket?cf_protocol=protobuf&cf_ws_frame_ping_pong=true';
 const MAIN_HOST: string = '149.154.167.50';
 
 const WITHOUT_MEDIA_OPTION: FleetConfig = {
@@ -60,7 +60,7 @@ describe('the refresh endpoint is the host of the update socket', () => {
     expect(
       defaultRpcEndpoint(),
       'the stand names rpc.impulsem.io in VITE_IMPULSE_BACKEND_URL; the anonymous refresh pool connects to that host'
-    ).toBe(`wss://rpc.impulsem.io:443${FLEET_PATH}`);
+    ).toBe(`wss://rpc.impulsem.io:443${FLEET_CONNECTION_PATH}`);
     expect(backendWsOrigin()).toBe('wss://rpc.impulsem.io');
   });
 });
@@ -79,7 +79,7 @@ describe('the endpoint the media option names', () => {
     expect(
       mediaEndpointOf(config),
       'media_only is a TL flag (constructor/dcOption.md flags.1?true): the decoded reply keeps it in pFlags, and the endpoint must be read from there'
-    ).toBe(`wss://media.impulsem.io:443${FLEET_PATH}`);
+    ).toBe(`wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`);
   });
 
   it('is the wss URL of the media_only entry for the current DC', () => {
@@ -94,10 +94,10 @@ describe('the endpoint the media option names', () => {
     expect(
       mediaEndpointOf(config),
       'the media_only entry of this_dc must become wss://{host}:{port}/connection/websocket with the protobuf query'
-    ).toBe(`wss://media.impulsem.io:443${FLEET_PATH}`);
+    ).toBe(`wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`);
   });
 
-  it('is undefined when the server publishes no media option, so the file calls travel the update socket', () => {
+  it('is undefined when the server publishes no media option', () => {
     expect(mediaEndpointOf(WITHOUT_MEDIA_OPTION)).toBeUndefined();
   });
 
@@ -128,7 +128,7 @@ describe('the endpoint the media option names', () => {
         dc_options: [{id: CURRENT_DC, ip_address: '2001:db8::1', port: 443, pFlags: {ipv6: true, media_only: true}}]
       }),
       'an IPv6 host must be bracketed in a URL'
-    ).toBe(`wss://[2001:db8::1]:443${FLEET_PATH}`);
+    ).toBe(`wss://[2001:db8::1]:443${FLEET_CONNECTION_PATH}`);
   });
 });
 

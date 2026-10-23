@@ -18,7 +18,9 @@ export type GatewayRecorder = {
   /** The paths of the gateway gRPC-web requests seen from the pages and the workers of the recorded contexts. */
   calls: string[],
   /** The URLs of the worker targets the recorder watches: an empty list means the workers were not seen at all. */
-  workers: string[]
+  workers: string[],
+  /** The worker targets the recorder could not attach to, with the reason: their requests are not recorded. */
+  attachFailures: string[]
 };
 
 /** The update socket of a gateway origin. */
@@ -84,6 +86,13 @@ export async function recordGatewayCalls(page: Page, into: GatewayRecorder): Pro
 
   const cdp = await browser.newBrowserCDPSession();
   let nextCommandId: number = 1;
+  const watchWorker = async(targetId: string): Promise<void> => {
+    const attached: {sessionId: string} = await cdp.send('Target.attachToTarget', {targetId, flatten: false});
+    await cdp.send('Target.sendMessageToTarget', {
+      sessionId: attached.sessionId,
+      message: JSON.stringify({id: nextCommandId++, method: 'Network.enable', params: {}})
+    });
+  };
   cdp.on('Target.receivedMessageFromTarget', (event: {message: string}): void => {
     const frame: {method?: string, params?: {request?: {url: string}}} = JSON.parse(event.message);
     const url: string | undefined = frame.params?.request?.url;
@@ -91,17 +100,15 @@ export async function recordGatewayCalls(page: Page, into: GatewayRecorder): Pro
       into.calls.push(new URL(url).pathname);
     }
   });
-  cdp.on('Target.targetCreated', async(event: {targetInfo: {targetId: string, type: string, url: string, browserContextId?: string}}): Promise<void> => {
+  cdp.on('Target.targetCreated', (event: {targetInfo: {targetId: string, type: string, url: string, browserContextId?: string}}): void => {
     const target = event.targetInfo;
     if(target.browserContextId !== contextId || !WORKER_TARGET_TYPES.has(target.type)) {
       return;
     }
 
-    const attached: {sessionId: string} = await cdp.send('Target.attachToTarget', {targetId: target.targetId, flatten: false});
     into.workers.push(target.url);
-    await cdp.send('Target.sendMessageToTarget', {
-      sessionId: attached.sessionId,
-      message: JSON.stringify({id: nextCommandId++, method: 'Network.enable', params: {}})
+    watchWorker(target.targetId).catch((error: unknown): void => {
+      into.attachFailures.push(`${target.url}: ${String(error)}`);
     });
   });
   await cdp.send('Target.setDiscoverTargets', {discover: true});

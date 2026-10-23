@@ -46,7 +46,7 @@ export const test = base.extend<{
     const recipientOptions: BrowserContextOptions = forBrowser(recipientContextOptions ?? pairContextOptions);
     const sender = await PersonaSession.open(browser, ephemeralPersona(`sender-${testInfo.testId}`), {contextOptions: senderOptions});
     const recipient = await PersonaSession.open(browser, ephemeralPersona(`recipient-${testInfo.testId}`), {contextOptions: recipientOptions});
-    const gateway: GatewayRecorder = {calls: [], workers: []};
+    const gateway: GatewayRecorder = {calls: [], workers: [], attachFailures: []};
 
     try {
       await recordGatewayCalls(sender.page, gateway);

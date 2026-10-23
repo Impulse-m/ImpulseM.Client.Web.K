@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 
-import {fleetApiError} from '@lib/impulse/fleet/fleetError';
+import {fleetApiError, isApiError} from '@lib/impulse/fleet/fleetError';
 import type {FleetRpcError} from '@lib/impulse/fleet/fleetError';
 
 
@@ -58,6 +58,30 @@ describe('a client-side fault of the pool is a transport fault for the caller', 
 
   it('maps a cancelled call to CANCELED', () => {
     expect(fleetApiError({code: errorCodes.cancelled, message: 'cancelled'})).toMatchObject({type: 'CANCELED'});
+  });
+
+  it('keeps the numeric code of a cancelled call, so the call stays an API error for its caller', () => {
+    expect(
+      fleetApiError({code: errorCodes.cancelled, message: 'cancelled'}),
+      'a CANCELED error without a numeric code is not an API error, and the adapter would rewrap it as a transport fault'
+    ).toMatchObject({type: 'CANCELED', code: errorCodes.cancelled});
+  });
+});
+
+describe('an application type the catalog does not publish is not taken as a catalog type', () => {
+  it('maps it to UNKNOWN and keeps the raw type on the original error', () => {
+    const apiError = fleetApiError({code: 100, message: 'NOT_IN_THE_CATALOG', appCode: 400, appType: 'NOT_IN_THE_CATALOG'});
+
+    expect(apiError.type, 'a type the catalog does not publish must not reach the caller as a catalog type').toBe('UNKNOWN');
+    expect((apiError.originalError as FleetRpcError).appType, 'the raw type stays on the original error').toBe('NOT_IN_THE_CATALOG');
+  });
+});
+
+describe('an SDK connection report is not an API error', () => {
+  it('takes an ErrorContext, which names a category and carries no numeric code, for no API error', () => {
+    const context = {type: 'transport', error: new Error('transport closed')};
+
+    expect(isApiError(context), 'an ErrorContext of the SDK is not an answer of the server').toBe(false);
   });
 });
 

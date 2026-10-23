@@ -4,6 +4,7 @@ import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 import {ConfigSchema, UploadFileSchema, UploadFileValueSchema} from '@lib/impulse/grpc/gen/v1/types_pb';
 import {GetFileRequestSchema} from '@lib/impulse/grpc/gen/upload_pb';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetRoute';
 import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
@@ -40,7 +41,7 @@ const socketHarness = sharedUpdateSocketHarness();
 
 const ACCOUNT: ActiveAccountNumber = 1;
 const CURRENT_DC: number = 2;
-const MEDIA_URL: string = 'wss://media.impulsem.io:443/connection/websocket?cf_protocol=protobuf&cf_ws_frame_ping_pong=true';
+const MEDIA_URL: string = `wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`;
 const GET_FILE: string = 'upload.getFile';
 const GET_CONFIG: string = 'help.getConfig';
 const FILE_PAYLOAD: Uint8Array = new Uint8Array([7, 7, 7]);
@@ -140,19 +141,18 @@ describe('a file-transfer method is carried by the media fleet when the config p
   });
 });
 
-describe('a file-transfer method travels the update socket while no media option is published', () => {
-  it('sends the file query as an rpc on the update socket', async() => {
+describe('a file-transfer method is refused with a typed error when the config publishes no media option', () => {
+  it('fails the call, and sends it on neither carrier', async() => {
     const {setFleetConfig} = await import('@lib/impulse/fleet/fleet');
     setFleetConfig(ACCOUNT, withoutMediaOption());
     socketHarness.respondOnce(GET_FILE, () => ({data: uploadedFile()}));
     const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
 
-    await grpcInvoke(GET_FILE, {offset: 0, limit: 1024}, ACCOUNT);
-
-    expect(
-      socketHarness.calls.map((call) => call.method),
-      'with no media_only option the file call is an rpc on the update socket, like any other method'
-    ).toEqual([GET_FILE]);
+    await expect(
+      grpcInvoke(GET_FILE, {offset: 0, limit: 1024}, ACCOUNT),
+      'a file query has no carrier without a media_only option: the update socket is not a fallback for it'
+    ).rejects.toMatchObject({type: 'NETWORK_BAD_RESPONSE', code: 500});
+    expect(socketHarness.calls, 'the file query never travels the update socket').toHaveLength(0);
     expect(fleetHarness.pools, 'no media pool is opened without a published endpoint').toHaveLength(0);
   });
 });

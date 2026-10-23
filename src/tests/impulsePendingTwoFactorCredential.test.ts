@@ -41,6 +41,7 @@ vi.mock('@lib/accounts/accountController', () => ({
 
 const SIGN_IN = 'auth.signIn';
 const GET_PASSWORD = 'account.getPassword';
+const CHECK_PASSWORD = 'auth.checkPassword';
 // Confirmed live method, used here only to prove it never borrows a pending token meant for GetPassword/CheckPassword.
 const GET_LANG_PACK = 'langpack.getLangPack';
 // The call that unconditionally precedes any new or restarted phone-driven login.
@@ -690,17 +691,19 @@ describe('#675 pending two-factor credential', () => {
   );
 
   it(
-    'a method outside the pending set is refused by the server under the pending identity: the refusal reaches the caller as ' +
-    'its typed error, and the call is not retried',
+    'a method outside the pending set is refused with SESSION_PASSWORD_NEEDED, which leaves the pending challenge intact: ' +
+    'auth.checkPassword still presents the same pending token afterwards',
     async() => {
       accountGet.mockResolvedValue(undefined);
       respondAll({
         [SIGN_IN]: rejecting('SESSION_PASSWORD_NEEDED', {'pending-token': 'fixture-pending-token-1'}),
-        [GET_LANG_PACK]: rejecting('AUTH_TOKEN_INVALID')
+        [GET_LANG_PACK]: rejecting('SESSION_PASSWORD_NEEDED'),
+        [CHECK_PASSWORD]: answered()
       });
 
       const {restoreImpulseSession} = await import('@lib/impulse/session');
       const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
+      const {getGrpcPendingToken} = await import('@lib/impulse/grpc/credentials');
 
       await restoreImpulseSession(1);
       await grpcInvoke(SIGN_IN, SIGN_IN_ARGS, 1).catch(() => {});
@@ -710,11 +713,15 @@ describe('#675 pending two-factor credential', () => {
 
       expect(
         outcome,
-        'the connection presents the pending token to every method, and the server refuses a method outside the pending set: ' +
-        'the client does not gate it, so the refusal is what the caller sees'
-      ).toEqual({type: 'AUTH_TOKEN_INVALID', code: 400});
-      expect(callsOf(GET_LANG_PACK), 'a refused method is sent once: the refusal is not retried').toHaveLength(1);
-      expect(lastCallOf(GET_LANG_PACK)?.presentedToken).toBe('fixture-pending-token-1');
+        'the server refuses a method outside the pending set with SESSION_PASSWORD_NEEDED (401): the caller sees that answer'
+      ).toEqual({type: 'SESSION_PASSWORD_NEEDED', code: 401});
+      expect(getGrpcPendingToken(1), 'SESSION_PASSWORD_NEEDED leaves the pending challenge intact').toBe('fixture-pending-token-1');
+
+      await grpcInvoke(CHECK_PASSWORD, {}, 1);
+      expect(
+        lastCallOf(CHECK_PASSWORD)?.presentedToken,
+        'auth.checkPassword still presents the same pending token after the stray refusal'
+      ).toBe('fixture-pending-token-1');
     }
   );
 });

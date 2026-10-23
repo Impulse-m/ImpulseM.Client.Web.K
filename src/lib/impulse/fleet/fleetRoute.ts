@@ -19,7 +19,7 @@ const MEDIA_FLEET_METHODS: ReadonlySet<string> = new Set<string>([
 export const REFRESH_SESSION_METHOD: string = 'impulse.auth.refreshSession';
 export const INIT_CONNECTION_METHOD: string = 'impulse.auth.initConnection';
 
-const FLEET_CONNECTION_PATH: string = '/connection/websocket?cf_protocol=protobuf&cf_ws_frame_ping_pong=true';
+export const FLEET_CONNECTION_PATH: string = '/connection/websocket?cf_protocol=protobuf&cf_ws_frame_ping_pong=true';
 const DEFAULT_FLEET_PORT: string = '443';
 
 // The TL flags of a dcOption (constructor/dcOption.md) are decoded into pFlags, as protoToTL places every flags.N?true.
