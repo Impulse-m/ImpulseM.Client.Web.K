@@ -8,17 +8,17 @@ import {
   AuthLoginTokenSuccessSchema
 } from '@lib/impulse/grpc/gen/v1/types_pb';
 
-import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
+import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
 
 /*
  * A QR login completes through auth.exportLoginToken, which answers auth.loginTokenSuccess.
  * On the wire the session and refresh tokens sit one level down, under
  * AuthLoginTokenSuccess.authorization, so captureImpulseSessionToken must read them there.
- * These tests drive grpcInvoke through the real fleet lane, answered by the pool stand-in, and observe the
+ * These tests drive grpcInvoke through the update socket, answered by its stand-in, and observe the
  * persistence boundary (AccountController.update) and the in-memory session token.
  */
 
-const fleetHarness = sharedFleetPoolHarness();
+const socketHarness = sharedUpdateSocketHarness();
 
 const accountGet = vi.fn();
 const accountClearFields = vi.fn();
@@ -26,8 +26,8 @@ const accountUpdate = vi.fn();
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
-  const {sharedFleetPoolHarness: harness} = await import('./helpers/fleetPoolStub');
-  return {...actual, RpcPool: harness().RpcPoolStub};
+  const {sharedUpdateSocketHarness: harness} = await import('./helpers/updateSocketStub');
+  return {...actual, Centrifuge: harness().CentrifugeStub};
 });
 
 vi.mock('@lib/accounts/accountController', () => ({
@@ -65,7 +65,7 @@ function loginTokenSuccessPayload(): Uint8Array {
 
 afterEach(() => {
   vi.resetModules();
-  fleetHarness.reset();
+  socketHarness.reset();
   accountGet.mockReset();
   accountClearFields.mockReset();
   accountUpdate.mockReset();
@@ -77,7 +77,7 @@ describe('QR login session token capture', () => {
     async() => {
       accountGet.mockResolvedValue(undefined);
       accountUpdate.mockResolvedValue(undefined);
-      fleetHarness.respondOnce(EXPORT_LOGIN_TOKEN, () => ({data: loginTokenSuccessPayload()}));
+      socketHarness.respondOnce(EXPORT_LOGIN_TOKEN, () => ({data: loginTokenSuccessPayload()}));
 
       const {restoreImpulseSession} = await import('@lib/impulse/session');
       const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');

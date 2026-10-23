@@ -6,7 +6,7 @@
  */
 
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
-import {clearImpulseSession, restoreImpulseSession} from '@lib/impulse/session';
+import {clearImpulseSession, fleetIdentityFor, restoreImpulseSession} from '@lib/impulse/session';
 import {setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
@@ -166,14 +166,14 @@ export class ApiManager extends ApiManagerMethods {
       this.apiUpdatesManager.processUpdateMessage(updates);
     });
 
-    startImpulseRealtime(String(userId), accountNumber);
+    startImpulseRealtime(String(userId), accountNumber, fleetIdentityFor(accountNumber));
     this.reportImpulseConnected();
   }
 
   protected after() {
     const result = super.after();
 
-    // Arm the fleet credentials from stored session data, then bring up the
+    // Restore the stored session, then bring up the
     // push channel -- but only for the account that is actually signed in.
     //
     // createManagers builds a manager for all four slots and calls after() on
@@ -392,8 +392,7 @@ export class ApiManager extends ApiManagerMethods {
     this.loggingOut = true;
 
     // Drop the push channel and the credentials first: a socket left open under the old identity would keep delivering
-    // that account's updates. Only this slot's socket is stopped (#436). clearImpulseSession retires the fleet
-    // connections of this slot.
+    // that account's updates. Only this slot's socket is stopped (#436).
     stopImpulseRealtime(this.getAccountNumber());
     await clearImpulseSession(this.getAccountNumber());
 
@@ -493,7 +492,7 @@ export class ApiManager extends ApiManagerMethods {
   }
 
   public getNetworker(dcId: DcId, options: InvokeApiOptions = {}): Promise<MTPNetworker> {
-    // ImpulseM: every request reaches the Centrifugo fleets, so an MTProto
+    // ImpulseM: every request reaches the Centrifugo carriers, so an MTProto
     // connection is never established. Left to run, this path builds HTTP/WS
     // transports that retry unreachable DCs forever and never settle, so every
     // caller — getNetworkerVoid on the sign-in screen among them — hangs
@@ -805,7 +804,7 @@ export class ApiManager extends ApiManagerMethods {
       throw error;
     };
 
-    // ImpulseM transport: every mapped method goes to the Centrifugo RPC fleet
+    // ImpulseM transport: every mapped method goes to the update socket
     // instead of MTProto, so no networker (and therefore no auth-key handshake,
     // no DC migration, no transport selection) is needed. Failures are still
     // routed through rejectPromise so 401 -> logOut and the error-box policy

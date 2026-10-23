@@ -1,10 +1,11 @@
 /*
- * The per-account credentials the fleets present: the session access token of a signed-in slot, the opaque pending-2FA
+ * The per-account credentials of the carriers: the session access token of a signed-in slot, the opaque pending-2FA
  * token of a slot between SESSION_PASSWORD_NEEDED and its session, and the connection declaration the server binds to
  * that session (canon initConnection).
  *
  * Every function takes the account number explicitly (#436): a single SharedWorker hosts all four account slots, and
- * no slot may read another slot's credentials. The fleet connections of a slot are built from these values (fleet/).
+ * no slot may read another slot's credentials. The identity of a slot's update socket is built from these values
+ * (session.ts fleetIdentityFor).
  */
 
 import {IS_WORKER} from '@helpers/context';
@@ -40,18 +41,6 @@ type AccountCredentials = {
 
 const credentialsByAccount = new Map<ActiveAccountNumber, AccountCredentials>();
 
-/**
- * The only methods the backend accepts a pending-session token on (`[AllowsPendingSession]`, AuthService.cs and
- * AccountPartialService.cs). Every other method travels with no token when there is no real session.
- */
-const PENDING_SESSION_ALLOWED_METHODS: ReadonlySet<string> = new Set<string>([
-  'account.getPassword',
-  'auth.checkPassword',
-  'auth.requestPasswordRecovery',
-  'auth.checkRecoveryPassword',
-  'auth.recoverPassword'
-]);
-
 if(!IS_WORKER) {
   setLogAuthTokenProvider(() => credentialsFor(getCurrentAccount()).sessionToken);
 }
@@ -81,15 +70,6 @@ export function getGrpcSessionToken(accountNumber: ActiveAccountNumber): string 
   return credentialsFor(accountNumber).sessionToken;
 }
 
-export function requireGrpcSessionToken(accountNumber: ActiveAccountNumber): string {
-  const token = credentialsFor(accountNumber).sessionToken;
-  if(!token) {
-    throw new Error('Impulse session is not ready');
-  }
-
-  return token;
-}
-
 export function setGrpcPendingToken(accountNumber: ActiveAccountNumber, token: string | undefined): void {
   const credentials = credentialsFor(accountNumber);
   credentials.pendingToken = token;
@@ -110,11 +90,6 @@ export function getGrpcPendingToken(accountNumber: ActiveAccountNumber): string 
 
 export function getGrpcPendingGeneration(accountNumber: ActiveAccountNumber): number {
   return credentialsFor(accountNumber).pendingGeneration;
-}
-
-/** Whether a TL method (e.g. "account.getPassword") may present the pending-2FA token as its connection token. */
-export function isPendingSessionAllowedMethod(method: string): boolean {
-  return PENDING_SESSION_ALLOWED_METHODS.has(method);
 }
 
 /**

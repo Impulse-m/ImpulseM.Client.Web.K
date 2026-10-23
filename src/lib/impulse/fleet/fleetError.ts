@@ -11,21 +11,6 @@ export type FleetRpcError = {
   metadata?: Record<string, string>
 };
 
-const TRANSPORT_FAULT_CODES: ReadonlySet<number> = new Set<number>([
-  errorCodes.timeout,
-  errorCodes.transportClosed,
-  errorCodes.clientDisconnected,
-  errorCodes.clientClosed,
-  errorCodes.clientConnectToken,
-  errorCodes.clientRefreshToken,
-  errorCodes.transportWriteError,
-  errorCodes.connectionClosed,
-  errorCodes.badConfiguration,
-  errorCodes.unsupported,
-  errorCodes.limitExceeded,
-  errorCodes.redirectFailed
-]);
-
 const TRANSPORT_ERROR_TYPE: ErrorType = 'NETWORK_BAD_RESPONSE';
 // The numeric code of the registry's temporary INTERNAL_SERVER_ERROR (deploy/centrifugo/media/config.json).
 const TRANSPORT_ERROR_CODE: number = 500;
@@ -34,10 +19,6 @@ const MIGRATE_CODE: number = 303;
 const DESCRIPTION_METADATA: string = 'error-description';
 const MIGRATE_DC_METADATA: string = 'migrate-dc';
 const PENDING_TOKEN_METADATA: string = 'pending-token';
-
-export function isTransportFault(error: FleetRpcError): boolean {
-  return TRANSPORT_FAULT_CODES.has(error.code);
-}
 
 /** The one mapper of a fleet rejection, whichever fleet and method it came from. */
 export function fleetApiError(error: FleetRpcError): ApiError {

@@ -2,7 +2,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {sharedFleetPoolHarness} from '../../../tests/helpers/fleetPoolStub';
+import {sharedUpdateSocketHarness} from '../../../tests/helpers/updateSocketStub';
 import {
   InitConnectionRequestSchema,
   InitConnectionResponseSchema
@@ -17,8 +17,8 @@ const {accountGet, accountUpdate, accountClearFields} = vi.hoisted(() => ({
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
-  const {sharedFleetPoolHarness: harness} = await import('../../../tests/helpers/fleetPoolStub');
-  return {...actual, RpcPool: harness().RpcPoolStub};
+  const {sharedUpdateSocketHarness: harness} = await import('../../../tests/helpers/updateSocketStub');
+  return {...actual, Centrifuge: harness().CentrifugeStub};
 });
 
 vi.mock('@lib/accounts/accountController', () => ({
@@ -29,7 +29,7 @@ vi.mock('@lib/accounts/accountController', () => ({
   }
 }));
 
-const fleetHarness = sharedFleetPoolHarness();
+const socketHarness = sharedUpdateSocketHarness();
 const INIT_CONNECTION: string = 'impulse.auth.initConnection';
 const ACCOUNT_ONE = 1 as ActiveAccountNumber;
 const ACCOUNT_TWO = 2 as ActiveAccountNumber;
@@ -56,13 +56,13 @@ function emptyAnswer(): {data: Uint8Array} {
 }
 
 function answerInitConnection(): void {
-  fleetHarness.respond(INIT_CONNECTION, () => emptyAnswer());
+  socketHarness.respond(INIT_CONNECTION, () => emptyAnswer());
 }
 
 /** One InitConnection that stays in flight until the test releases it. */
 function heldInitConnection(): {release: () => void} {
   let release!: () => void;
-  fleetHarness.respondOnce(INIT_CONNECTION, () => new Promise<void>((resolve: () => void): void => {
+  socketHarness.respondOnce(INIT_CONNECTION, () => new Promise<void>((resolve: () => void): void => {
     release = resolve;
   }).then((): {data: Uint8Array} => emptyAnswer()));
   return {release: (): void => release()};
@@ -77,7 +77,7 @@ async function load() {
 
 beforeEach(async() => {
   vi.resetModules();
-  fleetHarness.reset();
+  socketHarness.reset();
   accountGet.mockReset();
   accountUpdate.mockReset();
   accountClearFields.mockReset();
@@ -100,7 +100,7 @@ describe('the connection declaration travels as the body of InitConnection', () 
     setConnectionDeclaration(ACCOUNT_ONE, values('Firefox'));
 
     expect(await ensureConnectionDeclared(ACCOUNT_ONE)).toBe(false);
-    expect(fleetHarness.calls, 'InitConnection binds a declaration to a session: there is none to bind').toHaveLength(0);
+    expect(socketHarness.calls, 'InitConnection binds a declaration to a session: there is none to bind').toHaveLength(0);
     expect(isConnectionInited(ACCOUNT_ONE)).toBe(false);
   });
 
@@ -112,11 +112,11 @@ describe('the connection declaration travels as the body of InitConnection', () 
 
     expect(await ensureConnectionDeclared(ACCOUNT_ONE)).toBe(true);
 
-    expect(fleetHarness.calls.map((call) => call.method)).toEqual([INIT_CONNECTION]);
-    expect(declaredDevice(fleetHarness.calls[0].data), 'the declaration rides the request body').toBe('Firefox');
+    expect(socketHarness.calls.map((call) => call.method)).toEqual([INIT_CONNECTION]);
+    expect(declaredDevice(socketHarness.calls[0].data), 'the declaration rides the request body').toBe('Firefox');
     expect(isConnectionInited(ACCOUNT_ONE)).toBe(true);
     expect(await ensureConnectionDeclared(ACCOUNT_ONE)).toBe(true);
-    expect(fleetHarness.calls, 'an inited slot sends nothing more').toHaveLength(1);
+    expect(socketHarness.calls, 'an inited slot sends nothing more').toHaveLength(1);
   });
 
   it('concurrent callers share one InitConnection in flight', async() => {
@@ -127,25 +127,25 @@ describe('the connection declaration travels as the body of InitConnection', () 
 
     const first = ensureConnectionDeclared(ACCOUNT_ONE);
     const second = ensureConnectionDeclared(ACCOUNT_ONE);
-    await vi.waitFor(() => expect(fleetHarness.calls).toHaveLength(1));
+    await vi.waitFor(() => expect(socketHarness.calls).toHaveLength(1));
     held.release();
 
     await expect(Promise.all([first, second])).resolves.toEqual([true, true]);
-    expect(fleetHarness.calls, 'a second caller must not send a second InitConnection').toHaveLength(1);
+    expect(socketHarness.calls, 'a second caller must not send a second InitConnection').toHaveLength(1);
   });
 
   it('a failed InitConnection leaves the slot not inited and is recorded, not thrown into the caller', async() => {
     const {setConnectionDeclaration, setGrpcSessionToken, ensureConnectionDeclared, isConnectionInited} = await load();
     setConnectionDeclaration(ACCOUNT_ONE, values('Firefox'));
     setGrpcSessionToken(ACCOUNT_ONE, 'token');
-    fleetHarness.respondOnce(INIT_CONNECTION, () => {
+    socketHarness.respondOnce(INIT_CONNECTION, () => {
       throw {code: 503, message: 'unavailable', appCode: 500, appType: 'INTERNAL_SERVER_ERROR'};
     });
 
     expect(await ensureConnectionDeclared(ACCOUNT_ONE), 'the failure is recorded in the answer of the handshake').toBe(false);
     expect(isConnectionInited(ACCOUNT_ONE)).toBe(false);
     expect(await ensureConnectionDeclared(ACCOUNT_ONE), 'a failed handshake is not retried at once').toBe(false);
-    expect(fleetHarness.calls).toHaveLength(1);
+    expect(socketHarness.calls).toHaveLength(1);
   });
 
   it('a changed declaration while InitConnection is in flight does not mark the slot inited', async() => {
@@ -155,7 +155,7 @@ describe('the connection declaration travels as the body of InitConnection', () 
     const held = heldInitConnection();
 
     const inFlight = ensureConnectionDeclared(ACCOUNT_ONE);
-    await vi.waitFor(() => expect(fleetHarness.calls).toHaveLength(1));
+    await vi.waitFor(() => expect(socketHarness.calls).toHaveLength(1));
     setConnectionDeclaration(ACCOUNT_ONE, values('My Laptop'));
     held.release();
     await inFlight;
@@ -177,7 +177,7 @@ describe('the connection declaration travels as the body of InitConnection', () 
     expect(isConnectionInited(ACCOUNT_ONE)).toBe(false);
 
     await ensureConnectionDeclared(ACCOUNT_ONE);
-    expect(declaredDevice(fleetHarness.calls[1].data)).toBe('My Laptop');
+    expect(declaredDevice(socketHarness.calls[1].data)).toBe('My Laptop');
   });
 
   it('resetting the slot (logout, CONNECTION_NOT_INITED) makes the next declaration send again', async() => {
@@ -190,7 +190,7 @@ describe('the connection declaration travels as the body of InitConnection', () 
     resetConnectionInited(ACCOUNT_ONE);
     await ensureConnectionDeclared(ACCOUNT_ONE);
 
-    expect(fleetHarness.calls, 'a reset slot declares itself again').toHaveLength(2);
+    expect(socketHarness.calls, 'a reset slot declares itself again').toHaveLength(2);
   });
 
   it('keeps accounts apart: values, flag and handshake are per slot', async() => {
@@ -205,6 +205,6 @@ describe('the connection declaration travels as the body of InitConnection', () 
     expect(isConnectionInited(ACCOUNT_ONE)).toBe(true);
     expect(isConnectionInited(ACCOUNT_TWO)).toBe(false);
     expect(await ensureConnectionDeclared(ACCOUNT_TWO), 'the second slot has no session, so it sends nothing').toBe(false);
-    expect(fleetHarness.calls).toHaveLength(1);
+    expect(socketHarness.calls).toHaveLength(1);
   });
 });

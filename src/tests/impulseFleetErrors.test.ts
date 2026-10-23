@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 
-import {fleetApiError, isTransportFault} from '@lib/impulse/fleet/fleetError';
+import {fleetApiError} from '@lib/impulse/fleet/fleetError';
 import type {FleetRpcError} from '@lib/impulse/fleet/fleetError';
 
 
@@ -54,7 +54,6 @@ describe('a client-side fault of the pool is a transport fault for the caller', 
       fleetApiError(error),
       'a transport fault is a typed error for the caller\'s normal retry, never a free-text type'
     ).toMatchObject({type: 'NETWORK_BAD_RESPONSE', code: 500});
-    expect(isTransportFault(error)).toBe(true);
   });
 
   it('maps a cancelled call to CANCELED', () => {

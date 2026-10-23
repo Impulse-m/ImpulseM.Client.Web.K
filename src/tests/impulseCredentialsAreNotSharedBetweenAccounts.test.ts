@@ -2,10 +2,11 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getGrpcSessionToken, setGrpcSessionToken} from '@lib/impulse/grpc/credentials';
-import {callFleet, resetFleetIdentity} from '@lib/impulse/fleet/fleet';
-import {fleetIdentityFor, restoreImpulseSession} from '@lib/impulse/session';
+import {resetFleetIdentity} from '@lib/impulse/fleet/fleet';
+import {restoreImpulseSession} from '@lib/impulse/session';
+import {grpcInvoke} from '@lib/impulse/grpc/adapter';
 
-import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
+import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
 
 
 /*
@@ -19,15 +20,15 @@ import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
  *
  * What makes this a real red-before rather than a restatement of the new API: the assertions below
  * are about a SECOND account's write not disturbing a FIRST account's credential, and about each
- * account's connections presenting its own token.
+ * account's update socket presenting its own token.
  */
 
-const fleetHarness = sharedFleetPoolHarness();
+const socketHarness = sharedUpdateSocketHarness();
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
-  const {sharedFleetPoolHarness: harness} = await import('./helpers/fleetPoolStub');
-  return {...actual, RpcPool: harness().RpcPoolStub};
+  const {sharedUpdateSocketHarness: harness} = await import('./helpers/updateSocketStub');
+  return {...actual, Centrifuge: harness().CentrifugeStub};
 });
 
 vi.mock('@lib/accounts/accountController', () => ({
@@ -42,6 +43,7 @@ const ACCOUNT_ONE = 1 as ActiveAccountNumber;
 const ACCOUNT_TWO = 2 as ActiveAccountNumber;
 const ACCOUNT_THREE = 3 as ActiveAccountNumber;
 const LANG_PACK = 'langpack.getLangPack';
+const LANG_PACK_PARAMS = {langPack: 'web', langCode: 'en'};
 
 const CREDENTIALS_MUST_NOT_BE_SHARED =
   'A second account writing its own credential must not disturb the first account. When these ' +
@@ -50,13 +52,13 @@ const CREDENTIALS_MUST_NOT_BE_SHARED =
   'is why switching accounts showed the first account\'s chats (#436).';
 
 const CONNECTIONS_MUST_NOT_BE_SHARED =
-  'Each account needs its own connections: a pool shared by two accounts presents one token to ' +
+  'Each account needs its own update socket: one socket shared by two accounts presents one token to ' +
   'both, however carefully the credentials themselves are separated.';
 
 
 describe('session credentials are per account, not per tab', () => {
   beforeEach(async() => {
-    fleetHarness.reset();
+    socketHarness.reset();
     // The boot opens every slot's gate before any call of the slot leaves.
     await Promise.all([ACCOUNT_ONE, ACCOUNT_TWO, ACCOUNT_THREE].map((account) => restoreImpulseSession(account)));
     resetFleetIdentity(ACCOUNT_ONE);
@@ -88,30 +90,30 @@ describe('session credentials are per account, not per tab', () => {
     expect(getGrpcSessionToken(ACCOUNT_TWO), CREDENTIALS_MUST_NOT_BE_SHARED).toBeUndefined();
   });
 
-  it('gives each account its own connections, each presenting its own token', async() => {
+  it('gives each account its own update socket, each presenting its own token', async() => {
     setGrpcSessionToken(ACCOUNT_ONE, 'token-for-account-one');
     setGrpcSessionToken(ACCOUNT_TWO, 'token-for-account-two');
-    fleetHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
-    fleetHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
+    socketHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
+    socketHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
 
-    await callFleet({accountNumber: ACCOUNT_ONE, method: LANG_PACK, identity: fleetIdentityFor(ACCOUNT_ONE, LANG_PACK), request: new Uint8Array(0)});
-    await callFleet({accountNumber: ACCOUNT_TWO, method: LANG_PACK, identity: fleetIdentityFor(ACCOUNT_TWO, LANG_PACK), request: new Uint8Array(0)});
+    await grpcInvoke(LANG_PACK, LANG_PACK_PARAMS, ACCOUNT_ONE);
+    await grpcInvoke(LANG_PACK, LANG_PACK_PARAMS, ACCOUNT_TWO);
 
-    expect(fleetHarness.pools, CONNECTIONS_MUST_NOT_BE_SHARED).toHaveLength(2);
-    expect(fleetHarness.calls.map((call) => call.presentedToken)).toEqual(['token-for-account-one', 'token-for-account-two']);
+    expect(socketHarness.sockets, CONNECTIONS_MUST_NOT_BE_SHARED).toHaveLength(2);
+    expect(socketHarness.calls.map((call) => call.presentedToken)).toEqual(['token-for-account-one', 'token-for-account-two']);
   });
 
-  it('reuses the same connections for repeated calls from one account', async() => {
+  it('reuses the same update socket for repeated calls from one account', async() => {
     setGrpcSessionToken(ACCOUNT_THREE, 'token-for-account-three');
-    fleetHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
-    fleetHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
+    socketHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
+    socketHarness.respondOnce(LANG_PACK, () => ({data: new Uint8Array(0)}));
 
-    await callFleet({accountNumber: ACCOUNT_THREE, method: LANG_PACK, identity: fleetIdentityFor(ACCOUNT_THREE, LANG_PACK), request: new Uint8Array(0)});
-    await callFleet({accountNumber: ACCOUNT_THREE, method: LANG_PACK, identity: fleetIdentityFor(ACCOUNT_THREE, LANG_PACK), request: new Uint8Array(0)});
+    await grpcInvoke(LANG_PACK, LANG_PACK_PARAMS, ACCOUNT_THREE);
+    await grpcInvoke(LANG_PACK, LANG_PACK_PARAMS, ACCOUNT_THREE);
 
     expect(
-      fleetHarness.pools,
-      'separation is not achieved by a fresh pool per call: the connections of one account are reused'
+      socketHarness.sockets,
+      'separation is not achieved by a fresh socket per call: the socket of one account is reused'
     ).toHaveLength(1);
   });
 });

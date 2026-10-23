@@ -1,8 +1,8 @@
 /*
- * Bridge between the TL call surface and the ImpulseM fleets.
+ * Bridge between the TL call surface and the ImpulseM carriers.
  *
  * Call sites keep using `invokeApi('messages.getDialogs', {...})`; this module turns that into a protobuf request,
- * sends it over the Centrifugo RPC fleet (or the media fleet for the four file-transfer calls), and converts the
+ * sends it as an rpc on the update socket (or on the media fleet for the four file-transfer calls), and converts the
  * response back into the plain `{_: 'messages.dialogs', ...}` objects the app already understands. Nothing downstream
  * of invokeApi has to change.
  *
@@ -28,7 +28,10 @@ import {formatJSONValue} from '@lib/mtproto/tl_utils';
 import {getLogger} from '@lib/impulseLogger';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {TOKEN_EXPIRED_CODE} from '@lib/impulse/centrifugoCodes';
-import {callFleet, resetFleetIdentity} from '@lib/impulse/fleet/fleet';
+import {callMediaFleet, mediaFleetEndpoint} from '@lib/impulse/fleet/fleet';
+import type {FleetCall} from '@lib/impulse/fleet/fleet';
+import {routesToMediaFleet} from '@lib/impulse/fleet/fleetRoute';
+import {callUpdateSocket} from '@lib/impulse/realtime';
 import {
   captureImpulseSessionToken,
   capturePendingToken,
@@ -454,7 +457,7 @@ export function protoToTL(value: any, schema?: DescMessage): any {
 
 // ── entry points ───────────────────────────────────────────────────────────
 
-/** Whether the fleets can serve this TL method. */
+/** Whether the carriers can serve this TL method. */
 export function isGrpcAvailable(method: string): boolean {
   return Boolean(method) && getServiceAndMethod(method) !== undefined;
 }
@@ -493,11 +496,11 @@ export async function grpcInvoke(
   await whenImpulseSessionReady(accountNumber);
   void ensureConnectionDeclared(accountNumber);
 
-  const identity = fleetIdentityFor(accountNumber, method);
+  const identity = fleetIdentityFor(accountNumber);
   const pendingTokenAtRequestStart = getGrpcPendingToken(accountNumber);
 
   try {
-    const reply = await callFleet({accountNumber, method, identity, request: requestBytes, signal: abortSignal});
+    const reply = await carry({accountNumber, method, identity, request: requestBytes, signal: abortSignal});
     const result = protoToTL(fromBinary(descMethod.output, reply), descMethod.output);
     if(method === 'help.getAppConfig' && result?._ === 'help.appConfig') {
       result.config = formatJSONValue(result.config);
@@ -516,11 +519,11 @@ export async function grpcInvoke(
       }
     }
 
-    // The pending token this call presented has been authoritatively rejected: expired or revoked. Clear it, but only
+    // The pending token this call presented has been authoritatively rejected: revoked or consumed. Clear it, but only
     // while it is still the current one, so a late rejection cannot clear a newer challenge.
     if(
       identity.kind === 'pending' &&
-      (apiError.type === 'AUTH_KEY_UNREGISTERED' || apiError.type === 'AUTH_TOKEN_INVALID') &&
+      apiError.type === 'AUTH_TOKEN_INVALID' &&
       getGrpcPendingToken(accountNumber) === pendingTokenAtRequestStart
     ) {
       await clearPendingToken(accountNumber);
@@ -534,11 +537,10 @@ export async function grpcInvoke(
       return grpcInvoke(method, params, accountNumber, abortSignal, isRetry, true);
     }
 
-    // The access token expired: renew it once through the refresh token and replay, on connections that present the
-    // renewed token.
-    const tokenExpired: boolean = apiError.type === 'AUTH_KEY_UNREGISTERED' || rawCode === TOKEN_EXPIRED_CODE;
+    // The access token was refused as expired: renew it once through the refresh token and replay the call on the update
+    // socket, which then connects with the renewed token.
+    const tokenExpired: boolean = rawCode === TOKEN_EXPIRED_CODE;
     if(tokenExpired && identity.kind === 'session' && !isRetry && await refreshImpulseSession(accountNumber)) {
-      resetFleetIdentity(accountNumber);
       logger.info('Retrying after session refresh', {method, accountNumber});
       return grpcInvoke(method, params, accountNumber, abortSignal, true, isReinitRetry);
     }
@@ -551,4 +553,19 @@ export async function grpcInvoke(
     }, err);
     throw apiError;
   }
+}
+
+/** The file-transfer calls of a published media fleet travel it; every other call is an rpc on the update socket. */
+function carry(call: FleetCall): Promise<Uint8Array> {
+  if(routesToMediaFleet(call.method) && mediaFleetEndpoint(call.accountNumber) !== undefined) {
+    return callMediaFleet(call);
+  }
+
+  return callUpdateSocket({
+    accountNumber: call.accountNumber,
+    identity: call.identity,
+    method: call.method,
+    request: call.request,
+    signal: call.signal
+  });
 }

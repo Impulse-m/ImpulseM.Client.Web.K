@@ -1,3 +1,5 @@
+import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
+
 import {loginCodeFor, Persona} from './personas';
 
 
@@ -7,12 +9,10 @@ import {loginCodeFor, Persona} from './personas';
  * The manager stack is a per-process singleton graph (module-global session token, account
  * slots, fake-indexeddb) — two full stacks cannot coexist in one vitest process. When a
  * scenario needs a counterparty to ACT (send a message, flip online status) while the primary
- * stack observes, the counterparty is driven through this driver: the same gateway, the same
- * generated proto descriptors, the same TL<->proto conversion stages the production adapter
- * runs (buildProtoInit -> create -> transport-serialize, protoToTL back), the same auth
- * header shape the production transport sends (user-id + `authorization: Bearer`,
- * grpc/transport.ts authInterceptor) — but its OWN transport and its OWN identity, touching
- * none of the module-global session state the primary stack lives on.
+ * stack observes, the counterparty is driven through this driver: the same update socket, the
+ * same generated proto descriptors, the same TL<->proto conversion stages the production adapter
+ * runs (buildProtoInit -> create -> transport-serialize, protoToTL back) — but its OWN socket and
+ * its OWN identity, touching none of the module-global session state the primary stack lives on.
  *
  * Graph discipline: every invoke re-imports its codecs dynamically, so the driver always
  * speaks through the CURRENT module graph and survives the vi.resetModules a reboot performs.
@@ -28,11 +28,28 @@ export type MinimalRpcSession = {
 
 export async function openMinimalRpcSession(gatewayOrigin: string, persona: Persona): Promise<MinimalRpcSession> {
   const identity: {userId?: string, sessionToken?: string} = {};
+  const socketUrl = `${gatewayOrigin.replace(/^http/, 'ws')}/connection/websocket`;
+  let socket: Centrifuge | undefined;
+  let socketToken: string | undefined;
+
+  // The socket of the identity the driver holds: anonymous before the sign-in, the access JWT after it.
+  const socketFor = (): Centrifuge => {
+    const token = identity.sessionToken;
+    if(!socket || socketToken !== token) {
+      socket?.disconnect();
+      socket = new Centrifuge(socketUrl, {
+        token: '',
+        getToken: token === undefined ? null : async(): Promise<string> => token
+      });
+      socketToken = token;
+      socket.connect();
+    }
+
+    return socket;
+  };
 
   const invoke = async(method: string, params: any = {}): Promise<any> => {
-    const [{createClient}, {createGrpcWebTransport}, {create}, serviceMap, adapter] = await Promise.all([
-      import('@connectrpc/connect'),
-      import('@connectrpc/connect-web'),
+    const [{create, fromBinary, toBinary}, serviceMap, adapter] = await Promise.all([
       import('@bufbuild/protobuf'),
       import('@lib/impulse/grpc/serviceMap'),
       import('@lib/impulse/grpc/adapter')
@@ -40,32 +57,20 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
 
     const mapping = serviceMap.getServiceAndMethod(method);
     if(!mapping) {
-      throw new Error(`minimal RPC session: no gRPC mapping for ${method} — the gateway cannot serve it`);
+      throw new Error(`minimal RPC session: no mapping for ${method} — the update socket cannot serve it`);
     }
 
-    const transport = createGrpcWebTransport({
-      baseUrl: gatewayOrigin,
-      interceptors: [(next) => async(request) => {
-        if(identity.userId) {
-          request.header.set('user-id', identity.userId);
-        }
+    const request = create(mapping.method.input, adapter.buildProtoInit(params, mapping.method.input));
+    const reply = await socketFor().rpc(method, toBinary(mapping.method.input, request));
+    if(reply.data === undefined) {
+      throw new Error(`minimal RPC session: ${method} answered without data`);
+    }
 
-        if(identity.sessionToken) {
-          request.header.set('authorization', `Bearer ${identity.sessionToken}`);
-        }
-
-        return next(request);
-      }]
-    });
-
-    const client: any = createClient(mapping.service, transport);
-    const protoRequest = create(mapping.method.input, adapter.buildProtoInit(params, mapping.method.input));
-    const response = await client[mapping.method.localName](protoRequest);
-    return adapter.protoToTL(response, mapping.method.output);
+    return adapter.protoToTL(fromBinary(mapping.method.output, reply.data), mapping.method.output);
   };
 
   // The same auth sequence the client's login page drives (see ./authFlow.ts), issued
-  // through this driver's own transport so the primary stack's identity stays untouched.
+  // through this driver's own socket so the primary stack's identity stays untouched.
   const app = (await import('@config/app')).default;
 
   const sentCode = await invoke('auth.sendCode', {

@@ -29,10 +29,11 @@ const RpcPool: FleetPoolConstructor = (centrifugeProtobuf as unknown as {
 
 const LIMIT_EXCEEDED_CODE: number = centrifugeProtobuf.errorCodes.limitExceeded;
 
-export type FleetKind = 'media' | 'rpc';
+export type FleetKind = 'media' | 'refresh';
 
 export type FleetLaneOptions = {
   key: string,
+  identityKey: string,
   kind: FleetKind,
   endpoint: string,
   timeoutMs: number,
@@ -51,6 +52,7 @@ export class FleetLaneRetiredError extends Error {
 
 export class FleetLane {
   public readonly key: string;
+  public readonly identityKey: string;
   public readonly kind: FleetKind;
   public readonly endpoint: string;
 
@@ -62,6 +64,7 @@ export class FleetLane {
 
   public constructor(options: FleetLaneOptions) {
     this.key = options.key;
+    this.identityKey = options.identityKey;
     this.kind = options.kind;
     this.endpoint = options.endpoint;
     this.pool = new RpcPool({

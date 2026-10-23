@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import type {FleetIdentity} from '@lib/impulse/fleet/fleet';
 
 
 /*
@@ -58,8 +59,8 @@ const {MockCentrifuge, centrifugeInstances} = vi.hoisted(() => {
   return {MockCentrifuge, centrifugeInstances};
 });
 
-vi.mock('@impulsem/centrifuge', async(importActual) => {
-  const actual = await importActual<typeof import('@impulsem/centrifuge')>();
+vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
   return {...actual, Centrifuge: MockCentrifuge};
 });
 
@@ -72,18 +73,7 @@ vi.mock('@lib/impulse/session', async(importActual) => {
   };
 });
 
-vi.mock('@lib/impulse/grpc/credentials', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/impulse/grpc/credentials')>();
-  return {...actual, requireGrpcSessionToken: vi.fn(() => 'session-token')};
-});
-
-vi.mock('@lib/impulse/fleet/fleet', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/impulse/fleet/fleet')>();
-  const {create, toBinary} = await import('@bufbuild/protobuf');
-  const {GetCentrifugoTokenResponseSchema} = await import('@lib/impulse/grpc/gen/v1/internal/impulse/sync/sync_service_pb');
-  const tokenReply = (): Uint8Array => toBinary(GetCentrifugoTokenResponseSchema, create(GetCentrifugoTokenResponseSchema, {token: 'centrifugo-token'}));
-  return {...actual, callFleet: vi.fn(async(): Promise<Uint8Array> => tokenReply())};
-});
+const SESSION_IDENTITY: FleetIdentity = {kind: 'session', key: 'session:fixture', getToken: async(): Promise<string> => 'centrifugo-token'};
 
 
 async function waitForInstances(count: number): Promise<void> {
@@ -109,9 +99,9 @@ describe('realtime delivers what the server addresses to this session', () => {
     const sinkB = vi.fn();
     realtime.setRealtimeSink(1, sinkA);
     realtime.setRealtimeSink(2, sinkB);
-    realtime.startImpulseRealtime('user-A', 1);
+    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
     await waitForInstances(1);
-    realtime.startImpulseRealtime('user-B', 2);
+    realtime.startImpulseRealtime('user-B', 2, SESSION_IDENTITY);
     await waitForInstances(2);
     const [socketA, socketB] = centrifugeInstances;
 
@@ -129,12 +119,28 @@ describe('realtime delivers what the server addresses to this session', () => {
     const realtime = await import('@lib/impulse/realtime');
     const sink = vi.fn();
     realtime.setRealtimeSink(1, sink);
-    realtime.startImpulseRealtime('user-A', 1);
+    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
     await waitForInstances(1);
 
     centrifugeInstances[0].handlers.get('publication')!({channel: 'session:user-A:42'});
     centrifugeInstances[0].handlers.get('publication')!(undefined);
 
     expect(sink).not.toHaveBeenCalled();
+  });
+
+  it('reads the envelope the protobuf codec delivers as the UTF-8 JSON the server published', async() => {
+    const realtime = await import('@lib/impulse/realtime');
+    const sink = vi.fn();
+    realtime.setRealtimeSink(1, sink);
+    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
+    await waitForInstances(1);
+
+    const published = new TextEncoder().encode(JSON.stringify({oversize: true, type: 500}));
+    centrifugeInstances[0].handlers.get('publication')!({channel: 'session:user-A:42', data: published});
+
+    expect(
+      sink,
+      'a publication arrives as bytes on the protobuf codec: its envelope is the JSON the server wrote, and must be read from it'
+    ).toHaveBeenCalledWith({_: 'updatesTooLong'});
   });
 });

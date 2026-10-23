@@ -2,7 +2,7 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 import {MAX_ACCOUNTS} from '@lib/accounts/constants';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 
-import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
+import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
 
 /*
  * Issue #137. A backend blip made a whole boot wave come back AUTH_TOKEN_INVALID, the 401
@@ -23,14 +23,14 @@ import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
  * genuinely failed still stops the boot wave.
  */
 
-const fleetHarness = sharedFleetPoolHarness();
+const socketHarness = sharedUpdateSocketHarness();
 
 const accountGet = vi.fn();
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
-  const {sharedFleetPoolHarness: harness} = await import('./helpers/fleetPoolStub');
-  return {...actual, RpcPool: harness().RpcPoolStub};
+  const {sharedUpdateSocketHarness: harness} = await import('./helpers/updateSocketStub');
+  return {...actual, Centrifuge: harness().CentrifugeStub};
 });
 
 vi.mock('@lib/accounts/accountController', () => ({
@@ -90,7 +90,7 @@ function everySlot(): ActiveAccountNumber[] {
 describe('Impulse session gate for a signed-out client', () => {
   afterEach(() => {
     vi.resetModules();
-    fleetHarness.reset();
+    socketHarness.reset();
     accountGet.mockReset();
   });
 
@@ -118,7 +118,7 @@ describe('Impulse session gate for a signed-out client', () => {
     accountGet.mockImplementation(async(accountNumber: ActiveAccountNumber) => (
       accountNumber === 1 ? SIGNED_OUT_ACCOUNT : undefined
     ));
-    fleetHarness.respondOnce(GET_LANG_PACK, () => ({data: new Uint8Array(0)}));
+    socketHarness.respondOnce(GET_LANG_PACK, () => ({data: new Uint8Array(0)}));
 
     const {restoreImpulseSession} = await import('@lib/impulse/session');
     const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
@@ -130,7 +130,7 @@ describe('Impulse session gate for a signed-out client', () => {
       () => 'served',
       (error: any) => `blocked: ${error?.message ?? error?.type ?? String(error)}`
     );
-    const langPackRequests = fleetHarness.calls.filter((request) => request.method === GET_LANG_PACK);
+    const langPackRequests = socketHarness.calls.filter((request) => request.method === GET_LANG_PACK);
 
     expect(outcome, LANGPACK_MUST_NOT_BE_BLOCKED).toBe('served');
     expect(langPackRequests.length, LANGPACK_MUST_LEAVE_ONCE).toBe(1);

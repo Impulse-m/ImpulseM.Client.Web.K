@@ -1,11 +1,11 @@
 /*
- * Keeps the session identity of each account slot in step with the fleets.
+ * Keeps the session identity of each account slot in step with its update socket and its media pool.
  *
- * Unlike MTProto, where identity rides in the auth key, the ImpulseM fleets authenticate a connection with a token.
+ * Unlike MTProto, where identity rides in the auth key, the ImpulseM carriers authenticate a connection with a token.
  * The access token is minted by the backend and returned on `v1.AuthAuthorizationValue` (field `session_token`), so
  * it is captured wherever an auth RPC comes back: sign-in, sign-up, password check, passkey login and authorization
- * import all share that message. The fleet connections of a signed-in slot present it (fleetIdentityFor), and the
- * SDK asks for it again after the fleet refused it, which is when it is renewed.
+ * import all share that message. The update socket of a signed-in slot connects with it (fleetIdentityFor), and the
+ * SDK asks for it again after the server refused it, which is when it is renewed.
  *
  * It is persisted next to the rest of the account session data so a reload does not force a re-login.
  *
@@ -20,9 +20,10 @@ import {UnauthorizedError} from '@impulsem/centrifuge/build/protobuf';
 import AccountController from '@lib/accounts/accountController';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getLogger} from '@lib/impulseLogger';
-import {callFleet, resetFleetIdentity} from '@lib/impulse/fleet/fleet';
+import {ANONYMOUS_IDENTITY, callRefreshFleet, resetFleetIdentity} from '@lib/impulse/fleet/fleet';
 import type {FleetIdentity} from '@lib/impulse/fleet/fleet';
 import {INIT_CONNECTION_METHOD, REFRESH_SESSION_METHOD} from '@lib/impulse/fleet/fleetRoute';
+import {callUpdateSocket} from '@lib/impulse/realtime';
 import {AuthorizationSchema, ConnectionDeclarationSchema, InitConnectionRequestSchema} from './grpc/gen/v1/internal/impulse/auth/auth_types_pb';
 import {RefreshSessionRequestSchema} from './grpc/gen/v1/internal/impulse/auth/auth_service_pb';
 import {
@@ -32,7 +33,6 @@ import {
   getGrpcPendingToken,
   getGrpcSessionToken,
   isConnectionInited,
-  isPendingSessionAllowedMethod,
   markConnectionInited,
   resetConnectionInited,
   restoreGrpcPendingToken,
@@ -49,7 +49,12 @@ export const CONNECTION_NOT_INITED: string = 'CONNECTION_NOT_INITED';
 // get one extra request per ordinary call.
 const INIT_CONNECTION_RETRY_BACKOFF_MS: number = 30_000;
 const SIGNED_OUT_MESSAGE: string = 'Impulse session is signed out';
+const REFRESH_REFUSED_MESSAGE: string = 'Impulse session was refused by the refresh';
 const REFRESH_FAILED_MESSAGE: string = 'Impulse session refresh failed; the connection retries';
+// The HTTP-style codes of a refresh the server refused: the refresh token no longer holds a session.
+const REFRESH_REFUSED_CODES: ReadonlySet<number> = new Set<number>([401, 403]);
+
+type RenewalOutcome = 'renewed' | 'refused' | 'failed';
 
 /*
  * Resolves once the stored session has been read back into the credentials.
@@ -123,37 +128,36 @@ export function whenImpulseSessionReady(accountNumber: ActiveAccountNumber): Pro
 }
 
 const refreshTokenByAccount = new Map<ActiveAccountNumber, string>();
-const refreshInFlightByAccount = new Map<ActiveAccountNumber, Promise<boolean>>();
+const refreshInFlightByAccount = new Map<ActiveAccountNumber, Promise<RenewalOutcome>>();
 // The access token the session identity last handed to a connection: the SDK asks for a token again either for a new
-// connection or after the fleet refused the one it held, so an unchanged token asked for again is renewed.
+// connection or after the server refused the one it held, so an unchanged token asked for again is renewed.
 const lastHandedByAccount = new Map<ActiveAccountNumber, string>();
 const handshakeInFlightByAccount = new Map<ActiveAccountNumber, Promise<boolean>>();
 const handshakeFailedAtByAccount = new Map<ActiveAccountNumber, number>();
 
-const ANONYMOUS_IDENTITY: FleetIdentity = {kind: 'anonymous', key: 'anonymous', getToken: undefined};
-
 /**
- * The identity a call presents to its fleet. A signed-in slot presents its access token on every call, except the
- * refresh that renews it (it carries its refresh token in the body and must not wait for the token it replaces). A
- * slot holding a pending 2FA challenge presents it on the methods that accept one. Everything else is anonymous.
+ * The identity of the slot's update socket and its media pool: the access JWT of a signed-in slot, the pending 2FA token
+ * of a slot holding a challenge, and no token otherwise. The key changes with the token, so a renewed token is a new
+ * identity for the connections that present it.
  */
-export function fleetIdentityFor(accountNumber: ActiveAccountNumber, method: string): FleetIdentity {
-  if(method === REFRESH_SESSION_METHOD) {
-    return ANONYMOUS_IDENTITY;
-  }
-
-  if(getGrpcSessionToken(accountNumber) !== undefined) {
-    return {kind: 'session', key: 'session', getToken: (): Promise<string> => sessionAccessToken(accountNumber)};
+export function fleetIdentityFor(accountNumber: ActiveAccountNumber): FleetIdentity {
+  const sessionToken = getGrpcSessionToken(accountNumber);
+  if(sessionToken !== undefined) {
+    return {kind: 'session', key: `session:${sessionToken}`, getToken: (): Promise<string> => sessionAccessToken(accountNumber)};
   }
 
   const pendingToken = getGrpcPendingToken(accountNumber);
-  if(pendingToken !== undefined && isPendingSessionAllowedMethod(method)) {
+  if(pendingToken !== undefined) {
     return {kind: 'pending', key: `pending:${pendingToken}`, getToken: (): Promise<string> => Promise.resolve(pendingToken)};
   }
 
   return ANONYMOUS_IDENTITY;
 }
 
+/**
+ * The token the update socket connects with. A token refused by the server is renewed through the refresh; a refused
+ * session ends the connection (UnauthorizedError), a failed renewal in transit is retried by the SDK.
+ */
 async function sessionAccessToken(accountNumber: ActiveAccountNumber): Promise<string> {
   await whenImpulseSessionReady(accountNumber);
 
@@ -167,8 +171,12 @@ async function sessionAccessToken(accountNumber: ActiveAccountNumber): Promise<s
     return current;
   }
 
-  const refreshed = await refreshImpulseSession(accountNumber);
-  if(!refreshed) {
+  const outcome = await renewImpulseSession(accountNumber);
+  if(outcome === 'refused') {
+    throw new UnauthorizedError(REFRESH_REFUSED_MESSAGE);
+  }
+
+  if(outcome === 'failed') {
     throw new Error(REFRESH_FAILED_MESSAGE);
   }
 
@@ -304,6 +312,10 @@ export async function clearPendingToken(accountNumber: ActiveAccountNumber): Pro
  * each open their own renewal. Two different accounts refreshing at the same time are two independent renewals.
  */
 export function refreshImpulseSession(accountNumber: ActiveAccountNumber): Promise<boolean> {
+  return renewImpulseSession(accountNumber).then((outcome: RenewalOutcome): boolean => outcome === 'renewed');
+}
+
+function renewImpulseSession(accountNumber: ActiveAccountNumber): Promise<RenewalOutcome> {
   const inFlight = refreshInFlightByAccount.get(accountNumber);
   if(inFlight) {
     return inFlight;
@@ -317,39 +329,41 @@ export function refreshImpulseSession(accountNumber: ActiveAccountNumber): Promi
   return promise;
 }
 
-async function runRefresh(accountNumber: ActiveAccountNumber, isReinitRetry: boolean): Promise<boolean> {
+async function runRefresh(accountNumber: ActiveAccountNumber, isReinitRetry: boolean): Promise<RenewalOutcome> {
   const refreshToken = refreshTokenByAccount.get(accountNumber);
   if(!refreshToken) {
     logger.warn('Cannot refresh the session: no refresh token stored', {accountNumber});
-    return false;
+    return 'failed';
   }
 
   try {
-    const reply = await callFleet({
+    const reply = await callRefreshFleet(
       accountNumber,
-      method: REFRESH_SESSION_METHOD,
-      identity: fleetIdentityFor(accountNumber, REFRESH_SESSION_METHOD),
-      request: toBinary(RefreshSessionRequestSchema, create(RefreshSessionRequestSchema, {refreshToken}))
-    });
+      REFRESH_SESSION_METHOD,
+      toBinary(RefreshSessionRequestSchema, create(RefreshSessionRequestSchema, {refreshToken}))
+    );
     const authorization = fromBinary(AuthorizationSchema, reply);
     if(!authorization.sessionToken) {
       logger.warn('Session refresh returned no token', {accountNumber});
-      return false;
+      return 'failed';
     }
 
     await applyTokens(accountNumber, authorization.sessionToken, authorization.refreshToken || undefined);
     logger.info('Session refreshed', {accountNumber});
-    return true;
+    return 'renewed';
   } catch(err) {
-    // The server wants the declaration this refresh did not carry: declare the connection, then refresh once more.
-    if(!isReinitRetry && (err as ApiError | undefined)?.type === CONNECTION_NOT_INITED) {
+    const apiError = err as ApiError | undefined;
+    // The server wants the declaration this refresh did not carry. The declaration travels the update socket, which may be
+    // waiting for the token this renewal produces, so it is sent without being awaited here.
+    if(!isReinitRetry && apiError?.type === CONNECTION_NOT_INITED) {
       resetConnectionInited(accountNumber);
-      await ensureConnectionDeclared(accountNumber);
+      void ensureConnectionDeclared(accountNumber);
       return runRefresh(accountNumber, true);
     }
 
     logger.warn('Session refresh failed', {accountNumber}, err);
-    return false;
+    const code = apiError?.code;
+    return code !== undefined && REFRESH_REFUSED_CODES.has(code) ? 'refused' : 'failed';
   }
 }
 
@@ -403,10 +417,10 @@ export function ensureConnectionDeclared(accountNumber: ActiveAccountNumber): Pr
 
 async function sendInitConnection(accountNumber: ActiveAccountNumber, declaration: ConnectionDeclarationValues): Promise<void> {
   const request = create(InitConnectionRequestSchema, {declaration: toDeclarationMessage(declaration)});
-  await callFleet({
+  await callUpdateSocket({
     accountNumber,
+    identity: fleetIdentityFor(accountNumber),
     method: INIT_CONNECTION_METHOD,
-    identity: fleetIdentityFor(accountNumber, INIT_CONNECTION_METHOD),
     request: toBinary(InitConnectionRequestSchema, request)
   });
 }

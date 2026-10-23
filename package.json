@@ -110,8 +110,6 @@
   "packageManager": "pnpm@11.16.0",
   "dependencies": {
     "@bufbuild/protobuf": "^2.14.0",
-    "@connectrpc/connect": "^2.1.2",
-    "@connectrpc/connect-web": "^2.1.2",
     "@impulsem/centrifuge": "1.6.0",
     "@tiptap/core": "3.28.0",
     "@tiptap/extension-bold": "3.28.0",

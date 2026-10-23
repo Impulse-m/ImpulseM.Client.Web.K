@@ -1,13 +1,13 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 
-import type {FleetPoolReply} from './helpers/fleetPoolStub';
-import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
+import type {UpdateSocketReply} from './helpers/updateSocketStub';
+import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
 
 /*
- * #675 supporting unit RED — the per-slot pending-2FA credential. Every test below drives ONLY existing exported entry
- * points — grpcInvoke, restoreImpulseSession, clearImpulseSession, setGrpcSessionToken / getGrpcSessionToken /
- * setGrpcPendingToken / getGrpcPendingToken — through the real fleet lanes, answered by the pool stand-in. What the
- * server would have seen is the connection token each call's pool presented.
+ * #675 — the per-slot pending-2FA credential. Every test below drives ONLY existing exported entry points — grpcInvoke,
+ * restoreImpulseSession, clearImpulseSession, setGrpcSessionToken / getGrpcSessionToken / setGrpcPendingToken /
+ * getGrpcPendingToken — through the update socket of the slot, answered by its stand-in. What the server would have seen
+ * is the connection token the socket presented when it connected.
  *
  * Live evidence for the failure this repairs: cloud-password-login-correlated-20260918.json — auth.signIn ->
  * SESSION_PASSWORD_NEEDED, 61ms later account.getPassword -> AUTH_KEY_UNREGISTERED with a 0.5ms, zero-EF-Core-query
@@ -19,7 +19,7 @@ import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
  * "over an unauthenticated connection" — a pending 2FA challenge, not a signed-in session.
  */
 
-const fleetHarness = sharedFleetPoolHarness();
+const socketHarness = sharedUpdateSocketHarness();
 
 const accountGet = vi.fn();
 const accountClearFields = vi.fn();
@@ -27,8 +27,8 @@ const accountUpdate = vi.fn();
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
-  const {sharedFleetPoolHarness: harness} = await import('./helpers/fleetPoolStub');
-  return {...actual, RpcPool: harness().RpcPoolStub};
+  const {sharedUpdateSocketHarness: harness} = await import('./helpers/updateSocketStub');
+  return {...actual, Centrifuge: harness().CentrifugeStub};
 });
 
 vi.mock('@lib/accounts/accountController', () => ({
@@ -78,25 +78,25 @@ function rejecting(appType: string, metadata: Record<string, string> = {}): () =
   };
 }
 
-function answered(): () => FleetPoolReply {
-  return (): FleetPoolReply => ({data: new Uint8Array(0)});
+function answered(): () => UpdateSocketReply {
+  return (): UpdateSocketReply => ({data: new Uint8Array(0)});
 }
 
-function respondAll(responders: Record<string, (data: Uint8Array) => FleetPoolReply | Promise<FleetPoolReply>>): void {
+function respondAll(responders: Record<string, (data: Uint8Array) => UpdateSocketReply | Promise<UpdateSocketReply>>): void {
   for(const [method, responder] of Object.entries(responders)) {
-    fleetHarness.respond(method, responder);
+    socketHarness.respond(method, responder);
   }
 }
 
 /** A reply the test resolves or rejects on its own schedule, to model an in-flight call arriving out of order. */
 function deferredReply(): {
-  promise: Promise<FleetPoolReply>,
-  resolve: (value: FleetPoolReply) => void,
+  promise: Promise<UpdateSocketReply>,
+  resolve: (value: UpdateSocketReply) => void,
   reject: (error: unknown) => void
 } {
-  let resolve!: (value: FleetPoolReply) => void;
+  let resolve!: (value: UpdateSocketReply) => void;
   let reject!: (error: unknown) => void;
-  const promise = new Promise<FleetPoolReply>((res, rej) => {
+  const promise = new Promise<UpdateSocketReply>((res, rej) => {
     resolve = res;
     reject = rej;
   });
@@ -107,7 +107,7 @@ const SIGN_IN_ARGS = {phone_number: '+9996611111', phone_code_hash: 'fixture-has
 const SEND_CODE_ARGS = {phone_number: '+9996622222', api_id: 1, api_hash: 'fixture-hash', settings: {_: 'codeSettings', pFlags: {}}};
 
 function callsOf(method: string): Array<{method: string, presentedToken: string | undefined}> {
-  return fleetHarness.calls.filter((call) => call.method === method);
+  return socketHarness.calls.filter((call) => call.method === method);
 }
 
 function lastCallOf(method: string): {method: string, presentedToken: string | undefined} | undefined {
@@ -117,7 +117,7 @@ function lastCallOf(method: string): {method: string, presentedToken: string | u
 
 afterEach(() => {
   vi.resetModules();
-  fleetHarness.reset();
+  socketHarness.reset();
   accountGet.mockReset();
   accountClearFields.mockReset();
   accountUpdate.mockReset();
@@ -178,12 +178,11 @@ describe('#675 pending two-factor credential', () => {
     }
   );
 
-  it('never lets an unrelated RPC, or a different account slot, borrow the pending token', async() => {
+  it('never lets a different account slot borrow the pending token', async() => {
     accountGet.mockResolvedValue(undefined);
     respondAll({
       [SIGN_IN]: rejecting('SESSION_PASSWORD_NEEDED', {'pending-token': 'fixture-pending-token-1'}),
-      [GET_PASSWORD]: answered(),
-      [GET_LANG_PACK]: answered()
+      [GET_PASSWORD]: answered()
     });
 
     const {restoreImpulseSession} = await import('@lib/impulse/session');
@@ -193,18 +192,9 @@ describe('#675 pending two-factor credential', () => {
 
     await grpcInvoke(SIGN_IN, SIGN_IN_ARGS, 1).catch(() => {});
 
-    await grpcInvoke(GET_LANG_PACK, {langCode: 'en', langPack: 'web'}, 1);
     await grpcInvoke(GET_PASSWORD, {}, 2);
 
-    const unrelatedCallsOnSlot1 = callsOf(GET_LANG_PACK);
     const getPasswordOnSlot2 = callsOf(GET_PASSWORD);
-
-    expect(unrelatedCallsOnSlot1.length, 'the unrelated call must actually have gone out to assert about it').toBeGreaterThan(0);
-    expect(
-      unrelatedCallsOnSlot1.every((call) => call.presentedToken === undefined),
-      'an unrelated method must never present a pending token, even from the slot that holds one — the pending ' +
-      'credential is scoped to the canon-allowed methods only (worker-211 §1)'
-    ).toBe(true);
 
     expect(getPasswordOnSlot2.length, 'the slot-2 call must actually have gone out to assert about it').toBeGreaterThan(0);
     expect(
@@ -291,14 +281,13 @@ describe('#675 pending two-factor credential', () => {
    */
 
   it(
-    'clears a pending-scoped call\'s own token — memory and persisted — on an authoritative AUTH_KEY_UNREGISTERED ' +
-    '(expired) rejection, leaving a different account slot\'s own pending token and this slot\'s own (absent) session ' +
-    'untouched',
+    'clears a pending-scoped call\'s own token — memory and persisted — on an authoritative AUTH_TOKEN_INVALID ' +
+    'rejection, leaving a different account slot\'s own pending token and this slot\'s own (absent) session untouched',
     async() => {
       accountGet.mockResolvedValue(undefined);
       respondAll({
         [SIGN_IN]: rejecting('SESSION_PASSWORD_NEEDED', {'pending-token': 'fixture-pending-token-1'}),
-        [GET_PASSWORD]: rejecting('AUTH_KEY_UNREGISTERED')
+        [GET_PASSWORD]: rejecting('AUTH_TOKEN_INVALID')
       });
 
       const {restoreImpulseSession} = await import('@lib/impulse/session');
@@ -326,7 +315,7 @@ describe('#675 pending two-factor credential', () => {
 
       expect(
         getGrpcPendingToken(1),
-        'a pending-scoped call that came back AUTH_KEY_UNREGISTERED for the token this slot itself just presented must ' +
+        'a pending-scoped call that came back AUTH_TOKEN_INVALID for the token this slot itself just presented must ' +
         'clear that token — otherwise the client keeps re-presenting a rejected credential on every later call, forever'
       ).toBeUndefined();
       expect(
@@ -344,8 +333,7 @@ describe('#675 pending two-factor credential', () => {
 
   it(
     'clears a pending-scoped call\'s own token on an authoritative AUTH_TOKEN_INVALID (revoked / already-consumed) ' +
-    'rejection — the same clearing obligation as AUTH_KEY_UNREGISTERED, under a different catalog code ' +
-    '(JwtValidationInterceptor.cs:286-295, pending-revoked)',
+    'rejection of a pending token the server has revoked or consumed (JwtValidationInterceptor.cs:286-295, pending-revoked)',
     async() => {
       accountGet.mockResolvedValue(undefined);
       respondAll({
@@ -371,7 +359,7 @@ describe('#675 pending two-factor credential', () => {
       expect(
         getGrpcPendingToken(1),
         'AUTH_TOKEN_INVALID for the token this slot itself just presented means that specific pending token is dead ' +
-        '(revoked or consumed) exactly as much as AUTH_KEY_UNREGISTERED does — it must be cleared too'
+        '(revoked or consumed) — it must be cleared too'
       ).toBeUndefined();
       expect(accountClearFields).toHaveBeenCalledWith(1, ['impulse_pending_token']);
     }
@@ -390,7 +378,7 @@ describe('#675 pending two-factor credential', () => {
       await restoreImpulseSession(1);
 
       const signIn = deferredReply();
-      fleetHarness.respondOnce(SIGN_IN, () => signIn.promise);
+      socketHarness.respondOnce(SIGN_IN, () => signIn.promise);
       const signInCall = grpcInvoke(SIGN_IN, SIGN_IN_ARGS, 1).catch((error: any) => ({type: error?.type}));
 
       signIn.reject(serverError('SESSION_PASSWORD_NEEDED', {'pending-token': 'fixture-pending-token-current'}));
@@ -418,11 +406,11 @@ describe('#675 pending two-factor credential', () => {
 
       // Attempt X (phone A): auth.signIn is issued but its response is held back.
       const signInX = deferredReply();
-      fleetHarness.respondOnce(SIGN_IN, () => signInX.promise);
+      socketHarness.respondOnce(SIGN_IN, () => signInX.promise);
       const signInXCall = grpcInvoke(SIGN_IN, {...SIGN_IN_ARGS, phone_code_hash: 'fixture-hash-x'}, 1).catch((error: any) => ({type: error?.type}));
 
       // Attempt Y (a DIFFERENT phone) supersedes X: a fresh code is sent before X's signIn ever settles.
-      fleetHarness.respondOnce(SEND_CODE, answered());
+      socketHarness.respondOnce(SEND_CODE, answered());
       await grpcInvoke(SEND_CODE, SEND_CODE_ARGS, 1);
 
       // X's stale signIn now finally resolves, carrying X's own (abandoned) pending token.
@@ -452,12 +440,12 @@ describe('#675 pending two-factor credential', () => {
 
       // Old attempt (phone X): signIn issued, held back.
       const signInX = deferredReply();
-      fleetHarness.respondOnce(SIGN_IN, () => signInX.promise);
+      socketHarness.respondOnce(SIGN_IN, () => signInX.promise);
       const signInXCall = grpcInvoke(SIGN_IN, {...SIGN_IN_ARGS, phone_code_hash: 'fixture-hash-x'}, 1).catch((error: any) => ({type: error?.type}));
 
       // A new attempt (phone Y) BEGINS — sendCode is issued but its OWN response is also held back, not yet successful.
       const sendCodeY = deferredReply();
-      fleetHarness.respondOnce(SEND_CODE, () => sendCodeY.promise);
+      socketHarness.respondOnce(SEND_CODE, () => sendCodeY.promise);
       const sendCodeYCall = grpcInvoke(SEND_CODE, SEND_CODE_ARGS, 1).catch((error: any) => ({type: error?.type}));
 
       // X's stale SESSION_PASSWORD_NEEDED arrives BEFORE sendCode has resolved at all.
@@ -486,9 +474,8 @@ describe('#675 pending two-factor credential', () => {
     }
   );
 
-  // Green by absence until a clearing is wrong: a naive version of the two clearing fixes above ("clear on any
-  // AUTH_KEY_UNREGISTERED") would fail here the moment it landed without also checking the rejected call was for the
-  // token still current.
+  // A clearing that ignores which token was rejected would fail here: it must check the rejected call was for the token
+  // still current.
   it(
     'a late rejection belonging to an old, already-superseded pending token cannot clear the NEWER pending token that ' +
     'has since replaced it on the same slot',
@@ -502,22 +489,22 @@ describe('#675 pending two-factor credential', () => {
       await restoreImpulseSession(1);
 
       // T1 is captured first, ordinarily.
-      fleetHarness.respondOnce(SIGN_IN, rejecting('SESSION_PASSWORD_NEEDED', {'pending-token': 'old-pending-token-t1'}));
+      socketHarness.respondOnce(SIGN_IN, rejecting('SESSION_PASSWORD_NEEDED', {'pending-token': 'old-pending-token-t1'}));
       await grpcInvoke(SIGN_IN, SIGN_IN_ARGS, 1).catch(() => {});
       expect(getGrpcPendingToken(1)).toBe('old-pending-token-t1');
 
       // A pending-scoped call using T1 is issued but held back — its rejection arrives LATE, below.
       const oldGetPassword = deferredReply();
-      fleetHarness.respondOnce(GET_PASSWORD, () => oldGetPassword.promise);
+      socketHarness.respondOnce(GET_PASSWORD, () => oldGetPassword.promise);
       const oldGetPasswordCall = grpcInvoke(GET_PASSWORD, {}, 1).catch((error: any) => ({type: error?.type}));
 
       // Meanwhile T1 is superseded by T2 on the SAME slot.
-      fleetHarness.respondOnce(SIGN_IN, rejecting('SESSION_PASSWORD_NEEDED', {'pending-token': 'newer-pending-token-t2'}));
+      socketHarness.respondOnce(SIGN_IN, rejecting('SESSION_PASSWORD_NEEDED', {'pending-token': 'newer-pending-token-t2'}));
       await grpcInvoke(SIGN_IN, {...SIGN_IN_ARGS, phone_code: '22222'}, 1).catch(() => {});
       expect(getGrpcPendingToken(1), 'setup: T2 must actually be current before the late rejection arrives').toBe('newer-pending-token-t2');
 
       // NOW the OLD in-flight call — issued while T1 was current — finally rejects as dead.
-      oldGetPassword.reject(serverError('AUTH_KEY_UNREGISTERED'));
+      oldGetPassword.reject(serverError('AUTH_TOKEN_INVALID'));
       await oldGetPasswordCall;
 
       expect(
@@ -542,7 +529,7 @@ describe('#675 pending two-factor credential', () => {
 
       // A signIn is issued and held back, then superseded by a LOGOUT instead of a newer attempt.
       const signIn = deferredReply();
-      fleetHarness.respondOnce(SIGN_IN, () => signIn.promise);
+      socketHarness.respondOnce(SIGN_IN, () => signIn.promise);
       const signInCall = grpcInvoke(SIGN_IN, SIGN_IN_ARGS, 1).catch((error: any) => ({type: error?.type}));
 
       // The slot logs out while that signIn is still in flight (clearImpulseSession, which apiManager.logOut() calls).
@@ -583,7 +570,7 @@ describe('#675 pending two-factor credential', () => {
 
       // A pending-scoped account.getPassword is issued (presenting that token) and held back.
       const oldGetPassword = deferredReply();
-      fleetHarness.respondOnce(GET_PASSWORD, () => oldGetPassword.promise);
+      socketHarness.respondOnce(GET_PASSWORD, () => oldGetPassword.promise);
       const oldGetPasswordCall = grpcInvoke(GET_PASSWORD, {}, 1).catch((error: any) => ({type: error?.type}));
 
       // Let the call actually reach the (stubbed) connection — observed, not guessed from a scheduling delay.
@@ -597,7 +584,7 @@ describe('#675 pending two-factor credential', () => {
       setGrpcPendingToken(1, undefined);
 
       // NOW the old, pre-session pending-scoped call finally rejects.
-      oldGetPassword.reject(serverError('AUTH_KEY_UNREGISTERED'));
+      oldGetPassword.reject(serverError('AUTH_TOKEN_INVALID'));
       await oldGetPasswordCall;
 
       expect(
@@ -670,7 +657,7 @@ describe('#675 pending two-factor credential', () => {
 
       // signIn is issued while restore is still genuinely pending.
       const signIn = deferredReply();
-      fleetHarness.respondOnce(SIGN_IN, () => signIn.promise);
+      socketHarness.respondOnce(SIGN_IN, () => signIn.promise);
       const signInCall = grpcInvoke(SIGN_IN, SIGN_IN_ARGS, 1).catch((error: any) => ({type: error?.type}));
 
       // The slot logs out while readiness is still unsettled.
@@ -692,7 +679,7 @@ describe('#675 pending two-factor credential', () => {
       ).toBeUndefined();
 
       // The resurrected credential must not merely sit unused in memory — a subsequent allowed call must not attach it either.
-      fleetHarness.respondOnce(GET_PASSWORD, answered());
+      socketHarness.respondOnce(GET_PASSWORD, answered());
       await grpcInvoke(GET_PASSWORD, {}, 1);
       expect(
         lastCallOf(GET_PASSWORD)?.presentedToken,

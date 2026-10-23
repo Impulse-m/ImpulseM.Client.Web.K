@@ -4,13 +4,10 @@ import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 import {backendWsOrigin} from '@config/backendOrigin';
 import {
   defaultRpcEndpoint,
-  fleetEndpointsOf,
-  GET_CENTRIFUGO_TOKEN_METHOD,
   INIT_CONNECTION_METHOD,
   mediaEndpointOf,
   REFRESH_SESSION_METHOD,
-  routesToMediaFleet,
-  rpcEndpointOf
+  routesToMediaFleet
 } from '@lib/impulse/fleet/fleetRoute';
 import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
 import {protoToTL} from '@lib/impulse/grpc/adapter';
@@ -24,7 +21,7 @@ const FILE_TRANSFER_METHODS: string[] = [
   'upload.getWebFile'
 ];
 
-const RPC_FLEET_METHODS: string[] = [
+const REGULAR_METHODS: string[] = [
   'upload.getCdnFile',
   'upload.getFileHashes',
   'upload.getCdnFileHashes',
@@ -50,7 +47,7 @@ describe('the media fleet carries exactly the four file-transfer methods', () =>
     ).toBe(true);
   });
 
-  it.each(RPC_FLEET_METHODS)('keeps %s on the RPC fleet, not the media fleet', (method: string) => {
+  it.each(REGULAR_METHODS)('keeps %s off the media fleet, on the update socket', (method: string) => {
     expect(
       routesToMediaFleet(method),
       `${method} is not one of the four registry calls of the media fleet`
@@ -58,40 +55,13 @@ describe('the media fleet carries exactly the four file-transfer methods', () =>
   });
 });
 
-describe('the RPC fleet is the main dcOption of this DC, or the configured host before the first config', () => {
-  it('is the wss URL of the main entry of the current DC', () => {
-    expect(
-      rpcEndpointOf({
-        this_dc: CURRENT_DC,
-        dc_options: [
-          {id: CURRENT_DC, ip_address: MAIN_HOST, port: 443},
-          {id: CURRENT_DC, ip_address: 'media.impulsem.io', port: 443, pFlags: {media_only: true}}
-        ]
-      }),
-      'the main dcOption of this_dc is the RPC fleet, the media_only entry is not'
-    ).toBe(`wss://${MAIN_HOST}:443${FLEET_PATH}`);
-  });
-
-  it('ignores a main entry of another DC', () => {
-    expect(
-      rpcEndpointOf({
-        this_dc: CURRENT_DC,
-        dc_options: [{id: 3, ip_address: MAIN_HOST, port: 443}]
-      }),
-      'the RPC fleet of DC 3 does not serve the DC this client is on'
-    ).toBeUndefined();
-  });
-
-  it('is the configured host on port 443 before the first config is known', () => {
+describe('the refresh endpoint is the host of the update socket', () => {
+  it('is the wss URL of the configured host on port 443 with the protobuf query', () => {
     expect(
       defaultRpcEndpoint(),
-      'the stand names rpc.impulsem.io in VITE_IMPULSE_BACKEND_URL; before help.getConfig that host carries the calls'
+      'the stand names rpc.impulsem.io in VITE_IMPULSE_BACKEND_URL; the anonymous refresh pool connects to that host'
     ).toBe(`wss://rpc.impulsem.io:443${FLEET_PATH}`);
     expect(backendWsOrigin()).toBe('wss://rpc.impulsem.io');
-  });
-
-  it('falls back to the configured host when the config names no main entry for this DC', () => {
-    expect(fleetEndpointsOf({this_dc: CURRENT_DC, dc_options: []}).rpc).toBe(defaultRpcEndpoint());
   });
 });
 
@@ -110,10 +80,6 @@ describe('the endpoint the media option names', () => {
       mediaEndpointOf(config),
       'media_only is a TL flag (constructor/dcOption.md flags.1?true): the decoded reply keeps it in pFlags, and the endpoint must be read from there'
     ).toBe(`wss://media.impulsem.io:443${FLEET_PATH}`);
-    expect(
-      rpcEndpointOf(config),
-      'the main entry is the one without the media flag, however the reply orders its entries'
-    ).toBe(`wss://${MAIN_HOST}:443${FLEET_PATH}`);
   });
 
   it('is the wss URL of the media_only entry for the current DC', () => {
@@ -129,12 +95,10 @@ describe('the endpoint the media option names', () => {
       mediaEndpointOf(config),
       'the media_only entry of this_dc must become wss://{host}:{port}/connection/websocket with the protobuf query'
     ).toBe(`wss://media.impulsem.io:443${FLEET_PATH}`);
-    expect(fleetEndpointsOf(config).media).toBe(`wss://media.impulsem.io:443${FLEET_PATH}`);
   });
 
-  it('is undefined when the server publishes no media option, so the file calls travel the RPC fleet', () => {
+  it('is undefined when the server publishes no media option, so the file calls travel the update socket', () => {
     expect(mediaEndpointOf(WITHOUT_MEDIA_OPTION)).toBeUndefined();
-    expect(fleetEndpointsOf(WITHOUT_MEDIA_OPTION).media).toBeUndefined();
   });
 
   it('ignores a media option of another DC', () => {
@@ -169,13 +133,12 @@ describe('the endpoint the media option names', () => {
 });
 
 describe('the internal calls of the client carry their own registry keys', () => {
-  it('names the refresh, the connection declaration and the Centrifugo token calls', () => {
+  it('names the refresh and the connection declaration calls', () => {
     expect(REFRESH_SESSION_METHOD).toBe('impulse.auth.refreshSession');
     expect(INIT_CONNECTION_METHOD).toBe('impulse.auth.initConnection');
-    expect(GET_CENTRIFUGO_TOKEN_METHOD).toBe('impulse.sync.getCentrifugoToken');
   });
 
-  it('keeps none of them on the media fleet', () => {
-    expect([REFRESH_SESSION_METHOD, INIT_CONNECTION_METHOD, GET_CENTRIFUGO_TOKEN_METHOD].some(routesToMediaFleet)).toBe(false);
+  it('keeps neither of them on the media fleet', () => {
+    expect([REFRESH_SESSION_METHOD, INIT_CONNECTION_METHOD].some(routesToMediaFleet)).toBe(false);
   });
 });

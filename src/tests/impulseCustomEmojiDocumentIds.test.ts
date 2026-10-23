@@ -3,7 +3,7 @@ import {fromBinary} from '@bufbuild/protobuf';
 
 import {getServiceAndMethod} from '@lib/impulse/grpc/serviceMap';
 
-import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
+import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
 
 /**
  * Issue #179 / #260. `messages.getCustomEmojiDocuments` left the browser with an `undefined`
@@ -20,13 +20,13 @@ import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
  * element must never reach the transport.
  */
 
-const fleetHarness = sharedFleetPoolHarness();
+const socketHarness = sharedUpdateSocketHarness();
 const GET_CUSTOM_EMOJI_DOCUMENTS = 'messages.getCustomEmojiDocuments';
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
-  const {sharedFleetPoolHarness: harness} = await import('./helpers/fleetPoolStub');
-  return {...actual, RpcPool: harness().RpcPoolStub};
+  const {sharedUpdateSocketHarness: harness} = await import('./helpers/updateSocketStub');
+  return {...actual, Centrifuge: harness().CentrifugeStub};
 });
 
 vi.mock('@lib/impulse/session', async(importActual) => {
@@ -37,8 +37,8 @@ vi.mock('@lib/impulse/session', async(importActual) => {
 
 describe('custom emoji document ids at the gRPC boundary', () => {
   beforeEach(() => {
-    fleetHarness.reset();
-    fleetHarness.respond(GET_CUSTOM_EMOJI_DOCUMENTS, () => ({data: new Uint8Array(0)}));
+    socketHarness.reset();
+    socketHarness.respond(GET_CUSTOM_EMOJI_DOCUMENTS, () => ({data: new Uint8Array(0)}));
   });
 
 
@@ -49,7 +49,7 @@ describe('custom emoji document ids at the gRPC boundary', () => {
       document_id: ['341952722011750787', undefined, 2578]
     }, 1)).rejects.toThrow('Invalid document_id list element for messages.getCustomEmojiDocuments at index 1: undefined');
 
-    expect(fleetHarness.calls, 'a request that would desync the positional answer must never reach the fleet').toHaveLength(0);
+    expect(socketHarness.calls, 'a request that would desync the positional answer must never reach the fleet').toHaveLength(0);
   });
 
 
@@ -60,13 +60,13 @@ describe('custom emoji document ids at the gRPC boundary', () => {
       document_id: ['341952722011750787', 2578]
     }, 1)).resolves.toEqual([]);
 
-    expect(fleetHarness.calls).toHaveLength(1);
+    expect(socketHarness.calls).toHaveLength(1);
     const mapping = getServiceAndMethod(GET_CUSTOM_EMOJI_DOCUMENTS);
     if(!mapping) {
       throw new Error(`${GET_CUSTOM_EMOJI_DOCUMENTS} is not mapped`);
     }
 
-    const sent = fromBinary(mapping.method.input, fleetHarness.calls[0].data) as unknown as {documentId: bigint[]};
+    const sent = fromBinary(mapping.method.input, socketHarness.calls[0].data) as unknown as {documentId: bigint[]};
     expect(sent.documentId).toEqual([
       BigInt('341952722011750787'),
       BigInt(2578)

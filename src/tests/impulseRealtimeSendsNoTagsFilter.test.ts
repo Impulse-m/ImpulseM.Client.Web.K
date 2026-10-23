@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import type {FleetIdentity} from '@lib/impulse/fleet/fleet';
 
 
 /*
@@ -8,9 +9,8 @@ import type {ActiveAccountNumber} from '@lib/accounts/types';
  * subscribes with no tags filter, whatever the lane: a client-side filter would put server
  * behaviour into every client.
  */
-const {MockCentrifuge, centrifugeInstances, createClientCalls} = vi.hoisted(() => {
+const {MockCentrifuge, centrifugeInstances} = vi.hoisted(() => {
   const centrifugeInstances: MockCentrifuge[] = [];
-  const createClientCalls: string[] = [];
 
   class MockSubscription {
     constructor(public readonly channel: string, public readonly options: unknown) {}
@@ -48,11 +48,11 @@ const {MockCentrifuge, centrifugeInstances, createClientCalls} = vi.hoisted(() =
     public disconnect(): void {}
   }
 
-  return {MockCentrifuge, centrifugeInstances, createClientCalls};
+  return {MockCentrifuge, centrifugeInstances};
 });
 
-vi.mock('@impulsem/centrifuge', async(importActual) => {
-  const actual = await importActual<typeof import('@impulsem/centrifuge')>();
+vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
   return {...actual, Centrifuge: MockCentrifuge};
 });
 
@@ -65,22 +65,7 @@ vi.mock('@lib/impulse/session', async(importActual) => {
   };
 });
 
-vi.mock('@lib/impulse/grpc/credentials', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/impulse/grpc/credentials')>();
-  return {...actual, requireGrpcSessionToken: vi.fn(() => 'session-token')};
-});
-
-vi.mock('@lib/impulse/fleet/fleet', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/impulse/fleet/fleet')>();
-  const {create, toBinary} = await import('@bufbuild/protobuf');
-  const {GetCentrifugoTokenResponseSchema} = await import('@lib/impulse/grpc/gen/v1/internal/impulse/sync/sync_service_pb');
-  const tokenReply = (): Uint8Array => toBinary(GetCentrifugoTokenResponseSchema, create(GetCentrifugoTokenResponseSchema, {token: 'centrifugo-token'}));
-  const callFleet = vi.fn(async(call: {method: string}): Promise<Uint8Array> => {
-    createClientCalls.push(call.method);
-    return tokenReply();
-  });
-  return {...actual, callFleet};
-});
+const SESSION_IDENTITY: FleetIdentity = {kind: 'session', key: 'session:fixture', getToken: async(): Promise<string> => 'centrifugo-token'};
 
 const NO_TAGS_FILTER = 'the server filters the echo itself; a subscription carrying a tags filter puts that work back on the client';
 
@@ -92,7 +77,6 @@ describe('subscriptions carry no tags filter', () => {
   beforeEach(() => {
     vi.resetModules();
     centrifugeInstances.length = 0;
-    createClientCalls.length = 0;
   });
 
   afterEach(async() => {
@@ -102,7 +86,7 @@ describe('subscriptions carry no tags filter', () => {
 
   it('opens user:, call: and channel: lanes without tagsFilter or tf, and asks for no tag', async() => {
     const realtime = await import('@lib/impulse/realtime');
-    realtime.startImpulseRealtime('user-A', 1);
+    realtime.startImpulseRealtime('user-A', 1, SESSION_IDENTITY);
     for(let i = 0; i < 200 && centrifugeInstances.length < 1; ++i) {
       await new Promise<void>((resolve) => setTimeout(resolve, 5));
     }
@@ -119,8 +103,5 @@ describe('subscriptions carry no tags filter', () => {
       expect(options.tagsFilter, NO_TAGS_FILTER).toBeUndefined();
       expect(options.tf, NO_TAGS_FILTER).toBeUndefined();
     }
-
-    expect(createClientCalls).not.toContain('getOwnSessionTag');
-    expect(createClientCalls).not.toContain('getChannelActorTags');
   });
 });

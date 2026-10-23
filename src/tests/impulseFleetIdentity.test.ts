@@ -1,11 +1,11 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {create, toBinary} from '@bufbuild/protobuf';
-import {UnauthorizedError} from '@impulsem/centrifuge/build/protobuf';
 
 import {AuthorizationSchema} from '@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_types_pb';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {REFRESH_SESSION_METHOD} from '@lib/impulse/fleet/fleetRoute';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
+import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
 
 const {accountGet, accountUpdate, accountClearFields} = vi.hoisted(() => ({
   accountGet: vi.fn(),
@@ -15,8 +15,9 @@ const {accountGet, accountUpdate, accountClearFields} = vi.hoisted(() => ({
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
-  const {sharedFleetPoolHarness} = await import('./helpers/fleetPoolStub');
-  return {...actual, RpcPool: sharedFleetPoolHarness().RpcPoolStub};
+  const {sharedFleetPoolHarness: pools} = await import('./helpers/fleetPoolStub');
+  const {sharedUpdateSocketHarness: sockets} = await import('./helpers/updateSocketStub');
+  return {...actual, RpcPool: pools().RpcPoolStub, Centrifuge: sockets().CentrifugeStub};
 });
 
 vi.mock('@lib/accounts/accountController', () => ({
@@ -29,15 +30,12 @@ vi.mock('@lib/accounts/accountController', () => ({
 
 
 const fleetHarness = sharedFleetPoolHarness();
+const socketHarness = sharedUpdateSocketHarness();
 
 const ACCOUNT: ActiveAccountNumber = 1;
 const SIGNED_IN_TOKEN: string = 'access-token-first';
-const RENEWED_TOKEN: string = 'access-token-renewed';
 const REFRESH_TOKEN: string = 'refresh-token-stored';
 const PENDING_TOKEN: string = 'pending-token-fixture';
-const LANG_PACK: string = 'langpack.getLangPack';
-const GET_PASSWORD: string = 'account.getPassword';
-const SEND_CODE: string = 'auth.sendCode';
 
 function refreshedAuthorization(sessionToken: string): Uint8Array {
   return toBinary(AuthorizationSchema, create(AuthorizationSchema, {
@@ -46,96 +44,73 @@ function refreshedAuthorization(sessionToken: string): Uint8Array {
   }));
 }
 
-async function identityOf(method: string) {
+async function identityOfSlot() {
   const {fleetIdentityFor} = await import('@lib/impulse/session');
-  return fleetIdentityFor(ACCOUNT, method);
+  return fleetIdentityFor(ACCOUNT);
 }
 
 beforeEach(async() => {
   vi.resetModules();
   fleetHarness.reset();
+  socketHarness.reset();
   accountGet.mockReset();
   accountUpdate.mockReset();
   accountClearFields.mockReset();
   accountGet.mockResolvedValue(undefined);
 });
 
-describe('the identity a signed-out client presents', () => {
-  it('is anonymous for every method, so no token travels', async() => {
-    expect((await identityOf(SEND_CODE)).kind, 'a signed-out client sends its codes without a token').toBe('anonymous');
-    expect((await identityOf(LANG_PACK)).getToken).toBeUndefined();
+describe('the identity of a signed-out slot', () => {
+  it('is anonymous, so the update socket and the media pool present no token', async() => {
+    const identity = await identityOfSlot();
+
+    expect(identity.kind, 'a signed-out slot connects anonymously').toBe('anonymous');
+    expect(identity.getToken).toBeUndefined();
   });
 
-  it('is the pending challenge only for the five methods that accept one, and anonymous for every other', async() => {
+  it('is the pending challenge while one is pending, and its token is the one the socket presents', async() => {
     const {setGrpcPendingToken} = await import('@lib/impulse/grpc/credentials');
     setGrpcPendingToken(ACCOUNT, PENDING_TOKEN);
 
-    const pending = await identityOf(GET_PASSWORD);
-    expect(pending.kind, 'account.getPassword is pending-scoped: the challenge is its connection token').toBe('pending');
-    await expect(pending.getToken?.()).resolves.toBe(PENDING_TOKEN);
+    const identity = await identityOfSlot();
 
-    expect(
-      (await identityOf(LANG_PACK)).kind,
-      'a pending challenge must not widen what an unauthenticated connection can call'
-    ).toBe('anonymous');
+    expect(identity.kind).toBe('pending');
+    await expect(identity.getToken?.()).resolves.toBe(PENDING_TOKEN);
+  });
+
+  it('keys the identity by its token, so a new challenge is a new identity for the connections', async() => {
+    const {setGrpcPendingToken} = await import('@lib/impulse/grpc/credentials');
+    setGrpcPendingToken(ACCOUNT, PENDING_TOKEN);
+    const first = (await identityOfSlot()).key;
+
+    setGrpcPendingToken(ACCOUNT, 'pending-token-second');
+
+    expect((await identityOfSlot()).key).not.toBe(first);
   });
 });
 
-describe('the identity of a signed-in client', () => {
+describe('the identity of a signed-in slot', () => {
   beforeEach(async() => {
     const {restoreImpulseSession} = await import('@lib/impulse/session');
     accountGet.mockResolvedValue({userId: 42, impulse_session_token: SIGNED_IN_TOKEN, impulse_refresh_token: REFRESH_TOKEN});
     await restoreImpulseSession(ACCOUNT);
   });
 
-  it('is the session for every method, and anonymous for the refresh that renews it', async() => {
-    expect((await identityOf(LANG_PACK)).kind).toBe('session');
-    expect(
-      (await identityOf(REFRESH_SESSION_METHOD)).kind,
-      'the refresh carries its refresh token in the body and must not wait for the access token it replaces'
-    ).toBe('anonymous');
+  it('is the session, keyed by its access token', async() => {
+    const identity = await identityOfSlot();
+
+    expect(identity.kind).toBe('session');
+    expect(identity.key).toBe(`session:${SIGNED_IN_TOKEN}`);
   });
 
-  it('hands out the session token as it stands the first time the SDK asks', async() => {
-    const identity = await identityOf(LANG_PACK);
-
-    await expect(identity.getToken?.()).resolves.toBe(SIGNED_IN_TOKEN);
-    expect(fleetHarness.calls, 'a token nobody has refused costs no session refresh').toHaveLength(0);
-  });
-
-  it('is renewed through the refresh when the SDK asks again for the token it holds', async() => {
-    const identity = await identityOf(LANG_PACK);
+  it('is renewed through the refresh, which travels its own anonymous pool and never the update socket', async() => {
+    const identity = await identityOfSlot();
     await identity.getToken?.();
-    fleetHarness.respond('impulse.auth.refreshSession', () => ({data: refreshedAuthorization(RENEWED_TOKEN)}));
+    fleetHarness.respond(REFRESH_SESSION_METHOD, () => ({data: refreshedAuthorization('access-token-renewed')}));
 
-    await expect(
-      identity.getToken?.(),
-      'the SDK asks again for a token it holds only after the fleet refused it: that token is renewed'
-    ).resolves.toBe(RENEWED_TOKEN);
-    expect(fleetHarness.calls.map((call) => call.method)).toEqual(['impulse.auth.refreshSession']);
-  });
+    await expect(identity.getToken?.()).resolves.toBe('access-token-renewed');
 
-  it('a failed renewal is a retryable error, not a refusal that stops the connection', async() => {
-    const identity = await identityOf(LANG_PACK);
-    await identity.getToken?.();
-    fleetHarness.respond('impulse.auth.refreshSession', () => {
-      throw {code: 100, message: 'INTERNAL_SERVER_ERROR', appCode: 500, appType: 'INTERNAL_SERVER_ERROR'};
-    });
-
-    const failure: unknown = await identity.getToken?.().then(
-      (): undefined => undefined,
-      (error: unknown): unknown => error
-    );
-
-    expect(failure, 'the fleet must keep retrying a transient renewal failure').toBeInstanceOf(Error);
-    expect(failure).not.toBeInstanceOf(UnauthorizedError);
-  });
-
-  it('is refused with the SDK\'s UnauthorizedError once the session has ended', async() => {
-    const identity = await identityOf(LANG_PACK);
-    const {clearImpulseSession} = await import('@lib/impulse/session');
-    await clearImpulseSession(ACCOUNT);
-
-    await expect(identity.getToken?.()).rejects.toBeInstanceOf(UnauthorizedError);
+    expect(fleetHarness.calls.map((call) => call.method), 'the renewal is the one refresh call of the anonymous pool').toEqual([REFRESH_SESSION_METHOD]);
+    expect(fleetHarness.pools[0].options.connection.getToken, 'the refresh pool presents no token: it renews one').toBeUndefined();
+    expect(socketHarness.calls, 'the refresh does not wait on the update socket it renews').toHaveLength(0);
   });
 });
