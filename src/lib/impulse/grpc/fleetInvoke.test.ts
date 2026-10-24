@@ -5,7 +5,7 @@ import {backendHttpOrigin, backendWsOrigin} from '@config/backendOrigin';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {CENTRIFUGO_CONNECTION_PATH, FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import {BoolResponseSchema, ConfigSchema, UploadFileSchema, UploadFileValueSchema} from './gen/v1/types_pb';
-import {AuthorizationSchema} from './gen/v1/internal/impulse/auth/auth_types_pb';
+import {RefreshSessionResponseSchema} from './gen/v1/internal/impulse/auth/auth_service_pb';
 import {GetFileRequestSchema} from './gen/upload_pb';
 import {grpcInvoke} from './adapter';
 import {sharedFleetPoolHarness} from '../../../tests/helpers/fleetPoolStub';
@@ -21,7 +21,7 @@ vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
 
 vi.mock('@lib/accounts/accountController', () => ({
   default: {
-    get: vi.fn(),
+    get: vi.fn().mockResolvedValue({userId: 42, impulse_session_token: 'routing-session', impulse_refresh_token: 'refresh'}),
     update: vi.fn(),
     clearFields: vi.fn()
   }
@@ -49,6 +49,8 @@ function uploadFileBytes(payload: Uint8Array): Uint8Array {
 
 describe('grpcInvoke sends the TL call to the carrier that serves it', () => {
   beforeEach(async() => {
+    const {stopImpulseRealtime} = await import('@lib/impulse/realtime');
+    stopImpulseRealtime(ACCOUNT);
     fleetHarness.reset();
     socketHarness.reset();
     await registerSessionIdentitySource();
@@ -107,8 +109,8 @@ describe('grpcInvoke sends the TL call to the carrier that serves it', () => {
       throw {code: TOKEN_EXPIRED, message: 'token expired'};
     });
     socketHarness.respondOnce(GET_CONFIG, () => ({data: toBinary(ConfigSchema, create(ConfigSchema, {}))}));
-    fleetHarness.respond('impulse.auth.refreshSession', () => ({
-      data: toBinary(AuthorizationSchema, create(AuthorizationSchema, {sessionToken: RENEWED_TOKEN, refreshToken: 'refresh-token-next'}))
+    fleetHarness.respond('refreshSession', () => ({
+      data: toBinary(RefreshSessionResponseSchema, create(RefreshSessionResponseSchema, {sessionToken: RENEWED_TOKEN, refreshToken: 'refresh-token-next'}))
     }));
 
     await grpcInvoke(GET_CONFIG, {}, ACCOUNT);
@@ -117,7 +119,8 @@ describe('grpcInvoke sends the TL call to the carrier that serves it', () => {
       socketHarness.calls.map((call) => call.method),
       'the refused call is sent on the update socket, and replayed there once the session is renewed'
     ).toEqual([GET_CONFIG, GET_CONFIG]);
-    expect(fleetHarness.calls.map((call) => call.method), 'the renewal is one call of the refresh pool').toEqual(['impulse.auth.refreshSession']);
-    expect(socketHarness.calls[1].presentedToken, 'the replay presents the renewed token, not the refused one').toBe(RENEWED_TOKEN);
+    expect(fleetHarness.calls.map((call) => call.method), 'the renewal is one call of the refresh pool').toEqual(['refreshSession']);
+    expect(await socketHarness.sockets[0].options.getToken(), 'the next native refresh presents the renewed token').toBe(RENEWED_TOKEN);
+    expect(socketHarness.sockets).toHaveLength(1);
   });
 });

@@ -1,6 +1,7 @@
 import type {DataJSON} from '@layer';
 import type {CallId} from '@appManagers/appCallsManager';
 import type {GroupCallId} from '@appManagers/appGroupCallsManager';
+import jwtClaims from '@helpers/jwtClaims';
 
 
 export type LiveKitJoinParams = {
@@ -91,7 +92,7 @@ export function parseLiveKitJoinParams(options: {
   }
 
   const result: LiveKitJoinParams = {url, token, room};
-  const expiresAt: number | undefined = readTokenExpiry(token);
+  const expiresAt: number | undefined = jwtClaims(token)?.exp;
   if(expiresAt !== undefined) {
     result.expiresAt = expiresAt;
   }
@@ -111,24 +112,4 @@ function readString(source: Record<string, unknown>, field: string): string {
   }
 
   return value;
-}
-
-function readTokenExpiry(token: string): number | undefined {
-  const segments: string[] = token.split('.');
-  if(segments.length !== 3) {
-    return undefined;
-  }
-
-  try {
-    const base64: string = segments[1].replace(/-/g, '+').replace(/_/g, '/');
-    const padded: string = base64 + '='.repeat((4 - base64.length % 4) % 4);
-    const payload: unknown = JSON.parse(atob(padded));
-    if(isRecord(payload) && typeof payload.exp === 'number' && Number.isFinite(payload.exp)) {
-      return payload.exp;
-    }
-  } catch{
-    // the expiry is diagnostic only; an unreadable payload is not an error here
-  }
-
-  return undefined;
 }

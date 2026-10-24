@@ -4,7 +4,7 @@ import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 import {backendHttpOrigin, backendWsOrigin} from '@config/backendOrigin';
 import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import {
-  defaultRpcEndpoint,
+  poolRpcEndpoint,
   INIT_CONNECTION_METHOD,
   mediaEndpointOf,
   REFRESH_SESSION_METHOD,
@@ -56,11 +56,11 @@ describe('the media fleet carries exactly the four file-transfer methods', () =>
 });
 
 describe('the refresh endpoint is the host of the update socket', () => {
-  it('is the wss URL of the configured host on port 443 with the protobuf query', () => {
+  it('is the wss URL of the configured host under /pool with the protobuf query', () => {
     expect(
-      defaultRpcEndpoint(),
+      poolRpcEndpoint(),
       'the stand names rpc.impulsem.io in VITE_IMPULSE_BACKEND_URL; the anonymous refresh pool connects to that host'
-    ).toBe(`wss://rpc.impulsem.io:443${FLEET_CONNECTION_PATH}`);
+    ).toBe(`wss://rpc.impulsem.io/pool${FLEET_CONNECTION_PATH}`);
     expect(backendWsOrigin(backendHttpOrigin())).toBe('wss://rpc.impulsem.io');
   });
 });
@@ -134,8 +134,8 @@ describe('the endpoint the media option names', () => {
 
 describe('the internal calls of the client carry their own registry keys', () => {
   it('names the refresh and the connection declaration calls', () => {
-    expect(REFRESH_SESSION_METHOD).toBe('impulse.auth.refreshSession');
-    expect(INIT_CONNECTION_METHOD).toBe('impulse.auth.initConnection');
+    expect(REFRESH_SESSION_METHOD).toBe('refreshSession');
+    expect(INIT_CONNECTION_METHOD).toBe('initConnection');
   });
 
   it('keeps neither of them on the media fleet', () => {

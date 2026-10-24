@@ -4,7 +4,7 @@
  * One Centrifugo client per slot, speaking protobuf. It carries the server-initiated updates on the per-user channel
  * `user:{id}`, the session lane, and the channels of the dialogs on screen; and it carries every regular TL call of the
  * slot as an rpc (callUpdateSocket). The socket connects with the identity of its slot, which the session registers
- * (fleetIdentityOf): anonymous while signed out, the pending 2FA token while a challenge is pending, the access JWT while
+ * (fleetIdentityOf): an in-memory identity while signed out, the access JWT while
  * signed in. The slot's identity moves only through startImpulseRealtime and the session transitions (rekeyUpdateSocket);
  * a call never replaces the socket. The replaced socket closes once the calls it carries have settled.
  *
@@ -15,11 +15,13 @@
  * the envelope as the UTF-8 JSON the server published.
  */
 
+import pause from '@helpers/schedulers/pause';
+import {checkSocketMethod} from '@lib/impulse/grpc/methodClasses';
 import Schema, {MTProtoConstructor} from '@lib/mtproto/schema';
 import {Centrifuge, type RpcOptions, type RpcResult, type Subscription} from '@impulsem/centrifuge/build/protobuf';
 import {fromBinary} from '@bufbuild/protobuf';
 
-import {backendHttpOrigin, backendWsOrigin} from '@config/backendOrigin';
+import {backendUpdateWsOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
 import makeError from '@helpers/makeError';
 import type {TabState} from '@lib/apiManagerProxy';
@@ -39,7 +41,7 @@ import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 
 const logger = getLogger('impulse-realtime');
 
-const CENTRIFUGO_WS = `${backendWsOrigin(backendHttpOrigin())}${CENTRIFUGO_CONNECTION_PATH}`;
+const CENTRIFUGO_WS = `${backendUpdateWsOrigin()}${CENTRIFUGO_CONNECTION_PATH}`;
 // Every regular call is an rpc on this client, and an rpc deadline may not exceed the client timeout.
 const UPDATE_SOCKET_TIMEOUT_MS: number = 30_000;
 const NO_CONNECTION_TOKEN: string = '';
@@ -193,9 +195,14 @@ export function rekeyUpdateSocket(accountNumber: ActiveAccountNumber): void {
   }
 
   retireSocket(record, current);
-  if(record.activeUserId !== undefined) {
-    socketOf(accountNumber);
+  if(fleetIdentityOf(accountNumber).kind === 'identity') {
+    record.activeUserId = undefined;
+    record.subscriptionSet = undefined;
+    if(current.identity.kind === 'session') {
+      return;
+    }
   }
+  socketOf(accountNumber);
 }
 
 /**
@@ -203,18 +210,20 @@ export function rekeyUpdateSocket(accountNumber: ActiveAccountNumber): void {
  * when the slot has none, under the identity the slot holds. Rejects with an ApiError.
  */
 export async function callUpdateSocket(call: UpdateSocketCall): Promise<Uint8Array> {
+  const identity: FleetIdentity = fleetIdentityOf(call.accountNumber);
+  checkSocketMethod({kind: identity.kind, method: call.method});
   const socket = socketOf(call.accountNumber);
   socket.inflight++;
 
   let reply: RpcResult;
   try {
-    reply = await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
+    reply = await sendSocketRpc(socket, call);
   } catch(err: unknown) {
-    if(isFleetRpcError(err) && isTokenRefusalCode(err.code)) {
-      socket.identity.onRefused?.();
+    const error: ApiError = fleetFailure(call.method, err, socket.identity);
+    if(error.type === 'AUTH_KEY_UNREGISTERED' || (isFleetRpcError(err) && isTokenRefusalCode(err.code))) {
+      socket.identity.onRefused?.(error);
     }
-
-    throw fleetFailure(call.method, err);
+    throw error;
   } finally {
     socket.inflight--;
     closeIfIdle(socket);
@@ -222,6 +231,22 @@ export async function callUpdateSocket(call: UpdateSocketCall): Promise<Uint8Arr
 
   countSocketCall(call.accountNumber);
   return replyDataOf(reply);
+}
+
+async function sendSocketRpc(socket: UpdateSocket, call: UpdateSocketCall): Promise<RpcResult> {
+  try {
+    return await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
+  } catch(error: unknown) {
+    if(socket.identity.kind !== 'identity' || !isFleetRpcError(error) || error.code !== 111) {
+      throw error;
+    }
+    const seconds: number = Number(error.metadata?.['x-centrifugo-retry-after'] ?? 1);
+    await pause((Number.isFinite(seconds) && seconds > 0 ? seconds : 1) * 1000);
+    if(socket.retired || call.signal?.aborted) {
+      throw error;
+    }
+    return await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
+  }
 }
 
 function rpcOptionsOf(call: UpdateSocketCall): RpcOptions {
@@ -315,7 +340,7 @@ function socketOf(accountNumber: ActiveAccountNumber): UpdateSocket {
 function openSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity): UpdateSocket {
   const centrifuge = new Centrifuge(CENTRIFUGO_WS, {
     token: NO_CONNECTION_TOKEN,
-    getToken: identity.getToken ?? null,
+    getToken: identity.getToken,
     // The SDK 1.6.0 blocks a token the server refused unless this is false: the renewal must be able to send the token it returns.
     stopOnRefusedToken: false,
     timeout: UPDATE_SOCKET_TIMEOUT_MS,
@@ -325,8 +350,8 @@ function openSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity)
 
   centrifuge.on('error', (ctx: any) => {
     const code: number | undefined = ctx?.error?.code;
-    if(isTokenRefusalCode(code)) {
-      identity.onRefused?.();
+    if(isTokenRefusalCode(code) || ctx?.error?.appType === 'AUTH_KEY_UNREGISTERED') {
+      identity.onRefused?.(fleetFailure('connect', ctx.error));
     }
 
     if(code === TOKEN_EXPIRED_CODE) {
@@ -345,6 +370,9 @@ function openSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity)
     logger.info('Realtime connected', {identity: identity.kind, transport: ctx?.transport});
   });
   centrifuge.on('disconnected', (ctx: any) => {
+    if(identity.kind === 'identity' && ctx?.code === 4100) {
+      identity.onRefused?.();
+    }
     logger.warn('Realtime disconnected', {identity: identity.kind, code: ctx?.code, reason: ctx?.reason});
   });
 

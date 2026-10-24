@@ -20,3 +20,11 @@ export function backendHttpOrigin(): string {
 export function backendWsOrigin(httpOrigin: string): string {
   return httpOrigin.replace(/^http/, 'ws');
 }
+
+export function backendUpdateWsOrigin(): string {
+  return import.meta.env.VITE_IMPULSE_UPDATE_WS || backendWsOrigin(backendHttpOrigin());
+}
+
+export function backendPoolWsOrigin(): string | undefined {
+  return import.meta.env.VITE_IMPULSE_POOL_WS || undefined;
+}

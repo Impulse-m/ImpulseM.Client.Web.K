@@ -1,3 +1,4 @@
+vi.mock('@lib/accounts/accountController', () => ({default: {get: vi.fn(async() => ({userId: 42, impulse_session_token: 'fixture-session'}))}}));
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
@@ -24,6 +25,8 @@ beforeEach(async() => {
   vi.resetModules();
   socketHarness.reset();
   await registerSessionIdentitySource();
+  const {restoreImpulseSession} = await import('@lib/impulse/session');
+  await restoreImpulseSession(1);
 });
 
 describe('a socket that cannot close fails the teardown of its slot', () => {

@@ -20,28 +20,21 @@ import {TOKEN_EXPIRED_CODE} from '@lib/impulse/centrifugoCodes';
 import {callMediaFleet} from '@lib/impulse/fleet/fleet';
 import type {FleetCall} from '@lib/impulse/fleet/fleet';
 import {routesToMediaFleet} from '@lib/impulse/fleet/fleetRoute';
-import {apiErrorOf, isApiError, isFleetRpcError, pendingTokenOf, transportApiError} from '@lib/impulse/fleet/fleetError';
+import {apiErrorOf, isApiError, isFleetRpcError, transportApiError} from '@lib/impulse/fleet/fleetError';
 import {callUpdateSocket} from '@lib/impulse/realtime';
 import {
   captureImpulseSessionToken,
-  capturePendingToken,
-  clearPendingToken,
   CONNECTION_NOT_INITED,
   ensureConnectionDeclared,
   fleetIdentityFor,
   refreshImpulseSession,
   whenImpulseSessionReady
-} from '../session';
+} from '@lib/impulse/session';
 import {getServiceAndMethod} from './serviceMap';
 import {normalizeName, protoToTL} from './protoToTL';
-import {
-  getGrpcPendingGeneration,
-  getGrpcPendingToken,
-  resetConnectionInited
-} from './credentials';
+import {resetConnectionInited} from '@lib/impulse/grpc/credentials';
 
 const logger = getLogger('grpc-adapter');
-const LOCAL_STORAGE_FAILURE_CODE: number = 500;
 
 type GrpcRetry = {
   isRetry?: boolean,
@@ -210,25 +203,18 @@ export async function grpcInvoke(
   const request = create(descMethod.input, buildProtoInit(params, descMethod.input, {method}));
   const requestBytes: Uint8Array = toBinary(descMethod.input, request);
 
-  // A freshly (re)sent code starts a new login attempt the moment this is called: any pending 2FA challenge of an
-  // earlier attempt is stale from this instant.
-  const staleChallengeCleared: Promise<void> = method === 'auth.sendCode'
-    ? clearStaleChallenge(accountNumber)
-    : Promise.resolve();
-
-  // Snapshotted before the readiness wait, so an invalidation issued right after this call is seen as a change.
-  const pendingGenerationAtRequestStart = getGrpcPendingGeneration(accountNumber);
-  await staleChallengeCleared;
-
   // Nothing may leave before the stored session has been put back in place.
   await whenImpulseSessionReady(accountNumber);
   void ensureConnectionDeclared(accountNumber);
 
   const identity = fleetIdentityFor(accountNumber);
-  const pendingTokenAtRequestStart = getGrpcPendingToken(accountNumber);
+  const isCurrentIdentity = (): boolean => fleetIdentityFor(accountNumber).key === identity.key;
 
   try {
     const reply = await carry({accountNumber, method, request: requestBytes, signal: abortSignal});
+    if(!isCurrentIdentity()) {
+      throw apiErrorOf('CANCELED', 0, undefined, 'The request identity was retired');
+    }
     const result = protoToTL(fromBinary(descMethod.output, reply), descMethod.output);
     if(method === 'help.getAppConfig' && result?._ === 'help.appConfig') {
       result.config = formatJSONValue(result.config);
@@ -240,27 +226,13 @@ export async function grpcInvoke(
     const apiError: ApiError = isApiError(err) ? err : transportApiError(err);
     const rawCode: number | undefined = isFleetRpcError(apiError.originalError) ? apiError.originalError.code : undefined;
 
-    if(apiError.type === 'SESSION_PASSWORD_NEEDED') {
-      const token = pendingTokenOf(apiError);
-      if(token !== undefined && getGrpcPendingGeneration(accountNumber) === pendingGenerationAtRequestStart) {
-        await recordStorageFailure(apiError, capturePendingToken(accountNumber, token));
-      }
-    }
-
-    // The pending token this call presented has been authoritatively rejected: revoked or consumed. Clear it, but only
-    // while it is still the current one, so a late rejection cannot clear a newer challenge.
-    if(
-      identity.kind === 'pending' &&
-      apiError.type === 'AUTH_TOKEN_INVALID' &&
-      getGrpcPendingToken(accountNumber) === pendingTokenAtRequestStart
-    ) {
-      await recordStorageFailure(apiError, clearPendingToken(accountNumber));
-    }
-
     // The server asked for the declaration this call did not carry: declare the connection, then replay the call once.
-    if(apiError.type === CONNECTION_NOT_INITED && !retry.isReinitRetry) {
+    if(apiError.type === CONNECTION_NOT_INITED && !retry.isReinitRetry && isCurrentIdentity()) {
       resetConnectionInited(accountNumber);
       await ensureConnectionDeclared(accountNumber);
+      if(!isCurrentIdentity()) {
+        throw apiError;
+      }
       logger.info('Retrying with the connection declaration', {method, accountNumber});
       return grpcInvoke(method, params, accountNumber, abortSignal, {...retry, isReinitRetry: true});
     }
@@ -268,7 +240,8 @@ export async function grpcInvoke(
     // The access token was refused as expired: renew it once through the refresh token and replay the call on the update
     // socket, which then connects with the renewed token.
     const tokenExpired: boolean = rawCode === TOKEN_EXPIRED_CODE;
-    if(tokenExpired && identity.kind === 'session' && !retry.isRetry && await refreshImpulseSession(accountNumber)) {
+    if(tokenExpired && identity.kind === 'session' && !retry.isRetry && isCurrentIdentity() &&
+      await refreshImpulseSession(accountNumber) && isCurrentIdentity()) {
       logger.info('Retrying after session refresh', {method, accountNumber});
       return grpcInvoke(method, params, accountNumber, abortSignal, {...retry, isRetry: true});
     }
@@ -295,28 +268,4 @@ function carry(call: FleetCall): Promise<Uint8Array> {
     request: call.request,
     signal: call.signal
   });
-}
-
-async function clearStaleChallenge(accountNumber: ActiveAccountNumber): Promise<void> {
-  try {
-    await clearPendingToken(accountNumber);
-  } catch(storageError: unknown) {
-    const error: ApiError = apiErrorOf(
-      'LOCAL_STORAGE_WRITE_FAILED',
-      LOCAL_STORAGE_FAILURE_CODE,
-      undefined,
-      'The stale pending token could not be cleared from storage'
-    );
-    error.cause = storageError;
-    throw error;
-  }
-}
-
-async function recordStorageFailure(apiError: ApiError, pendingWrite: Promise<void>): Promise<void> {
-  try {
-    await pendingWrite;
-  } catch(storageError: unknown) {
-    logger.warn('Failed to write the pending token of a failed call', {type: apiError.type}, storageError);
-    apiError.cause = storageError;
-  }
 }

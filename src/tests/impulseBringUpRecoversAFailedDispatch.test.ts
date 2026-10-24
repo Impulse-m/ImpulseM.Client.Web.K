@@ -19,7 +19,7 @@ const {accountUpdate, recordedErrors} = vi.hoisted(() => ({
 }));
 
 vi.mock('@lib/accounts/accountController', () => ({
-  default: {update: accountUpdate}
+  default: {update: accountUpdate, get: vi.fn(async() => ({userId: 42, impulse_session_token: 'fixture-session'}))}
 }));
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
@@ -72,6 +72,8 @@ beforeEach(async() => {
   accountUpdate.mockResolvedValue(undefined);
   recordedErrors.length = 0;
   await registerSessionIdentitySource();
+  const {restoreImpulseSession} = await import('@lib/impulse/session');
+  await restoreImpulseSession(1);
 });
 
 async function bringUpSlotWhoseSinkThrows(

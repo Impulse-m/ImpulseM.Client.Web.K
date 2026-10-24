@@ -32,17 +32,17 @@ const OTHER_MEDIA_URL: string = `wss://media-2.impulsem.io:443${FLEET_CONNECTION
 const REQUEST_BYTES: Uint8Array = new Uint8Array([1, 2, 3]);
 const REPLY_BYTES: Uint8Array = new Uint8Array([4, 5, 6]);
 const SESSION_TOKEN: string = 'session-token-current';
-const PENDING_TOKEN: string = 'pending-token-current';
+const IDENTITY_TOKEN: string = 'identity-token-current';
 const GET_FILE: string = 'upload.getFile';
 
-const ANONYMOUS: FleetIdentity = {kind: 'anonymous', key: 'anonymous', getToken: undefined};
+const IDENTITY: FleetIdentity = {kind: 'identity', key: 'identity:0', getToken: async(): Promise<string> => IDENTITY_TOKEN};
 
 function sessionIdentity(token: string): FleetIdentity {
   return {kind: 'session', key: `session:${token}`, getToken: async(): Promise<string> => token};
 }
 
-function pendingIdentity(token: string): FleetIdentity {
-  return {kind: 'pending', key: `pending:${token}`, getToken: async(): Promise<string> => token};
+function loginIdentity(token: string): FleetIdentity {
+  return {kind: 'identity', key: `identity:${token}`, getToken: async(): Promise<string> => token};
 }
 
 function withMediaOption(host: string): FleetConfig {
@@ -59,7 +59,7 @@ function fileCall(overrides: Partial<FleetCall> = {}): FleetCall {
   return {accountNumber: ACCOUNT, method: GET_FILE, request: REQUEST_BYTES, ...overrides};
 }
 
-let presentedIdentity: FleetIdentity = ANONYMOUS;
+let presentedIdentity: FleetIdentity = IDENTITY;
 
 function presentIdentity(identity: FleetIdentity): void {
   presentedIdentity = identity;
@@ -69,7 +69,7 @@ beforeEach(() => {
   resetFleetIdentity(ACCOUNT);
   resetFleetIdentity(OTHER_ACCOUNT);
   setFleetIdentitySource(() => presentedIdentity);
-  presentIdentity(ANONYMOUS);
+  presentIdentity(IDENTITY);
   fleetHarness.reset();
   warn.mockClear();
 });
@@ -241,23 +241,13 @@ describe('the identity a call presents decides the connection token of its pool'
     setFleetConfig(ACCOUNT, withMediaOption('media.impulsem.io'));
   });
 
-  it('a signed-out call opens a pool whose connection carries no token', async() => {
+  it('an identity call presents the identity token its identity hands out', async() => {
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
+    presentIdentity(loginIdentity(IDENTITY_TOKEN));
 
     await callMediaFleet(fileCall());
 
-    expect(fleetHarness.pools[0].options.connection.getToken, 'an anonymous pool asks for no token').toBeUndefined();
-    expect(fleetHarness.pools[0].options.connection.token).toBeUndefined();
-    expect(fleetHarness.calls[0].presentedToken).toBeUndefined();
-  });
-
-  it('a pending call presents the pending token its identity hands out', async() => {
-    fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
-    presentIdentity(pendingIdentity(PENDING_TOKEN));
-
-    await callMediaFleet(fileCall());
-
-    expect(fleetHarness.calls[0].presentedToken).toBe(PENDING_TOKEN);
+    expect(fleetHarness.calls[0].presentedToken).toBe(IDENTITY_TOKEN);
   });
 
   it('a signed-in call presents the session token its identity hands out', async() => {
@@ -274,7 +264,7 @@ describe('the identity a call presents decides the connection token of its pool'
       throw {code: 103, message: 'AUTH_TOKEN_INVALID', appCode: 400, appType: 'AUTH_TOKEN_INVALID'};
     });
 
-    presentIdentity(pendingIdentity(PENDING_TOKEN));
+    presentIdentity(loginIdentity(IDENTITY_TOKEN));
 
     await expect(callMediaFleet(fileCall()))
       .rejects.toMatchObject({type: 'AUTH_TOKEN_INVALID'});

@@ -2,6 +2,7 @@ import {vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {WireInvariants} from './invariants';
+import {liveLane} from './liveGate';
 
 
 /*
@@ -114,6 +115,8 @@ async function installBootPrelude(gatewayOrigin: string, options?: BootOptions):
   // The transport reads this at module init (src/config/backendOrigin.ts). Must be stubbed
   // before ANY src import below pulls the config in.
   vi.stubEnv('VITE_IMPULSE_BACKEND_URL', gatewayOrigin);
+  vi.stubEnv('VITE_IMPULSE_UPDATE_WS', liveLane.updateWsOrigin ?? '');
+  vi.stubEnv('VITE_IMPULSE_POOL_WS', liveLane.poolWsOrigin ?? '');
 
   const {installNodeEnv} = await import('../api/nodeEnv');
   installNodeEnv();

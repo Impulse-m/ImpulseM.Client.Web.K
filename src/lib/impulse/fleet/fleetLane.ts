@@ -28,7 +28,7 @@ const RpcPool: FleetPoolConstructor = (centrifugeProtobuf as unknown as {
   RpcPool: FleetPoolConstructor
 }).RpcPool;
 
-export type FleetKind = 'media' | 'refresh';
+export type FleetKind = 'media' | 'pool';
 
 type FleetLaneOptions = {
   key: string,

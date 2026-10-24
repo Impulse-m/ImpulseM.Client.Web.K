@@ -81,6 +81,8 @@ type SignedInManager = {
 /** An ApiManager of the real prototype, with the collaborators a sign-out of the slot reaches. */
 async function signedInManager(): Promise<SignedInManager> {
   const {ApiManager} = await import('@appManagers/apiManager');
+  const {setGrpcSessionToken} = await import('@lib/impulse/grpc/credentials');
+  setGrpcSessionToken(ACCOUNT, SESSION_TOKEN);
   return Object.assign(Object.create(ApiManager.prototype), {
     getAccountNumber: (): ActiveAccountNumber => ACCOUNT,
     invokeApi: vi.fn(async(): Promise<void> => undefined),
@@ -152,6 +154,10 @@ describe('the local wipe keeps every failure of its steps', () => {
 
   it('a socket that fails to close and a failed credential clear both reach the sign-out', async() => {
     const {startImpulseRealtime} = await import('@lib/impulse/realtime');
+    const {setGrpcSessionToken} = await import('@lib/impulse/grpc/credentials');
+    const {restoreImpulseSession} = await import('@lib/impulse/session');
+    await restoreImpulseSession(ACCOUNT);
+    setGrpcSessionToken(ACCOUNT, SESSION_TOKEN);
     startImpulseRealtime(USER_ID, ACCOUNT);
     const [socket] = socketHarness.sockets;
     socket.disconnect = (): void => {

@@ -6,10 +6,10 @@
  * deploy/centrifugo/media/registry.json. Every other call is an rpc on the update socket (realtime.ts).
  */
 
-import {backendHttpOrigin, backendWsOrigin} from '@config/backendOrigin';
+import {backendUpdateWsOrigin, backendPoolWsOrigin} from '@config/backendOrigin';
 import type {FleetConfig} from './fleetEndpoint';
 import {endpointOf, mediaOptionOf} from './fleetEndpoint';
-import {FLEET_CONNECTION_PATH} from './fleetPath';
+import {FLEET_CONNECTION_PATH, POOL_CONNECTION_PATH} from './fleetPath';
 
 export type {FleetConfig, FleetDcOption} from './fleetEndpoint';
 
@@ -21,10 +21,10 @@ const MEDIA_FLEET_METHODS: ReadonlySet<string> = new Set<string>([
 ]);
 
 // The client's own calls are not canon methods; the server registers them under these keys.
-export const REFRESH_SESSION_METHOD: string = 'impulse.auth.refreshSession';
-export const INIT_CONNECTION_METHOD: string = 'impulse.auth.initConnection';
+export const REFRESH_SESSION_METHOD: string = 'refreshSession';
+export const INIT_CONNECTION_METHOD: string = 'initConnection';
 
-const DEFAULT_FLEET_PORT: string = '443';
+export const CONNECTION_IDENTITY_METHOD: string = 'connectionIdentity';
 
 export function routesToMediaFleet(method: string): boolean {
   return MEDIA_FLEET_METHODS.has(method);
@@ -35,8 +35,9 @@ export function mediaEndpointOf(config: FleetConfig): string | undefined {
   return option === undefined ? undefined : endpointOf(option);
 }
 
-/** The endpoint of the anonymous pool the session refresh uses: the host of the update socket, on port 443. */
-export function defaultRpcEndpoint(): string {
-  const origin = new URL(backendWsOrigin(backendHttpOrigin()));
-  return `${origin.protocol}//${origin.hostname}:${origin.port || DEFAULT_FLEET_PORT}${FLEET_CONNECTION_PATH}`;
+export function poolRpcEndpoint(): string {
+  const poolOrigin: string | undefined = backendPoolWsOrigin();
+  return poolOrigin === undefined
+    ? `${backendUpdateWsOrigin()}${POOL_CONNECTION_PATH}`
+    : `${poolOrigin}${FLEET_CONNECTION_PATH}`;
 }

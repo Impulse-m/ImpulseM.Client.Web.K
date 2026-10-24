@@ -75,6 +75,7 @@ function managerStub(listeners: {current: ListenerMap}, cachedConfig: FleetConfi
   return {
     config: cachedConfig,
     getConfig: vi.fn(),
+    startRealtimeBringUp: vi.fn(),
     getAccountNumber: (): ActiveAccountNumber => ACCOUNT,
     rootScope: {addEventListener: vi.fn(), dispatchEvent: vi.fn()},
     appStateManager: {getState: vi.fn(async() => ({appConfig: undefined}))},
@@ -109,7 +110,7 @@ beforeEach(async() => {
   accountGet.mockReset();
   accountUpdate.mockReset();
   accountClearFields.mockReset();
-  accountGet.mockResolvedValue(undefined);
+  accountGet.mockResolvedValue({userId: 42, impulse_session_token: 'fixture-session'});
 });
 
 describe('a media_only option arriving by updateDcOptions reaches the media fleet', () => {

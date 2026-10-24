@@ -3,7 +3,7 @@ import {create, toBinary} from '@bufbuild/protobuf';
 import {UnauthorizedError} from '@impulsem/centrifuge/build/protobuf';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {AuthorizationSchema} from '@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_types_pb';
+import {RefreshSessionResponseSchema} from '@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_service_pb';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
 import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
@@ -18,6 +18,11 @@ const {accountGet, accountUpdate, accountClearFields} = vi.hoisted(() => ({
   accountGet: vi.fn(),
   accountUpdate: vi.fn(),
   accountClearFields: vi.fn()
+}));
+
+vi.mock('@lib/impulseLogger', () => ({
+  getLogger: () => ({debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn()}),
+  setLogAuthTokenProvider: vi.fn()
 }));
 
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
@@ -42,14 +47,14 @@ const ACCOUNT: ActiveAccountNumber = 1;
 const SESSION_TOKEN: string = 'access-jwt-first';
 const RENEWED_TOKEN: string = 'access-jwt-renewed';
 const REFRESH_TOKEN: string = 'refresh-token-stored';
-const REFRESH: string = 'impulse.auth.refreshSession';
+const REFRESH: string = 'refreshSession';
 const TOKEN_EXPIRED: number = 109;
 const GET_CONFIG: string = 'help.getConfig';
 const UNAUTHORIZED_MUST_STOP_THE_SOCKET: string =
   'getToken must throw the SDK\'s UnauthorizedError on a refused session: any other error is retried forever';
 
 function renewedAuthorization(): Uint8Array {
-  return toBinary(AuthorizationSchema, create(AuthorizationSchema, {sessionToken: RENEWED_TOKEN, refreshToken: 'refresh-next'}));
+  return toBinary(RefreshSessionResponseSchema, create(RefreshSessionResponseSchema, {sessionToken: RENEWED_TOKEN, refreshToken: 'refresh-next'}));
 }
 
 async function identity() {

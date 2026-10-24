@@ -27,7 +27,6 @@ const REFUSAL_TYPE_BY_CODE: ReadonlyMap<number, ErrorType> = new Map<number, Err
 
 const DESCRIPTION_METADATA: string = 'error-description';
 const MIGRATE_DC_METADATA: string = 'migrate-dc';
-const PENDING_TOKEN_METADATA: string = 'pending-token';
 
 export function apiErrorOf(type: ErrorType, numericCode: number, originalError: unknown, description?: string): ApiError {
   const error: ApiError = {type, code: numericCode, originalError};
@@ -86,10 +85,4 @@ export function replyDataOf(reply: {data?: Uint8Array}): Uint8Array {
   }
 
   return reply.data;
-}
-
-/** The pending-2FA token a SESSION_PASSWORD_NEEDED rejection carries, if the error carries one. */
-export function pendingTokenOf(apiError: ApiError): string | undefined {
-  const original = apiError.originalError;
-  return isFleetRpcError(original) ? original.metadata?.[PENDING_TOKEN_METADATA] : undefined;
 }

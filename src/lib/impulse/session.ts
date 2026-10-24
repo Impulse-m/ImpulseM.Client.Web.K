@@ -1,48 +1,32 @@
-/*
- * Keeps the session identity of each account slot in step with its update socket and its media pool.
- *
- * Unlike MTProto, where identity rides in the auth key, the ImpulseM carriers authenticate a connection with a token.
- * The access token is minted by the backend and returned on `v1.AuthAuthorizationValue` (field `session_token`), so
- * it is captured wherever an auth RPC comes back: sign-in, sign-up, password check, passkey login and authorization
- * import all share that message. The update socket of a signed-in slot connects with it (fleetIdentityFor). The SDK asks
- * for the token when a connection needs one; the token is renewed only once the server has refused it.
- *
- * It is persisted next to the rest of the account session data so a reload does not force a re-login.
- *
- * Every function below takes the account number explicitly (#436). A single SharedWorker hosts all four account
- * slots at once (createManagers builds one manager set per slot), and each slot's ApiManager already knows which slot
- * it is.
- */
-
 import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 import {UnauthorizedError} from '@impulsem/centrifuge/build/protobuf';
 
 import AccountController from '@lib/accounts/accountController';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getLogger} from '@lib/impulseLogger';
-import {ANONYMOUS_IDENTITY, callRefreshFleet, resetFleetIdentity} from '@lib/impulse/fleet/fleet';
+import {callPool, resetFleetIdentity} from '@lib/impulse/fleet/fleet';
 import type {FleetIdentity} from '@lib/impulse/fleet/fleet';
 import {isApiError} from '@lib/impulse/fleet/fleetError';
-import {INIT_CONNECTION_METHOD} from '@lib/impulse/fleet/fleetRoute';
+import {INIT_CONNECTION_METHOD, REFRESH_SESSION_METHOD} from '@lib/impulse/fleet/fleetRoute';
 import {callUpdateSocket, rekeyUpdateSocket} from '@lib/impulse/realtime';
-import {AuthorizationSchema, ConnectionDeclarationSchema, InitConnectionRequestSchema} from './grpc/gen/v1/internal/impulse/auth/auth_types_pb';
-import {RefreshSessionRequestSchema} from './grpc/gen/v1/internal/impulse/auth/auth_service_pb';
+import {ConnectionDeclarationSchema, InitConnectionRequestSchema} from '@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_types_pb';
+import {RefreshSessionRequestSchema, RefreshSessionResponseSchema} from '@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_service_pb';
+import {discardIdentity, identityEpoch, identityTokenFor, refuseIdentity} from '@lib/impulse/identity';
+import {scheduleTokenRenewal} from '@lib/impulse/tokenRenewal';
+import tokenClaims from '@helpers/jwtClaims';
+import {reportSignOutFailure} from '@lib/impulse/backgroundFailures';
 import {
   getConnectionDeclaration,
   getDeclarationGeneration,
-  getGrpcPendingGeneration,
-  getGrpcPendingToken,
   getGrpcSessionToken,
   isConnectionInited,
   isGrpcSessionTokenRefused,
   markConnectionInited,
   markGrpcSessionTokenRefused,
   resetConnectionInited,
-  restoreGrpcPendingToken,
-  setGrpcPendingToken,
   setGrpcSessionToken
-} from './grpc/credentials';
-import type {ConnectionDeclarationValues} from './grpc/credentials';
+} from '@lib/impulse/grpc/credentials';
+import type {ConnectionDeclarationValues} from '@lib/impulse/grpc/credentials';
 
 const logger = getLogger('impulse-session');
 
@@ -138,35 +122,73 @@ const refreshInFlightByAccount = new Map<ActiveAccountNumber, Promise<RenewalOut
 const handshakeInFlightByAccount = new Map<ActiveAccountNumber, Promise<boolean>>();
 const handshakeFailedAtByAccount = new Map<ActiveAccountNumber, number>();
 
-/**
- * The identity of the slot's update socket and its media pool: the access JWT of a signed-in slot, the pending 2FA token
- * of a slot holding a challenge, and no token otherwise. The key changes with the token, so a renewed token is a new
- * identity for the connections that present it.
- */
+const sessionEpochs: Map<ActiveAccountNumber, number> = new Map();
+const sessionTimers: Map<ActiveAccountNumber, () => void> = new Map();
+const signOutHandlers: Map<ActiveAccountNumber, () => Promise<void>> = new Map();
+
+export function setImpulseSessionSignOutHandler(account: ActiveAccountNumber, signOut: () => Promise<void>): void {
+  signOutHandlers.set(account, signOut);
+}
+
+function sessionEpoch(account: ActiveAccountNumber): number {
+  return sessionEpochs.get(account) ?? 0;
+}
+
+function advanceSessionEpoch(account: ActiveAccountNumber): void {
+  sessionEpochs.set(account, sessionEpoch(account) + 1);
+  sessionTimers.get(account)?.();
+  sessionTimers.delete(account);
+  refreshInFlightByAccount.delete(account);
+  handshakeInFlightByAccount.delete(account);
+  handshakeFailedAtByAccount.delete(account);
+}
+
 export function fleetIdentityFor(accountNumber: ActiveAccountNumber): FleetIdentity {
-  const sessionToken = getGrpcSessionToken(accountNumber);
+  const sessionToken: string | undefined = getGrpcSessionToken(accountNumber);
   if(sessionToken !== undefined) {
+    const epoch: number = sessionEpoch(accountNumber);
     return {
       kind: 'session',
-      key: `session:${sessionToken}`,
-      getToken: (): Promise<string> => sessionAccessToken(accountNumber),
-      onRefused: (): void => markGrpcSessionTokenRefused(accountNumber, sessionToken)
+      key: `session:${epoch}`,
+      getToken: (): Promise<string> => tokenForIdentity(accountNumber, `session:${epoch}`, () => sessionAccessToken(accountNumber)),
+      onRefused: (error?: ApiError): void => {
+        const current: string | undefined = getGrpcSessionToken(accountNumber);
+        if(current !== undefined && sessionEpoch(accountNumber) === epoch) {
+          if(error?.type === 'AUTH_KEY_UNREGISTERED' && error.socketKind === undefined) {
+            const signOut: () => Promise<void> = signOutHandlers.get(accountNumber) ?? ((): Promise<void> => clearImpulseSession(accountNumber));
+            void signOut().catch(reportSignOutFailure);
+            return;
+          }
+          markGrpcSessionTokenRefused(accountNumber, current);
+        }
+      }
     };
   }
 
-  const pendingToken = getGrpcPendingToken(accountNumber);
-  if(pendingToken !== undefined) {
-    return {kind: 'pending', key: `pending:${pendingToken}`, getToken: (): Promise<string> => Promise.resolve(pendingToken)};
-  }
-
-  return ANONYMOUS_IDENTITY;
+  const epoch: number = identityEpoch(accountNumber);
+  return {
+    kind: 'identity',
+    key: `identity:${epoch}`,
+    getToken: (): Promise<string> => tokenForIdentity(accountNumber, `identity:${epoch}`, () => identityTokenFor(accountNumber)),
+    onRefused: (): void => refuseIdentity(accountNumber, epoch)
+  };
 }
 
-/**
- * The token a connection of the update socket presents. The token the slot holds is handed out unchanged, and renewed
- * through the refresh only once the server has refused it; a refused session ends the connection (UnauthorizedError),
- * a failed renewal in transit is retried by the SDK.
- */
+async function tokenForIdentity(
+  account: ActiveAccountNumber,
+  key: string,
+  acquire: () => Promise<string>
+): Promise<string> {
+  if(fleetIdentityFor(account).key !== key) {
+    throw new UnauthorizedError(SIGNED_OUT_MESSAGE);
+  }
+  const token: string = await acquire();
+  if(fleetIdentityFor(account).key !== key) {
+    throw new UnauthorizedError(SIGNED_OUT_MESSAGE);
+  }
+  return token;
+}
+
 async function sessionAccessToken(accountNumber: ActiveAccountNumber): Promise<string> {
   await whenImpulseSessionReady(accountNumber);
 
@@ -175,7 +197,7 @@ async function sessionAccessToken(accountNumber: ActiveAccountNumber): Promise<s
     throw new UnauthorizedError(SIGNED_OUT_MESSAGE);
   }
 
-  if(!isGrpcSessionTokenRefused(accountNumber)) {
+  if(!isGrpcSessionTokenRefused(accountNumber) && (tokenClaims(current)?.exp ?? Infinity) > Date.now() / 1000) {
     return current;
   }
 
@@ -232,12 +254,30 @@ export async function captureImpulseSessionToken(accountNumber: ActiveAccountNum
 async function adoptSession(accountNumber: ActiveAccountNumber, token: string, refresh: string): Promise<void> {
   setGrpcSessionToken(accountNumber, token);
   refreshTokenByAccount.set(accountNumber, refresh);
-  // A real session now exists for this slot: any pending 2FA challenge it carried is obsolete, and every connection of
-  // the slot reconnects with the new identity.
-  dropPendingToken(accountNumber);
+  discardIdentity(accountNumber);
+  advanceSessionEpoch(accountNumber);
   identityChanged(accountNumber);
-  await clearPersistedPendingToken(accountNumber);
+  scheduleSessionRefresh(accountNumber, token);
   await persistTokens(accountNumber, token, refresh);
+}
+
+function scheduleSessionRefresh(account: ActiveAccountNumber, token: string): void {
+  sessionTimers.get(account)?.();
+  sessionTimers.delete(account);
+  const exp: number | undefined = tokenClaims(token)?.exp;
+  if(exp === undefined || exp <= Date.now() / 1000) {
+    return;
+  }
+  const epoch: number = sessionEpoch(account);
+  sessionTimers.set(account, scheduleTokenRenewal({
+    exp,
+    renew: async(): Promise<void | boolean> => {
+      if(sessionEpoch(account) !== epoch) {
+        return;
+      }
+      return await renewImpulseSession(account) !== 'failed';
+    }
+  }));
 }
 
 // auth.loginTokenSuccess (the QR login reply) nests its authorization under `authorization`;
@@ -280,54 +320,12 @@ async function applyTokens(accountNumber: ActiveAccountNumber, token: string, re
     throw new Error('Authorization carried no refresh token');
   }
 
-  await adoptSession(accountNumber, token, effectiveRefresh);
+  setGrpcSessionToken(accountNumber, token);
+  refreshTokenByAccount.set(accountNumber, effectiveRefresh);
+  scheduleSessionRefresh(accountNumber, token);
+  await persistTokens(accountNumber, token, effectiveRefresh);
 }
 
-/**
- * Takes a pending 2FA token for this slot: in memory (the connections of the slot reconnect under it) and in storage, so a
- * reload or SharedWorker restart while the challenge is pending does not lose it. The in-memory token stays usable for
- * this tab's current attempt either way; only cross-reload survival is at risk if the storage write fails.
- */
-export async function capturePendingToken(accountNumber: ActiveAccountNumber, token: string): Promise<void> {
-  setGrpcPendingToken(accountNumber, token);
-  identityChanged(accountNumber);
-  await persistPendingToken(accountNumber, token);
-}
-
-async function persistPendingToken(accountNumber: ActiveAccountNumber, token: string): Promise<void> {
-  await AccountController.update(accountNumber, {impulse_pending_token: token});
-  logger.info('Pending token persisted', {accountNumber});
-}
-
-/**
- * Drops the pending-2FA credential: in memory (its connections reconnect without it) and, awaited, in storage. The
- * session and refresh fields are never touched here.
- */
-export async function clearPendingToken(accountNumber: ActiveAccountNumber): Promise<void> {
-  if(dropPendingToken(accountNumber)) {
-    identityChanged(accountNumber);
-  }
-
-  await clearPersistedPendingToken(accountNumber);
-}
-
-function dropPendingToken(accountNumber: ActiveAccountNumber): boolean {
-  const hadPendingToken = getGrpcPendingToken(accountNumber) !== undefined;
-  setGrpcPendingToken(accountNumber, undefined);
-  return hadPendingToken;
-}
-
-async function clearPersistedPendingToken(accountNumber: ActiveAccountNumber): Promise<void> {
-  await AccountController.clearFields(accountNumber, ['impulse_pending_token']);
-}
-
-/**
- * The access token lives `AccessTokenExpiryMinutes` (15 by default). The authorization response carries a
- * long-lived refresh token for exactly this, and impulse.auth.RefreshSession trades it for a fresh pair.
- *
- * Single-flight per account: an expired token fails many in-flight calls of that account at once, and they must not
- * each open their own renewal. Two different accounts refreshing at the same time are two independent renewals.
- */
 export function refreshImpulseSession(accountNumber: ActiveAccountNumber): Promise<boolean> {
   return renewImpulseSession(accountNumber).then((outcome: RenewalOutcome): boolean => outcome === 'renewed');
 }
@@ -338,47 +336,49 @@ function renewImpulseSession(accountNumber: ActiveAccountNumber): Promise<Renewa
     return inFlight;
   }
 
-  const promise = runRefresh(accountNumber, false).finally(() => {
-    refreshInFlightByAccount.delete(accountNumber);
+  const promise = runRefresh(accountNumber).finally(() => {
+    if(refreshInFlightByAccount.get(accountNumber) === promise) {
+      refreshInFlightByAccount.delete(accountNumber);
+    }
   });
 
   refreshInFlightByAccount.set(accountNumber, promise);
   return promise;
 }
 
-async function runRefresh(accountNumber: ActiveAccountNumber, isReinitRetry: boolean): Promise<RenewalOutcome> {
-  const refreshToken = refreshTokenByAccount.get(accountNumber);
-  if(!refreshToken) {
-    logger.warn('Cannot refresh the session: no refresh token stored', {accountNumber});
+async function runRefresh(accountNumber: ActiveAccountNumber): Promise<RenewalOutcome> {
+  const refreshToken: string | undefined = refreshTokenByAccount.get(accountNumber);
+  const current: string | undefined = getGrpcSessionToken(accountNumber);
+  const epoch: number = sessionEpoch(accountNumber);
+  if(!refreshToken || current === undefined) {
     return 'failed';
   }
 
   try {
-    // The anonymous pool, not the update socket: a connect-time 109 of that socket waits for the token this call renews.
-    const reply = await callRefreshFleet(
-      accountNumber,
-      toBinary(RefreshSessionRequestSchema, create(RefreshSessionRequestSchema, {refreshToken}))
-    );
-    const authorization = fromBinary(AuthorizationSchema, reply);
+    const request: Uint8Array = toBinary(RefreshSessionRequestSchema, create(RefreshSessionRequestSchema, {refreshToken}));
+    const call = {accountNumber, method: REFRESH_SESSION_METHOD, request};
+    const needsPool: boolean = isGrpcSessionTokenRefused(accountNumber) || (tokenClaims(current)?.exp ?? Infinity) <= Date.now() / 1000;
+    const reply: Uint8Array = await (needsPool ? callPool(call) : callUpdateSocket(call));
+    if(sessionEpoch(accountNumber) !== epoch) {
+      return 'failed';
+    }
+    const authorization = fromBinary(RefreshSessionResponseSchema, reply);
     if(!authorization.sessionToken) {
       logger.warn('Session refresh returned no token', {accountNumber});
       return 'failed';
     }
 
     await applyTokens(accountNumber, authorization.sessionToken, authorization.refreshToken || undefined);
-    logger.info('Session refreshed', {accountNumber});
     return 'renewed';
-  } catch(err) {
-    // The server wants the declaration this refresh did not carry. The declaration travels the update socket, which may be
-    // waiting for the token this renewal produces, so it is sent without being awaited here.
-    if(!isReinitRetry && isApiError(err) && err.type === CONNECTION_NOT_INITED) {
-      resetConnectionInited(accountNumber);
-      void ensureConnectionDeclared(accountNumber);
-      return runRefresh(accountNumber, true);
-    }
-
+  } catch(err: unknown) {
     logger.warn('Session refresh failed', {accountNumber}, err);
-    return isRefusedRefresh(err) ? 'refused' : 'failed';
+    if(isRefusedRefresh(err)) {
+      if(sessionEpoch(accountNumber) === epoch) {
+        await clearImpulseSession(accountNumber);
+      }
+      return 'refused';
+    }
+    return 'failed';
   }
 }
 
@@ -417,21 +417,26 @@ export function ensureConnectionDeclared(accountNumber: ActiveAccountNumber): Pr
   }
 
   const generation = getDeclarationGeneration(accountNumber);
+  const epoch: number = sessionEpoch(accountNumber);
   const handshake = sendInitConnection(accountNumber, declaration).then(
     (): boolean => {
-      if(getGrpcSessionToken(accountNumber) === sessionToken) {
+      if(sessionEpoch(accountNumber) === epoch) {
         markConnectionInited(accountNumber, generation);
       }
 
-      return isConnectionInited(accountNumber);
+      return sessionEpoch(accountNumber) === epoch && isConnectionInited(accountNumber);
     },
     (err: unknown): boolean => {
-      handshakeFailedAtByAccount.set(accountNumber, Date.now());
+      if(sessionEpoch(accountNumber) === epoch) {
+        handshakeFailedAtByAccount.set(accountNumber, Date.now());
+      }
       logger.warn('InitConnection failed', {account: accountNumber}, err);
       return false;
     }
   ).finally(() => {
-    handshakeInFlightByAccount.delete(accountNumber);
+    if(handshakeInFlightByAccount.get(accountNumber) === handshake) {
+      handshakeInFlightByAccount.delete(accountNumber);
+    }
   });
 
   handshakeInFlightByAccount.set(accountNumber, handshake);
@@ -465,18 +470,11 @@ export async function restoreImpulseSession(accountNumber: ActiveAccountNumber):
   const gate = gateFor(accountNumber);
   gate.restoreStarted = true;
 
-  // Snapshotted before the storage read is issued: a concurrent sign-out or new login that moves the generation on
-  // while the read is in flight leaves this read holding a stale record, which must not be applied.
-  const pendingGenerationAtRestoreStart = getGrpcPendingGeneration(accountNumber);
+  const epoch: number = sessionEpoch(accountNumber);
   try {
     const data = await AccountController.get(accountNumber);
-
-    // A persisted pending challenge carries no session: it is only a token for the methods that accept one.
-    const pendingToken: string | undefined = getGrpcPendingGeneration(accountNumber) === pendingGenerationAtRestoreStart
-      ? data?.impulse_pending_token
-      : undefined;
-    if(pendingToken) {
-      restoreGrpcPendingToken(accountNumber, pendingToken);
+    if(sessionEpoch(accountNumber) !== epoch) {
+      return;
     }
 
     const restoresSession: boolean = data?.userId !== undefined && Boolean(data.impulse_session_token);
@@ -488,8 +486,11 @@ export async function restoreImpulseSession(accountNumber: ActiveAccountNumber):
       setGrpcSessionToken(accountNumber, data.impulse_session_token);
     }
 
-    if(pendingToken || restoresSession) {
+    if(restoresSession) {
+      discardIdentity(accountNumber);
+      advanceSessionEpoch(accountNumber);
       identityChanged(accountNumber);
+      scheduleSessionRefresh(accountNumber, data.impulse_session_token);
     }
 
     if(!data || data.userId === undefined) {
@@ -533,8 +534,8 @@ export async function clearImpulseSession(accountNumber: ActiveAccountNumber): P
   setGrpcSessionToken(accountNumber, undefined);
   resetConnectionInited(accountNumber);
   refreshTokenByAccount.delete(accountNumber);
-  // logOut() is an exhaustive wipe of this slot's credentials: a pending 2FA challenge is one of them, too.
-  dropPendingToken(accountNumber);
+  discardIdentity(accountNumber);
+  advanceSessionEpoch(accountNumber);
   identityChanged(accountNumber);
-  await AccountController.clearFields(accountNumber, ['impulse_pending_token', 'impulse_session_token', 'impulse_refresh_token']);
+  await AccountController.clearFields(accountNumber, ['impulse_session_token', 'impulse_refresh_token']);
 }

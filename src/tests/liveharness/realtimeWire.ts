@@ -42,6 +42,13 @@ export type SocketClose = {
   reason?: string
 };
 
+export type WireCommand = {
+  id?: number,
+  connect?: {token?: string},
+  rpc?: {method?: string},
+  subscribe?: {channel?: string}
+};
+
 
 export class RealtimeWireObserver {
   public socketsOpened = 0;
@@ -49,8 +56,12 @@ export class RealtimeWireObserver {
   public subscribeAcks: SubscribeAck[] = [];
   public publications: PublicationRecord[] = [];
   public closes: SocketClose[] = [];
+  public commands: Array<{endpoint: string, command: WireCommand}> = [];
 
   private wrappedWebSocket: any;
+
+
+  public constructor(private decodeCommands?: (data: unknown) => WireCommand[]) {}
 
 
   /**
@@ -82,6 +93,12 @@ export class RealtimeWireObserver {
 
         const originalSend = this.send;
         this.send = function(data: any) {
+          const commands: WireCommand[] = observer.decodeCommands
+            ? observer.decodeCommands(data)
+            : parseFrameLines(rawFrameToString(data));
+          for(const command of commands) {
+            observer.commands.push({endpoint: String(args[0]), command});
+          }
           observer.onOutgoing(rawFrameToString(data), pendingConnects, pendingSubscribes);
           return originalSend.call(this, data);
         };

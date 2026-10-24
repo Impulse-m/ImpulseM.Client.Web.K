@@ -1,3 +1,5 @@
+import {freshIdentityReply} from '@/tests/helpers/identityFixtures';
+import {sharedFleetPoolHarness} from '@/tests/helpers/fleetPoolStub';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {create, toBinary} from '@bufbuild/protobuf';
 
@@ -28,7 +30,8 @@ const accountUpdate = vi.fn();
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
   const {sharedUpdateSocketHarness: harness} = await import('./helpers/updateSocketStub');
-  return {...actual, Centrifuge: harness().CentrifugeStub};
+  const {sharedFleetPoolHarness: pools} = await import('@/tests/helpers/fleetPoolStub');
+  return {...actual, RpcPool: pools().RpcPoolStub, Centrifuge: harness().CentrifugeStub};
 });
 
 vi.mock('@lib/accounts/accountController', () => ({
@@ -66,7 +69,11 @@ function loginTokenSuccessPayload(): Uint8Array {
   return toBinary(AuthLoginTokenSchema, loginToken);
 }
 
-beforeEach(registerSessionIdentitySource);
+beforeEach(async() => {
+    sharedFleetPoolHarness().reset();
+    sharedFleetPoolHarness().respond('connectionIdentity', freshIdentityReply);
+    await registerSessionIdentitySource();
+  });
 
 afterEach(() => {
   vi.resetModules();
@@ -114,8 +121,8 @@ describe('QR login session token capture', () => {
     async() => {
       accountGet.mockResolvedValue(undefined);
       accountUpdate.mockResolvedValue(undefined);
-      socketHarness.respondOnce(EXPORT_LOGIN_TOKEN, () => ({data: loginTokenSuccessPayload()}));
-      socketHarness.respondOnce(EXPORT_LOGIN_TOKEN, () => ({data: loginTokenSuccessPayload()}));
+      socketHarness.respondOnce(EXPORT_LOGIN_TOKEN, () => ({data: new Uint8Array()}));
+      socketHarness.respondOnce(EXPORT_LOGIN_TOKEN, () => ({data: new Uint8Array()}));
 
       const {restoreImpulseSession} = await import('@lib/impulse/session');
       const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');

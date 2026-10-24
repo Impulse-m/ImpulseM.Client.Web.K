@@ -29,6 +29,8 @@ export type LiveLane = {
   enabled: boolean,
   /** The origin the client's fleets and update socket are pointed at. */
   gatewayOrigin: string,
+  updateWsOrigin?: string,
+  poolWsOrigin?: string,
   skipReason?: string
 };
 
@@ -36,11 +38,15 @@ export type LiveLane = {
 export function resolveLiveLane(): LiveLane {
   const marker = process.env.IMPULSE_LIVE_GATEWAY;
   const gatewayOrigin = process.env.IMPULSE_LIVE_WS_GATEWAY || 'http://localhost:5100';
+  const updateWsOrigin: string | undefined = process.env.IMPULSE_LIVE_UPDATE_WS;
+  const poolWsOrigin: string | undefined = process.env.IMPULSE_LIVE_POOL_WS;
 
   if(!marker) {
     return {
       enabled: false,
       gatewayOrigin,
+      updateWsOrigin,
+      poolWsOrigin,
       skipReason: 'IMPULSE_LIVE_GATEWAY is not set — the B1 live lane runs the REAL manager stack ' +
         'against the LIVE dev backend and cannot run without one. Start the stack ' +
         '(scripts/dev-up.ps1 in the backend repo) and run: ' +
@@ -48,7 +54,7 @@ export function resolveLiveLane(): LiveLane {
     };
   }
 
-  return {enabled: true, gatewayOrigin};
+  return {enabled: true, gatewayOrigin, updateWsOrigin, poolWsOrigin};
 }
 
 

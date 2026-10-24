@@ -41,7 +41,6 @@ const CURRENT_DC: number = 2;
 const GET_FILE: string = 'upload.getFile';
 const SESSION_TOKEN: string = 'access-jwt-stored';
 const REFRESH_TOKEN: string = 'refresh-token-stored';
-const PENDING_TOKEN: string = 'pending-token-stored';
 
 function withMediaOption(): FleetConfig {
   return {
@@ -68,39 +67,39 @@ beforeEach(async() => {
 });
 
 describe('a restore moves the identity of the slot once', () => {
-  it('a stored session that still holds a pending challenge retires the media lane of the old identity once', async() => {
+  it('a stored session retires the media lane of the old identity once', async() => {
     const {callMediaFleet, setFleetConfig} = await import('@lib/impulse/fleet/fleet');
     const {restoreImpulseSession} = await import('@lib/impulse/session');
     accountGet.mockResolvedValue(undefined);
     await restoreImpulseSession(ACCOUNT);
+    const {setGrpcSessionToken} = await import('@lib/impulse/grpc/credentials');
+    setGrpcSessionToken(ACCOUNT, 'previous-session');
     setFleetConfig(ACCOUNT, withMediaOption());
     fleetHarness.respondOnce(GET_FILE, () => ({data: new Uint8Array(0)}));
     await callMediaFleet({accountNumber: ACCOUNT, method: GET_FILE, request: new Uint8Array(0)});
     accountGet.mockResolvedValue({
       userId: 42,
       impulse_session_token: SESSION_TOKEN,
-      impulse_refresh_token: REFRESH_TOKEN,
-      impulse_pending_token: PENDING_TOKEN
+      impulse_refresh_token: REFRESH_TOKEN
     });
 
     await restoreImpulseSession(ACCOUNT);
 
     expect(
       retiredMediaLanes(),
-      'the restore is one credential transition: the anonymous media lane retires once, not once for the pending token and again for the session'
+      'the restore is one credential transition: the media lane retires once'
     ).toBe(1);
   });
 });
 
 describe('a sign-out moves the identity of the slot once', () => {
-  it('a sign-out of a slot that still holds a pending challenge retires the media lane of the signed-in identity once', async() => {
+  it('a sign-out of a session slot retires the media lane of the signed-in identity once', async() => {
     const {callMediaFleet, setFleetConfig} = await import('@lib/impulse/fleet/fleet');
     const {restoreImpulseSession, clearImpulseSession} = await import('@lib/impulse/session');
     accountGet.mockResolvedValue({
       userId: 42,
       impulse_session_token: SESSION_TOKEN,
-      impulse_refresh_token: REFRESH_TOKEN,
-      impulse_pending_token: PENDING_TOKEN
+      impulse_refresh_token: REFRESH_TOKEN
     });
     await restoreImpulseSession(ACCOUNT);
     setFleetConfig(ACCOUNT, withMediaOption());
@@ -112,20 +111,19 @@ describe('a sign-out moves the identity of the slot once', () => {
 
     expect(
       retiredMediaLanes(),
-      'the sign-out is one credential transition: the session and the pending challenge leave together, and the lane retires once'
+      'the sign-out is one credential transition: the lane retires once'
     ).toBe(1);
   });
 });
 
 describe('each credential transition moves the identity of the slot exactly once', () => {
-  it('a restore of a stored session and challenge moves the identity once', async() => {
+  it('a restore of a stored session moves the identity once', async() => {
     const {restoreImpulseSession} = await import('@lib/impulse/session');
     const {fleetIdentityMoves} = await import('@lib/impulse/fleet/fleet');
     accountGet.mockResolvedValue({
       userId: 42,
       impulse_session_token: SESSION_TOKEN,
-      impulse_refresh_token: REFRESH_TOKEN,
-      impulse_pending_token: PENDING_TOKEN
+      impulse_refresh_token: REFRESH_TOKEN
     });
     const before: number = fleetIdentityMoves(ACCOUNT);
 
@@ -134,14 +132,13 @@ describe('each credential transition moves the identity of the slot exactly once
     expect(fleetIdentityMoves(ACCOUNT) - before, 'the restore is one identity move').toBe(1);
   });
 
-  it('a sign-out of a slot holding a session and a challenge moves the identity once', async() => {
+  it('a sign-out of a session slot moves the identity once', async() => {
     const {restoreImpulseSession, clearImpulseSession} = await import('@lib/impulse/session');
     const {fleetIdentityMoves} = await import('@lib/impulse/fleet/fleet');
     accountGet.mockResolvedValue({
       userId: 42,
       impulse_session_token: SESSION_TOKEN,
-      impulse_refresh_token: REFRESH_TOKEN,
-      impulse_pending_token: PENDING_TOKEN
+      impulse_refresh_token: REFRESH_TOKEN
     });
     await restoreImpulseSession(ACCOUNT);
     const before: number = fleetIdentityMoves(ACCOUNT);
@@ -159,16 +156,5 @@ describe('each credential transition moves the identity of the slot exactly once
     await captureImpulseSessionToken(ACCOUNT, {session_token: SESSION_TOKEN, refresh_token: REFRESH_TOKEN});
 
     expect(fleetIdentityMoves(ACCOUNT) - before, 'the capture of a session is one identity move').toBe(1);
-  });
-
-  it('a cleared pending challenge moves the identity once', async() => {
-    const {capturePendingToken, clearPendingToken} = await import('@lib/impulse/session');
-    const {fleetIdentityMoves} = await import('@lib/impulse/fleet/fleet');
-    await capturePendingToken(ACCOUNT, PENDING_TOKEN);
-    const before: number = fleetIdentityMoves(ACCOUNT);
-
-    await clearPendingToken(ACCOUNT);
-
-    expect(fleetIdentityMoves(ACCOUNT) - before, 'the clear of the challenge is one identity move').toBe(1);
   });
 });

@@ -1,13 +1,3 @@
-/*
- * The per-account credentials of the carriers: the session access token of a signed-in slot, the opaque pending-2FA
- * token of a slot between SESSION_PASSWORD_NEEDED and its session, and the connection declaration the server binds to
- * that session (canon initConnection).
- *
- * Every function takes the account number explicitly (#436): a single SharedWorker hosts all four account slots, and
- * no slot may read another slot's credentials. The identity of a slot's update socket is built from these values
- * (session.ts fleetIdentityFor).
- */
-
 import {IS_WORKER} from '@helpers/context';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getCurrentAccount} from '@lib/accounts/getCurrentAccount';
@@ -32,10 +22,6 @@ type AccountCredentials = {
   sessionToken: string | undefined,
   // The session token the server last refused as expired or invalid: the next connection asks for a renewal of it.
   refusedSessionToken: string | undefined,
-  // Bumped on every pendingToken transition (set OR clear, never read directly by callers), so a response that belongs to
-  // an attempt something newer has superseded can be told apart from a current one (#675).
-  pendingToken: string | undefined,
-  pendingGeneration: number,
   qrExporterTicket: string | undefined,
   declaration: ConnectionDeclarationValues | undefined,
   // Bumped whenever the declared values change or the binding is invalidated, so a handshake that belongs to an older
@@ -57,8 +43,6 @@ function credentialsFor(accountNumber: ActiveAccountNumber): AccountCredentials 
     credentials = {
       sessionToken: undefined,
       refusedSessionToken: undefined,
-      pendingToken: undefined,
-      pendingGeneration: 0,
       qrExporterTicket: undefined,
       declaration: undefined,
       declarationGeneration: 0,
@@ -95,28 +79,6 @@ export function setGrpcQrExporterTicket(accountNumber: ActiveAccountNumber, tick
 
 export function getGrpcQrExporterTicket(accountNumber: ActiveAccountNumber): string | undefined {
   return credentialsFor(accountNumber).qrExporterTicket;
-}
-
-export function setGrpcPendingToken(accountNumber: ActiveAccountNumber, token: string | undefined): void {
-  const credentials = credentialsFor(accountNumber);
-  credentials.pendingToken = token;
-  credentials.pendingGeneration += 1;
-}
-
-/**
- * Loading a persisted pending token back into memory on boot is recovering the state an attempt already had, not an
- * attempt beginning or ending, so it does not bump the generation (#675 revision3).
- */
-export function restoreGrpcPendingToken(accountNumber: ActiveAccountNumber, token: string): void {
-  credentialsFor(accountNumber).pendingToken = token;
-}
-
-export function getGrpcPendingToken(accountNumber: ActiveAccountNumber): string | undefined {
-  return credentialsFor(accountNumber).pendingToken;
-}
-
-export function getGrpcPendingGeneration(accountNumber: ActiveAccountNumber): number {
-  return credentialsFor(accountNumber).pendingGeneration;
 }
 
 /**

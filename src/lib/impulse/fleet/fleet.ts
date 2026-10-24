@@ -1,13 +1,3 @@
-/*
- * The Centrifugo pools of the client, per account slot: the media fleet, which carries the four file-transfer calls on its
- * own connections under the identity of the slot, and the anonymous pool of the session refresh. The refresh renews the
- * token the update socket waits for, so it cannot travel the update socket. Every other call is an rpc on the update
- * socket (realtime.ts).
- *
- * A lane is a pool of protobuf connections for one endpoint and one identity. A lane of a withdrawn endpoint, or of an
- * identity the slot no longer holds, is retired: its connections drain the calls in flight and then close.
- */
-
 import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
@@ -16,31 +6,31 @@ import {isTokenRefusalCode, METHOD_INVALID_CODE} from '@lib/impulse/centrifugoCo
 import {apiErrorOf, fleetApiError, isFleetRpcError, replyDataOf, transportApiError} from './fleetError';
 import {FleetLane} from './fleetLane';
 import type {FleetKind, FleetPoolReply} from './fleetLane';
-import {defaultRpcEndpoint, mediaEndpointOf, REFRESH_SESSION_METHOD, routesToMediaFleet} from './fleetRoute';
+import {poolRpcEndpoint, mediaEndpointOf, routesToMediaFleet} from './fleetRoute';
 import type {FleetConfig} from './fleetRoute';
 
 const logger = getLogger('fleet');
 
 // The registry's timeout for the four file-transfer calls (deploy/centrifugo/media/registry.json).
 const MEDIA_CALL_TIMEOUT_MS: number = 10_000;
-const REFRESH_CALL_TIMEOUT_MS: number = 30_000;
+const POOL_CALL_TIMEOUT_MS: number = 30_000;
 // Calls in flight per connection: the media registry needs client.concurrency >= window + 1 on the server
 // (deploy/centrifugo/media/config.json: 3).
 const MEDIA_INFLIGHT_PER_CONNECTION: number = 2;
 const MEDIA_CONNECTIONS_PER_ENDPOINT: number = 2;
-const REFRESH_INFLIGHT_PER_CONNECTION: number = 1;
-const REFRESH_CONNECTIONS_PER_ENDPOINT: number = 1;
+const POOL_INFLIGHT_PER_CONNECTION: number = 1;
+const POOL_CONNECTIONS_PER_ENDPOINT: number = 1;
 // The calls a pool holds waiting for one of its slots, beyond which the pool refuses at once (the SDK's default).
 const MAX_QUEUED_CALLS_PER_POOL: number = 64;
 const INTERNAL_ERROR_CODE: number = 500;
 
 export type FleetIdentity = {
-  kind: 'anonymous' | 'session' | 'pending',
+  kind: 'identity' | 'session',
   // Lanes are kept per key: two identities never share connections.
   key: string,
-  getToken: (() => Promise<string>) | undefined,
+  getToken: () => Promise<string>,
   // Called when the server refuses the token this identity presents, so the next connection asks for a renewed one.
-  onRefused?: () => void
+  onRefused?: (error?: ApiError) => void
 };
 
 export type FleetCall = {
@@ -67,8 +57,6 @@ type LaneTarget = {
   kind: FleetKind,
   endpoint: string
 };
-
-export const ANONYMOUS_IDENTITY: FleetIdentity = {kind: 'anonymous', key: 'anonymous', getToken: undefined};
 
 const fleetByAccount = new Map<ActiveAccountNumber, AccountFleet>();
 let identitySource: FleetIdentitySource | undefined;
@@ -208,24 +196,21 @@ function whenConfigPublished(fleet: AccountFleet, signal?: AbortSignal): Promise
   });
 }
 
-/**
- * Sends the session refresh on the anonymous pool of the RPC endpoint. The refresh carries its refresh token in the
- * body, and it must not wait for the update socket, which is itself waiting for the token this call renews.
- */
-export function callRefreshFleet(accountNumber: ActiveAccountNumber, request: Uint8Array): Promise<Uint8Array> {
+export function callPool(call: FleetCall): Promise<Uint8Array> {
   return sendOnLane(
-    fleetOf(accountNumber),
-    {kind: 'refresh', endpoint: defaultRpcEndpoint()},
-    ANONYMOUS_IDENTITY,
-    REFRESH_SESSION_METHOD,
-    request
+    fleetOf(call.accountNumber),
+    {kind: 'pool', endpoint: poolRpcEndpoint()},
+    undefined,
+    call.method,
+    call.request,
+    call.signal
   );
 }
 
 async function sendOnLane(
   fleet: AccountFleet,
   target: LaneTarget,
-  identity: FleetIdentity,
+  identity: FleetIdentity | undefined,
   method: string,
   request: Uint8Array,
   signal?: AbortSignal
@@ -241,14 +226,14 @@ async function sendOnLane(
   return replyDataOf(reply);
 }
 
-function laneFor(fleet: AccountFleet, target: LaneTarget, identity: FleetIdentity): FleetLane {
-  const key = `${target.kind}|${target.endpoint}|${identity.key}`;
+function laneFor(fleet: AccountFleet, target: LaneTarget, identity: FleetIdentity | undefined): FleetLane {
+  const key = `${target.kind}|${target.endpoint}|${identity?.key ?? 'pool'}`;
   let lane = fleet.lanes.get(key);
   if(!lane) {
     // A media connection presents its slot's identity: once the identity moves on, the lanes of the old one are retired.
     if(target.kind === 'media') {
       for(const stale of [...fleet.lanes.values()]) {
-        if(stale.kind === 'media' && stale.identityKey !== identity.key) {
+        if(stale.kind === 'media' && stale.identityKey !== identity?.key) {
           retireLane(fleet, stale);
         }
       }
@@ -257,14 +242,14 @@ function laneFor(fleet: AccountFleet, target: LaneTarget, identity: FleetIdentit
     const isMedia: boolean = target.kind === 'media';
     lane = new FleetLane({
       key,
-      identityKey: identity.key,
+      identityKey: identity?.key ?? 'pool',
       kind: target.kind,
       endpoint: target.endpoint,
-      timeoutMs: isMedia ? MEDIA_CALL_TIMEOUT_MS : REFRESH_CALL_TIMEOUT_MS,
-      connectionsPerEndpoint: isMedia ? MEDIA_CONNECTIONS_PER_ENDPOINT : REFRESH_CONNECTIONS_PER_ENDPOINT,
-      inflightPerConnection: isMedia ? MEDIA_INFLIGHT_PER_CONNECTION : REFRESH_INFLIGHT_PER_CONNECTION,
+      timeoutMs: isMedia ? MEDIA_CALL_TIMEOUT_MS : POOL_CALL_TIMEOUT_MS,
+      connectionsPerEndpoint: isMedia ? MEDIA_CONNECTIONS_PER_ENDPOINT : POOL_CONNECTIONS_PER_ENDPOINT,
+      inflightPerConnection: isMedia ? MEDIA_INFLIGHT_PER_CONNECTION : POOL_INFLIGHT_PER_CONNECTION,
       queuedCalls: MAX_QUEUED_CALLS_PER_POOL,
-      getToken: identity.getToken
+      getToken: identity?.getToken
     });
     fleet.lanes.set(key, lane);
   }
@@ -282,25 +267,27 @@ function retireLane(fleet: AccountFleet, lane: FleetLane): void {
 
 // A refused token ends the lane that presented it: its connections must not keep the refused token, and the next call
 // connects again with the token the identity hands out then.
-function failureOf(fleet: AccountFleet, lane: FleetLane, method: string, identity: FleetIdentity, err: unknown): ApiError {
-  if(isFleetRpcError(err) && isTokenRefusalCode(err.code)) {
+function failureOf(fleet: AccountFleet, lane: FleetLane, method: string, identity: FleetIdentity | undefined, err: unknown): ApiError {
+  const error: ApiError = fleetFailure(method, err, identity);
+  if(error.type === 'AUTH_KEY_UNREGISTERED' || (isFleetRpcError(err) && isTokenRefusalCode(err.code))) {
     retireLane(fleet, lane);
-    identity.onRefused?.();
-    logger.warn('Fleet refused the token of a call', {method, code: err.code, identity: identity.kind});
+    identity?.onRefused?.(error);
+    logger.warn('Fleet refused the token of a call', {method, code: error.code, identity: identity?.kind});
   }
 
-  return fleetFailure(method, err);
+  return error;
 }
 
 /** The one mapping of a rejection of any carrier to the ApiError the caller sees; a method the registry lacks is traced. */
-export function fleetFailure(method: string, err: unknown): ApiError {
-  if(!isFleetRpcError(err)) {
-    return transportApiError(err);
-  }
-
-  if(err.code === METHOD_INVALID_CODE) {
+export function fleetFailure(method: string, err: unknown, identity?: FleetIdentity): ApiError {
+  if(isFleetRpcError(err) && err.code === METHOD_INVALID_CODE) {
     logger.warn('Fleet registry lacks the method', {method, code: err.code});
   }
 
-  return fleetApiError(err);
+  const error: ApiError = isFleetRpcError(err) ? fleetApiError(err) : transportApiError(err);
+  if(identity) {
+    error.socketKind = identity.kind;
+    error.socketKey = identity.key;
+  }
+  return error;
 }

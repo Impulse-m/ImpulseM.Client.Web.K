@@ -1,3 +1,4 @@
+vi.mock('@lib/accounts/accountController', () => ({default: {get: vi.fn(async() => ({userId: 42, impulse_session_token: 'fixture-session'}))}}));
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {fromBinary} from '@bufbuild/protobuf';
 
@@ -30,16 +31,13 @@ vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   return {...actual, Centrifuge: harness().CentrifugeStub};
 });
 
-vi.mock('@lib/impulse/session', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/impulse/session')>();
-  return {...actual, whenImpulseSessionReady: vi.fn(() => Promise.resolve())};
-});
-
 
 describe('custom emoji document ids at the gRPC boundary', () => {
   beforeEach(async() => {
     socketHarness.reset();
     await registerSessionIdentitySource();
+  const {restoreImpulseSession} = await import('@lib/impulse/session');
+  await restoreImpulseSession(1);
     socketHarness.respond(GET_CUSTOM_EMOJI_DOCUMENTS, () => ({data: new Uint8Array(0)}));
   });
 

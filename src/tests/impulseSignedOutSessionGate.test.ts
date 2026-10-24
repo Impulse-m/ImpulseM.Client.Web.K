@@ -1,3 +1,5 @@
+import {freshIdentityReply} from '@/tests/helpers/identityFixtures';
+import {sharedFleetPoolHarness} from '@/tests/helpers/fleetPoolStub';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {MAX_ACCOUNTS} from '@lib/accounts/constants';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
@@ -31,7 +33,8 @@ const accountGet = vi.fn();
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
   const {sharedUpdateSocketHarness: harness} = await import('./helpers/updateSocketStub');
-  return {...actual, Centrifuge: harness().CentrifugeStub};
+  const {sharedFleetPoolHarness: pools} = await import('@/tests/helpers/fleetPoolStub');
+  return {...actual, RpcPool: pools().RpcPoolStub, Centrifuge: harness().CentrifugeStub};
 });
 
 vi.mock('@lib/accounts/accountController', () => ({
@@ -69,11 +72,6 @@ const LANGPACK_MUST_LEAVE_ONCE =
   'The pre-auth langpack call must actually leave the client once the gate opens. No request ' +
   'reached the fleet at all, so the sign-in screen has no strings to render.';
 
-const LANGPACK_CARRIES_NO_TOKEN =
-  'A signed-out client has no session token, and the pre-auth langpack call must travel without ' +
-  'a token rather than be held back waiting for one. Requiring a token here is what turns a ' +
-  'transient backend blip into a permanently bricked tab.';
-
 const GATE_MUST_STILL_GUARD =
   'Treating a cleared token as the signed-out state must not degrade the gate into one that ' +
   'always opens. The gate exists so no boot RPC leaves before the stored token is in place; ' +
@@ -89,7 +87,11 @@ function everySlot(): ActiveAccountNumber[] {
 
 
 describe('Impulse session gate for a signed-out client', () => {
-  beforeEach(registerSessionIdentitySource);
+  beforeEach(async() => {
+    sharedFleetPoolHarness().reset();
+    sharedFleetPoolHarness().respond('connectionIdentity', freshIdentityReply);
+    await registerSessionIdentitySource();
+  });
 
   afterEach(() => {
     vi.resetModules();
@@ -117,7 +119,7 @@ describe('Impulse session gate for a signed-out client', () => {
   });
 
 
-  it('lets the pre-auth langpack call leave with no token', async() => {
+  it('lets the pre-auth langpack call leave with an identity token', async() => {
     accountGet.mockImplementation(async(accountNumber: ActiveAccountNumber) => (
       accountNumber === 1 ? SIGNED_OUT_ACCOUNT : undefined
     ));
@@ -137,7 +139,7 @@ describe('Impulse session gate for a signed-out client', () => {
 
     expect(outcome, LANGPACK_MUST_NOT_BE_BLOCKED).toBe('served');
     expect(langPackRequests.length, LANGPACK_MUST_LEAVE_ONCE).toBe(1);
-    expect(langPackRequests[0].presentedToken, LANGPACK_CARRIES_NO_TOKEN).toBeUndefined();
+    expect(langPackRequests[0].presentedToken, 'the login screen uses an identity without requiring a session').toBeTruthy();
   });
 
 

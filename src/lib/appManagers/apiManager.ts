@@ -5,8 +5,9 @@
  * https://github.com/zhukov/webogram/blob/master/LICENSE
  */
 
+import {getGrpcSessionToken} from '@lib/impulse/grpc/credentials';
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
-import {clearImpulseSession, fleetIdentityFor, restoreImpulseSession} from '@lib/impulse/session';
+import {clearImpulseSession, fleetIdentityFor, restoreImpulseSession, setImpulseSessionSignOutHandler} from '@lib/impulse/session';
 import {setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
 import {setRealtimeDispatch, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
 import {reportSignOutFailure} from '@lib/impulse/backgroundFailures';
@@ -171,6 +172,7 @@ export class ApiManager extends ApiManagerMethods {
     const result = super.after();
 
     setFleetIdentitySource(fleetIdentityFor);
+    setImpulseSessionSignOutHandler(this.getAccountNumber(), (): Promise<void> => this.logOut());
 
     // Restore the stored session, then bring up the
     // push channel -- but only for the account that is actually signed in.
@@ -418,30 +420,17 @@ export class ApiManager extends ApiManagerMethods {
 
     // The push channel goes first, so no socket keeps delivering under the old identity.
     await attempt(() => stopImpulseRealtime(accountNumber));
-    await attempt(() => clearImpulseSession(accountNumber));
 
     const totalAccounts: number | undefined = await attempt(() => AccountController.getTotalAccounts());
-    const failuresBeforeRead: number = failures.length;
-    const accountData = await attempt(() => AccountController.get(accountNumber));
-    const slotDataUnread: boolean = failures.length > failuresBeforeRead;
+    await attempt(() => AccountController.get(accountNumber));
 
-    // tdlib logs a failed auth.logOut and destroys the local keys anyway (.demo/tdlib/td/telegram/AuthManager.cpp:1360-1363).
-    const revoke = (dcId: DcId): Promise<unknown> => this.invokeApi('auth.logOut', {}, {dcId, ignoreErrors: true})
-    .catch(reportSignOutFailure);
     const logoutPromises: Promise<unknown>[] = [];
-
-    if(slotDataUnread) {
-      logoutPromises.push(revoke(currentDcId));
-    } else {
-      for(let dcId = 1; dcId <= 5; dcId++) {
-        const key = `dc${dcId as TrueDcId}_auth_key` as const;
-        if(accountData?.[key]) {
-          logoutPromises.push(revoke(dcId));
-        }
-      }
+    if(getGrpcSessionToken(accountNumber) !== undefined) {
+      logoutPromises.push(this.invokeApi('auth.logOut', {}, {dcId: currentDcId, ignoreErrors: true}).catch(reportSignOutFailure));
     }
 
     const clear = async() => {
+      await attempt(() => clearImpulseSession(accountNumber));
       this.baseDcId = undefined;
       // An unknown count takes the branch that removes only this slot.
       if(totalAccounts !== undefined && totalAccounts <= 1 && accountNumber === 1 && !migrateAccountTo) {
@@ -794,6 +783,11 @@ export class ApiManager extends ApiManagerMethods {
       });
     }
 
+    const belongsToCurrentSession = (error: ApiError): boolean => {
+      return error.socketKind !== 'identity' &&
+        (error.socketKey === undefined || error.socketKey === fleetIdentityFor(this.getAccountNumber()).key);
+    };
+
     const rejectPromise = async(error: ApiError) => {
       if(!error) {
         error = makeError('ERROR_EMPTY');
@@ -801,8 +795,8 @@ export class ApiManager extends ApiManagerMethods {
         error = makeError(undefined, error);
       }
 
-      if((error.code === 401 && error.type === 'SESSION_REVOKED') ||
-        (error.code === 406 && error.type === 'AUTH_KEY_DUPLICATED')) {
+      if(belongsToCurrentSession(error) && ((error.code === 401 && error.type === 'SESSION_REVOKED') ||
+        (error.code === 406 && error.type === 'AUTH_KEY_DUPLICATED'))) {
         this.logOut().catch(reportSignOutFailure);
       }
 
@@ -823,7 +817,7 @@ export class ApiManager extends ApiManagerMethods {
         // error.stack = stack || (error.originalError && error.originalError.stack) || error.stack || (new Error()).stack;
         setTimeout(() => {
           if(!error.handled) {
-            if(error.code === 401) {
+            if(error.code === 401 && belongsToCurrentSession(error)) {
               this.logOut().catch(reportSignOutFailure);
             } else {
               // ErrorService.show({error: error}); // WARNING

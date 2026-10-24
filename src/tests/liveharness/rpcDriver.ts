@@ -1,3 +1,4 @@
+import {liveLane} from './liveGate';
 import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
 
 import {socketUrlOf} from '../../../e2e/live/carriers';
@@ -29,18 +30,28 @@ export type MinimalRpcSession = {
 
 export async function openMinimalRpcSession(gatewayOrigin: string, persona: Persona): Promise<MinimalRpcSession> {
   const identity: {userId?: string, sessionToken?: string} = {};
-  const socketUrl = socketUrlOf(gatewayOrigin);
+  const socketUrl = socketUrlOf(liveLane.updateWsOrigin ?? gatewayOrigin);
+  let identityMint: Promise<string> | undefined;
   let socket: Centrifuge | undefined;
   let socketToken: string | undefined;
 
-  // The socket of the identity the driver holds: anonymous before the sign-in, the access JWT after it.
+  const mintIdentity = async(): Promise<string> => {
+    const [{create, fromBinary, toBinary}, {callPool}, schemas] = await Promise.all([
+      import('@bufbuild/protobuf'),
+      import('@lib/impulse/fleet/fleet'),
+      import('@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_service_pb')
+    ]);
+    const request: Uint8Array = toBinary(schemas.ConnectionIdentityRequestSchema, create(schemas.ConnectionIdentityRequestSchema));
+    const reply: Uint8Array = await callPool({accountNumber: 1, method: 'connectionIdentity', request});
+    return fromBinary(schemas.ConnectionIdentityResponseSchema, reply).identityToken;
+  };
   const socketFor = (): Centrifuge => {
     const token = identity.sessionToken;
     if(!socket || socketToken !== token) {
       socket?.disconnect();
       socket = new Centrifuge(socketUrl, {
         token: '',
-        getToken: token === undefined ? null : async(): Promise<string> => token
+        getToken: async(): Promise<string> => token ?? await (identityMint ??= mintIdentity())
       });
       socketToken = token;
       socket.connect();

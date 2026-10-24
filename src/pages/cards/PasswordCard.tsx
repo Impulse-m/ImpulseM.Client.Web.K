@@ -133,12 +133,7 @@ export default function PasswordCard(_props: {spec: Spec}) {
 
   /* ---------- pending-challenge-gone handling (shared by the poll and by submit) ---------- */
 
-  // AUTH_KEY_UNREGISTERED: the pending token expired (5-minute TTL, JwtTokenService.cs:164) or
-  // was never presented at all. AUTH_TOKEN_INVALID: the specific catalog code for an
-  // already-revoked/consumed pending token (JwtValidationInterceptor.cs:286-295, missingCap
-  // "pending-revoked"). Either way there is no session yet and nothing left on this card that can
-  // ever succeed against it — the caller must leave for the start of sign-in, not show a
-  // password-specific error for a credential problem that was never about the password (#675).
+  // s6-spec-r16 §3.11 G10: a refused identity returns to sign-in without logging the account out.
   function isPendingChallengeGone(err: any): boolean {
     return err?.type === 'AUTH_KEY_UNREGISTERED' || err?.type === 'AUTH_TOKEN_INVALID';
   }
@@ -157,14 +152,6 @@ export default function PasswordCard(_props: {spec: Spec}) {
     navigate({name: 'signIn'});
   }
 
-  /**
-   * The raw fetch, shared by the background poll and by onSubmit's own fresh-challenge fetch —
-   * each wraps it with error handling suited to what depends on it (poll: swallow and retry next
-   * tick; submit: propagate so check() never runs against stale/undefined state). ignoreErrors:
-   * this card can be reached with only a pending 2FA bearer, not a session (#675) — a transient or
-   * expired getPassword here must never read to apiManager's blanket 401 policy as "this account's
-   * session was revoked" and log the whole slot out.
-   */
   function fetchFreshState(): Promise<AccountPassword> {
     return managers.passwordManager.getState({ignoreErrors: true});
   }
@@ -237,35 +224,8 @@ export default function PasswordCard(_props: {spec: Spec}) {
     passwordInputField.setValueSilently('' + Math.random()); // prevent saving suggestion
     passwordInputField.setValueSilently(value);
 
-    // A fresh account.getPassword challenge immediately before EVERY submit — not the possibly
-    // stale state from mount or the last 10s poll tick, which is only a hint/label refresh. The
-    // SRP challenge is single-use (consumed server-side on every auth.checkPassword call, success
-    // or failure, SrpChallengeStore.cs GETDEL) — reusing an already-consumed one answers
-    // SRP_ID_INVALID, indistinguishable in this card from a wrong password otherwise (#675).
-    let freshState: AccountPassword;
     try {
-      freshState = await fetchFreshState();
-      if(!flowActive) return; // decided (e.g. by a concurrent poll tick) while this fetch was in flight
-      applyState(freshState);
-    } catch(err: any) {
-      if(!flowActive) return;
-
-      if(isPendingChallengeGone(err)) {
-        abandonToSignIn();
-        return;
-      }
-
-      // A genuine transport/server failure fetching THIS attempt's own challenge — never call
-      // check() against stale/undefined state for it, and never dress it up as a wrong password:
-      // the two are different problems with different fixes (retry vs. type the password again).
-      setSubmitting(false);
-      passwordInput.disabled = false;
-      toastNew({langPackKey: 'Error.AnError'});
-      return;
-    }
-
-    try {
-      const response = await managers.passwordManager.check(value, freshState, {ignoreErrors: true});
+      const response = await managers.passwordManager.check(value, state, {ignoreErrors: true});
       if(!flowActive) return; // decided while checkPassword was in flight — do not act on its outcome
 
       switch(response._) {
@@ -297,6 +257,11 @@ export default function PasswordCard(_props: {spec: Spec}) {
 
       setSubmitting(false);
       passwordInput.disabled = false;
+      if(err.type !== 'PASSWORD_HASH_INVALID' && err.type !== 'SRP_ID_INVALID') {
+        setNextKey('Login.Next');
+        toastNew({langPackKey: 'Error.AnError'});
+        return;
+      }
       passwordInputField.input.classList.add('error');
 
       switch(err.type) {

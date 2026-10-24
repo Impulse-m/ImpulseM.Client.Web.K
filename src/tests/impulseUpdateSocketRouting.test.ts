@@ -26,7 +26,7 @@ vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
 
 vi.mock('@lib/accounts/accountController', () => ({
   default: {
-    get: vi.fn(async() => undefined),
+    get: vi.fn(async() => ({userId: 42, impulse_session_token: 'routing-session', impulse_refresh_token: 'refresh'})),
     update: vi.fn(),
     clearFields: vi.fn()
   }

@@ -31,7 +31,7 @@ vi.mock('@lib/accounts/accountController', () => ({
 }));
 
 const socketHarness = sharedUpdateSocketHarness();
-const INIT_CONNECTION: string = 'impulse.auth.initConnection';
+const INIT_CONNECTION: string = 'initConnection';
 const ACCOUNT_ONE = 1 as ActiveAccountNumber;
 const ACCOUNT_TWO = 2 as ActiveAccountNumber;
 

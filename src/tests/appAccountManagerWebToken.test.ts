@@ -1,4 +1,5 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
+import {setGrpcSessionToken} from '@lib/impulse/grpc/credentials';
 import AppAccountManager from '@appManagers/appAccountManager';
 
 const TOKEN = 'web-auth-token';
@@ -15,7 +16,9 @@ function makeManager() {
   const logError = vi.fn();
 
   const manager = new AppAccountManager();
+  setGrpcSessionToken(1, 'signed-in-session');
   Object.assign(manager as any, {
+    getAccountNumber: () => 1,
     apiManager: {invokeApi, setBaseDcId, setUser},
     log: {error: logError}
   });

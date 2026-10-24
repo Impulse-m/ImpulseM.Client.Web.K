@@ -20,6 +20,11 @@ const {accountGet, accountUpdate, accountClearFields} = vi.hoisted(() => ({
   accountClearFields: vi.fn()
 }));
 
+vi.mock('@lib/impulseLogger', () => ({
+  getLogger: () => ({debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn()}),
+  setLogAuthTokenProvider: vi.fn()
+}));
+
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
   const {sharedFleetPoolHarness: pools} = await import('./helpers/fleetPoolStub');
@@ -74,7 +79,7 @@ beforeEach(async() => {
   accountGet.mockReset();
   accountUpdate.mockReset();
   accountClearFields.mockReset();
-  accountGet.mockResolvedValue(undefined);
+  accountGet.mockResolvedValue({userId: 42, impulse_session_token: 'fixture-session'});
   await registerSessionIdentitySource();
   const {restoreImpulseSession} = await import('@lib/impulse/session');
   await restoreImpulseSession(ACCOUNT);
