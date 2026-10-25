@@ -33,6 +33,7 @@ import {
 import {getServiceAndMethod} from './serviceMap';
 import {normalizeName, protoToTL} from './protoToTL';
 import {resetConnectionInited} from '@lib/impulse/grpc/credentials';
+import {LoginOnlyMethods} from '@lib/impulse/grpc/methodClasses';
 
 const logger = getLogger('grpc-adapter');
 
@@ -205,16 +206,22 @@ export async function grpcInvoke(
 
   // Nothing may leave before the stored session has been put back in place.
   await whenImpulseSessionReady(accountNumber);
-  void ensureConnectionDeclared(accountNumber);
-
   const identity = fleetIdentityFor(accountNumber);
   const isCurrentIdentity = (): boolean => fleetIdentityFor(accountNumber).key === identity.key;
-
-  try {
-    const reply = await carry({accountNumber, method, request: requestBytes, signal: abortSignal});
+  const assertCurrentIdentity = (): void => {
     if(!isCurrentIdentity()) {
       throw apiErrorOf('CANCELED', 0, undefined, 'The request identity was retired');
     }
+  };
+  const declaration: Promise<boolean> = ensureConnectionDeclared(accountNumber);
+  if(LoginOnlyMethods.has(method)) {
+    await declaration;
+  }
+
+  try {
+    assertCurrentIdentity();
+    const reply = await carry({accountNumber, method, request: requestBytes, signal: abortSignal});
+    assertCurrentIdentity();
     const result = protoToTL(fromBinary(descMethod.output, reply), descMethod.output);
     if(method === 'help.getAppConfig' && result?._ === 'help.appConfig') {
       result.config = formatJSONValue(result.config);

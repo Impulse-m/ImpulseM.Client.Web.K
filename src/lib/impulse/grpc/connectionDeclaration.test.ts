@@ -1,9 +1,11 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {sharedUpdateSocketHarness} from '../../../tests/helpers/updateSocketStub';
 import {registerSessionIdentitySource} from '../../../tests/helpers/fleetIdentitySource';
+import {sharedFleetPoolHarness} from '@/tests/helpers/fleetPoolStub';
+import {identityReply, identityToken, now} from '@/tests/helpers/identityFixtures';
 import {
   InitConnectionRequestSchema,
   InitConnectionResponseSchema
@@ -19,7 +21,8 @@ const {accountGet, accountUpdate, accountClearFields} = vi.hoisted(() => ({
 vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
   const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
   const {sharedUpdateSocketHarness: harness} = await import('../../../tests/helpers/updateSocketStub');
-  return {...actual, Centrifuge: harness().CentrifugeStub};
+  const {sharedFleetPoolHarness: pools} = await import('@/tests/helpers/fleetPoolStub');
+  return {...actual, Centrifuge: harness().CentrifugeStub, RpcPool: pools().RpcPoolStub};
 });
 
 vi.mock('@lib/accounts/accountController', () => ({
@@ -78,7 +81,11 @@ async function load() {
 
 beforeEach(async() => {
   vi.resetModules();
+  vi.useFakeTimers();
+  vi.setSystemTime(now * 1000);
   socketHarness.reset();
+  sharedFleetPoolHarness().reset();
+  sharedFleetPoolHarness().respond('connectionIdentity', () => identityReply(identityToken));
   accountGet.mockReset();
   accountUpdate.mockReset();
   accountClearFields.mockReset();
@@ -96,14 +103,22 @@ beforeEach(async() => {
   }
 });
 
+afterEach((): void => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
+});
+
 describe('the connection declaration travels as the body of InitConnection', () => {
-  it('is not sent while signed out', async() => {
+  it('is sent on the identity socket while signed out', async() => {
     const {setConnectionDeclaration, ensureConnectionDeclared, isConnectionInited} = await load();
     setConnectionDeclaration(ACCOUNT_ONE, values('Firefox'));
+    answerInitConnection();
 
-    expect(await ensureConnectionDeclared(ACCOUNT_ONE)).toBe(false);
-    expect(socketHarness.calls, 'InitConnection binds a declaration to a session: there is none to bind').toHaveLength(0);
-    expect(isConnectionInited(ACCOUNT_ONE)).toBe(false);
+    expect(await ensureConnectionDeclared(ACCOUNT_ONE)).toBe(true);
+    expect(socketHarness.calls.map((call) => call.method)).toEqual([INIT_CONNECTION]);
+    expect(socketHarness.calls[0].presentedToken).toBe(identityToken);
+    expect(declaredDevice(socketHarness.calls[0].data)).toBe('Firefox');
+    expect(isConnectionInited(ACCOUNT_ONE)).toBe(true);
   });
 
   it('is sent once while signed in, with the declared values, and marks the slot inited on success', async() => {
@@ -206,7 +221,11 @@ describe('the connection declaration travels as the body of InitConnection', () 
 
     expect(isConnectionInited(ACCOUNT_ONE)).toBe(true);
     expect(isConnectionInited(ACCOUNT_TWO)).toBe(false);
-    expect(await ensureConnectionDeclared(ACCOUNT_TWO), 'the second slot has no session, so it sends nothing').toBe(false);
-    expect(socketHarness.calls).toHaveLength(1);
+    expect(await ensureConnectionDeclared(ACCOUNT_TWO), 'the second slot declares its own identity').toBe(true);
+    expect(isConnectionInited(ACCOUNT_TWO)).toBe(true);
+    expect(socketHarness.calls).toHaveLength(2);
+    expect(declaredDevice(socketHarness.calls[0].data)).toBe('One');
+    expect(declaredDevice(socketHarness.calls[1].data)).toBe('Two');
+    expect(socketHarness.calls[1].presentedToken).toBe(identityToken);
   });
 });

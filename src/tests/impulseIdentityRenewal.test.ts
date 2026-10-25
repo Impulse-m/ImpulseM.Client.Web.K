@@ -1,7 +1,11 @@
-import {expect, it, vi} from 'vitest';
+import {beforeEach, expect, it, vi} from 'vitest';
 import {fromBinary} from '@bufbuild/protobuf';
 import {ConnectionIdentityRequestSchema} from '@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_service_pb';
 import {identityReply, identityToken, jwt, loadIdentityHarness, now, setupIdentityHarness, sockets} from '@/tests/helpers/identityHarness';
+
+beforeEach((): void => {
+  vi.stubEnv('VITE_API_ID', '2040');
+});
 
 setupIdentityHarness();
 
@@ -15,6 +19,7 @@ it('renews on the identity socket with the current token and keeps a same-identi
   await vi.advanceTimersByTimeAsync(3300_000);
   expect(sockets.calls.map((call) => call.method)).toEqual(['help.getConfig', 'connectionIdentity']);
   expect(fromBinary(ConnectionIdentityRequestSchema, sockets.calls[1].data).identityToken).toBe(identityToken);
+  expect(fromBinary(ConnectionIdentityRequestSchema, sockets.calls[1].data).apiId).toBe(2040);
   expect(client.fleetIdentityFor(1).key).toBe(key);
   expect(await sockets.sockets[0].options.getToken()).toBe(renewed);
   expect(sockets.sockets).toHaveLength(1);

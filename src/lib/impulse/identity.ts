@@ -1,11 +1,13 @@
 import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 import {UnauthorizedError} from '@impulsem/centrifuge/build/protobuf';
+import App from '@config/app';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getLogger} from '@lib/impulseLogger';
 import {callPool, resetFleetIdentity} from '@lib/impulse/fleet/fleet';
 import {CONNECTION_IDENTITY_METHOD} from '@lib/impulse/fleet/fleetRoute';
 import {callUpdateSocket, rekeyUpdateSocket} from '@lib/impulse/realtime';
 import {scheduleTokenRenewal} from '@lib/impulse/tokenRenewal';
+import {resetConnectionInited} from '@lib/impulse/grpc/credentials';
 import tokenClaims from '@helpers/jwtClaims';
 import {ConnectionIdentityRequestSchema, ConnectionIdentityResponseSchema} from '@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_service_pb';
 
@@ -36,6 +38,7 @@ export function identityEpoch(account: ActiveAccountNumber): number {
 
 export function discardIdentity(account: ActiveAccountNumber): void {
   const slot: IdentitySlot = slotFor(account);
+  resetConnectionInited(account);
   slot.cancelRenewal?.();
   slot.cancelRenewal = undefined;
   slot.value = undefined;
@@ -86,7 +89,10 @@ export function identityTokenFor(account: ActiveAccountNumber): Promise<string> 
 }
 
 function identityRequest(token: string): Uint8Array {
-  return toBinary(ConnectionIdentityRequestSchema, create(ConnectionIdentityRequestSchema, {identityToken: token}));
+  return toBinary(ConnectionIdentityRequestSchema, create(ConnectionIdentityRequestSchema, {
+    identityToken: token,
+    apiId: App.id
+  }));
 }
 
 function identityFromReply(reply: Uint8Array): IdentityToken {

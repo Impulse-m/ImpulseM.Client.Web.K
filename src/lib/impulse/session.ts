@@ -119,8 +119,8 @@ export function whenImpulseSessionReady(accountNumber: ActiveAccountNumber): Pro
 
 const refreshTokenByAccount = new Map<ActiveAccountNumber, string>();
 const refreshInFlightByAccount = new Map<ActiveAccountNumber, Promise<RenewalOutcome>>();
-const handshakeInFlightByAccount = new Map<ActiveAccountNumber, Promise<boolean>>();
-const handshakeFailedAtByAccount = new Map<ActiveAccountNumber, number>();
+const handshakeInFlightByAccount = new Map<ActiveAccountNumber, {identityKey: string, promise: Promise<boolean>}>();
+const handshakeFailedAtByAccount = new Map<ActiveAccountNumber, {identityKey: string, at: number}>();
 
 const sessionEpochs: Map<ActiveAccountNumber, number> = new Map();
 const sessionTimers: Map<ActiveAccountNumber, () => void> = new Map();
@@ -391,7 +391,7 @@ function isRefusedRefresh(err: unknown): boolean {
 }
 
 /**
- * Binds this slot's connection declaration to its session with AuthService.InitConnection (canon initConnection,
+ * Binds this slot's connection declaration with AuthService.InitConnection (canon initConnection,
  * method/initConnection.md). Resolves whether the slot is inited afterwards. Deduplicated per slot; a failure is recorded
  * for the backoff and answered as false, never thrown into the call that asked for it.
  */
@@ -400,46 +400,46 @@ export function ensureConnectionDeclared(accountNumber: ActiveAccountNumber): Pr
     return Promise.resolve(true);
   }
 
+  const identityKey: string = fleetIdentityFor(accountNumber).key;
+  const isCurrentIdentity = (): boolean => fleetIdentityFor(accountNumber).key === identityKey;
   const inFlight = handshakeInFlightByAccount.get(accountNumber);
-  if(inFlight) {
-    return inFlight;
+  if(inFlight?.identityKey === identityKey) {
+    return inFlight.promise;
   }
 
   const declaration = getConnectionDeclaration(accountNumber);
-  const sessionToken = getGrpcSessionToken(accountNumber);
-  if(declaration === undefined || sessionToken === undefined) {
+  if(declaration === undefined) {
     return Promise.resolve(false);
   }
 
   const failedAt = handshakeFailedAtByAccount.get(accountNumber);
-  if(failedAt !== undefined && Date.now() - failedAt < INIT_CONNECTION_RETRY_BACKOFF_MS) {
+  if(failedAt?.identityKey === identityKey && Date.now() - failedAt.at < INIT_CONNECTION_RETRY_BACKOFF_MS) {
     return Promise.resolve(false);
   }
 
   const generation = getDeclarationGeneration(accountNumber);
-  const epoch: number = sessionEpoch(accountNumber);
   const handshake = sendInitConnection(accountNumber, declaration).then(
     (): boolean => {
-      if(sessionEpoch(accountNumber) === epoch) {
+      if(isCurrentIdentity()) {
         markConnectionInited(accountNumber, generation);
       }
 
-      return sessionEpoch(accountNumber) === epoch && isConnectionInited(accountNumber);
+      return isCurrentIdentity() && isConnectionInited(accountNumber);
     },
     (err: unknown): boolean => {
-      if(sessionEpoch(accountNumber) === epoch) {
-        handshakeFailedAtByAccount.set(accountNumber, Date.now());
+      if(isCurrentIdentity()) {
+        handshakeFailedAtByAccount.set(accountNumber, {identityKey, at: Date.now()});
       }
       logger.warn('InitConnection failed', {account: accountNumber}, err);
       return false;
     }
   ).finally(() => {
-    if(handshakeInFlightByAccount.get(accountNumber) === handshake) {
+    if(handshakeInFlightByAccount.get(accountNumber)?.promise === handshake) {
       handshakeInFlightByAccount.delete(accountNumber);
     }
   });
 
-  handshakeInFlightByAccount.set(accountNumber, handshake);
+  handshakeInFlightByAccount.set(accountNumber, {identityKey, promise: handshake});
   return handshake;
 }
 
