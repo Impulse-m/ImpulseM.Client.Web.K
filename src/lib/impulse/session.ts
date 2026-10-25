@@ -297,7 +297,7 @@ function authorizationCarrier(result: object): object {
  */
 function identityChanged(accountNumber: ActiveAccountNumber): void {
   resetFleetIdentity(accountNumber);
-  rekeyUpdateSocket(accountNumber);
+  rekeyUpdateSocket(accountNumber, 'transition');
 }
 
 async function persistTokens(account: ActiveAccountNumber, token: string, refresh: string): Promise<void> {

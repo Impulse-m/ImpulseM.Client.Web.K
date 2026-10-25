@@ -180,11 +180,15 @@ export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
   // on the next bring-up, and a reconnect for the same slot keeps the tab lanes it already knew.
 }
 
+/** Why a slot's socket moves to the identity its credentials now hold. */
+export type RekeyCause = 'renewal' | 'refusal' | 'transition';
+
 /**
  * Moves the slot's socket to the identity its credentials hold now; a socket that already presents it stays.
- * A signed-in slot reconnects at once, with its subscriptions; an identity slot connects with its next call, never on its own.
+ * A signed-in slot reconnects at once, with its subscriptions. An identity slot reconnects at once only after a renewal;
+ * after a refusal or a sign-out it connects with its next call, so a refused identity cannot drive a reconnect loop.
  */
-export function rekeyUpdateSocket(accountNumber: ActiveAccountNumber): void {
+export function rekeyUpdateSocket(accountNumber: ActiveAccountNumber, cause: RekeyCause): void {
   const record = connectionFor(accountNumber);
   const current = record.socket;
   if(!current || current.identity.key === fleetIdentityOf(accountNumber).key) {
@@ -195,7 +199,9 @@ export function rekeyUpdateSocket(accountNumber: ActiveAccountNumber): void {
   if(fleetIdentityOf(accountNumber).kind === 'identity') {
     record.activeUserId = undefined;
     record.subscriptionSet = undefined;
-    return;
+    if(cause !== 'renewal') {
+      return;
+    }
   }
   socketOf(accountNumber);
 }

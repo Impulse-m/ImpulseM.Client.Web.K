@@ -52,7 +52,7 @@ export function refuseIdentity(account: ActiveAccountNumber, epoch: number): voi
   }
   discardIdentity(account);
   resetFleetIdentity(account);
-  rekeyUpdateSocket(account);
+  rekeyUpdateSocket(account, 'refusal');
 }
 
 export function identityTokenFor(account: ActiveAccountNumber): Promise<string> {
@@ -135,7 +135,7 @@ async function renewIdentity(account: ActiveAccountNumber): Promise<void | boole
     storeIdentity(account, next);
     if(!same) {
       resetFleetIdentity(account);
-      rekeyUpdateSocket(account);
+      rekeyUpdateSocket(account, 'renewal');
     }
   } catch(error: unknown) {
     logger.warn('Identity renewal failed', {account}, error);
