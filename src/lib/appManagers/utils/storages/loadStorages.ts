@@ -5,7 +5,8 @@ import type {StoragesStorages} from '@appManagers/utils/storages/createStorages'
 import type {ResetStoragesPromise} from '@appManagers/appStateManager';
 import type AppStorage from '@lib/storage';
 import {recordPromiseBound} from '@helpers/recordPromise';
-import {logger} from '@lib/logger';
+import {recordStage} from '@helpers/recordStage';
+import {Logger, logger} from '@lib/logger';
 import noop from '@helpers/noop';
 
 export type StoragesResults = Awaited<ReturnType<typeof loadStorages>>;
@@ -15,7 +16,8 @@ export type StoragesResults = Awaited<ReturnType<typeof loadStorages>>;
  * In case of migration, will refetch the storages, because storages were modified
  */
 export default async function loadStorages(accountNumber: number, storages: StoragesStorages, resetStoragesPromise: ResetStoragesPromise, refetching?: boolean) {
-  const recordPromise = recordPromiseBound(logger('STORAGES-LOADER-' + accountNumber));
+  const log: Logger = logger('STORAGES-LOADER-' + accountNumber);
+  const recordPromise = recordPromiseBound(log);
   const storagesKeys = Object.keys(storages) as Array<keyof StoragesStorages>;
   const storagesPromises: Promise<any>[] = storagesKeys.map((key) => {
     const promise = storages[key].getAll();
@@ -27,7 +29,7 @@ export default async function loadStorages(accountNumber: number, storages: Stor
     chats: Chat[],
     dialogs: Dialog[]
   } = {} as any;
-  const arr = await Promise.all(storagesPromises);
+  const arr = await recordStage(log, 'loadStorages stage idbRead', Promise.all(storagesPromises));
   for(let i = 0, length = storagesKeys.length; i < length; ++i) {
     storagesResults[storagesKeys[i]] = arr[i] as any;
   }
@@ -35,7 +37,7 @@ export default async function loadStorages(accountNumber: number, storages: Stor
   arr.splice(0, storagesKeys.length);
 
   // * will reset storages before setting the new state
-  const {storages: resetStorages, refetch, callback} = await resetStoragesPromise;
+  const {storages: resetStorages, refetch, callback} = await recordStage(log, 'loadStorages stage resetStorages', resetStoragesPromise);
   if(refetch && !refetching) {
     return loadStorages(accountNumber, storages, resetStoragesPromise, true);
   }
