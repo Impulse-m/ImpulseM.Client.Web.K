@@ -1,17 +1,13 @@
 import {expect, it} from 'vitest';
-import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
 import {describeLive, liveLane} from './liveGate';
 import {bootLiveManagerStack} from './managerStack';
 import {signInHeadless} from './authFlow';
 import {ephemeralPersona} from './personas';
 import {RealtimeWireObserver} from './realtimeWire';
-import type {WireCommand} from './realtimeWire';
 
 describeLive('identity-path sign-in on the live stack', () => {
   it('mints on the pool, logs in on the identity and presents the access JWT after reconnect', async() => {
-    const codecClient: Centrifuge = new Centrifuge('ws://localhost');
-    const codec: {decodeCommands(data: unknown): WireCommand[]} = Reflect.get(codecClient, '_codec');
-    const wire: RealtimeWireObserver = new RealtimeWireObserver((data: unknown): WireCommand[] => codec.decodeCommands(data));
+    const wire: RealtimeWireObserver = new RealtimeWireObserver();
     const stack = await bootLiveManagerStack(liveLane.gatewayOrigin, {afterEnvInstalled: (): void => wire.install()});
     try {
       await signInHeadless(stack, ephemeralPersona('IdentityPath'));
