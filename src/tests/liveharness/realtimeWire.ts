@@ -37,7 +37,8 @@ export type WireCodec = {
 export type SocketCorrelation = {
   pendingConnects: Set<number>,
   pendingSubscribes: Map<number, string>,
-  socket: string
+  socket: string,
+  connectedAtMs: number | undefined
 };
 
 /** The protobuf codec of the SDK, which the build does not export: it is read off a client instance. */
@@ -57,7 +58,12 @@ function envelopeOf(raw: unknown): any {
 
 // Command ids are per-connection in the Centrifugo protocol.
 export function newSocketCorrelation(): SocketCorrelation {
-  return {pendingConnects: new Set<number>(), pendingSubscribes: new Map<number, string>(), socket: 'unknown'};
+  return {
+    pendingConnects: new Set<number>(),
+    pendingSubscribes: new Map<number, string>(),
+    socket: 'unknown',
+    connectedAtMs: undefined
+  };
 }
 
 // A socket is named by the subject of the token it connected with: an identity (i:...), an account's access
@@ -87,7 +93,9 @@ export type PublicationRecord = {
 export type SocketClose = {
   code?: number,
   reason?: string,
-  socket: string
+  socket: string,
+  atMs: number,
+  connectedAtMs: number | undefined
 };
 
 export type WireCommand = {
@@ -184,6 +192,7 @@ export class RealtimeWireObserver {
       if(command.connect) {
         correlation.pendingConnects.add(command.id);
         correlation.socket = socketLabelOf(command.connect.token ?? '');
+        correlation.connectedAtMs = Date.now();
       }
 
       if(command.subscribe?.channel) {
@@ -194,7 +203,13 @@ export class RealtimeWireObserver {
 
 
   public recordClose(event: {code?: number, reason?: string}, correlation: SocketCorrelation): void {
-    this.closes.push({code: event.code, reason: event.reason, socket: correlation.socket});
+    this.closes.push({
+      code: event.code,
+      reason: event.reason,
+      socket: correlation.socket,
+      atMs: Date.now(),
+      connectedAtMs: correlation.connectedAtMs
+    });
   }
 
 

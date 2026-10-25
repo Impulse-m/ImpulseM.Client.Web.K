@@ -60,6 +60,9 @@ describe('RealtimeWireObserver on the protobuf transport', () => {
     wire.recordClose({code: 1005, reason: ''}, anonymousCorrelation);
 
     expect(wire.closes.map((close) => close.socket)).toEqual(['access:42', 'identity:i:abc', 'anonymous']);
+    for(const close of wire.closes) {
+      expect(close.connectedAtMs).toBeLessThanOrEqual(close.atMs);
+    }
   });
 
   it('records a protobuf subscribe error with its code and message', () => {
