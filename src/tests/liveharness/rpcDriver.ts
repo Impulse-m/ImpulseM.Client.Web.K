@@ -3,7 +3,7 @@ import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
 
 import {socketUrlOf} from '../../../e2e/live/carriers';
 import {Persona} from './personas';
-import {AuthMethod, signInWithReuseRetries} from './signInCore';
+import {findFreshNumber, signInWithReuseRetries} from './signInCore';
 
 
 /*
@@ -28,8 +28,63 @@ export type MinimalRpcSession = {
   invoke(method: string, params?: any): Promise<any>
 };
 
+type DriverSocket = {
+  identity: {userId?: string, sessionToken?: string},
+  invoke(method: string, params?: any): Promise<any>,
+  abandonAttempt: () => Promise<void>,
+  close: () => void
+};
+
+
+/**
+ * Probes a reserved number over a throwaway socket, leaving the persona on a number that holds no
+ * account. The socket is closed whether the probe returns or throws.
+ */
+export async function claimFreshNumber(gatewayOrigin: string, persona: Persona): Promise<void> {
+  const socket: DriverSocket = openDriverSocket(gatewayOrigin);
+  try {
+    const app = (await import('@config/app')).default;
+    await findFreshNumber(socket.invoke, persona, app, socket.abandonAttempt);
+  } finally {
+    socket.close();
+  }
+}
 
 export async function openMinimalRpcSession(gatewayOrigin: string, persona: Persona): Promise<MinimalRpcSession> {
+  const socket: DriverSocket = openDriverSocket(gatewayOrigin);
+  try {
+    // The same auth sequence the client's login page drives (see ./signInCore.ts), issued
+    // through this driver's own socket so the primary stack's identity stays untouched.
+    const app = (await import('@config/app')).default;
+    const signedIn: any = await signInWithReuseRetries(socket.invoke, persona, app, socket.abandonAttempt);
+
+    socket.identity.userId = String(signedIn.user.id);
+    socket.identity.sessionToken = sessionTokenOf(signedIn);
+
+    return {
+      persona,
+      userId: socket.identity.userId,
+      invoke: socket.invoke
+    };
+  } catch(err: unknown) {
+    socket.close();
+
+    throw err;
+  }
+}
+
+function sessionTokenOf(auth: any): string {
+  if(typeof auth.session_token !== 'string' || !auth.session_token) {
+    throw new Error(
+      'minimal RPC session: auth.authorization carried no session_token — every later call of this ' +
+      'driver would travel unauthenticated'
+    );
+  }
+
+  return auth.session_token;
+}
+
+function openDriverSocket(gatewayOrigin: string): DriverSocket {
   const identity: {userId?: string, sessionToken?: string} = {};
   const socketUrl = socketUrlOf(liveLane.updateWsOrigin ?? gatewayOrigin);
   let identityMint: Promise<string> | undefined;
@@ -84,17 +139,6 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
     return protoToTLModule.protoToTL(fromBinary(mapping.method.output, reply.data), mapping.method.output);
   };
 
-  const sessionTokenOf = (auth: any): string => {
-    if(typeof auth.session_token !== 'string' || !auth.session_token) {
-      throw new Error(
-        'minimal RPC session: auth.authorization carried no session_token — every later call of this ' +
-        'driver would travel unauthenticated'
-      );
-    }
-
-    return auth.session_token;
-  };
-
   // A spent attempt leaves a session (an authorization) or an identity holding a pending password
   // check (SESSION_PASSWORD_NEEDED). Both are dropped here only, since auth.logOut would close the
   // socket under the call, and the next attempt starts on a fresh identity.
@@ -104,22 +148,10 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
     socket = undefined;
   };
 
-  // The same auth sequence the client's login page drives (see ./signInCore.ts), issued
-  // through this driver's own socket so the primary stack's identity stays untouched.
-  const app = (await import('@config/app')).default;
-  const signedIn: any = await signInWithReuseRetries(
-    (method: AuthMethod, params: any): Promise<any> => invoke(method, params),
-    persona,
-    app,
-    abandonAttempt
-  );
-
-  identity.userId = String(signedIn.user.id);
-  identity.sessionToken = sessionTokenOf(signedIn);
-
-  return {
-    persona,
-    userId: identity.userId,
-    invoke
+  const close = (): void => {
+    socket?.disconnect();
+    socket = undefined;
   };
+
+  return {identity, invoke, abandonAttempt, close};
 }
