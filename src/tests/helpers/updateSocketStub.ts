@@ -17,9 +17,7 @@ export type UpdateSocketOptions = {
   stopOnRefusedToken?: boolean,
   timeout?: number,
   minReconnectDelay?: number,
-  maxReconnectDelay?: number,
-  instance?: string,
-  maxPendingRpc?: number
+  maxReconnectDelay?: number
 };
 
 export type UpdateSocketCallRecord = {
