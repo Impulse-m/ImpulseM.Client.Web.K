@@ -26,7 +26,8 @@ import {findFreshNumber, signInWithReuseRetries} from './signInCore';
 export type MinimalRpcSession = {
   persona: Persona,
   userId: string,
-  invoke(method: string, params?: any): Promise<any>
+  invoke(method: string, params?: any): Promise<any>,
+  close(): void
 };
 
 type DriverSocket = {
@@ -65,13 +66,32 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
     return {
       persona,
       userId: socket.identity.userId,
-      invoke: socket.invoke
+      invoke: socket.invoke,
+      close: socket.close
     };
   } catch(err: unknown) {
     socket.close();
 
     throw err;
   }
+}
+
+export type AnonymousRpcSession = {
+  invoke(method: string, params?: any): Promise<any>,
+  close(): void
+};
+
+/**
+ * A signed-out driver session: it holds only the anonymous identity the update socket mints, so it
+ * can make the login-only calls (auth.exportLoginToken) and nothing that needs an account.
+ */
+export function openAnonymousRpcSession(gatewayOrigin: string): AnonymousRpcSession {
+  const socket: DriverSocket = openDriverSocket(gatewayOrigin);
+
+  return {
+    invoke: socket.invoke,
+    close: socket.close
+  };
 }
 
 function sessionTokenOf(auth: any): string {
