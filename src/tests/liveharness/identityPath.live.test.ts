@@ -37,7 +37,6 @@ describeLive('identity-path sign-in on the live stack', () => {
       const poolConnect = connects.find((entry) => entry.endpoint === poolCall.endpoint);
       expect(poolConnect).toBeDefined();
       expect(poolConnect.command.connect.token || '').toBe('');
-      expect(wire.commands.slice(0, wire.commands.indexOf(accessConnect)).some((entry) => entry.command.rpc?.method === 'initConnection')).toBe(false);
       const methods: string[] = wire.commands.flatMap((entry) => entry.command.rpc?.method ? [entry.command.rpc.method] : []);
       expect(methods).toContain('auth.sendCode');
       expect(methods).toContain('auth.signIn');
@@ -46,6 +45,11 @@ describeLive('identity-path sign-in on the live stack', () => {
       expect(mintIndex).toBeLessThan(wire.commands.indexOf(identityConnect));
       expect(wire.commands.indexOf(identityConnect)).toBeLessThan(loginIndex);
       expect(loginIndex).toBeLessThan(wire.commands.indexOf(accessConnect));
+      const initIndex: number = wire.commands.findIndex((entry) => entry.command.rpc?.method === 'initConnection');
+      expect(initIndex).toBeGreaterThan(-1);
+      expect(wire.commands[initIndex].endpoint).toBe(identityConnect.endpoint);
+      expect(initIndex).toBeGreaterThan(wire.commands.indexOf(identityConnect));
+      expect(initIndex).toBeLessThan(loginIndex);
     } finally {
       await stack.dispose();
       wire.uninstall();
