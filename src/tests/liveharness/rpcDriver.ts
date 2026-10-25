@@ -1,6 +1,6 @@
 import {liveLane} from './liveGate';
 import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
-import WebSocket from 'ws';
+import {NodeWebSocket} from '../api/nodeEnv';
 
 import {socketUrlOf} from '../../../e2e/live/carriers';
 import {Persona} from './personas';
@@ -101,7 +101,7 @@ function openDriverSocket(gatewayOrigin: string): DriverSocket {
       import('@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_service_pb')
     ]);
     const request: Uint8Array = connectionIdentityRequest('');
-    const poolSocket: Centrifuge = new Centrifuge(poolRpcEndpoint(), {token: '', websocket: WebSocket});
+    const poolSocket: Centrifuge = new Centrifuge(poolRpcEndpoint(), {token: '', websocket: NodeWebSocket});
     poolSocket.connect();
     try {
       const reply = await poolSocket.rpc('connectionIdentity', request);
@@ -120,7 +120,7 @@ function openDriverSocket(gatewayOrigin: string): DriverSocket {
       socket?.disconnect();
       socket = new Centrifuge(socketUrl, {
         token: '',
-        websocket: WebSocket,
+        websocket: NodeWebSocket,
         getToken: async(): Promise<string> => token ?? await (identityMint ??= mintIdentity())
       });
       socketToken = token;

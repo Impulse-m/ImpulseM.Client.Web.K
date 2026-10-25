@@ -10,7 +10,7 @@ const nodeRequire = createRequire(import.meta.url);
 const wsPackageJson = nodeRequire.resolve('ws/package.json');
 const wsAbsPath = nodePath.join(nodePath.dirname(wsPackageJson), 'index.js');
 const wsModule = nodeRequire(wsAbsPath);
-const NodeWebSocket = (wsModule.WebSocket || wsModule.default || wsModule) as typeof globalThis.WebSocket;
+export const NodeWebSocket = (wsModule.WebSocket || wsModule.default || wsModule) as typeof globalThis.WebSocket;
 if(typeof NodeWebSocket !== 'function') {
   console.warn('[nodeEnv] failed to load Node ws; got', typeof NodeWebSocket, Object.keys(wsModule || {}));
 }
