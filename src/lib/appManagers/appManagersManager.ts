@@ -20,11 +20,15 @@ import SuperMessagePort from '@lib/superMessagePort';
 import objectUrlRegistry from '@lib/mainWorker/objectUrlRegistry';
 import {makeObjectUrlOwner, parseObjectUrlOwner} from '@helpers/objectUrlUtils';
 import {releaseSharedObjectURLsWhere} from '@lib/mainWorker/sharedObjectUrlCache';
+import {Logger, logger} from '@lib/logger';
+import {recordStage} from '@helpers/recordStage';
 
 type Managers = Awaited<ReturnType<typeof createManagers>>;
 
 // for testing cases without video streaming
 const CAN_USE_SERVICE_WORKER = !Modes.noServiceWorker;
+
+const log: Logger = logger('CREATE-MANAGERS');
 
 type ManagersByAccount = Record<ActiveAccountNumber, Managers>;
 type StateManagersByAccount = Record<ActiveAccountNumber, AppStateManager>;
@@ -175,24 +179,32 @@ export class AppManagersManager {
 
   private async createManagers() {
     const promises = ([1, 2, 3, 4] as ActiveAccountNumber[]).map(async(accountNumber) => {
+      const accountLog: Logger = log.bindPrefix('ACCOUNT-' + accountNumber);
       const stateManager = this.stateManagersByAccount[accountNumber]
       const appStoragesManager = new AppStoragesManager(accountNumber, stateManager.resetStoragesPromise);
 
       await Promise.all([
-        // new Promise(() => {}),
-        appStoragesManager.loadStorages(),
+        recordStage(accountLog, 'createManagers stage loadStorages', appStoragesManager.loadStorages()),
         // In Modes.noWorker the crypto worker is never spawned — the registry
         // is imported into the main realm and cryptoMessagePort short-circuits
         // same-realm callers via invokeCryptoNew's early-out. There's nothing
         // to wait for and the threadedPort handshake never resolves, so skip.
-        Modes.noWorker ? Promise.resolve() : this.threadedSharedWorkers.crypto.promise
+        recordStage(
+          accountLog,
+          'createManagers stage cryptoPort',
+          Modes.noWorker ? Promise.resolve() : this.threadedSharedWorkers.crypto.promise
+        )
       ]);
 
-      const managers = await createManagers(
-        appStoragesManager,
-        stateManager,
-        accountNumber,
-        stateManager.userId
+      const managers = await recordStage(
+        accountLog,
+        'createManagers stage managersFactory',
+        createManagers(
+          appStoragesManager,
+          stateManager,
+          accountNumber,
+          stateManager.userId
+        )
       );
 
       return [
@@ -201,7 +213,7 @@ export class AppManagersManager {
       ] as const;
     });
 
-    const accountNumberToManagersPairs = await Promise.all(promises);
+    const accountNumberToManagersPairs = await recordStage(log, 'createManagers stage accounts', Promise.all(promises));
     this.managersByAccount = Object.fromEntries(accountNumberToManagersPairs) as ManagersByAccount;
 
     return this.managersByAccount;
