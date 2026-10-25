@@ -50,6 +50,9 @@ const persistentSlotCount = 128;
 const manualSlotCount = 1000;
 const ephemeralSlotCount = blockCapacity - persistentSlotCount - manualSlotCount;
 
+export const ephemeralBandLowestSlot: number = persistentSlotCount;
+export const ephemeralBandHighestSlot: number = blockCapacity - manualSlotCount - 1;
+
 /**
  * The length this deployment issues, and the length canon's own example uses. A caller holding an
  * auth.sentCode answer should read it off sentCodeTypeSms.length and call codeForDc directly.
@@ -142,6 +145,19 @@ export function parseReservedDcNumber(phoneNumber: string): number | undefined {
 }
 
 
+/** The block slot a reserved number occupies: its DC group, then its random part. */
+export function slotOf(phoneNumber: string): number {
+  const dcNumber: number | undefined = parseReservedDcNumber(phoneNumber);
+  if(dcNumber === undefined) {
+    throw new Error(`"${phoneNumber}" is not a number of canon's reserved test block`);
+  }
+
+  const randomPart: number = Number(phoneNumber.replace(/\D/g, '').slice(-randomPartLength));
+
+  return (dcNumber - lowestDcNumber) * 10_000 + randomPart;
+}
+
+
 function reservedNumberAt(slot: number): string {
   const wrapped = ((slot % blockCapacity) + blockCapacity) % blockCapacity;
   const dcNumber = lowestDcNumber + Math.floor(wrapped / 10_000);
@@ -151,11 +167,6 @@ function reservedNumberAt(slot: number): string {
 }
 
 
-/**
- * Draws a band slot uniformly at random and redraws while the slot is already held by this process.
- * Mirrors DrawEphemeralSlot on the backend: the draw is random rather than sequential, so two
- * harnesses started against one stack do not walk the block in step.
- */
 function drawEphemeralSlot(): number {
   if(drawnSlots.size >= ephemeralSlotCount) {
     throw new Error(

@@ -1,6 +1,12 @@
 import {describe, expect, it} from 'vitest';
 
-import {ephemeralPersona, parseReservedDcNumber, redrawAfterReuse} from './liveharness/personas';
+import {
+  ephemeralBandHighestSlot,
+  ephemeralBandLowestSlot,
+  ephemeralPersona,
+  redrawAfterReuse,
+  slotOf
+} from './liveharness/personas';
 
 
 /*
@@ -14,24 +20,7 @@ import {ephemeralPersona, parseReservedDcNumber, redrawAfterReuse} from './liveh
  * account another suite owns.
  */
 describe('ephemeral personas draw distinct numbers from the allocatable band', () => {
-  const blockCapacity: number = 3 * 10_000;
-  const persistentSlotCount: number = 128;
-  const manualSlotCount: number = 1000;
-  const lowestBandSlot: number = persistentSlotCount;
-  const highestBandSlot: number = blockCapacity - manualSlotCount - 1;
   const distinctDraws: number = 2_000;
-
-  /** The slot of a block number: its DC digit selects the 10 000-slot group, its last four digits the slot. */
-  function slotOf(phone: string): number {
-    const dcNumber: number | undefined = parseReservedDcNumber(phone);
-    if(dcNumber === undefined) {
-      throw new Error(`"${phone}" is not a number of canon's reserved test block`);
-    }
-
-    const randomPart: number = Number(phone.replace(/\D/g, '').slice(-4));
-
-    return (dcNumber - 1) * 10_000 + randomPart;
-  }
 
   it('draws every persona from the band, all distinct, across a large batch', () => {
     const phones: Set<string> = new Set<string>();
@@ -40,9 +29,9 @@ describe('ephemeral personas draw distinct numbers from the allocatable band', (
       const slot: number = slotOf(persona.phone);
 
       expect(slot, `${persona.phone} is outside the band of allocatable slots`)
-        .toBeGreaterThanOrEqual(lowestBandSlot);
+        .toBeGreaterThanOrEqual(ephemeralBandLowestSlot);
       expect(slot, `${persona.phone} is outside the band of allocatable slots`)
-        .toBeLessThanOrEqual(highestBandSlot);
+        .toBeLessThanOrEqual(ephemeralBandHighestSlot);
       phones.add(persona.phone);
     }
 
@@ -69,7 +58,7 @@ describe('ephemeral personas draw distinct numbers from the allocatable band', (
     expect(ephemeralPersona('reused')).toBe(reused);
     expect(ephemeralPersona('reused').phone).toBe(reused.phone);
     expect(handedOut).not.toContain(reused.phone);
-    expect(slotOf(reused.phone)).toBeGreaterThanOrEqual(lowestBandSlot);
-    expect(slotOf(reused.phone)).toBeLessThanOrEqual(highestBandSlot);
+    expect(slotOf(reused.phone)).toBeGreaterThanOrEqual(ephemeralBandLowestSlot);
+    expect(slotOf(reused.phone)).toBeLessThanOrEqual(ephemeralBandHighestSlot);
   });
 });
