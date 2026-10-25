@@ -95,18 +95,29 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
     return auth.session_token;
   };
 
-  const signOutSession = async(sessionToken: string): Promise<void> => {
-    identity.sessionToken = sessionToken;
-    try {
-      await invoke('auth.logOut', {});
-    } finally {
-      identity.sessionToken = undefined;
+  let lastSignIn: any;
+
+  // A spent attempt leaves either a session (an authorization) or an identity holding a pending
+  // password check (SESSION_PASSWORD_NEEDED); the next attempt starts on a fresh identity either way.
+  const signOutAttempt = async(): Promise<void> => {
+    if(lastSignIn !== undefined) {
+      identity.sessionToken = sessionTokenOf(lastSignIn);
+      try {
+        await invoke('auth.logOut', {});
+      } finally {
+        identity.sessionToken = undefined;
+      }
     }
+    lastSignIn = undefined;
+    identityMint = undefined;
+    socket?.disconnect();
+    socket = undefined;
   };
 
-  // The sign-out callback carries no token, so the driver keeps the authorization its last signIn returned.
-  let lastSignIn: any = undefined;
   const invokeAuth = async(method: AuthMethod, params: any): Promise<any> => {
+    if(method === 'auth.signIn') {
+      lastSignIn = undefined;
+    }
     const result: any = await invoke(method, params);
     if(method === 'auth.signIn') {
       lastSignIn = result;
@@ -122,9 +133,7 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
     invokeAuth,
     persona,
     app,
-    async(): Promise<void> => {
-      await signOutSession(sessionTokenOf(lastSignIn));
-    }
+    signOutAttempt
   );
 
   identity.userId = String(signedIn.user.id);

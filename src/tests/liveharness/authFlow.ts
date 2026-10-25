@@ -2,6 +2,8 @@ import type {LiveAccountSlot, LiveStack} from './managerStack';
 import {AuthMethod, signInWithReuseRetries} from './signInCore';
 import {Persona} from './personas';
 
+import {ActiveAccountNumber} from '@lib/accounts/types';
+import {getGrpcSessionToken} from '@lib/impulse/grpc/credentials';
 import {clearImpulseSession} from '@lib/impulse/session';
 
 
@@ -33,8 +35,11 @@ export async function signInHeadless(stack: SignInTarget, persona: Persona): Pro
     stack.helpers.appConfig,
     async(): Promise<void> => {
       // apiManager.logOut latches for good: the app tears its worker down after it, and this slot signs in again.
-      await apiManager.invokeApi('auth.logOut', {});
-      await clearImpulseSession(await apiManager.getAccountNumber());
+      const accountNumber: ActiveAccountNumber = await apiManager.getAccountNumber();
+      if(getGrpcSessionToken(accountNumber) !== undefined) {
+        await apiManager.invokeApi('auth.logOut', {});
+      }
+      await clearImpulseSession(accountNumber);
     }
   );
 
