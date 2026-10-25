@@ -74,6 +74,24 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
   }
 }
 
+export type AnonymousRpcSession = {
+  invoke(method: string, params?: any): Promise<any>,
+  close(): void
+};
+
+/**
+ * A signed-out driver session: it holds only the anonymous identity the update socket mints, so it
+ * can make the login-only calls (auth.exportLoginToken) and nothing that needs an account.
+ */
+export function openAnonymousRpcSession(gatewayOrigin: string): AnonymousRpcSession {
+  const socket: DriverSocket = openDriverSocket(gatewayOrigin);
+
+  return {
+    invoke: socket.invoke,
+    close: socket.close
+  };
+}
+
 function sessionTokenOf(auth: any): string {
   if(typeof auth.session_token !== 'string' || !auth.session_token) {
     throw new Error(
