@@ -144,16 +144,17 @@ const SignInGraceMs: number = 2_000;
  * sign-in (T5: each slot reconnects only itself). A close outside every sign-in window is not judged here.
  */
 function closeBelongsToItsSignIn(close: SocketClose, windows: SignInWindow[]): boolean {
-  const window: SignInWindow | undefined = windows.find((candidate: SignInWindow): boolean => {
+  const closedDuringSignIn: boolean = windows.some((candidate: SignInWindow): boolean => {
     return close.atMs >= candidate.startMs && close.atMs <= candidate.endMs + SignInGraceMs;
   });
-  if(window === undefined) {
+  if(!closedDuringSignIn) {
     return true;
   }
 
-  return close.connectedAtMs !== undefined &&
-    close.connectedAtMs >= window.startMs &&
-    close.connectedAtMs <= window.endMs + SignInGraceMs;
+  const owner: SignInWindow | undefined = windows.find((candidate: SignInWindow): boolean => {
+    return close.connectedAtMs !== undefined && close.connectedAtMs >= candidate.startMs && close.connectedAtMs <= candidate.endMs;
+  });
+  return owner !== undefined && close.atMs <= owner.endMs + SignInGraceMs;
 }
 
 describeLive('B1 multi-account realtime: two accounts in one browser both keep a live push socket — bringing up the second must NOT tear down the first (CEO multi-account report)', () => {
@@ -338,7 +339,7 @@ describeLive('B1 multi-account realtime: two accounts in one browser both keep a
     const closedAccessOfA: SocketClose[] = wire.closes.filter((close: SocketClose): boolean => close.socket === `access:${keyA}`);
     expect(
       closedAccessOfA.length,
-      'A\'s realtime socket was torn down by account B\'s bring-up (on the singleton lane this is stopImpulseRealtime ' +
+      'account A\'s session socket was torn down by account B\'s bring-up (on the singleton lane this is stopImpulseRealtime ' +
       'disconnecting the one shared connection). ' +
       `Closes of A's access socket: ${JSON.stringify(closedAccessOfA)}; ` +
       `wireA: ${wire.describeWire(inboxA)}; wireB: ${wire.describeWire(inboxB)}`

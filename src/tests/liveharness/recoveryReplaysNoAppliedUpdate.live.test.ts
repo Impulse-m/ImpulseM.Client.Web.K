@@ -487,6 +487,10 @@ describeLive('#757 a recovered resubscribe must not re-apply an update the clien
       firstDrop?.openCount,
       `exactly one live socket must carry A's user inbox at the first drop. ${wireRecord()}`
     ).toBe(1);
+    expect(
+      secondDrop?.dropped.length,
+      `exactly one live socket must carry A's user inbox at the second drop. ${wireRecord()}`
+    ).toBe(1);
   }, 60_000);
 
   it('fact 1 (RED if #757 reproduces): after a live apply and a drop, the recovered resubscribe does not apply updateUser or updatePeerSettings for B a second time', () => {

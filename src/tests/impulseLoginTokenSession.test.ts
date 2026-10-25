@@ -45,8 +45,6 @@ vi.mock('@lib/accounts/accountController', () => ({
 const EXPORT_LOGIN_TOKEN = 'auth.exportLoginToken';
 const FIXTURE_SESSION_TOKEN = 'fixture-login-session-token';
 const FIXTURE_REFRESH_TOKEN = 'fixture-login-refresh-token';
-// The server issues the exporter ticket as 64 hexadecimal characters (AuthContextExtensions.GetQrExporterTicket).
-const QR_EXPORTER_TICKET = '0123456789abcdef'.repeat(4);
 
 function loginTokenSuccessPayload(): Uint8Array {
   const loginToken = create(AuthLoginTokenSchema, {
@@ -113,35 +111,6 @@ describe('QR login session token capture', () => {
         impulse_session_token: FIXTURE_SESSION_TOKEN,
         impulse_refresh_token: FIXTURE_REFRESH_TOKEN
       });
-    }
-  );
-
-  it(
-    'sends the exporter ticket the slot holds as the request metadata of the export call, and none while it holds no ticket',
-    async() => {
-      accountGet.mockResolvedValue(undefined);
-      accountUpdate.mockResolvedValue(undefined);
-      socketHarness.respondOnce(EXPORT_LOGIN_TOKEN, () => ({data: new Uint8Array()}));
-      socketHarness.respondOnce(EXPORT_LOGIN_TOKEN, () => ({data: new Uint8Array()}));
-
-      const {restoreImpulseSession} = await import('@lib/impulse/session');
-      const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
-      const {setGrpcQrExporterTicket} = await import('@lib/impulse/grpc/credentials');
-
-      await restoreImpulseSession(1);
-      setGrpcQrExporterTicket(1, QR_EXPORTER_TICKET);
-      await grpcInvoke(EXPORT_LOGIN_TOKEN, {}, 1);
-
-      expect(
-        socketHarness.calls[0].headers,
-        'the ticket the server issued travels as the x-impulse-qr-exporter-ticket metadata of the export call: without it the ' +
-        'server cannot recognise this exporter\'s QR login'
-      ).toEqual({'x-impulse-qr-exporter-ticket': QR_EXPORTER_TICKET});
-
-      setGrpcQrExporterTicket(1, undefined);
-      await grpcInvoke(EXPORT_LOGIN_TOKEN, {}, 1);
-
-      expect(socketHarness.calls[1].headers, 'a slot that holds no ticket sends no metadata').toBeUndefined();
     }
   );
 });

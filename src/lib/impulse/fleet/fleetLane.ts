@@ -1,4 +1,5 @@
 import * as centrifugeProtobuf from '@impulsem/centrifuge/build/protobuf';
+import {Drainable} from './drainable';
 
 /*
  * One SDK RpcPool (protobuf) on one endpoint, for one identity: the connections of a lane present the same token.
@@ -49,9 +50,7 @@ export class FleetLane {
   public readonly endpoint: string;
 
   private readonly pool: FleetPool;
-  private inflight: number = 0;
-  private retired: boolean = false;
-  private closed: boolean = false;
+  private readonly drain: Drainable;
 
   public constructor(options: FleetLaneOptions) {
     this.key = options.key;
@@ -67,33 +66,23 @@ export class FleetLane {
       maxInflightPerConnection: options.inflightPerConnection,
       maxQueued: options.queuedCalls
     });
+    this.drain = new Drainable((): void => {
+      this.pool.close();
+    });
   }
 
   /** Sends one call on this lane. A call beyond the pool's slots waits in the pool's queue for a settled call of the pool. */
   public async send(method: string, data: Uint8Array, signal?: AbortSignal): Promise<FleetPoolReply> {
-    this.inflight++;
+    this.drain.begin();
     try {
       return await this.pool.rpc(method, data, {signal});
     } finally {
-      this.inflight--;
-      this.closeIfDrained();
+      this.drain.end();
     }
   }
 
   /** Stops new calls on this lane. The lane closes now, or when its calls in flight have settled. */
   public retire(): void {
-    if(this.retired) {
-      return;
-    }
-
-    this.retired = true;
-    this.closeIfDrained();
-  }
-
-  private closeIfDrained(): void {
-    if(this.retired && this.inflight === 0 && !this.closed) {
-      this.closed = true;
-      this.pool.close();
-    }
+    this.drain.retire();
   }
 }

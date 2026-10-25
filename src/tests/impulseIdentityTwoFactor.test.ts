@@ -26,8 +26,8 @@ it('fetches each SRP challenge on the same socket and waits FLOOD_WAIT before th
   sockets.respond('account.getPassword', () => ({data: toBinary(AccountPasswordSchema, create(AccountPasswordSchema, {srpId: ++srp}))}));
   sockets.respondOnce('auth.checkPassword', () => {throw {code: 100, appCode: 420, appType: 'FLOOD_WAIT_3'};});
   sockets.respond('auth.checkPassword', () => {throw {code: 100, appCode: 400, appType: 'PASSWORD_HASH_INVALID'};});
-  await expect(manager.check('wrong', {srp_id: '999'}, {ignoreErrors: true})).rejects.toMatchObject({type: 'FLOOD_WAIT_3'});
-  const second: Promise<unknown> = manager.check('again', {srp_id: '999'}, {ignoreErrors: true}).catch((error: unknown): unknown => error);
+  await expect(manager.check('wrong', {ignoreErrors: true})).rejects.toMatchObject({type: 'FLOOD_WAIT_3'});
+  const second: Promise<unknown> = manager.check('again', {ignoreErrors: true}).catch((error: unknown): unknown => error);
   await vi.advanceTimersByTimeAsync(2999);
   expect(sockets.calls.map((call) => call.method)).toEqual(['account.getPassword', 'auth.checkPassword']);
   await vi.advanceTimersByTimeAsync(1);

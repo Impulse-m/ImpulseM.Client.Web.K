@@ -29,6 +29,7 @@ import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {isTokenRefusalCode, TOKEN_EXPIRED_CODE} from './centrifugoCodes';
 import {countSocketCall, fleetFailure, fleetIdentityOf} from './fleet/fleet';
 import type {FleetIdentity} from './fleet/fleet';
+import {Drainable} from './fleet/drainable';
 import {CENTRIFUGO_CONNECTION_PATH} from './fleet/fleetPath';
 import {isFleetRpcError, replyDataOf} from './fleet/fleetError';
 import {reportDifferenceFailure} from './backgroundFailures';
@@ -36,7 +37,6 @@ import {RealtimeSubscriptions} from './realtimeSubscriptions';
 import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
 import {getReconnectJitterMaxMs, ReconnectFloorMs} from './realtimeDiscipline';
 import {protoToTL} from './grpc/protoToTL';
-import {getGrpcQrExporterTicket, QR_EXPORTER_TICKET_HEADER} from './grpc/credentials';
 import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 
 const logger = getLogger('impulse-realtime');
@@ -85,10 +85,7 @@ type UpdateSocketCall = {
 type UpdateSocket = {
   client: Centrifuge,
   identity: FleetIdentity,
-  // Calls in flight on the socket: a retired socket closes once they have settled.
-  inflight: number,
-  retired: boolean,
-  closed: boolean
+  drain: Drainable
 };
 
 /*
@@ -184,8 +181,8 @@ export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
 }
 
 /**
- * Moves the slot's socket to the identity its credentials hold now. A socket that already presents that identity stays.
- * A signed-in slot reconnects at once, with its subscriptions; any other slot connects with its next call.
+ * Moves the slot's socket to the identity its credentials hold now; a socket that already presents it stays.
+ * A signed-in slot reconnects at once, with its subscriptions; an identity slot connects with its next call, never on its own.
  */
 export function rekeyUpdateSocket(accountNumber: ActiveAccountNumber): void {
   const record = connectionFor(accountNumber);
@@ -198,9 +195,7 @@ export function rekeyUpdateSocket(accountNumber: ActiveAccountNumber): void {
   if(fleetIdentityOf(accountNumber).kind === 'identity') {
     record.activeUserId = undefined;
     record.subscriptionSet = undefined;
-    if(current.identity.kind === 'session') {
-      return;
-    }
+    return;
   }
   socketOf(accountNumber);
 }
@@ -213,7 +208,7 @@ export async function callUpdateSocket(call: UpdateSocketCall): Promise<Uint8Arr
   const identity: FleetIdentity = fleetIdentityOf(call.accountNumber);
   checkSocketMethod({kind: identity.kind, method: call.method});
   const socket = socketOf(call.accountNumber);
-  socket.inflight++;
+  socket.drain.begin();
 
   let reply: RpcResult;
   try {
@@ -225,8 +220,7 @@ export async function callUpdateSocket(call: UpdateSocketCall): Promise<Uint8Arr
     }
     throw error;
   } finally {
-    socket.inflight--;
-    closeIfIdle(socket);
+    socket.drain.end();
   }
 
   countSocketCall(call.accountNumber);
@@ -242,7 +236,7 @@ async function sendSocketRpc(socket: UpdateSocket, call: UpdateSocketCall): Prom
     }
     const seconds: number = Number(error.metadata?.['x-centrifugo-retry-after'] ?? 1);
     await pause((Number.isFinite(seconds) && seconds > 0 ? seconds : 1) * 1000);
-    if(socket.retired || call.signal?.aborted) {
+    if(socket.drain.isRetired() || call.signal?.aborted) {
       throw error;
     }
     return await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
@@ -250,13 +244,7 @@ async function sendSocketRpc(socket: UpdateSocket, call: UpdateSocketCall): Prom
 }
 
 function rpcOptionsOf(call: UpdateSocketCall): RpcOptions {
-  const options: RpcOptions = {signal: call.signal};
-  const qrExporterTicket = getGrpcQrExporterTicket(call.accountNumber);
-  if(qrExporterTicket !== undefined) {
-    options.headers = {[QR_EXPORTER_TICKET_HEADER]: qrExporterTicket};
-  }
-
-  return options;
+  return {signal: call.signal};
 }
 
 /**
@@ -386,9 +374,9 @@ function openSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity)
   const socket: UpdateSocket = {
     client: centrifuge,
     identity,
-    inflight: 0,
-    retired: false,
-    closed: false
+    drain: new Drainable((): void => {
+      centrifuge.disconnect();
+    })
   };
   centrifuge.connect();
   logger.info('Realtime socket requested', {identity: identity.kind});
@@ -401,16 +389,8 @@ function retireSocket(record: RealtimeConnection, socket: UpdateSocket): void {
     record.socket = undefined;
   }
 
-  socket.retired = true;
   unsubscribeAll(record);
-  closeIfIdle(socket);
-}
-
-function closeIfIdle(socket: UpdateSocket): void {
-  if(socket.retired && socket.inflight === 0 && !socket.closed) {
-    socket.closed = true;
-    socket.client.disconnect();
-  }
+  socket.drain.retire();
 }
 
 function unsubscribeAll(record: RealtimeConnection): void {

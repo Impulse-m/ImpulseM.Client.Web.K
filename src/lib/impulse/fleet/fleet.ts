@@ -3,6 +3,7 @@ import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {getLogger} from '@lib/impulseLogger';
 import {isTokenRefusalCode, METHOD_INVALID_CODE} from '@lib/impulse/centrifugoCodes';
+import {checkPoolMethod} from '@lib/impulse/grpc/methodClasses';
 import {apiErrorOf, fleetApiError, isFleetRpcError, replyDataOf, transportApiError} from './fleetError';
 import {FleetLane} from './fleetLane';
 import type {FleetKind, FleetPoolReply} from './fleetLane';
@@ -197,6 +198,7 @@ function whenConfigPublished(fleet: AccountFleet, signal?: AbortSignal): Promise
 }
 
 export function callPool(call: FleetCall): Promise<Uint8Array> {
+  checkPoolMethod(call.method);
   return sendOnLane(
     fleetOf(call.accountNumber),
     {kind: 'pool', endpoint: poolRpcEndpoint()},

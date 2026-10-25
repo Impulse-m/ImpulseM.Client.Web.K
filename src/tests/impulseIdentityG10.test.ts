@@ -39,9 +39,11 @@ it.each(['error', 'disconnected'])('drops a refused identity from a socket %s ev
   sockets.sockets[0].emit(event, event === 'error'
     ? {error: {code: 100, appCode: 401, appType: 'AUTH_KEY_UNREGISTERED'}}
     : {code: 4100, reason: 'identity_refused'});
+  expect(sockets.sockets).toHaveLength(1);
   await client.callUpdateSocket({accountNumber: 1, method: 'help.getConfig', request: emptyReply().data});
   expect(client.fleetIdentityFor(1).key).not.toBe(key);
   expect(sockets.sockets).toHaveLength(2);
+  expect(sockets.sockets[1].presentedToken).toBe(await client.fleetIdentityFor(1).getToken());
   expect(pools.calls).toHaveLength(2);
 });
 

@@ -26,6 +26,7 @@ const {MockCentrifuge, centrifugeInstances} = vi.hoisted(() => {
 
   class MockCentrifuge {
     public readonly subscriptions: MockSubscription[] = [];
+    public readonly rpcMethods: string[] = [];
 
     constructor(public readonly url: string, public readonly options: unknown) {
       centrifugeInstances.push(this);
@@ -42,6 +43,11 @@ const {MockCentrifuge, centrifugeInstances} = vi.hoisted(() => {
     }
 
     public removeSubscription(): void {}
+
+    public rpc(method: string): Promise<{data: Uint8Array}> {
+      this.rpcMethods.push(method);
+      return Promise.resolve({data: new Uint8Array()});
+    }
 
     public connect(): void {}
 
@@ -105,5 +111,11 @@ describe('subscriptions carry no tags filter', () => {
       expect(options.tagsFilter, NO_TAGS_FILTER).toBeUndefined();
       expect(options.tf, NO_TAGS_FILTER).toBeUndefined();
     }
+
+    await realtime.callUpdateSocket({accountNumber: 1, method: 'messages.getDialogs', request: new Uint8Array()});
+    const sentRpcMethods: string[] = centrifugeInstances[0].rpcMethods;
+    expect(sentRpcMethods).toContain('messages.getDialogs');
+    expect(sentRpcMethods).not.toContain('getOwnSessionTag');
+    expect(sentRpcMethods).not.toContain('getChannelActorTags');
   });
 });

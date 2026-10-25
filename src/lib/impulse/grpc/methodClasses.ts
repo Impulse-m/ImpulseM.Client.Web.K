@@ -5,8 +5,8 @@ import {getLogger} from '@lib/impulseLogger';
 
 export const LoginOnlyMethods: ReadonlySet<string> = new Set([
   'auth.sendCode', 'auth.cancelCode', 'auth.signIn', 'auth.signUp', 'auth.requestFirebaseSms',
-  'auth.resetLoginEmail', 'auth.reportMissingCode', 'auth.checkPaidAuth', 'auth.importBotAuthorization',
-  'auth.importWebTokenAuthorization', 'auth.exportLoginToken', 'auth.importLoginToken',
+  'auth.resetLoginEmail', 'auth.reportMissingCode', 'auth.checkPaidAuth', 'auth.importAuthorization',
+  'auth.importBotAuthorization', 'auth.importWebTokenAuthorization', 'auth.exportLoginToken', 'auth.importLoginToken',
   'auth.initPasskeyLogin', 'auth.finishPasskeyLogin'
 ]);
 
@@ -30,6 +30,8 @@ export const IdentitySocketMethods: ReadonlySet<string> = new Set([
   INIT_CONNECTION_METHOD, CONNECTION_IDENTITY_METHOD, REFRESH_SESSION_METHOD, 'account.deleteAccount'
 ]);
 
+export const PoolMethods: ReadonlySet<string> = new Set([CONNECTION_IDENTITY_METHOD, REFRESH_SESSION_METHOD]);
+
 const logger = getLogger('impulse-method-guard');
 
 export function checkSocketMethod(options: {kind: FleetIdentity['kind'], method: string}): void {
@@ -38,7 +40,19 @@ export function checkSocketMethod(options: {kind: FleetIdentity['kind'], method:
   if(allowed) {
     return;
   }
-  const message: string = `${kind} socket cannot send ${method}`;
+
+  refuseMethod(`${kind} socket cannot send ${method}`);
+}
+
+export function checkPoolMethod(method: string): void {
+  if(PoolMethods.has(method)) {
+    return;
+  }
+
+  refuseMethod(`pool cannot send ${method}`);
+}
+
+function refuseMethod(message: string): never {
   if(import.meta.env.DEV) {
     throw new Error(message);
   }

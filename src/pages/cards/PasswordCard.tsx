@@ -41,7 +41,6 @@ export default function PasswordCard(_props: {spec: Spec}) {
   const monkeySize = mediaSizes.isMobile ? 100 : 130;
 
   let getStateInterval: number | undefined;
-  let state: AccountPassword;
   let resetLoading = false;
 
   // Whether THIS card's own login attempt is still the one that gets to act. Flipped false the
@@ -157,7 +156,6 @@ export default function PasswordCard(_props: {spec: Spec}) {
   }
 
   function applyState(freshState: AccountPassword): void {
-    state = freshState;
     if(freshState.hint) {
       replaceContent(passwordInputField.label, htmlToSpan(wrapEmojiText(freshState.hint)));
     } else {
@@ -225,7 +223,7 @@ export default function PasswordCard(_props: {spec: Spec}) {
     passwordInputField.setValueSilently(value);
 
     try {
-      const response = await managers.passwordManager.check(value, state, {ignoreErrors: true});
+      const response = await managers.passwordManager.check(value, {ignoreErrors: true});
       if(!flowActive) return; // decided while checkPassword was in flight — do not act on its outcome
 
       switch(response._) {

@@ -15,14 +15,10 @@ export type ConnectionDeclarationValues = {
   tzOffset?: number
 };
 
-// The metadata the server reads the QR exporter ticket from (AuthContextExtensions.QrExporterTicketHeader).
-export const QR_EXPORTER_TICKET_HEADER: string = 'x-impulse-qr-exporter-ticket';
-
 type AccountCredentials = {
   sessionToken: string | undefined,
   // The session token the server last refused as expired or invalid: the next connection asks for a renewal of it.
   refusedSessionToken: string | undefined,
-  qrExporterTicket: string | undefined,
   declaration: ConnectionDeclarationValues | undefined,
   // Bumped whenever the declared values change or the binding is invalidated, so a handshake that belongs to an older
   // declaration cannot mark the current one as bound.
@@ -43,7 +39,6 @@ function credentialsFor(accountNumber: ActiveAccountNumber): AccountCredentials 
     credentials = {
       sessionToken: undefined,
       refusedSessionToken: undefined,
-      qrExporterTicket: undefined,
       declaration: undefined,
       declarationGeneration: 0,
       connectionInited: false
@@ -71,14 +66,6 @@ export function markGrpcSessionTokenRefused(accountNumber: ActiveAccountNumber, 
 export function isGrpcSessionTokenRefused(accountNumber: ActiveAccountNumber): boolean {
   const credentials = credentialsFor(accountNumber);
   return credentials.sessionToken !== undefined && credentials.refusedSessionToken === credentials.sessionToken;
-}
-
-export function setGrpcQrExporterTicket(accountNumber: ActiveAccountNumber, ticket: string | undefined): void {
-  credentialsFor(accountNumber).qrExporterTicket = ticket;
-}
-
-export function getGrpcQrExporterTicket(accountNumber: ActiveAccountNumber): string | undefined {
-  return credentialsFor(accountNumber).qrExporterTicket;
 }
 
 /**

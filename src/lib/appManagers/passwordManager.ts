@@ -11,6 +11,7 @@ import {isApiError} from '@lib/impulse/fleet/fleetError';
 import type {InvokeApiOptions} from '@types';
 import randomize from '@helpers/array/randomize';
 import {AppManager} from '@appManagers/manager';
+import {getFloodWaitTime} from '@appManagers/utils/getFloodWaitTime';
 
 export class PasswordManager extends AppManager {
   private nextPasswordAttemptAt: number = 0;
@@ -77,7 +78,7 @@ export class PasswordManager extends AppManager {
     return this.cryptoWorker.invokeCrypto('computeSRP', password, state, false) as Promise<InputCheckPasswordSRP.inputCheckPasswordSRP>;
   }
 
-  public async check(password: string, state: AccountPassword, options: InvokeApiOptions = {}) {
+  public async check(password: string, options: InvokeApiOptions = {}) {
     const wait: number = this.nextPasswordAttemptAt - Date.now();
     if(wait > 0) {
       await pause(wait);
@@ -94,9 +95,9 @@ export class PasswordManager extends AppManager {
       return auth;
     } catch(error: unknown) {
       if(isApiError(error)) {
-        const flood: RegExpMatchArray | null = error.type.match(/^FLOOD_WAIT_(\d+)$/);
-        if(flood) {
-          this.nextPasswordAttemptAt = Date.now() + Number(flood[1]) * 1000;
+        const flood: ReturnType<typeof getFloodWaitTime> = getFloodWaitTime(error);
+        if(flood.hasWaitTime) {
+          this.nextPasswordAttemptAt = Date.now() + flood.waitTime * 1000;
         }
       }
       throw error;
