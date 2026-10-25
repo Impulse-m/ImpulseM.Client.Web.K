@@ -14,16 +14,6 @@ import {randomInt} from 'crypto';
  *    only 3 Test DCs."
  *   (.demo/telegram-docs-text/api/auth.md:1003-1005)
  *
- * That is the whole mechanism by which these lanes sign in without a message being sent, and it
- * replaced a configured constant — the literal 11111, which the server handed to ANY number because
- * a boolean said so, including the number belonging to whoever owns the deployment. A derived code
- * opens only numbers nobody can receive a message on, which is why canon publishes the rule.
- *
- * This file used to hold that constant and its own +997 block. The backend moved and this did not,
- * so every live-lane sign-up answered "Invalid code" and both client live lanes were dark — no
- * scenario failed, they all failed IDENTICALLY at the fixture, which reads as an environment
- * problem rather than as a regression. Keeping the mirror exact is the point of this file.
- *
  * The two rules the C# side documents hold here too:
  *
  *   1. Every run of a process gets its own accounts, and the run is part of the identity. A phone

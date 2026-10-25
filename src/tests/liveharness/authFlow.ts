@@ -2,6 +2,7 @@ import type {LiveAccountSlot, LiveStack} from './managerStack';
 import {ephemeralLastName, loginCodeFor, Persona, redrawAfterReuse} from './personas';
 
 import {fleetApiError, isApiError, isFleetRpcError} from '@lib/impulse/fleet/fleetError';
+import {clearImpulseSession} from '@lib/impulse/session';
 
 
 /**
@@ -131,7 +132,9 @@ async function signInPass(stack: SignInTarget, persona: Persona, mustBeNew: bool
   });
 
   if(auth?._ === 'auth.authorization' && mustBeNew) {
-    await apiManager.logOut();
+    // apiManager.logOut latches for good: the app tears its worker down after it, and this slot signs in again.
+    await apiManager.invokeApi('auth.logOut', {});
+    await clearImpulseSession(await apiManager.getAccountNumber());
 
     return {kind: 'spent', answer: 'auth.signIn auth.authorization'};
   }
