@@ -1,5 +1,6 @@
 import {liveLane} from './liveGate';
 import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
+import WebSocket from 'ws';
 
 import {socketUrlOf} from '../../../e2e/live/carriers';
 import {Persona} from './personas';
@@ -91,16 +92,27 @@ function openDriverSocket(gatewayOrigin: string): DriverSocket {
   let socket: Centrifuge | undefined;
   let socketToken: string | undefined;
 
+  // The identity is minted over a token-less socket of its own, so the app's pool fleet (slot 1's) never sees this driver.
   const mintIdentity = async(): Promise<string> => {
-    const [{fromBinary}, {callPool}, {connectionIdentityRequest}, schemas] = await Promise.all([
+    const [{fromBinary}, {poolRpcEndpoint}, {connectionIdentityRequest}, schemas] = await Promise.all([
       import('@bufbuild/protobuf'),
-      import('@lib/impulse/fleet/fleet'),
+      import('@lib/impulse/fleet/fleetRoute'),
       import('@lib/impulse/identity'),
       import('@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_service_pb')
     ]);
     const request: Uint8Array = connectionIdentityRequest('');
-    const reply: Uint8Array = await callPool({accountNumber: 1, method: 'connectionIdentity', request});
-    return fromBinary(schemas.ConnectionIdentityResponseSchema, reply).identityToken;
+    const poolSocket: Centrifuge = new Centrifuge(poolRpcEndpoint(), {token: '', websocket: WebSocket});
+    poolSocket.connect();
+    try {
+      const reply = await poolSocket.rpc('connectionIdentity', request);
+      if(reply.data === undefined) {
+        throw new Error('minimal RPC session: connectionIdentity answered without data');
+      }
+
+      return fromBinary(schemas.ConnectionIdentityResponseSchema, reply.data).identityToken;
+    } finally {
+      poolSocket.disconnect();
+    }
   };
   const socketFor = (): Centrifuge => {
     const token = identity.sessionToken;
@@ -108,6 +120,7 @@ function openDriverSocket(gatewayOrigin: string): DriverSocket {
       socket?.disconnect();
       socket = new Centrifuge(socketUrl, {
         token: '',
+        websocket: WebSocket,
         getToken: async(): Promise<string> => token ?? await (identityMint ??= mintIdentity())
       });
       socketToken = token;
