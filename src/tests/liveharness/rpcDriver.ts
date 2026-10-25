@@ -95,45 +95,23 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
     return auth.session_token;
   };
 
-  let lastSignIn: any;
-
-  // A spent attempt leaves either a session (an authorization) or an identity holding a pending
-  // password check (SESSION_PASSWORD_NEEDED); the next attempt starts on a fresh identity either way.
-  const signOutAttempt = async(): Promise<void> => {
-    if(lastSignIn !== undefined) {
-      identity.sessionToken = sessionTokenOf(lastSignIn);
-      try {
-        await invoke('auth.logOut', {});
-      } finally {
-        identity.sessionToken = undefined;
-      }
-    }
-    lastSignIn = undefined;
+  // A spent attempt leaves a session (an authorization) or an identity holding a pending password
+  // check (SESSION_PASSWORD_NEEDED). Both are dropped here only, since auth.logOut would close the
+  // socket under the call, and the next attempt starts on a fresh identity.
+  const abandonAttempt = async(): Promise<void> => {
     identityMint = undefined;
     socket?.disconnect();
     socket = undefined;
-  };
-
-  const invokeAuth = async(method: AuthMethod, params: any): Promise<any> => {
-    if(method === 'auth.signIn') {
-      lastSignIn = undefined;
-    }
-    const result: any = await invoke(method, params);
-    if(method === 'auth.signIn') {
-      lastSignIn = result;
-    }
-
-    return result;
   };
 
   // The same auth sequence the client's login page drives (see ./signInCore.ts), issued
   // through this driver's own socket so the primary stack's identity stays untouched.
   const app = (await import('@config/app')).default;
   const signedIn: any = await signInWithReuseRetries(
-    invokeAuth,
+    (method: AuthMethod, params: any): Promise<any> => invoke(method, params),
     persona,
     app,
-    signOutAttempt
+    abandonAttempt
   );
 
   identity.userId = String(signedIn.user.id);
