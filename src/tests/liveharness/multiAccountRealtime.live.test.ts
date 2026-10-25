@@ -202,10 +202,6 @@ describeLive('B1 multi-account realtime: two accounts in one browser both keep a
       'pristine-storage precondition: slot 2 must boot with no persisted account'
     ).toBeUndefined();
 
-    // The third party who will write to both accounts. It signs in before the two sign-in windows,
-    // so the sockets its own sign-in retires are not read as either slot's.
-    sender = await openMinimalRpcSession(liveLane.gatewayOrigin, personaC);
-
     // Account A into slot 1 FIRST, account B into slot 2 SECOND — order matters: the singleton
     // tears down whichever came first when the second arrives.
     const startA: number = Date.now();
@@ -231,6 +227,8 @@ describeLive('B1 multi-account realtime: two accounts in one browser both keep a
     slotA.managers.apiUpdatesManager.attach();
     slotB.managers.apiUpdatesManager.attach();
 
+    // The third party who will write to both accounts.
+    sender = await openMinimalRpcSession(liveLane.gatewayOrigin, personaC);
     const targetA = await resolveTarget(sender, personaA.phone, keyA);
     const targetB = await resolveTarget(sender, personaB.phone, keyB);
 
