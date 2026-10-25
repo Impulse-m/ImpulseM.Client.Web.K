@@ -36,6 +36,8 @@ import {reportDifferenceFailure} from './backgroundFailures';
 import {RealtimeSubscriptions} from './realtimeSubscriptions';
 import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
 import {getReconnectJitterMaxMs, ReconnectFloorMs} from './realtimeDiscipline';
+import {newRealtimeInstance} from './realtimeInstance';
+import {RpcWaitQueue} from './rpcWaitQueue';
 import {protoToTL} from './grpc/protoToTL';
 import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 
@@ -44,6 +46,7 @@ const logger = getLogger('impulse-realtime');
 const CENTRIFUGO_WS = `${backendUpdateWsOrigin()}${CENTRIFUGO_CONNECTION_PATH}`;
 // Every regular call is an rpc on this client, and an rpc deadline may not exceed the client timeout.
 const UPDATE_SOCKET_TIMEOUT_MS: number = 30_000;
+const UPDATE_SOCKET_MAX_PENDING_RPC: number = 40;
 const NO_CONNECTION_TOKEN: string = '';
 // The exponential CAP on a reconnect delay, not a spread window.
 // Development keeps a much lower cap so a local reconnect stays responsive.
@@ -85,7 +88,8 @@ type UpdateSocketCall = {
 type UpdateSocket = {
   client: Centrifuge,
   identity: FleetIdentity,
-  drain: Drainable
+  drain: Drainable,
+  waiting: RpcWaitQueue<RpcResult>
 };
 
 /*
@@ -235,7 +239,7 @@ export async function callUpdateSocket(call: UpdateSocketCall): Promise<Uint8Arr
 
 async function sendSocketRpc(socket: UpdateSocket, call: UpdateSocketCall): Promise<RpcResult> {
   try {
-    return await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
+    return await rpcOnSocket(socket, call);
   } catch(error: unknown) {
     if(socket.identity.kind !== 'identity' || !isFleetRpcError(error) || error.code !== 111) {
       throw error;
@@ -245,12 +249,18 @@ async function sendSocketRpc(socket: UpdateSocket, call: UpdateSocketCall): Prom
     if(socket.drain.isRetired() || call.signal?.aborted) {
       throw error;
     }
-    return await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
+    return await rpcOnSocket(socket, call);
   }
 }
 
-function rpcOptionsOf(call: UpdateSocketCall): RpcOptions {
-  return {signal: call.signal};
+function rpcOnSocket(socket: UpdateSocket, call: UpdateSocketCall): Promise<RpcResult> {
+  return socket.waiting.run((timeoutMs: number | undefined): Promise<RpcResult> => {
+    return socket.client.rpc(call.method, call.request, rpcOptionsOf(call, timeoutMs));
+  }, call.signal);
+}
+
+function rpcOptionsOf(call: UpdateSocketCall, timeoutMs: number | undefined): RpcOptions {
+  return {signal: call.signal, timeout: timeoutMs};
 }
 
 /**
@@ -339,7 +349,10 @@ function openSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity)
     stopOnRefusedToken: false,
     timeout: UPDATE_SOCKET_TIMEOUT_MS,
     minReconnectDelay: ReconnectJitterMinMs,
-    maxReconnectDelay: ReconnectJitterMaxMs
+    maxReconnectDelay: ReconnectJitterMaxMs,
+    // The retransmit scope of this socket: a random secret, never logged (SDK README.md:372).
+    instance: newRealtimeInstance(),
+    maxPendingRpc: UPDATE_SOCKET_MAX_PENDING_RPC
   });
 
   centrifuge.on('error', (ctx: any) => {
@@ -382,7 +395,8 @@ function openSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity)
     identity,
     drain: new Drainable((): void => {
       centrifuge.disconnect();
-    })
+    }),
+    waiting: new RpcWaitQueue<RpcResult>(UPDATE_SOCKET_TIMEOUT_MS, UPDATE_SOCKET_MAX_PENDING_RPC)
   };
   centrifuge.connect();
   logger.info('Realtime socket requested', {identity: identity.kind});
