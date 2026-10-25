@@ -58,8 +58,14 @@ describeOrSkip('dialog deletion propagation (other session / other side)', () =>
 
     // A stray AUTH_KEY_DUPLICATED/SESSION_REVOKED makes apiManager.logOut()
     // revoke the seed's auth keys on EVERY dc — never allow that in tests.
-    (dual.A.managers.apiManager as any).logOut = () => console.warn('  [A] logOut suppressed');
-    (dual.B.managers.apiManager as any).logOut = () => console.warn('  [B] logOut suppressed');
+    (dual.A.managers.apiManager as any).logOut = () => {
+      console.warn('  [A] logOut suppressed');
+      return Promise.resolve();
+    };
+    (dual.B.managers.apiManager as any).logOut = () => {
+      console.warn('  [B] logOut suppressed');
+      return Promise.resolve();
+    };
 
     const realInvokeA = trace(dual.A, 'A');
     const realInvokeB = trace(dual.B, 'B');

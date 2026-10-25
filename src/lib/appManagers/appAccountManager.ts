@@ -1,3 +1,4 @@
+import {getGrpcSessionToken} from '@lib/impulse/grpc/credentials';
 import App from '@config/app';
 import ctx from '@environment/ctx';
 import longFromBytes from '@helpers/long/longFromBytes';
@@ -367,6 +368,9 @@ export default class AppAccountManager extends AppManager {
    * already forgot is not worth reporting either.
    */
   public cancelWebTokenAuthorization(token: string, dcId: DcId) {
+    if(getGrpcSessionToken(this.getAccountNumber()) === undefined) {
+      return;
+    }
     this.apiManager.invokeApi('auth.cancelWebTokenAuthorization', {
       web_auth_token: token
     }, {dcId, ignoreErrors: true}).catch((err) => {

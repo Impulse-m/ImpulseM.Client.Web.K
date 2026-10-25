@@ -13,8 +13,8 @@
  *      the dying hop: envelope never arrived (server side) vs arrived-but-dropped (client
  *      side). Only the wire can testify that the envelope physically reached the socket.
  *
- * This observer wraps globalThis.WebSocket with a recording subclass. It records frames of
- * the Centrifugo JSON protocol (newline-delimited JSON): outgoing subscribe commands are
+ * This observer wraps globalThis.WebSocket with a recording subclass. It decodes the frames of
+ * the Centrifugo protobuf protocol, the transport every client socket speaks: outgoing subscribe commands are
  * remembered by command id, incoming replies to them become subscribe acks/errors, incoming
  * `push.pub` frames are captured with their channel and raw envelope. Nothing is mutated,
  * delayed or answered — the production module talks through the wrapper untouched.
@@ -24,6 +24,59 @@
  * bootLiveManagerStack afterEnvInstalled hook — after the polyfill, before any src module
  * can construct a socket.
  */
+
+import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
+
+export type WireCodec = {
+  encodeCommands(commands: unknown[]): Uint8Array,
+  encodeReplies(replies: unknown[]): Uint8Array,
+  decodeCommands(data: unknown): WireCommand[],
+  decodeReplies(data: unknown): any[]
+};
+
+export type SocketCorrelation = {
+  pendingConnects: Set<number>,
+  pendingSubscribes: Map<number, string>,
+  socket: string,
+  connectedAtMs: number | undefined
+};
+
+/** The protobuf codec of the SDK, which the build does not export: it is read off a client instance. */
+export function protobufWireCodec(): WireCodec {
+  const client: Centrifuge = new Centrifuge('ws://localhost');
+  return Reflect.get(client, '_codec');
+}
+
+// The protobuf codec delivers a publication's data as the UTF-8 JSON the server published, as the client reads it.
+function envelopeOf(raw: unknown): any {
+  if(ArrayBuffer.isView(raw)) {
+    return JSON.parse(new TextDecoder().decode(raw));
+  }
+
+  return raw;
+}
+
+// Command ids are per-connection in the Centrifugo protocol.
+export function newSocketCorrelation(): SocketCorrelation {
+  return {
+    pendingConnects: new Set<number>(),
+    pendingSubscribes: new Map<number, string>(),
+    socket: 'unknown',
+    connectedAtMs: undefined
+  };
+}
+
+// A socket is named by the subject of the token it connected with: an identity (i:...), an account's access
+// subject, or an anonymous pool connection that presented no token.
+function socketLabelOf(token: string): string {
+  if(!token) {
+    return 'anonymous';
+  }
+
+  const payload: {sub?: string} = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+  const subject: string = String(payload.sub);
+  return subject.startsWith('i:') ? `identity:${subject}` : `access:${subject}`;
+}
 
 export type SubscribeAck = {
   channel: string,
@@ -39,7 +92,17 @@ export type PublicationRecord = {
 
 export type SocketClose = {
   code?: number,
-  reason?: string
+  reason?: string,
+  socket: string,
+  atMs: number,
+  connectedAtMs: number | undefined
+};
+
+export type WireCommand = {
+  id?: number,
+  connect?: {token?: string},
+  rpc?: {method?: string},
+  subscribe?: {channel?: string, recover?: boolean, offset?: unknown, epoch?: unknown}
 };
 
 
@@ -49,8 +112,10 @@ export class RealtimeWireObserver {
   public subscribeAcks: SubscribeAck[] = [];
   public publications: PublicationRecord[] = [];
   public closes: SocketClose[] = [];
+  public commands: Array<{endpoint: string, command: WireCommand}> = [];
 
   private wrappedWebSocket: any;
+  private readonly codec: WireCodec = protobufWireCodec();
 
 
   /**
@@ -69,20 +134,19 @@ export class RealtimeWireObserver {
         super(...args);
         observer.socketsOpened++;
 
-        // Command ids are per-connection in the Centrifugo protocol.
-        const pendingConnects = new Set<number>();
-        const pendingSubscribes = new Map<number, string>();
+        const correlation: SocketCorrelation = newSocketCorrelation();
+        const endpoint: string = String(args[0]);
 
         this.addEventListener('message', (event: any) => {
-          observer.onIncoming(rawFrameToString(event?.data), pendingConnects, pendingSubscribes);
+          observer.recordIncoming(event?.data, correlation);
         });
         this.addEventListener('close', (event: any) => {
-          observer.closes.push({code: event?.code, reason: event?.reason});
+          observer.recordClose({code: event?.code, reason: event?.reason}, correlation);
         });
 
         const originalSend = this.send;
         this.send = function(data: any) {
-          observer.onOutgoing(rawFrameToString(data), pendingConnects, pendingSubscribes);
+          observer.recordOutgoing(data, correlation, endpoint);
           return originalSend.call(this, data);
         };
       }
@@ -122,99 +186,60 @@ export class RealtimeWireObserver {
   }
 
 
-  private onOutgoing(
-    frame: string | undefined,
-    pendingConnects: Set<number>,
-    pendingSubscribes: Map<number, string>
-  ): void {
-    for(const command of parseFrameLines(frame)) {
-      if(typeof command?.id !== 'number') {
-        continue;
-      }
-
+  public recordOutgoing(data: unknown, correlation: SocketCorrelation, endpoint: string): void {
+    for(const command of this.codec.decodeCommands(data)) {
+      this.commands.push({endpoint, command});
       if(command.connect) {
-        pendingConnects.add(command.id);
+        correlation.pendingConnects.add(command.id);
+        correlation.socket = socketLabelOf(command.connect.token ?? '');
+        correlation.connectedAtMs = Date.now();
       }
 
       if(command.subscribe?.channel) {
-        pendingSubscribes.set(command.id, String(command.subscribe.channel));
+        correlation.pendingSubscribes.set(command.id, String(command.subscribe.channel));
       }
     }
   }
 
 
-  private onIncoming(
-    frame: string | undefined,
-    pendingConnects: Set<number>,
-    pendingSubscribes: Map<number, string>
-  ): void {
-    for(const reply of parseFrameLines(frame)) {
-      if(typeof reply?.id === 'number') {
-        if(pendingConnects.delete(reply.id) && !reply.error) {
-          this.connectAcks++;
-        }
+  public recordClose(event: {code?: number, reason?: string}, correlation: SocketCorrelation): void {
+    this.closes.push({
+      code: event.code,
+      reason: event.reason,
+      socket: correlation.socket,
+      atMs: Date.now(),
+      connectedAtMs: correlation.connectedAtMs
+    });
+  }
 
-        const channel = pendingSubscribes.get(reply.id);
-        if(channel !== undefined) {
-          pendingSubscribes.delete(reply.id);
-          this.subscribeAcks.push({
-            channel,
-            error: reply.error ? `${reply.error.code} ${reply.error.message}` : undefined
+
+  public recordIncoming(data: unknown, correlation: SocketCorrelation): void {
+    for(const reply of this.codec.decodeReplies(data)) {
+      // A push carries id 0 in the protobuf envelope, so it is told apart from a reply by its payload.
+      if(reply.push) {
+        if(reply.push.pub && reply.push.channel) {
+          this.publications.push({
+            channel: String(reply.push.channel),
+            envelope: envelopeOf(reply.push.pub.data),
+            receivedAtMs: Date.now()
           });
         }
 
         continue;
       }
 
-      const push = reply?.push;
-      if(push?.pub && push.channel) {
-        this.publications.push({
-          channel: String(push.channel),
-          envelope: push.pub.data,
-          receivedAtMs: Date.now()
+      if(correlation.pendingConnects.delete(reply.id) && !reply.error) {
+        this.connectAcks++;
+      }
+
+      const channel: string | undefined = correlation.pendingSubscribes.get(reply.id);
+      if(channel !== undefined) {
+        correlation.pendingSubscribes.delete(reply.id);
+        this.subscribeAcks.push({
+          channel,
+          error: reply.error ? `${reply.error.code} ${reply.error.message}` : undefined
         });
       }
     }
   }
-}
-
-
-function rawFrameToString(data: unknown): string | undefined {
-  if(typeof data === 'string') {
-    return data;
-  }
-
-  if(data instanceof ArrayBuffer) {
-    return Buffer.from(data).toString('utf8');
-  }
-
-  if(Buffer.isBuffer(data)) {
-    return data.toString('utf8');
-  }
-
-  return undefined;
-}
-
-
-function parseFrameLines(frame: string | undefined): any[] {
-  if(!frame) {
-    return [];
-  }
-
-  const parsed: any[] = [];
-  for(const line of frame.split('\n')) {
-    const trimmed = line.trim();
-    if(!trimmed) {
-      continue;
-    }
-
-    try {
-      parsed.push(JSON.parse(trimmed));
-    } catch{
-      // A non-JSON frame on the Centrifugo JSON transport is not this observer's business
-      // to judge; the production client will surface it its own way.
-    }
-  }
-
-  return parsed;
 }

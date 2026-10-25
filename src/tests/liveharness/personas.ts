@@ -1,7 +1,4 @@
 import {randomInt} from 'crypto';
-import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
-import {tmpdir} from 'os';
-import {dirname, join} from 'path';
 
 
 /*
@@ -16,16 +13,6 @@ import {dirname, join} from 'path';
  *    repeated five times). Note that the value of X must be in the range of 1-3 because there are
  *    only 3 Test DCs."
  *   (.demo/telegram-docs-text/api/auth.md:1003-1005)
- *
- * That is the whole mechanism by which these lanes sign in without a message being sent, and it
- * replaced a configured constant — the literal 11111, which the server handed to ANY number because
- * a boolean said so, including the number belonging to whoever owns the deployment. A derived code
- * opens only numbers nobody can receive a message on, which is why canon publishes the rule.
- *
- * This file used to hold that constant and its own +997 block. The backend moved and this did not,
- * so every live-lane sign-up answered "Invalid code" and both client live lanes were dark — no
- * scenario failed, they all failed IDENTICALLY at the fixture, which reads as an environment
- * problem rather than as a regression. Keeping the mirror exact is the point of this file.
  *
  * The two rules the C# side documents hold here too:
  *
@@ -63,51 +50,48 @@ const persistentSlotCount = 128;
 const manualSlotCount = 1000;
 const ephemeralSlotCount = blockCapacity - persistentSlotCount - manualSlotCount;
 
-/**
- * How far ahead of this run the shared cursor is kept. Same value as the C# side, and the file is
- * the same file: the two harnesses march through the block together instead of each choosing a
- * start and overlapping with the other's accounts.
- */
-const cursorUpdateEvery = 256;
+export const ephemeralBandLowestSlot: number = persistentSlotCount;
+export const ephemeralBandHighestSlot: number = blockCapacity - manualSlotCount - 1;
 
 /**
  * The length this deployment issues, and the length canon's own example uses. A caller holding an
  * auth.sentCode answer should read it off sentCodeTypeSms.length and call codeForDc directly.
  */
-const defaultCodeLength = 5;
+const defaultCodeLength: number = 5;
 
-const byLabel = new Map<string, Persona>();
-let allocated = 0;
+/** The last name every ephemeral persona carries; a persona with it is a number this harness drew. */
+export const ephemeralLastName: string = 'Ephemeral';
+
+const byLabel: Map<string, Persona> = new Map<string, Persona>();
+
+/** Every band slot this process has drawn. A slot is never handed out twice, reused or not. */
+const drawnSlots: Set<number> = new Set<number>();
 
 
 export function ephemeralPersona(label: string): Persona {
-  const existing = byLabel.get(label);
+  const existing: Persona | undefined = byLabel.get(label);
   if(existing) {
     return existing;
   }
 
-  allocated += 1;
-  if(allocated > ephemeralSlotCount) {
-    throw new Error(
-      `This run has asked for ${allocated} identities and canon's reserved test block holds ` +
-      `${ephemeralSlotCount} allocatable numbers. Allocating past the end would reuse a number ` +
-      'this run already holds, and two scenarios sharing one account is not a failure either of ' +
-      'them can report.'
-    );
-  }
-
-  if(allocated % cursorUpdateEvery === 0) {
-    advanceCursorTo(firstSlot + allocated + cursorUpdateEvery);
-  }
-
   const persona: Persona = {
-    phone: reservedNumberAt(slotFor(firstSlot, allocated)),
+    phone: reservedNumberAt(drawEphemeralSlot()),
     firstName: label,
-    lastName: 'Ephemeral'
+    lastName: ephemeralLastName
   };
   byLabel.set(label, persona);
 
   return persona;
+}
+
+
+/**
+ * Replaces the number of a persona whose number already holds an account. The persona object is
+ * kept, so every holder and every later ephemeralPersona(label) sees the new number. The old slot
+ * stays drawn and is not handed out again in this process.
+ */
+export function redrawAfterReuse(persona: Persona): void {
+  persona.phone = reservedNumberAt(drawEphemeralSlot());
 }
 
 
@@ -161,6 +145,19 @@ export function parseReservedDcNumber(phoneNumber: string): number | undefined {
 }
 
 
+/** The block slot a reserved number occupies: its DC group, then its random part. */
+export function slotOf(phoneNumber: string): number {
+  const dcNumber: number | undefined = parseReservedDcNumber(phoneNumber);
+  if(dcNumber === undefined) {
+    throw new Error(`"${phoneNumber}" is not a number of canon's reserved test block`);
+  }
+
+  const randomPart: number = Number(phoneNumber.replace(/\D/g, '').slice(-randomPartLength));
+
+  return (dcNumber - lowestDcNumber) * 10_000 + randomPart;
+}
+
+
 function reservedNumberAt(slot: number): string {
   const wrapped = ((slot % blockCapacity) + blockCapacity) % blockCapacity;
   const dcNumber = lowestDcNumber + Math.floor(wrapped / 10_000);
@@ -170,58 +167,20 @@ function reservedNumberAt(slot: number): string {
 }
 
 
-function slotFor(cursor: number, allocationOrdinal: number): number {
-  const offset = (((cursor + allocationOrdinal) % ephemeralSlotCount) + ephemeralSlotCount) % ephemeralSlotCount;
-
-  return persistentSlotCount + offset;
-}
-
-
-/**
- * Where this run starts allocating: where the previous run stopped, in whichever harness it was.
- * Best-effort by design — an unreadable or unwritable cursor falls back to a random start rather
- * than failing the run, because a suite that cannot start because of its own bookkeeping file is
- * worse than one that occasionally revisits a slot.
- */
-function readAndAdvanceCursor(): number {
-  const fallback = randomInt(ephemeralSlotCount);
-  try {
-    const path = cursorPath();
-    mkdirSync(dirname(path), {recursive: true});
-    const stored = existsSync(path) ? Number.parseInt(readFileSync(path, 'utf8').trim(), 10) : NaN;
-    const start = Number.isFinite(stored)
-      ? ((stored % ephemeralSlotCount) + ephemeralSlotCount) % ephemeralSlotCount
-      : fallback;
-
-    // Advanced immediately rather than after the fact, so a run killed part way through still does
-    // not hand its slots to the next one.
-    advanceCursorTo(start + cursorUpdateEvery);
-
-    return start;
-  } catch{
-    return fallback;
-  }
-}
-
-
-function advanceCursorTo(slot: number): void {
-  try {
-    writeFileSync(
-      cursorPath(),
-      String((((slot % ephemeralSlotCount) + ephemeralSlotCount) % ephemeralSlotCount))
+function drawEphemeralSlot(): number {
+  if(drawnSlots.size >= ephemeralSlotCount) {
+    throw new Error(
+      `This run has drawn all ${ephemeralSlotCount} allocatable numbers of canon's reserved test ` +
+      'block. Drawing again would reuse a number this run already holds, and two scenarios sharing ' +
+      'one account is not a failure either of them can report.'
     );
-  } catch{
-    // See readAndAdvanceCursor: bookkeeping must not be able to fail a run.
   }
+
+  let slot: number = persistentSlotCount + randomInt(ephemeralSlotCount);
+  while(drawnSlots.has(slot)) {
+    slot = persistentSlotCount + randomInt(ephemeralSlotCount);
+  }
+  drawnSlots.add(slot);
+
+  return slot;
 }
-
-
-function cursorPath(): string {
-  const override = process.env.IMPULSE_SESSION_CACHE;
-  const directory = override && override.length > 0 ? override : join(tmpdir(), 'impulsem-personas');
-
-  return join(directory, 'reserved-block-cursor.txt');
-}
-
-
-const firstSlot = readAndAdvanceCursor();

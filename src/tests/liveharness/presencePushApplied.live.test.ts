@@ -165,7 +165,7 @@ describeLive('B1 presence: a mutual contact going online/offline must be APPLIED
       ).catch((error) => {
         throw new Error(
           `${error instanceof Error ? error.message : String(error)} — the reload boot never armed ` +
-          'the push lane (apiManager.after() -> setRealtimeSink + startImpulseRealtime -> Centrifugo ' +
+          'the push lane (apiManager.after() -> setRealtimeDispatch + startImpulseRealtime -> Centrifugo ' +
           `connect/subscribe). Wire evidence: ${wireObserver.describeWire(inboxChannel)}`
         );
       });

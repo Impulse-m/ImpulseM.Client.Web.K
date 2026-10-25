@@ -1,7 +1,8 @@
 import {create, toBinary, fromBinary} from '@bufbuild/protobuf';
 import {describe, expect, it} from 'vitest';
 
-import {buildProtoInit, protoToTL} from '../lib/impulse/grpc/adapter';
+import {buildProtoInit} from '../lib/impulse/grpc/adapter';
+import {protoToTL} from '../lib/impulse/grpc/protoToTL';
 import {ReplyMarkupSchema} from '../lib/impulse/grpc/gen/v1/types_pb';
 
 

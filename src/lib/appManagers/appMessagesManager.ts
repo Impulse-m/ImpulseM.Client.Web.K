@@ -14,7 +14,7 @@ import LazyLoadQueueBase from '@components/lazyLoadQueueBase';
 import deferredPromise, {CancellablePromise} from '@helpers/cancellablePromise';
 import tsNow from '@helpers/tsNow';
 import {nextRandomUint, randomLong} from '@helpers/random';
-import {BotCommand, Chat, ChatFull, Dialog as MTDialog, DocumentAttribute, EphemeralMessage, EphemeralSendMessage, InputMedia, InputMessage, InputMessageReadMetric, InputPeerNotifySettings, InputSingleMedia, Message, MessageAction, MessageEntity, MessageFwdHeader, MessageMedia, MessageReplies, MessageReplyHeader, MessagesBotCallbackAnswer, MessagesDialogs, MessagesFilter, MessagesMessages, MethodDeclMap, PageBlock, PeerNotifySettings, PhotoSize, SendMessageAction, Update, Photo, Updates, ReplyMarkup, InputPeer, InputPhoto, InputDocument, WebPage, GeoPoint, InputChannel, InputDialogPeer, ReactionCount, MessagePeerReaction, MessagesSearchCounter, Peer, MessageReactions, Document, InputFile, Reaction, ForumTopic as MTForumTopic, MessagesForumTopics, MessagesGetReplies, MessagesGetHistory, MessagesAffectedHistory, MessagesTranscribedAudio, ReadParticipantDate, WebDocument, MessagesSearch, MessagesSearchGlobal, InputReplyTo, MessagesSendMessage, MessagesSendMedia, MessagesGetSavedHistory, MessagesSavedDialogs, SavedDialog as MTSavedDialog, User, MissingInvitee, TextWithEntities, ChannelsSearchPosts, FactCheck, MessageExtendedMedia, SponsoredMessage, MessagesSponsoredMessages, InputGroupCall, TodoItem, TodoCompletion, SearchPostsFlood, MessagesDeleteSavedHistory, ChannelsDeleteParticipantHistory, MessagesDeleteHistory, MessagesDeleteTopicHistory, RichMessage} from '@layer';
+import {BotCommand, Chat, ChatFull, Dialog as MTDialog, DocumentAttribute, EphemeralMessage, EphemeralSendMessage, InputMedia, InputMessage, InputMessageReadMetric, InputPeerNotifySettings, InputSingleMedia, Message, MessageAction, MessageEntity, MessageFwdHeader, MessageMedia, MessageReplies, MessageReplyHeader, MessagesBotCallbackAnswer, MessagesDialogs, MessagesFilter, MessagesMessages, MessagesPeerDialogs, MethodDeclMap, PageBlock, PeerNotifySettings, PhotoSize, SendMessageAction, Update, Photo, Updates, ReplyMarkup, InputPeer, InputPhoto, InputDocument, WebPage, GeoPoint, InputChannel, InputDialogPeer, ReactionCount, MessagePeerReaction, MessagesSearchCounter, Peer, MessageReactions, Document, InputFile, Reaction, ForumTopic as MTForumTopic, MessagesForumTopics, MessagesGetReplies, MessagesGetHistory, MessagesAffectedHistory, MessagesTranscribedAudio, ReadParticipantDate, WebDocument, MessagesSearch, MessagesSearchGlobal, InputReplyTo, MessagesSendMessage, MessagesSendMedia, MessagesGetSavedHistory, MessagesSavedDialogs, SavedDialog as MTSavedDialog, User, MissingInvitee, TextWithEntities, ChannelsSearchPosts, FactCheck, MessageExtendedMedia, SponsoredMessage, MessagesSponsoredMessages, InputGroupCall, TodoItem, TodoCompletion, SearchPostsFlood, MessagesDeleteSavedHistory, ChannelsDeleteParticipantHistory, MessagesDeleteHistory, MessagesDeleteTopicHistory, RichMessage} from '@layer';
 import type {InputRichMessage} from '@layer';
 import {ArgumentTypes, InvokeApiOptions, Modify} from '@types';
 import {LogTypes} from '@lib/logger';
@@ -6664,6 +6664,42 @@ export class AppMessagesManager extends AppManager {
     }
   }
 
+  public async fetchPeerDialogs(inputDialogPeers: Map<PeerId, InputDialogPeer>): Promise<MessagesPeerDialogs> {
+    for(let attempt = 0; ; ++attempt) {
+      const cutoffGenerations = new Map(
+        [...inputDialogPeers.keys()].map((peerId) => [
+          peerId,
+          this.getChannelAvailableMinIdGeneration(peerId)
+        ])
+      );
+      const cutoffChanged = () => attempt < CHANNEL_CUTOFF_RETRY_LIMIT &&
+        [...cutoffGenerations].some(([peerId, generation]) => (
+          generation !== this.getChannelAvailableMinIdGeneration(peerId)
+        ));
+      const result = await this.apiManager.invokeApi(
+        'messages.getPeerDialogs',
+        {peers: [...inputDialogPeers.values()]},
+        {floodMaxTimeout: Infinity}
+      );
+      if(cutoffChanged()) {
+        continue;
+      }
+      const currentState = this.apiUpdatesManager.updatesState;
+      const {state} = result;
+      if(currentState.pts && currentState.pts !== state.pts) {
+        this.log.warn('current pts is different, will try again', currentState.pts, state.pts);
+        await pause(500);
+        continue;
+      }
+
+      if(cutoffChanged()) {
+        continue;
+      }
+
+      return result;
+    }
+  }
+
   public reloadConversation(inputPeer?: PeerId | InputPeer): CancellablePromise<Dialog>;
   public reloadConversation(inputPeer: PeerId | InputPeer, useThrottled?: boolean): CancellablePromise<Dialog>;
   public reloadConversation(inputPeer: PeerId | InputPeer, useThrottled?: boolean) {
@@ -6697,10 +6733,11 @@ export class AppMessagesManager extends AppManager {
     log('creating throttled promise');
     this.reloadConversationsPromise = pause(0).then(() => {
       const reloadConversationsPeers = new Map(this.reloadConversationsPeers);
-      const inputDialogPeers = [...reloadConversationsPeers.values()].map((obj) => {
+      const inputDialogPeers = new Map<PeerId, InputDialogPeer>();
+      for(const [peerId, obj] of reloadConversationsPeers) {
         obj.sentRequest = true;
-        return obj.inputDialogPeer;
-      });
+        inputDialogPeers.set(peerId, obj.inputDialogPeer);
+      }
 
       const fullfillLeft = () => {
         log('fullfilling left', reloadConversationsPeers);
@@ -6714,63 +6751,31 @@ export class AppMessagesManager extends AppManager {
       };
 
       const invoke = async() => {
-        for(let attempt = 0; ; ++attempt) {
-          const cutoffGenerations = new Map(
-            [...reloadConversationsPeers.keys()].map((peerId) => [
-              peerId,
-              this.getChannelAvailableMinIdGeneration(peerId)
-            ])
-          );
-          const cutoffChanged = () => attempt < CHANNEL_CUTOFF_RETRY_LIMIT &&
-            [...cutoffGenerations].some(([peerId, generation]) => (
-              generation !== this.getChannelAvailableMinIdGeneration(peerId)
-            ));
-          const result = await this.apiManager.invokeApi(
-            'messages.getPeerDialogs',
-            {peers: inputDialogPeers},
-            {floodMaxTimeout: Infinity}
-          );
-          if(cutoffChanged()) {
-            continue;
+        const result = await this.fetchPeerDialogs(inputDialogPeers);
+        log('result', result);
+
+        for(const [peerId, obj] of reloadConversationsPeers) {
+          if(this.reloadConversationsPeers.get(peerId) === obj) {
+            this.reloadConversationsPeers.delete(peerId);
           }
-          const currentState = this.apiUpdatesManager.updatesState;
-          const {state} = result;
-          if(currentState.pts && currentState.pts !== state.pts) {
-            this.log.warn('current pts is different, will try again', currentState.pts, state.pts);
-            await pause(500);
-            continue;
-          }
-
-          if(cutoffChanged()) {
-            continue;
-          }
-
-          log('result', result);
-
-          for(const [peerId, obj] of reloadConversationsPeers) {
-            if(this.reloadConversationsPeers.get(peerId) === obj) {
-              this.reloadConversationsPeers.delete(peerId);
-            }
-          }
-
-          this.dialogsStorage.applyDialogs(result);
-
-          result.dialogs.forEach((dialog) => {
-            if(dialog._ !== 'dialog') {
-              return;
-            }
-
-            const peerId = dialog.peerId;
-            if(!peerId) {
-              return;
-            }
-
-            const obj = reloadConversationsPeers.get(peerId);
-            obj.promise.resolve(dialog as Dialog);
-            reloadConversationsPeers.delete(peerId);
-          });
-          return;
         }
+
+        this.dialogsStorage.applyDialogs(result);
+
+        result.dialogs.forEach((dialog) => {
+          if(dialog._ !== 'dialog') {
+            return;
+          }
+
+          const peerId = dialog.peerId;
+          if(!peerId) {
+            return;
+          }
+
+          const obj = reloadConversationsPeers.get(peerId);
+          obj.promise.resolve(dialog as Dialog);
+          reloadConversationsPeers.delete(peerId);
+        });
       };
 
       return invoke().catch((err) => {

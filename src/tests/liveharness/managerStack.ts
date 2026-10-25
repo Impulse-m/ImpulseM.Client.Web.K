@@ -2,6 +2,7 @@ import {vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {WireInvariants} from './invariants';
+import {liveLane} from './liveGate';
 
 
 /*
@@ -11,12 +12,12 @@ import {WireInvariants} from './invariants';
  *
  * This is THE lane convention (issue #92 step 1). What it does and does not fake:
  *
- *   REAL      the fork's own modules, uninstrumented: the gRPC-web adapter
- *             (src/lib/impulse/grpc/adapter.ts), transport, session, apiManager,
+ *   REAL      the fork's own modules, uninstrumented: the TL adapter
+ *             (src/lib/impulse/grpc/adapter.ts), fleet lanes, session, apiManager,
  *             apiFileManager, appMessagesManager, apiUpdatesManager, createManagers — the
  *             exact code the mtproto worker runs in the browser.
- *   REAL      the backend: a live dev stack gateway (gRPC-web + Centrifugo WS through the same
- *             origin), real accounts registered through the real client auth path
+ *   REAL      the backend: the live dev stack (the Centrifugo RPC and media fleets and the update
+ *             socket, through the same origin), real accounts registered through the real client auth path
  *             (auth.sendCode -> auth.signIn -> auth.signUp), real uploads, real history.
  *   SHIM      fake-indexeddb + jsdom + the node polyfills in ../api/nodeEnv.ts — the allowed
  *             CLIENT-LOCAL runtime shims. The backend is NEVER mocked, no RPC is ever stubbed.
@@ -114,6 +115,8 @@ async function installBootPrelude(gatewayOrigin: string, options?: BootOptions):
   // The transport reads this at module init (src/config/backendOrigin.ts). Must be stubbed
   // before ANY src import below pulls the config in.
   vi.stubEnv('VITE_IMPULSE_BACKEND_URL', gatewayOrigin);
+  vi.stubEnv('VITE_IMPULSE_UPDATE_WS', liveLane.updateWsOrigin ?? '');
+  vi.stubEnv('VITE_IMPULSE_POOL_WS', liveLane.poolWsOrigin ?? '');
 
   const {installNodeEnv} = await import('../api/nodeEnv');
   installNodeEnv();

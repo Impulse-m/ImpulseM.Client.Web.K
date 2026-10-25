@@ -5,7 +5,7 @@
  * https://github.com/zhukov/webogram/blob/master/LICENSE
  */
 
-import {ConstructorDeclMap, Message, MessageFwdHeader, Peer, StarsAmount, Update, Updates} from '@layer';
+import {ConstructorDeclMap, Dialog, Message, MessageFwdHeader, MessagesPeerDialogs, Peer, StarsAmount, Update, Updates} from '@layer';
 import {LogTypes} from '@lib/logger';
 import assumeType from '@helpers/assumeType';
 import App from '@config/app';
@@ -20,8 +20,10 @@ import formatStarsAmount from '@appManagers/utils/payments/formatStarsAmount';
 import debounce from '@helpers/schedulers/debounce';
 import copy from '@helpers/object/copy';
 import noop from '@helpers/noop';
+import makeError from '@helpers/makeError';
 import pause from '@helpers/schedulers/pause';
 import {ConcurrentTaskQueue, MaxConcurrentChannelDifferences} from '@lib/impulse/realtimeDiscipline';
+import {reportDifferenceFailure} from '@lib/impulse/backgroundFailures';
 
 type UpdatesState = {
   pendingPtsUpdates: (Update & {pts: number, pts_count: number})[],
@@ -193,6 +195,15 @@ class ApiUpdatesManager {
     if(!this.updatesState.syncLoading) {
       this.getDifference();
     }
+  }
+
+  public async requestDifference(channelId: ChatId | undefined): Promise<void> {
+    if(channelId === undefined) {
+      // Runs after the caller returns: the caller may be the SDK's publication handler.
+      return Promise.resolve().then(() => this.processUpdateMessage({_: 'updatesTooLong'}));
+    }
+
+    return this.requestChannelDifference(channelId);
   }
 
   public processLocalUpdate(update: Update) {
@@ -429,6 +440,35 @@ class ApiUpdatesManager {
     return this.channelDifferenceQueue.run(() => this.getChannelDifferenceInner(channelId, streamedDraftState));
   }
 
+  // updates.getChannelDifference takes the channel's pts (.demo/telegram-docs-text/method/updates.getChannelDifference.md:94-96),
+  // which its dialog carries (.demo/telegram-docs-text/constructor/dialog.md:21-22).
+  private requestChannelDifference(channelId: ChatId): Promise<void> {
+    return this.channelDifferenceQueue.run(async() => {
+      if(!this.channelStates[channelId]?.pts && !this.seedChannelFromCache(channelId)) {
+        await this.seedChannelFromDialog(channelId);
+      }
+
+      return this.getChannelDifferenceInner(channelId);
+    });
+  }
+
+  private async seedChannelFromDialog(channelId: ChatId): Promise<void> {
+    const peerId: PeerId = channelId.toPeerId(true);
+    const result: MessagesPeerDialogs = await this.appMessagesManager.fetchPeerDialogs(
+      new Map([[peerId, this.appPeersManager.getInputDialogPeerById(peerId)]])
+    );
+    this.dialogsStorage.applyDialogs(result);
+
+    const dialog: Dialog.dialog | undefined = result.dialogs.find(
+      (entry): entry is Dialog.dialog => entry._ === 'dialog' && entry.peerId === peerId
+    );
+    if(!dialog?.pts) {
+      throw makeError('UNKNOWN', 'The channel dialog carries no pts');
+    }
+
+    this.addChannelState(channelId, dialog.pts);
+  }
+
   private getChannelDifferenceInner(
     channelId: ChatId,
     streamedDraftState?: StreamedMessageDraftDifferenceState
@@ -555,6 +595,17 @@ class ApiUpdatesManager {
     };
   }
 
+  /** Seeds a channel's state from the cached dialog's pts; false when the cache holds none. */
+  public seedChannelFromCache(channelId: ChatId): boolean {
+    const pts = this.dialogsStorage.getDialogOnly(channelId.toPeerId(true))?.pts;
+    if(!pts) {
+      return false;
+    }
+
+    this.addChannelState(channelId, pts);
+    return true;
+  }
+
   public getChannelState(channelId: ChatId, pts?: number) {
     if(this.channelStates[channelId] === undefined) {
       this.addChannelState(channelId, pts);
@@ -677,7 +728,9 @@ class ApiUpdatesManager {
       if(!curState.lastPtsUpdateTime ||
           curState.lastPtsUpdateTime < (Date.now() - SYNC_DELAY)) {
         log.warn('channel too long, get diff');
-        this.getChannelDifference(channelId);
+        this.requestDifference(channelId).catch((error: unknown): void => {
+          reportDifferenceFailure(channelId, error);
+        });
       }
       return false;
     }

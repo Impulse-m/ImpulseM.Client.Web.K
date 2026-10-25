@@ -39,15 +39,9 @@ importers:
       '@bufbuild/protobuf':
         specifier: ^2.14.0
         version: 2.15.0
-      '@connectrpc/connect':
-        specifier: ^2.1.2
-        version: 2.2.0(@bufbuild/protobuf@2.15.0)
-      '@connectrpc/connect-web':
-        specifier: ^2.1.2
-        version: 2.2.0(@bufbuild/protobuf@2.15.0)(@connectrpc/connect@2.2.0(@bufbuild/protobuf@2.15.0))
       '@impulsem/centrifuge':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 1.6.0
+        version: 1.6.0
       '@tiptap/core':
         specifier: 3.28.0
         version: 3.28.0(@tiptap/pm@3.28.0)
@@ -949,17 +943,6 @@ packages:
   '@bufbuild/protoplugin@2.15.0':
     resolution: {integrity: sha512-vZhRoqB/jTHATqItRvJQf1zbxdrGRRhiusGty4+lKcfEFODG0PMXky2Ezv4WHHS6oSxq+5qShITuE7K1/82SuQ==}
 
-  '@connectrpc/connect-web@2.2.0':
-    resolution: {integrity: sha512-uuBUcBTYfb/r1o98LzCCZk1H90yx0vmZ5m21dpw/q4EUwsKwkCDGI8H0aEdjcZld+Q2jJ5A5ADvPqfb6lzQ/sg==}
-    peerDependencies:
-      '@bufbuild/protobuf': ^2.7.0
-      '@connectrpc/connect': 2.2.0
-
-  '@connectrpc/connect@2.2.0':
-    resolution: {integrity: sha512-M63OQ1ZFcPUm85CuewJ9G9CMV8LjzGR9935xOnXNQGSazAbwMb3x2W7vXBYM1zqrP7XFD8uxp/dUAhirclgwnQ==}
-    peerDependencies:
-      '@bufbuild/protobuf': ^2.7.0
-
   '@cryptography/aes@0.1.1':
     resolution: {integrity: sha512-PcYz4FDGblO6tM2kSC+VzhhK62vml6k6/YAkiWtyPvrgJVfnDRoHGDtKn5UiaRRUrvUTTocBpvc2rRgTCqxjsg==}
 
@@ -1352,8 +1335,8 @@ packages:
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
 
-  '@impulsem/centrifuge@1.0.0':
-    resolution: {integrity: sha512-IpePkgp5CBG6HSYvFcMuBCFJKJLSwSOpFD434G/z77pV2o3GqmDLwid7sCIOiOuUDwepCYblaVGRhRCSb8n0dg==}
+  '@impulsem/centrifuge@1.6.0':
+    resolution: {integrity: sha512-pfFeMaIgFG89jDRK0buvULGQJOa2KhGg9oVKVd67Fsv6zrkExOKCoMdA8QAUKBPRQpj7QF93jzx7F6Xbo6QSwA==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -4870,15 +4853,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@connectrpc/connect-web@2.2.0(@bufbuild/protobuf@2.15.0)(@connectrpc/connect@2.2.0(@bufbuild/protobuf@2.15.0))':
-    dependencies:
-      '@bufbuild/protobuf': 2.15.0
-      '@connectrpc/connect': 2.2.0(@bufbuild/protobuf@2.15.0)
-
-  '@connectrpc/connect@2.2.0(@bufbuild/protobuf@2.15.0)':
-    dependencies:
-      '@bufbuild/protobuf': 2.15.0
-
   '@cryptography/aes@0.1.1': {}
 
   '@cryptography/sha1@0.2.0': {}
@@ -5101,7 +5075,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@impulsem/centrifuge@1.0.0':
+  '@impulsem/centrifuge@1.6.0':
     dependencies:
       events: 3.3.0
       protobufjs: 7.6.6

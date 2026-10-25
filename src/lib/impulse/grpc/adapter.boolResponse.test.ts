@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {create} from '@bufbuild/protobuf';
 
 import {BoolResponseSchema} from './gen/v1/types_pb';
-import {protoToTL} from './adapter';
+import {protoToTL} from './protoToTL';
 
 
 describe('protoToTL v1.BoolResponse', () => {

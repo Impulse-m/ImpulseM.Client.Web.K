@@ -166,7 +166,7 @@ declare global {
     'CANCELED' | 'TIMEOUT' | 'TAB_ALREADY_OPEN' | 'MEDIA_ID_PENDING' |
     // ImpulseM gRPC transport invariants — a TL method reached the gateway
     // bridge without a proto mapping, or the generated client lacks it.
-    'GRPC_METHOD_UNMAPPED' | 'GRPC_METHOD_MISSING' |
+    'GRPC_METHOD_UNMAPPED' | 'GRPC_METHOD_MISSING' | 'FLEET_IDENTITY_UNREGISTERED' | 'CLIENT_METHOD_REFUSED' | 'LOCAL_STORAGE_WRITE_FAILED' |
     // Raised instead of opening an MTProto connection: the gateway speaks gRPC only.
     'NETWORKER_DISABLED';
 
@@ -221,12 +221,15 @@ declare global {
   type TranslatableLanguageISO = typeof Languages[number][0];
 
   type ApiError = {
+    socketKind?: 'identity' | 'session',
+    socketKey?: string,
     type: ErrorType,
     stack?: string,
     message?: string,
     code?: number,
     handled?: boolean,
     originalError?: any,
+    cause?: unknown,
   };
 
   // read it through getElectronHelpers() from @helpers/electronHelpers — a bare `typeof` check also

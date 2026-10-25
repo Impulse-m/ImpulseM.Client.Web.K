@@ -86,7 +86,7 @@ const TwoStepVerificationEnterPassword: Component = () => {
       const preloader = putPreloader(btnContinue);
 
       const plainPassword = passwordInputField.value;
-      tab.managers.passwordManager.check(passwordInputField.value, state).then((auth) => {
+      tab.managers.passwordManager.check(passwordInputField.value).then((auth) => {
         if(auth._ === 'auth.authorization') {
           clearInterval(getStateInterval);
           if(monkey) monkey.remove();

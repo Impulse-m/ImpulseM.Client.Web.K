@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import type {FleetIdentity} from '@lib/impulse/fleet/fleet';
 
 
 /*
@@ -58,8 +59,8 @@ const {MockCentrifuge, centrifugeInstances} = vi.hoisted(() => {
   return {MockCentrifuge, centrifugeInstances};
 });
 
-vi.mock('@impulsem/centrifuge', async(importActual) => {
-  const actual = await importActual<typeof import('@impulsem/centrifuge')>();
+vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
   return {...actual, Centrifuge: MockCentrifuge};
 });
 
@@ -72,19 +73,7 @@ vi.mock('@lib/impulse/session', async(importActual) => {
   };
 });
 
-vi.mock('@lib/impulse/grpc/transport', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/impulse/grpc/transport')>();
-  return {
-    ...actual,
-    requireGrpcSessionToken: vi.fn(() => 'session-token'),
-    getGrpcTransport: vi.fn(() => ({} as any))
-  };
-});
-
-vi.mock('@connectrpc/connect', async(importActual) => {
-  const actual = await importActual<typeof import('@connectrpc/connect')>();
-  return {...actual, createClient: vi.fn(() => ({getCentrifugoToken: vi.fn(async() => ({token: 'centrifugo-token'}))}))};
-});
+const SESSION_IDENTITY: FleetIdentity = {kind: 'session', key: 'session:fixture', getToken: async(): Promise<string> => 'centrifugo-token'};
 
 
 async function waitForInstances(count: number): Promise<void> {
@@ -94,9 +83,11 @@ async function waitForInstances(count: number): Promise<void> {
 }
 
 describe('realtime delivers what the server addresses to this session', () => {
-  beforeEach(() => {
+  beforeEach(async() => {
     vi.resetModules();
     centrifugeInstances.length = 0;
+    const {setFleetIdentitySource} = await import('@lib/impulse/fleet/fleet');
+    setFleetIdentitySource(() => SESSION_IDENTITY);
   });
 
   afterEach(async() => {
@@ -104,12 +95,14 @@ describe('realtime delivers what the server addresses to this session', () => {
     ([1, 2, 3, 4] as ActiveAccountNumber[]).forEach((accountNumber) => realtime.stopImpulseRealtime(accountNumber));
   });
 
-  it('hands a server-side subscription publication to the sink of its own account', async() => {
+  it('hands a server-side subscription publication to the dispatch of its own account', async() => {
     const realtime = await import('@lib/impulse/realtime');
     const sinkA = vi.fn();
     const sinkB = vi.fn();
-    realtime.setRealtimeSink(1, sinkA);
-    realtime.setRealtimeSink(2, sinkB);
+    const recoveryA = vi.fn((): Promise<void> => Promise.resolve());
+    const recoveryB = vi.fn((): Promise<void> => Promise.resolve());
+    realtime.setRealtimeDispatch(1, {sink: sinkA, recovery: recoveryA});
+    realtime.setRealtimeDispatch(2, {sink: sinkB, recovery: recoveryB});
     realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
     realtime.startImpulseRealtime('user-B', 2);
@@ -117,19 +110,24 @@ describe('realtime delivers what the server addresses to this session', () => {
     const [socketA, socketB] = centrifugeInstances;
 
     expect(socketA.handlers.has('publication'), 'the client registers no handler for server-side subscription publications').toBe(true);
-    // an oversize envelope reaches the sink without needing a decodable payload
+    // An oversize envelope reaches its lane's recovery without needing a decodable payload. The session lane names no
+    // channel, so the request is the inbox's: an oversize update is canon's updatesTooLong on whatever lane carried it.
     socketA.handlers.get('publication')!({channel: 'session:user-A:42', data: {oversize: true, type: 500}});
 
-    expect(sinkA).toHaveBeenCalledWith({_: 'updatesTooLong'});
-    expect(sinkB).not.toHaveBeenCalled();
+    await vi.waitFor((): void => {
+      expect(recoveryA, 'the session lane asks the inbox for its difference, through the recovery of its own account').toHaveBeenCalledWith(undefined);
+    });
+    expect(recoveryB).not.toHaveBeenCalled();
     socketB.handlers.get('publication')!({channel: 'session:user-B:43', data: {oversize: true, type: 500}});
-    expect(sinkB).toHaveBeenCalledTimes(1);
+    await vi.waitFor((): void => {
+      expect(recoveryB).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('ignores a publication that carries nothing', async() => {
     const realtime = await import('@lib/impulse/realtime');
     const sink = vi.fn();
-    realtime.setRealtimeSink(1, sink);
+    realtime.setRealtimeDispatch(1, {sink, recovery: vi.fn((): Promise<void> => Promise.resolve())});
     realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
 
@@ -137,5 +135,24 @@ describe('realtime delivers what the server addresses to this session', () => {
     centrifugeInstances[0].handlers.get('publication')!(undefined);
 
     expect(sink).not.toHaveBeenCalled();
+  });
+
+  it('reads the envelope the protobuf codec delivers as the UTF-8 JSON the server published', async() => {
+    const realtime = await import('@lib/impulse/realtime');
+    const sink = vi.fn();
+    const recovery = vi.fn((): Promise<void> => Promise.resolve());
+    realtime.setRealtimeDispatch(1, {sink, recovery});
+    realtime.startImpulseRealtime('user-A', 1);
+    await waitForInstances(1);
+
+    const published = new TextEncoder().encode(JSON.stringify({oversize: true, type: 500}));
+    centrifugeInstances[0].handlers.get('publication')!({channel: 'session:user-A:42', data: published});
+
+    await vi.waitFor((): void => {
+      expect(
+        recovery,
+        'a publication arrives as bytes on the protobuf codec: its envelope is the JSON the server wrote, and must be read from it'
+      ).toHaveBeenCalledWith(undefined);
+    });
   });
 });

@@ -1,4 +1,10 @@
-import {loginCodeFor, Persona} from './personas';
+import {liveLane} from './liveGate';
+import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
+import {NodeWebSocket} from '../api/nodeEnv';
+
+import {socketUrlOf} from '../../../e2e/live/carriers';
+import {Persona} from './personas';
+import {findFreshNumber, signInWithReuseRetries} from './signInCore';
 
 
 /*
@@ -7,12 +13,10 @@ import {loginCodeFor, Persona} from './personas';
  * The manager stack is a per-process singleton graph (module-global session token, account
  * slots, fake-indexeddb) — two full stacks cannot coexist in one vitest process. When a
  * scenario needs a counterparty to ACT (send a message, flip online status) while the primary
- * stack observes, the counterparty is driven through this driver: the same gateway, the same
- * generated proto descriptors, the same TL<->proto conversion stages the production adapter
- * runs (buildProtoInit -> create -> transport-serialize, protoToTL back), the same auth
- * header shape the production transport sends (user-id + `authorization: Bearer`,
- * grpc/transport.ts authInterceptor) — but its OWN transport and its OWN identity, touching
- * none of the module-global session state the primary stack lives on.
+ * stack observes, the counterparty is driven through this driver: the same update socket, the
+ * same generated proto descriptors, the same TL<->proto conversion stages the production adapter
+ * runs (buildProtoInit -> create -> transport-serialize, protoToTL back) — but its OWN socket and
+ * its OWN identity, touching none of the module-global session state the primary stack lives on.
  *
  * Graph discipline: every invoke re-imports its codecs dynamically, so the driver always
  * speaks through the CURRENT module graph and survives the vi.resetModules a reboot performs.
@@ -25,85 +29,52 @@ export type MinimalRpcSession = {
   invoke(method: string, params?: any): Promise<any>
 };
 
+type DriverSocket = {
+  identity: {userId?: string, sessionToken?: string},
+  invoke(method: string, params?: any): Promise<any>,
+  abandonAttempt: () => Promise<void>,
+  close: () => void
+};
+
+
+/**
+ * Probes a reserved number over a throwaway socket, leaving the persona on a number that holds no
+ * account. The socket is closed whether the probe returns or throws.
+ */
+export async function claimFreshNumber(gatewayOrigin: string, persona: Persona): Promise<void> {
+  const socket: DriverSocket = openDriverSocket(gatewayOrigin);
+  try {
+    const app = (await import('@config/app')).default;
+    await findFreshNumber(socket.invoke, persona, app, socket.abandonAttempt);
+  } finally {
+    socket.close();
+  }
+}
 
 export async function openMinimalRpcSession(gatewayOrigin: string, persona: Persona): Promise<MinimalRpcSession> {
-  const identity: {userId?: string, sessionToken?: string} = {};
+  const socket: DriverSocket = openDriverSocket(gatewayOrigin);
+  try {
+    // The same auth sequence the client's login page drives (see ./signInCore.ts), issued
+    // through this driver's own socket so the primary stack's identity stays untouched.
+    const app = (await import('@config/app')).default;
+    const signedIn: any = await signInWithReuseRetries(socket.invoke, persona, app, socket.abandonAttempt);
 
-  const invoke = async(method: string, params: any = {}): Promise<any> => {
-    const [{createClient}, {createGrpcWebTransport}, {create}, serviceMap, adapter] = await Promise.all([
-      import('@connectrpc/connect'),
-      import('@connectrpc/connect-web'),
-      import('@bufbuild/protobuf'),
-      import('@lib/impulse/grpc/serviceMap'),
-      import('@lib/impulse/grpc/adapter')
-    ]);
+    socket.identity.userId = String(signedIn.user.id);
+    socket.identity.sessionToken = sessionTokenOf(signedIn);
 
-    const mapping = serviceMap.getServiceAndMethod(method);
-    if(!mapping) {
-      throw new Error(`minimal RPC session: no gRPC mapping for ${method} — the gateway cannot serve it`);
-    }
+    return {
+      persona,
+      userId: socket.identity.userId,
+      invoke: socket.invoke
+    };
+  } catch(err: unknown) {
+    socket.close();
 
-    const transport = createGrpcWebTransport({
-      baseUrl: gatewayOrigin,
-      interceptors: [(next) => async(request) => {
-        if(identity.userId) {
-          request.header.set('user-id', identity.userId);
-        }
-
-        if(identity.sessionToken) {
-          request.header.set('authorization', `Bearer ${identity.sessionToken}`);
-        }
-
-        return next(request);
-      }]
-    });
-
-    const client: any = createClient(mapping.service, transport);
-    const protoRequest = create(mapping.method.input, adapter.buildProtoInit(params, mapping.method.input));
-    const response = await client[mapping.method.localName](protoRequest);
-    return adapter.protoToTL(response, mapping.method.output);
-  };
-
-  // The same auth sequence the client's login page drives (see ./authFlow.ts), issued
-  // through this driver's own transport so the primary stack's identity stays untouched.
-  const app = (await import('@config/app')).default;
-
-  const sentCode = await invoke('auth.sendCode', {
-    phone_number: persona.phone,
-    api_id: app.id,
-    api_hash: app.hash,
-    settings: {_: 'codeSettings', pFlags: {}}
-  });
-
-  if(!sentCode?.phone_code_hash) {
-    throw new Error(
-      `minimal RPC session: auth.sendCode returned no phone_code_hash (got ${JSON.stringify(sentCode?._)}) — ` +
-      `is the dev stack up, and is "${persona.phone}" still a number of canon's reserved test ` +
-      'block? The code is derived from the number itself (personas.ts), not configured.'
-    );
+    throw err;
   }
+}
 
-  let auth = await invoke('auth.signIn', {
-    phone_number: persona.phone,
-    phone_code_hash: sentCode.phone_code_hash,
-    phone_code: loginCodeFor(persona)
-  });
-
-  if(auth?._ === 'auth.authorizationSignUpRequired') {
-    auth = await invoke('auth.signUp', {
-      phone_number: persona.phone,
-      phone_code_hash: sentCode.phone_code_hash,
-      first_name: persona.firstName,
-      last_name: persona.lastName
-    });
-  }
-
-  if(auth?._ !== 'auth.authorization') {
-    throw new Error(
-      `minimal RPC session: auth flow did not end in auth.authorization (got ${JSON.stringify(auth?._)})`
-    );
-  }
-
+function sessionTokenOf(auth: any): string {
   if(typeof auth.session_token !== 'string' || !auth.session_token) {
     throw new Error(
       'minimal RPC session: auth.authorization carried no session_token — every later call of this ' +
@@ -111,12 +82,89 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
     );
   }
 
-  identity.userId = String(auth.user.id);
-  identity.sessionToken = auth.session_token;
+  return auth.session_token;
+}
 
-  return {
-    persona,
-    userId: identity.userId,
-    invoke
+function openDriverSocket(gatewayOrigin: string): DriverSocket {
+  const identity: {userId?: string, sessionToken?: string} = {};
+  const socketUrl = socketUrlOf(liveLane.updateWsOrigin ?? gatewayOrigin);
+  let identityMint: Promise<string> | undefined;
+  let socket: Centrifuge | undefined;
+  let socketToken: string | undefined;
+
+  // The identity is minted over a token-less socket of its own, so the app's pool fleet (slot 1's) never sees this driver.
+  const mintIdentity = async(): Promise<string> => {
+    const [{fromBinary}, {poolRpcEndpoint}, {connectionIdentityRequest}, schemas] = await Promise.all([
+      import('@bufbuild/protobuf'),
+      import('@lib/impulse/fleet/fleetRoute'),
+      import('@lib/impulse/identity'),
+      import('@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_service_pb')
+    ]);
+    const request: Uint8Array = connectionIdentityRequest('');
+    const poolSocket: Centrifuge = new Centrifuge(poolRpcEndpoint(), {token: '', websocket: NodeWebSocket});
+    poolSocket.connect();
+    try {
+      const reply = await poolSocket.rpc('connectionIdentity', request);
+      if(reply.data === undefined) {
+        throw new Error('minimal RPC session: connectionIdentity answered without data');
+      }
+
+      return fromBinary(schemas.ConnectionIdentityResponseSchema, reply.data).identityToken;
+    } finally {
+      poolSocket.disconnect();
+    }
   };
+  const socketFor = (): Centrifuge => {
+    const token = identity.sessionToken;
+    if(!socket || socketToken !== token) {
+      socket?.disconnect();
+      socket = new Centrifuge(socketUrl, {
+        token: '',
+        websocket: NodeWebSocket,
+        getToken: async(): Promise<string> => token ?? await (identityMint ??= mintIdentity())
+      });
+      socketToken = token;
+      socket.connect();
+    }
+
+    return socket;
+  };
+
+  const invoke = async(method: string, params: any = {}): Promise<any> => {
+    const [{create, fromBinary, toBinary}, serviceMap, adapter, protoToTLModule] = await Promise.all([
+      import('@bufbuild/protobuf'),
+      import('@lib/impulse/grpc/serviceMap'),
+      import('@lib/impulse/grpc/adapter'),
+      import('@lib/impulse/grpc/protoToTL')
+    ]);
+
+    const mapping = serviceMap.getServiceAndMethod(method);
+    if(!mapping) {
+      throw new Error(`minimal RPC session: no mapping for ${method} — the update socket cannot serve it`);
+    }
+
+    const request = create(mapping.method.input, adapter.buildProtoInit(params, mapping.method.input));
+    const reply = await socketFor().rpc(method, toBinary(mapping.method.input, request));
+    if(reply.data === undefined) {
+      throw new Error(`minimal RPC session: ${method} answered without data`);
+    }
+
+    return protoToTLModule.protoToTL(fromBinary(mapping.method.output, reply.data), mapping.method.output);
+  };
+
+  // A spent attempt leaves a session (an authorization) or an identity holding a pending password
+  // check (SESSION_PASSWORD_NEEDED). Both are dropped here only, since auth.logOut would close the
+  // socket under the call, and the next attempt starts on a fresh identity.
+  const abandonAttempt = async(): Promise<void> => {
+    identityMint = undefined;
+    socket?.disconnect();
+    socket = undefined;
+  };
+
+  const close = (): void => {
+    socket?.disconnect();
+    socket = undefined;
+  };
+
+  return {identity, invoke, abandonAttempt, close};
 }

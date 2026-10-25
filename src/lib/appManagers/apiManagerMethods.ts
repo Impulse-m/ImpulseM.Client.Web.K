@@ -7,6 +7,8 @@ import {AppManager} from '@appManagers/manager';
 import rootScope from '@lib/rootScope';
 import {UserAuth} from '@appManagers/constants';
 import {MTMessage} from '@lib/mtproto/networker';
+import {fleetCounters, setFleetConfig} from '@lib/impulse/fleet/fleet';
+import type {FleetCounters} from '@lib/impulse/fleet/fleet';
 
 type HashResult = {
   hash: number,
@@ -317,11 +319,16 @@ export default abstract class ApiManagerMethods extends AppManager {
       params: {},
       processResult: (config) => {
         this.config = config;
+        setFleetConfig(this.getAccountNumber(), config);
         this.rootScope.dispatchEvent('config', config);
         return config;
       },
       options: {overwrite}
     });
+  }
+
+  public getFleetCounters(): FleetCounters {
+    return fleetCounters(this.getAccountNumber());
   }
 
   private applyAppConfig(appConfig: MTAppConfig, save?: boolean) {

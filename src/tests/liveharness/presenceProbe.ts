@@ -54,6 +54,15 @@ export function tapPresenceDeliveries(updatesManager: any, deliveries: PresenceD
  * module graph — the exact code handleEnvelope runs — so "arrived but undecodable" and
  * "arrived and decodes fine" are distinguishable in a verdict without touching production.
  */
+// An updateShort carries one update, the others carry a list.
+function carriedUpdates(decoded: any): any[] {
+  if(decoded._ === 'updateShort') {
+    return decoded.update ? [decoded.update] : [];
+  }
+
+  return Array.isArray(decoded.updates) ? decoded.updates : [];
+}
+
 export async function decodePresenceEnvelopes(
   envelopes: PublicationRecord[],
   ownerKey: string
@@ -77,7 +86,7 @@ export async function decodePresenceEnvelopes(
       continue;
     }
 
-    const updates = Array.isArray(decoded.updates) ? decoded.updates : [];
+    const updates: any[] = carriedUpdates(decoded);
     const presence = updates.filter((update: any) => {
       return update?._ === 'updateUserStatus' && String(update.user_id) === ownerKey;
     });
@@ -148,7 +157,7 @@ export async function diagnosePresenceHop(args: {
     return prefix + 'SINK NOT WIRED — the envelope reached the socket AND decodes to ' +
       `updateUserStatus(${matches.map((m) => m.statusName).join(', ')}), but ` +
       'apiUpdatesManager.processUpdateMessage never received it: the realtime sink is not delivering ' +
-      '(setRealtimeSink registration in apiManager.after() vs handleEnvelope early-outs), so every ' +
+      '(setRealtimeDispatch registration in apiManager.after() vs handleEnvelope early-outs), so every ' +
       'push this session is silently discarded' +
       (args.sinkNote ? `. ${args.sinkNote}` : '');
   }

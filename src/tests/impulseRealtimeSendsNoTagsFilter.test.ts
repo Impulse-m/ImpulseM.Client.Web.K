@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import type {FleetIdentity} from '@lib/impulse/fleet/fleet';
 
 
 /*
@@ -8,9 +9,8 @@ import type {ActiveAccountNumber} from '@lib/accounts/types';
  * subscribes with no tags filter, whatever the lane: a client-side filter would put server
  * behaviour into every client.
  */
-const {MockCentrifuge, centrifugeInstances, createClientCalls} = vi.hoisted(() => {
+const {MockCentrifuge, centrifugeInstances} = vi.hoisted(() => {
   const centrifugeInstances: MockCentrifuge[] = [];
-  const createClientCalls: string[] = [];
 
   class MockSubscription {
     constructor(public readonly channel: string, public readonly options: unknown) {}
@@ -26,6 +26,7 @@ const {MockCentrifuge, centrifugeInstances, createClientCalls} = vi.hoisted(() =
 
   class MockCentrifuge {
     public readonly subscriptions: MockSubscription[] = [];
+    public readonly rpcMethods: string[] = [];
 
     constructor(public readonly url: string, public readonly options: unknown) {
       centrifugeInstances.push(this);
@@ -43,16 +44,21 @@ const {MockCentrifuge, centrifugeInstances, createClientCalls} = vi.hoisted(() =
 
     public removeSubscription(): void {}
 
+    public rpc(method: string): Promise<{data: Uint8Array}> {
+      this.rpcMethods.push(method);
+      return Promise.resolve({data: new Uint8Array()});
+    }
+
     public connect(): void {}
 
     public disconnect(): void {}
   }
 
-  return {MockCentrifuge, centrifugeInstances, createClientCalls};
+  return {MockCentrifuge, centrifugeInstances};
 });
 
-vi.mock('@impulsem/centrifuge', async(importActual) => {
-  const actual = await importActual<typeof import('@impulsem/centrifuge')>();
+vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
   return {...actual, Centrifuge: MockCentrifuge};
 });
 
@@ -65,27 +71,7 @@ vi.mock('@lib/impulse/session', async(importActual) => {
   };
 });
 
-vi.mock('@lib/impulse/grpc/transport', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/impulse/grpc/transport')>();
-  return {
-    ...actual,
-    requireGrpcSessionToken: vi.fn(() => 'session-token'),
-    getGrpcTransport: vi.fn(() => ({} as any))
-  };
-});
-
-vi.mock('@connectrpc/connect', async(importActual) => {
-  const actual = await importActual<typeof import('@connectrpc/connect')>();
-  return {
-    ...actual,
-    createClient: vi.fn(() => new Proxy({}, {
-      get: (_target: object, method: string | symbol): (() => Promise<{token: string}>) => {
-        createClientCalls.push(String(method));
-        return async() => ({token: 'centrifugo-token'});
-      }
-    }))
-  };
-});
+const SESSION_IDENTITY: FleetIdentity = {kind: 'session', key: 'session:fixture', getToken: async(): Promise<string> => 'centrifugo-token'};
 
 const NO_TAGS_FILTER = 'the server filters the echo itself; a subscription carrying a tags filter puts that work back on the client';
 
@@ -94,10 +80,11 @@ async function settle(): Promise<void> {
 }
 
 describe('subscriptions carry no tags filter', () => {
-  beforeEach(() => {
+  beforeEach(async() => {
     vi.resetModules();
     centrifugeInstances.length = 0;
-    createClientCalls.length = 0;
+    const {setFleetIdentitySource} = await import('@lib/impulse/fleet/fleet');
+    setFleetIdentitySource(() => SESSION_IDENTITY);
   });
 
   afterEach(async() => {
@@ -125,7 +112,10 @@ describe('subscriptions carry no tags filter', () => {
       expect(options.tf, NO_TAGS_FILTER).toBeUndefined();
     }
 
-    expect(createClientCalls).not.toContain('getOwnSessionTag');
-    expect(createClientCalls).not.toContain('getChannelActorTags');
+    await realtime.callUpdateSocket({accountNumber: 1, method: 'messages.getDialogs', request: new Uint8Array()});
+    const sentRpcMethods: string[] = centrifugeInstances[0].rpcMethods;
+    expect(sentRpcMethods).toContain('messages.getDialogs');
+    expect(sentRpcMethods).not.toContain('getOwnSessionTag');
+    expect(sentRpcMethods).not.toContain('getChannelActorTags');
   });
 });

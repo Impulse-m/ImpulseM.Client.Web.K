@@ -10,6 +10,7 @@ import MTProtoMessagePort from '@lib/mainWorker/mainMessagePort';
 import {AppStoragesManager} from '@appManagers/appStoragesManager';
 import createManagers from '@appManagers/createManagers';
 import {ActiveAccountNumber} from '@lib/accounts/types';
+import {reportSignOutFailure} from '@lib/impulse/backgroundFailures';
 import AppStateManager from '@appManagers/appStateManager';
 import rootScope from '@lib/rootScope';
 import AccountController from '@lib/accounts/accountController';
@@ -157,7 +158,7 @@ export class AppManagersManager {
         const accountData = await AccountController.get(otherAccountNumber);
         if(accountData.userId === userId) {
           const managersByAccount = await this.getManagersByAccount();
-          managersByAccount[accountNumber].apiManager.logOut(otherAccountNumber);
+          managersByAccount[accountNumber].apiManager.logOut(otherAccountNumber).catch(reportSignOutFailure);
         }
       }
     });

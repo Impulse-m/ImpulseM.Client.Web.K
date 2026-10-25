@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import type {FleetIdentity} from '@lib/impulse/fleet/fleet';
 
 
 /*
@@ -79,8 +80,8 @@ const {MockCentrifuge, centrifugeInstances} = vi.hoisted(() => {
   return {MockCentrifuge, centrifugeInstances};
 });
 
-vi.mock('@impulsem/centrifuge', async(importActual) => {
-  const actual = await importActual<typeof import('@impulsem/centrifuge')>();
+vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
   return {...actual, Centrifuge: MockCentrifuge};
 });
 
@@ -96,24 +97,7 @@ vi.mock('@lib/impulse/session', async(importActual) => {
   };
 });
 
-vi.mock('@lib/impulse/grpc/transport', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/impulse/grpc/transport')>();
-  return {
-    ...actual,
-    requireGrpcSessionToken: vi.fn(() => 'session-token'),
-    getGrpcTransport: vi.fn(() => ({} as any))
-  };
-});
-
-vi.mock('@connectrpc/connect', async(importActual) => {
-  const actual = await importActual<typeof import('@connectrpc/connect')>();
-  return {
-    ...actual,
-    createClient: vi.fn(() => ({
-      getCentrifugoToken: vi.fn(async() => ({token: 'centrifugo-token'}))
-    }))
-  };
-});
+const SESSION_IDENTITY: FleetIdentity = {kind: 'session', key: 'session:fixture', getToken: async(): Promise<string> => 'centrifugo-token'};
 
 
 type RealtimeModule = typeof import('@lib/impulse/realtime');
@@ -131,9 +115,11 @@ async function waitForInstances(count: number): Promise<void> {
 
 
 describe('realtime lifecycle is per account, not a SharedWorker-wide singleton (#436)', () => {
-  beforeEach(() => {
+  beforeEach(async() => {
     vi.resetModules();
     centrifugeInstances.length = 0;
+    const {setFleetIdentitySource} = await import('@lib/impulse/fleet/fleet');
+    setFleetIdentitySource(() => SESSION_IDENTITY);
   });
 
   afterEach(async() => {
@@ -187,13 +173,15 @@ describe('realtime lifecycle is per account, not a SharedWorker-wide singleton (
     ).toBe(false);
   });
 
-  it('setRealtimeSink routes each account\'s publications to that account\'s own sink only', async() => {
+  it('setRealtimeDispatch routes each account\'s publications to that account\'s own dispatch only', async() => {
     const realtime = await importRealtime();
 
     const sinkA = vi.fn();
     const sinkB = vi.fn();
-    realtime.setRealtimeSink(1, sinkA);
-    realtime.setRealtimeSink(2, sinkB);
+    const recoveryA = vi.fn((): Promise<void> => Promise.resolve());
+    const recoveryB = vi.fn((): Promise<void> => Promise.resolve());
+    realtime.setRealtimeDispatch(1, {sink: sinkA, recovery: recoveryA});
+    realtime.setRealtimeDispatch(2, {sink: sinkB, recovery: recoveryB});
 
     realtime.startImpulseRealtime('user-A', 1);
     await waitForInstances(1);
@@ -201,14 +189,20 @@ describe('realtime lifecycle is per account, not a SharedWorker-wide singleton (
     await waitForInstances(2);
     const [socketOne, socketTwo] = centrifugeInstances;
 
-    // An oversize envelope routes to the sink without needing a decodable payload — the shortest
-    // path that still proves which account's sink was handed the publication.
+    // An oversize envelope routes to its lane's recovery without needing a decodable payload — the shortest
+    // path that still proves which account's dispatch was handed the publication.
     socketOne.subscriptionFor('user:user-A')!.emit('publication', {data: {oversize: true, type: 1}});
-    expect(sinkA, 'account 1\'s socket must reach account 1\'s sink').toHaveBeenCalledWith({_: 'updatesTooLong'});
-    expect(sinkB, 'account 1\'s socket must NOT reach account 2\'s sink').not.toHaveBeenCalled();
+    await vi.waitFor((): void => {
+      expect(recoveryA, 'account 1\'s socket must reach account 1\'s recovery').toHaveBeenCalledWith(undefined);
+    });
+    expect(recoveryB, 'account 1\'s socket must NOT reach account 2\'s recovery').not.toHaveBeenCalled();
 
     socketTwo.subscriptionFor('user:user-B')!.emit('publication', {data: {oversize: true, type: 1}});
-    expect(sinkB, 'account 2\'s socket must reach account 2\'s sink').toHaveBeenCalledWith({_: 'updatesTooLong'});
-    expect(sinkA, 'account 2\'s socket must not have re-triggered account 1\'s sink').toHaveBeenCalledTimes(1);
+    await vi.waitFor((): void => {
+      expect(recoveryB, 'account 2\'s socket must reach account 2\'s recovery').toHaveBeenCalledWith(undefined);
+    });
+    expect(recoveryA, 'account 2\'s socket must not have re-triggered account 1\'s recovery').toHaveBeenCalledTimes(1);
+    expect(sinkA, 'an oversize publication is not dispatched to any sink').not.toHaveBeenCalled();
+    expect(sinkB, 'an oversize publication is not dispatched to any sink').not.toHaveBeenCalled();
   });
 });

@@ -5,9 +5,12 @@
  * https://github.com/zhukov/webogram/blob/master/LICENSE
  */
 
+import {getGrpcSessionToken} from '@lib/impulse/grpc/credentials';
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
-import {applyImpulseUserId, clearImpulseSession, restoreImpulseSession} from '@lib/impulse/session';
-import {setRealtimeSink, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
+import {clearImpulseSession, fleetIdentityFor, restoreImpulseSession, setImpulseSessionSignOutHandler} from '@lib/impulse/session';
+import {setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
+import {setRealtimeDispatch, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
+import {reportSignOutFailure} from '@lib/impulse/backgroundFailures';
 import type {UserAuth} from '@appManagers/constants';
 import type {DcAuthKey, DcId, DcServerSalt, InvokeApiOptions, TrueDcId} from '@types';
 import type {MethodDeclMap} from '@layer';
@@ -144,26 +147,21 @@ export class ApiManager extends ApiManagerMethods {
   }
 
   private startRealtimeBringUp(userId: UserId): void {
-    // This slot's own account number, threaded into every realtime call. The realtime lane is
-    // per-account now (#436 moved credentials/session/transport per account; the connection
-    // lifecycle was the last singleton) -- so the sink this slot registers, and the socket it
-    // opens, belong to THIS slot and never touch another account's.
     const accountNumber = this.getAccountNumber();
 
-    // impulse: seed a subscribed channel from cached dialog pts before TooLong reaches its guard.
-    setRealtimeSink(accountNumber, (updates, channelId) => {
-      let hasChannelTooLong = false;
-      for(const update of updates.updates ?? []) {
-        hasChannelTooLong ||= update._ === 'updateChannelTooLong';
-      }
-      if(channelId !== undefined && hasChannelTooLong) {
-        const pts = this.dialogsStorage.getDialogOnly(channelId.toPeerId(true))?.pts;
-        if(pts) {
-          this.apiUpdatesManager.addChannelState(channelId, pts);
+    setRealtimeDispatch(accountNumber, {
+      sink: (updates: any, channelId: ChatId | undefined): void => {
+        let hasChannelTooLong = false;
+        for(const update of updates.updates ?? []) {
+          hasChannelTooLong ||= update._ === 'updateChannelTooLong';
         }
-      }
+        if(channelId !== undefined && hasChannelTooLong) {
+          this.apiUpdatesManager.seedChannelFromCache(channelId);
+        }
 
-      this.apiUpdatesManager.processUpdateMessage(updates);
+        this.apiUpdatesManager.processUpdateMessage(updates);
+      },
+      recovery: (channelId: ChatId | undefined): Promise<void> => this.apiUpdatesManager.requestDifference(channelId)
     });
 
     startImpulseRealtime(String(userId), accountNumber);
@@ -173,15 +171,11 @@ export class ApiManager extends ApiManagerMethods {
   protected after() {
     const result = super.after();
 
-    // Arm the gateway auth headers from stored session data, then bring up the
+    setFleetIdentitySource(fleetIdentityFor);
+    setImpulseSessionSignOutHandler(this.getAccountNumber(), (): Promise<void> => this.logOut());
+
+    // Restore the stored session, then bring up the
     // push channel -- but only for the account that is actually signed in.
-    //
-    // createManagers builds a manager for all four slots and calls after() on
-    // every one. `setRealtimeSink` is context-wide, so registering it here
-    // unconditionally meant the last slot to run owned it -- usually an empty one.
-    // Every Centrifugo update was then handed to an idle account's updates
-    // manager and quietly dropped: a sent message never received its
-    // confirmation and sat on the clock icon forever.
     restoreImpulseSession(this.getAccountNumber()).then(() => {
       AccountController.get(this.getAccountNumber()).then((data) => {
         if(data?.userId === undefined) {
@@ -202,6 +196,16 @@ export class ApiManager extends ApiManagerMethods {
       updateConfig: () => {
         this.getConfig(true);
         this.getAppConfig(true);
+      },
+      // updateDcOptions carries only dc_options, no this_dc (.demo/telegram-docs-text/constructor/updateDcOptions.md:3).
+      // tdlib applies the options at once and expires the config, so help.getConfig is requested again
+      // (.demo/tdlib/td/telegram/ConfigManager.cpp:1015-1021).
+      updateDcOptions: (update) => {
+        if(this.config) {
+          setFleetConfig(this.getAccountNumber(), {this_dc: this.config.this_dc, dc_options: update.dc_options});
+        }
+
+        this.getConfig(true);
       }
     });
 
@@ -351,7 +355,6 @@ export class ApiManager extends ApiManagerMethods {
 
     this.rootScope.dispatchEvent('user_auth', userAuth);
 
-    applyImpulseUserId(this.getAccountNumber(), (userAuth as UserAuth).id as unknown as string);
     this.startRealtimeBringUp((userAuth as UserAuth).id);
 
     if(!userAuth.dcID) {
@@ -391,36 +394,46 @@ export class ApiManager extends ApiManagerMethods {
     }
 
     this.loggingOut = true;
+    try {
+      await this.wipeLocalSession(migrateAccountTo);
+    } catch(err: unknown) {
+      this.loggingOut = false;
+      throw err;
+    }
+  }
 
-    // Drop the push channel and the gateway credentials first: a socket left
-    // open under the old identity would keep delivering that account's updates.
-    // Stop ONLY this slot's socket -- logging out account A must leave account
-    // B's realtime alive (#436); tearing down the singleton here is exactly the
-    // cross-account bug this change removes.
-    stopImpulseRealtime(this.getAccountNumber());
-    await clearImpulseSession(this.getAccountNumber());
-
-    const totalAccounts = await AccountController.getTotalAccounts();
+  private async wipeLocalSession(migrateAccountTo?: ActiveAccountNumber) {
     const accountNumber = this.getAccountNumber();
-    const accountData = await AccountController.get(accountNumber);
+    const currentDcId: DcId = this.baseDcId || App.baseDcId;
 
-    const logoutPromises: Promise<any>[] = [];
-
-    for(let dcId = 1; dcId <= 5; dcId++) {
-      const key = `dc${dcId as TrueDcId}_auth_key` as const;
-      if(accountData[key]) {
-        logoutPromises.push(this.invokeApi('auth.logOut', {}, {dcId, ignoreErrors: true}));
+    // Every step of the wipe runs whatever the others answered (.demo/tdlib/td/telegram/AuthManager.cpp:1352-1364); the
+    // failures are rethrown after the wipe.
+    const failures: unknown[] = [];
+    const attempt = async<T>(step: () => T | Promise<T>): Promise<T | undefined> => {
+      try {
+        return await step();
+      } catch(error: unknown) {
+        failures.push(error);
+        return undefined;
       }
+    };
+
+    // The push channel goes first, so no socket keeps delivering under the old identity.
+    await attempt(() => stopImpulseRealtime(accountNumber));
+
+    const totalAccounts: number | undefined = await attempt(() => AccountController.getTotalAccounts());
+    await attempt(() => AccountController.get(accountNumber));
+
+    const logoutPromises: Promise<unknown>[] = [];
+    if(getGrpcSessionToken(accountNumber) !== undefined) {
+      logoutPromises.push(this.invokeApi('auth.logOut', {}, {dcId: currentDcId, ignoreErrors: true}).catch(reportSignOutFailure));
     }
 
-    let wasCleared = false; // Prevent double logout 2 accounts in a row
     const clear = async() => {
-      if(wasCleared) return;
-      wasCleared = true;
-
+      await attempt(() => clearImpulseSession(accountNumber));
       this.baseDcId = undefined;
-      // * totalAccounts can be 0 somehow
-      if(totalAccounts <= 1 && accountNumber === 1 && !migrateAccountTo) {
+      // An unknown count takes the branch that removes only this slot.
+      if(totalAccounts !== undefined && totalAccounts <= 1 && accountNumber === 1 && !migrateAccountTo) {
         await Promise.all([
           (async() => {
             const keys: Parameters<typeof sessionStorage['delete']>[0][] = [
@@ -460,15 +473,20 @@ export class ApiManager extends ApiManagerMethods {
       this.rootScope.dispatchEvent('logging_out', {accountNumber, migrateTo: migrateAccountTo});
     };
 
-    setTimeout(clear, 1e3);
+    let clearing: Promise<unknown> | undefined;
+    const clearOnce = (): Promise<unknown> => clearing ??= attempt(clear);
+    setTimeout(clearOnce, 1e3);
 
-    // return;
+    await Promise.all(logoutPromises);
+    await clearOnce();
 
-    return Promise.all(logoutPromises).catch((error) => {
-      error.handled = true;
-    }).finally(clear)/* .then(() => {
-      location.pathname = '/';
-    }) */;
+    if(failures.length === 1) {
+      throw failures[0];
+    }
+
+    if(failures.length > 1) {
+      throw new AggregateError(failures, 'The sign-out wipe failed in more than one step');
+    }
   }
 
   public static async forceLogOutAll() {
@@ -496,7 +514,7 @@ export class ApiManager extends ApiManagerMethods {
   }
 
   public getNetworker(dcId: DcId, options: InvokeApiOptions = {}): Promise<MTPNetworker> {
-    // ImpulseM: every request reaches the gateway over gRPC, so an MTProto
+    // ImpulseM: every request reaches the Centrifugo carriers, so an MTProto
     // connection is never established. Left to run, this path builds HTTP/WS
     // transports that retry unreachable DCs forever and never settle, so every
     // caller — getNetworkerVoid on the sign-in screen among them — hangs
@@ -765,6 +783,11 @@ export class ApiManager extends ApiManagerMethods {
       });
     }
 
+    const belongsToCurrentSession = (error: ApiError): boolean => {
+      return error.socketKind !== 'identity' &&
+        (error.socketKey === undefined || error.socketKey === fleetIdentityFor(this.getAccountNumber()).key);
+    };
+
     const rejectPromise = async(error: ApiError) => {
       if(!error) {
         error = makeError('ERROR_EMPTY');
@@ -772,9 +795,9 @@ export class ApiManager extends ApiManagerMethods {
         error = makeError(undefined, error);
       }
 
-      if((error.code === 401 && error.type === 'SESSION_REVOKED') ||
-        (error.code === 406 && error.type === 'AUTH_KEY_DUPLICATED')) {
-        this.logOut();
+      if(belongsToCurrentSession(error) && ((error.code === 401 && error.type === 'SESSION_REVOKED') ||
+        (error.code === 406 && error.type === 'AUTH_KEY_DUPLICATED'))) {
+        this.logOut().catch(reportSignOutFailure);
       }
 
       if(isNotModifiedError(error)) {
@@ -794,8 +817,8 @@ export class ApiManager extends ApiManagerMethods {
         // error.stack = stack || (error.originalError && error.originalError.stack) || error.stack || (new Error()).stack;
         setTimeout(() => {
           if(!error.handled) {
-            if(error.code === 401) {
-              this.logOut();
+            if(error.code === 401 && belongsToCurrentSession(error)) {
+              this.logOut().catch(reportSignOutFailure);
             } else {
               // ErrorService.show({error: error}); // WARNING
             }
@@ -808,7 +831,7 @@ export class ApiManager extends ApiManagerMethods {
       throw error;
     };
 
-    // ImpulseM transport: every mapped method goes to the gateway over gRPC-web
+    // ImpulseM transport: every mapped method goes to the update socket
     // instead of MTProto, so no networker (and therefore no auth-key handshake,
     // no DC migration, no transport selection) is needed. Failures are still
     // routed through rejectPromise so 401 -> logOut and the error-box policy

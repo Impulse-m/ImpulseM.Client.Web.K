@@ -24,7 +24,10 @@ async function createPfsClient(seed: AccountSeed, accountNumber: 1 | 2) {
 
   const client = await createTestClient({seed, accountNumber, testDc});
   // * a stray 401/406 would log the seed out on every DC
-  (client.managers.apiManager as any).logOut = () => console.warn('  logOut suppressed');
+  (client.managers.apiManager as any).logOut = () => {
+    console.warn('  logOut suppressed');
+    return Promise.resolve();
+  };
   return client;
 }
 

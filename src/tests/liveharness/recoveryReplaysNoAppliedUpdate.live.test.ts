@@ -7,6 +7,8 @@ import {bootLiveManagerStack, LiveStack} from './managerStack';
 import {ephemeralPersona, Persona} from './personas';
 import {MinimalRpcSession, openMinimalRpcSession} from './rpcDriver';
 import {waitUntil} from './wait';
+import {protobufWireCodec} from './realtimeWire';
+import type {WireCodec} from './realtimeWire';
 
 
 /*
@@ -92,6 +94,7 @@ class ResubscribeWireRecorder {
   public readonly timeline: TimelineEvent[] = [];
 
   private wrappedWebSocket: any;
+  private readonly codec: WireCodec = protobufWireCodec();
 
 
   public install(): void {
@@ -112,7 +115,7 @@ class ResubscribeWireRecorder {
         const pendingSubscribes = new Map<number, string>();
 
         this.addEventListener('message', (event: any) => {
-          recorder.onIncoming(socket, rawFrameToString(event?.data), pendingSubscribes);
+          recorder.onIncoming(socket, event?.data, pendingSubscribes);
         });
         this.addEventListener('close', (event: any) => {
           socket.closedAtMs = Date.now();
@@ -121,7 +124,7 @@ class ResubscribeWireRecorder {
 
         const originalSend = this.send;
         this.send = function(data: any) {
-          recorder.onOutgoing(socket, rawFrameToString(data), pendingSubscribes);
+          recorder.onOutgoing(socket, data, pendingSubscribes);
           return originalSend.call(this, data);
         };
       }
@@ -163,8 +166,8 @@ class ResubscribeWireRecorder {
   }
 
 
-  private onOutgoing(socket: SocketRecord, frame: string | undefined, pendingSubscribes: Map<number, string>): void {
-    for(const command of parseFrameLines(frame)) {
+  private onOutgoing(socket: SocketRecord, frame: unknown, pendingSubscribes: Map<number, string>): void {
+    for(const command of this.codec.decodeCommands(frame)) {
       const subscribe = command?.subscribe;
       if(typeof command?.id !== 'number' || !subscribe?.channel) {
         continue;
@@ -182,8 +185,8 @@ class ResubscribeWireRecorder {
   }
 
 
-  private onIncoming(socket: SocketRecord, frame: string | undefined, pendingSubscribes: Map<number, string>): void {
-    for(const reply of parseFrameLines(frame)) {
+  private onIncoming(socket: SocketRecord, frame: unknown, pendingSubscribes: Map<number, string>): void {
+    for(const reply of this.codec.decodeReplies(frame)) {
       if(typeof reply?.id === 'number') {
         const channel = pendingSubscribes.get(reply.id);
         if(channel === undefined) {
@@ -232,46 +235,6 @@ class ResubscribeWireRecorder {
       }
     }
   }
-}
-
-
-function rawFrameToString(data: unknown): string | undefined {
-  if(typeof data === 'string') {
-    return data;
-  }
-
-  if(data instanceof ArrayBuffer) {
-    return Buffer.from(data).toString('utf8');
-  }
-
-  if(Buffer.isBuffer(data)) {
-    return data.toString('utf8');
-  }
-
-  return undefined;
-}
-
-
-function parseFrameLines(frame: string | undefined): any[] {
-  if(!frame) {
-    return [];
-  }
-
-  const parsed: any[] = [];
-  for(const line of frame.split('\n')) {
-    const trimmed = line.trim();
-    if(!trimmed) {
-      continue;
-    }
-
-    try {
-      parsed.push(JSON.parse(trimmed));
-    } catch{
-      // Not a Centrifugo JSON frame; the production client handles it on its own path.
-    }
-  }
-
-  return parsed;
 }
 
 
@@ -374,11 +337,11 @@ describeLive('#757 a recovered resubscribe must not re-apply an update the clien
   let inboxA = '';
   let subscribedBeforeImport = false;
   let liveAppliesBeforeDrop: Record<string, number> = {};
-  let firstDrop: {atMs: number, openCount: number} | undefined;
+  let firstDrop: {atMs: number, openCount: number, dropped: number[]} | undefined;
   let firstReconnect: SubscribeReply | undefined;
   let dispatchesAfterFirstReconnect = -1;
   let appliesAtFirstReconnect: Record<string, number> = {};
-  let secondDrop: {atMs: number, openCount: number} | undefined;
+  let secondDrop: {atMs: number, openCount: number, dropped: number[]} | undefined;
   let profileName = '';
   let heldDuringProfileRpc = false;
   let secondReconnect: SubscribeReply | undefined;
@@ -399,7 +362,14 @@ describeLive('#757 a recovered resubscribe must not re-apply an update the clien
     ].join('\n');
   }
 
-  function dropInboxSocket(): {atMs: number, openCount: number} {
+  // Whether a live socket subscribed to A's user inbox before the instant: the sockets the drop is about.
+  function carriesInboxAt(socketIndex: number, atMs: number): boolean {
+    return recorder.subscribeReplies.some((reply) => {
+      return reply.socket === socketIndex && reply.channel === inboxA && reply.error === undefined && reply.atMs <= atMs;
+    });
+  }
+
+  function dropInboxSocket(): {atMs: number, openCount: number, dropped: number[]} {
     const atMs = Date.now();
     const open = recorder.openSockets();
     recorder.note(atMs, `DROP closing ${open.length} live socket(s) with code ${normalCloseCode}`);
@@ -407,7 +377,9 @@ describeLive('#757 a recovered resubscribe must not re-apply an update the clien
       socket.ws.close(normalCloseCode, '');
     }
 
-    return {atMs, openCount: open.length};
+    // Only the sockets subscribed to A's inbox are the lane under test; the other sockets are not counted.
+    const dropped: number[] = open.filter((socket) => carriesInboxAt(socket.index, atMs)).map((socket) => socket.index);
+    return {atMs, openCount: dropped.length, dropped};
   }
 
   function firstSubscribeReplyAfter(dropAtMs: number): SubscribeReply | undefined {
@@ -473,9 +445,15 @@ describeLive('#757 a recovered resubscribe must not re-apply an update the clien
     // ReconnectJitterMaxMs (250 ms in development), so the RPC must return before then.
     profileName = `${personaB.firstName} renamed ${Date.now()}`;
     secondDrop = dropInboxSocket();
-    const socketsBeforeRpc = recorder.sockets.length;
+    const rpcStartMs: number = Date.now();
     await peer.invoke('account.updateProfile', {first_name: profileName});
-    heldDuringProfileRpc = recorder.sockets.length === socketsBeforeRpc && recorder.openSockets().length === 0;
+    // Scoped to A's dropped inbox socket: it must not reconnect (no subscribe on A's inbox) while B's RPC runs and
+    // stays closed. The RPC session's own socket is excluded: it is not A's lane, and the drop closes it too.
+    const reconnectedDuringRpc: boolean = recorder.subscribeReplies.some((reply) => {
+      return reply.channel === inboxA && reply.error === undefined && reply.atMs >= rpcStartMs;
+    });
+    const droppedStillClosed: boolean = secondDrop.dropped.every((index: number) => recorder.sockets[index]?.closedAtMs !== undefined);
+    heldDuringProfileRpc = !reconnectedDuringRpc && droppedStillClosed;
 
     secondReconnect = await waitUntil(
       () => firstSubscribeReplyAfter(secondDrop!.atMs),
@@ -509,6 +487,10 @@ describeLive('#757 a recovered resubscribe must not re-apply an update the clien
       firstDrop?.openCount,
       `exactly one live socket must carry A's user inbox at the first drop. ${wireRecord()}`
     ).toBe(1);
+    expect(
+      secondDrop?.dropped.length,
+      `exactly one live socket must carry A's user inbox at the second drop. ${wireRecord()}`
+    ).toBe(1);
   }, 60_000);
 
   it('fact 1 (RED if #757 reproduces): after a live apply and a drop, the recovered resubscribe does not apply updateUser or updatePeerSettings for B a second time', () => {
@@ -541,8 +523,9 @@ describeLive('#757 a recovered resubscribe must not re-apply an update the clien
   it('fact 2: an update published while A\'s socket was down is applied exactly once after the resubscribe (not zero, not twice)', () => {
     expect(
       heldDuringProfileRpc,
-      `the reconnect happened before B\'s profile RPC returned, so the update was not published while A\'s ` +
-      `socket was down and this fact did not measure the gap. ${wireRecord()}`
+      `A\'s dropped inbox socket reconnected before B\'s profile RPC returned, so the update was not published ` +
+      `while A\'s socket was down and this fact did not measure the gap. The RPC session\'s own socket is excluded. ` +
+      `${wireRecord()}`
     ).toBe(true);
     expect(
       secondReconnect,

@@ -19,7 +19,6 @@ type A = Record<DcAuthKey, string> &
     // #675) — canon's auth-key-bound password_pending state (api/auth.md:816-830) has no
     // transport equivalent here, so this substitutes for it between the challenge and
     // auth.checkPassword. Never a session: restoreImpulseSession must not derive userId from it.
-    impulse_pending_token?: string
   };
 
 export type AccountSessionData = Partial<A>;

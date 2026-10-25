@@ -8,6 +8,7 @@ import {describeLive, liveLane} from './liveGate';
 import {bootLiveMultiAccountStack, MultiAccountLiveStack} from './managerStack';
 import {ephemeralPersona} from './personas';
 import {RealtimeWireObserver} from './realtimeWire';
+import type {SocketClose} from './realtimeWire';
 import {MinimalRpcSession, openMinimalRpcSession} from './rpcDriver';
 import {waitUntil} from './wait';
 
@@ -19,7 +20,7 @@ import {waitUntil} from './wait';
  * REPORTED BY THE CEO: two accounts open in one browser, realtime updates break for one of them.
  *
  * ROOT CAUSE. #436 moved every per-account credential off a module singleton and into a map keyed
- * by account number (grpc/transport.ts credentialsByAccount, session.ts gatesByAccount). The
+ * by account number (grpc/credentials.ts credentialsByAccount, session.ts gatesByAccount). The
  * realtime CONNECTION lifecycle was the one piece that stayed a SharedWorker-wide singleton: one
  * `connection`/`activeUserId`, and a `startImpulseRealtime` that, on seeing a different user, called
  * `stopImpulseRealtime()` and tore the existing socket down (realtime.ts, pre-fix :105-107). So
@@ -130,6 +131,32 @@ async function resolveTarget(session: MinimalRpcSession, phone: string, userKey:
 }
 
 
+type SignInWindow = {
+  startMs: number,
+  endMs: number
+};
+
+// A socket closed a moment after its sign-in returns still belongs to that sign-in.
+const SignInGraceMs: number = 2_000;
+
+/**
+ * A close made during a sign-in belongs to that sign-in's slot only when its socket connected during the same
+ * sign-in (T5: each slot reconnects only itself). A close outside every sign-in window is not judged here.
+ */
+function closeBelongsToItsSignIn(close: SocketClose, windows: SignInWindow[]): boolean {
+  const closedDuringSignIn: boolean = windows.some((candidate: SignInWindow): boolean => {
+    return close.atMs >= candidate.startMs && close.atMs <= candidate.endMs + SignInGraceMs;
+  });
+  if(!closedDuringSignIn) {
+    return true;
+  }
+
+  const owner: SignInWindow | undefined = windows.find((candidate: SignInWindow): boolean => {
+    return close.connectedAtMs !== undefined && close.connectedAtMs >= candidate.startMs && close.connectedAtMs <= candidate.endMs;
+  });
+  return owner !== undefined && close.atMs <= owner.endMs + SignInGraceMs;
+}
+
 describeLive('B1 multi-account realtime: two accounts in one browser both keep a live push socket — bringing up the second must NOT tear down the first (CEO multi-account report)', () => {
   const rejections = new UnhandledRejectionGuard();
   const wire = new RealtimeWireObserver();
@@ -147,6 +174,8 @@ describeLive('B1 multi-account realtime: two accounts in one browser both keep a
   let markerA = '';
   let markerB = '';
   let sendStartMs = 0;
+  let signInWindowA: SignInWindow = {startMs: 0, endMs: 0};
+  let signInWindowB: SignInWindow = {startMs: 0, endMs: 0};
   const inboundA: InboundCapture[] = [];
   const inboundB: InboundCapture[] = [];
 
@@ -175,11 +204,15 @@ describeLive('B1 multi-account realtime: two accounts in one browser both keep a
 
     // Account A into slot 1 FIRST, account B into slot 2 SECOND — order matters: the singleton
     // tears down whichever came first when the second arrives.
+    const startA: number = Date.now();
     const {userId: signedInA} = await signInHeadless(slotA, personaA);
+    signInWindowA = {startMs: startA, endMs: Date.now()};
     keyA = String(signedInA);
     inboxA = `user:${keyA}`;
 
+    const startB: number = Date.now();
     const {userId: signedInB} = await signInHeadless(slotB, personaB);
+    signInWindowB = {startMs: startB, endMs: Date.now()};
     keyB = String(signedInB);
     inboxB = `user:${keyB}`;
 
@@ -281,7 +314,7 @@ describeLive('B1 multi-account realtime: two accounts in one browser both keep a
       inboundA.some((capture) => capture.text === markerA && capture.atMs >= sendStartMs),
       'account A\'s OWN updates manager never received the inbound message: even if a publication ' +
       'reached a socket, the singleton routes every publication through one shared sink (the last ' +
-      'account to call setRealtimeSink), so account A\'s manager is never handed its own push. Each ' +
+      'account to call setRealtimeDispatch), so account A\'s manager is never handed its own push. Each ' +
       `account\'s socket must route to that account\'s own updates manager. Captured on A: ` +
       `${JSON.stringify(inboundA)}`
     ).toBe(true);
@@ -301,15 +334,24 @@ describeLive('B1 multi-account realtime: two accounts in one browser both keep a
   }, 60_000);
 
   it('both sockets stay live: no account\'s realtime socket was closed by the other account\'s bring-up', () => {
-    // On the singleton, bringing up B disconnects A — a close frame on A's socket is the direct
-    // signature. A per-account lifecycle opens two independent sockets and closes neither.
+    // On the singleton, bringing up B disconnects A — a close frame on A's access socket is the direct signature.
+    // Identity and pool sockets are retired on every class change by design (T5); they are checked for ownership below.
+    const closedAccessOfA: SocketClose[] = wire.closes.filter((close: SocketClose): boolean => close.socket === `access:${keyA}`);
     expect(
-      wire.closes.length,
-      'a realtime socket was closed during the two sign-ins — on the singleton lane this is account ' +
-      'A\'s socket being torn down by account B\'s bring-up (stopImpulseRealtime disconnects the one ' +
-      `shared connection). Closes: ${JSON.stringify(wire.closes)}; ` +
+      closedAccessOfA.length,
+      'account A\'s session socket was torn down by account B\'s bring-up (on the singleton lane this is stopImpulseRealtime ' +
+      'disconnecting the one shared connection). ' +
+      `Closes of A's access socket: ${JSON.stringify(closedAccessOfA)}; ` +
       `wireA: ${wire.describeWire(inboxA)}; wireB: ${wire.describeWire(inboxB)}`
     ).toBe(0);
+    const foreignCloses: SocketClose[] = wire.closes.filter((close: SocketClose): boolean => {
+      return !closeBelongsToItsSignIn(close, [signInWindowA, signInWindowB]);
+    });
+    expect(
+      foreignCloses,
+      'a socket closed during a sign-in did not connect during that same sign-in, so it is not the slot signing in ' +
+      `(T5: each slot reconnects only itself). Closes: ${JSON.stringify(foreignCloses)}`
+    ).toEqual([]);
   }, 60_000);
 
   it('standing invariant: no unhandled rejections across the two-account bring-up', () => {

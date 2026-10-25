@@ -1,5 +1,8 @@
 import type {LiveAccountSlot, LiveStack} from './managerStack';
-import {loginCodeFor, Persona} from './personas';
+import {liveLane} from './liveGate';
+import {ephemeralLastName, Persona} from './personas';
+import {claimFreshNumber} from './rpcDriver';
+import {AuthMethod, signInOnce} from './signInCore';
 
 
 /**
@@ -21,48 +24,22 @@ export type SignInTarget = Pick<LiveStack, 'managers' | 'helpers'> | LiveAccount
  * auth service returns auth.authorizationSignUpRequired for an unregistered phone — the
  * canonical Telegram success variant — so an ephemeral persona registers via auth.signUp on
  * first contact and signs in on every later one.
+ *
+ * The stack never signs in to an account that is not its persona's own new one: an ephemeral
+ * persona's number is probed over a throwaway socket first, and only then signed in on this stack.
  */
 export async function signInHeadless(stack: SignInTarget, persona: Persona): Promise<{userId: UserId}> {
   const apiManager = stack.managers.apiManager;
-  const app = stack.helpers.appConfig;
-
-  const sentCode: any = await apiManager.invokeApi('auth.sendCode', {
-    phone_number: persona.phone,
-    api_id: app.id,
-    api_hash: app.hash,
-    settings: {_: 'codeSettings', pFlags: {}}
-  });
-
-  if(!sentCode?.phone_code_hash) {
-    throw new Error(
-      `auth.sendCode returned no phone_code_hash (got ${JSON.stringify(sentCode?._)}) — ` +
-      `is the dev stack up, and is "${persona.phone}" still a number of canon's reserved test ` +
-      'block? Nothing is configured for this any more: the code is derived from the number itself ' +
-      '(personas.ts), and a number outside the block would take the real SMS delivery path.'
-    );
+  if(persona.lastName === ephemeralLastName) {
+    // Every reserved number allows 3 codes an hour (backend src/ImpulseM.Sms.Common/Configuration/SmsAdmissionOptions.cs:42), and the probe plus the sign-in spend 2.
+    await claimFreshNumber(liveLane.gatewayOrigin, persona);
   }
 
-  let auth: any = await apiManager.invokeApi('auth.signIn', {
-    phone_number: persona.phone,
-    phone_code_hash: sentCode.phone_code_hash,
-    phone_code: loginCodeFor(persona)
-  });
-
-  if(auth?._ === 'auth.authorizationSignUpRequired') {
-    auth = await apiManager.invokeApi('auth.signUp', {
-      phone_number: persona.phone,
-      phone_code_hash: sentCode.phone_code_hash,
-      first_name: persona.firstName,
-      last_name: persona.lastName
-    });
-  }
-
-  if(auth?._ !== 'auth.authorization') {
-    throw new Error(
-      `auth flow did not end in auth.authorization (got ${JSON.stringify(auth?._)}) — ` +
-      'the manager stack cannot authenticate headlessly against this gateway'
-    );
-  }
+  const auth: any = await signInOnce(
+    (method: AuthMethod, params: any): Promise<any> => apiManager.invokeApi(method, params),
+    persona,
+    stack.helpers.appConfig
+  );
 
   await apiManager.setUser(auth.user);
 

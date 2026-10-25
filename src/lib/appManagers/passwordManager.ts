@@ -6,10 +6,17 @@
  */
 
 import type {AccountPassword, AccountUpdatePasswordSettings, InputCheckPasswordSRP, PasswordKdfAlgo} from '@layer';
+import pause from '@helpers/schedulers/pause';
+import {isApiError} from '@lib/impulse/fleet/fleetError';
+import type {InvokeApiOptions} from '@types';
 import randomize from '@helpers/array/randomize';
 import {AppManager} from '@appManagers/manager';
+import {getFloodWaitTime} from '@appManagers/utils/getFloodWaitTime';
 
 export class PasswordManager extends AppManager {
+  private nextPasswordAttemptAt: number = 0;
+
+
   public getState(options: any = {}): Promise<AccountPassword> {
     return this.apiManager.invokeApi('account.getPassword', {}, options);
   }
@@ -71,19 +78,30 @@ export class PasswordManager extends AppManager {
     return this.cryptoWorker.invokeCrypto('computeSRP', password, state, false) as Promise<InputCheckPasswordSRP.inputCheckPasswordSRP>;
   }
 
-  public check(password: string, state: AccountPassword, options: any = {}) {
-    return this.getInputCheckPassword(password, state).then((inputCheckPassword) => {
-      // console.log('SRP', inputCheckPassword);
-      return this.apiManager.invokeApi('auth.checkPassword', {
-        password: inputCheckPassword as InputCheckPasswordSRP.inputCheckPasswordSRP
-      }, options).then(async(auth) => {
-        if(auth._ === 'auth.authorization') {
-          await this.apiManager.setUser(auth.user);
+  public async check(password: string, options: InvokeApiOptions = {}) {
+    const wait: number = this.nextPasswordAttemptAt - Date.now();
+    if(wait > 0) {
+      await pause(wait);
+    }
+    const freshState: AccountPassword = await this.getState(options);
+    const inputCheckPassword: InputCheckPasswordSRP.inputCheckPasswordSRP = await this.getInputCheckPassword(password, freshState);
+    try {
+      const auth = await this.apiManager.invokeApi('auth.checkPassword', {
+        password: inputCheckPassword
+      }, {...options, rawError: true});
+      if(auth._ === 'auth.authorization') {
+        await this.apiManager.setUser(auth.user);
+      }
+      return auth;
+    } catch(error: unknown) {
+      if(isApiError(error)) {
+        const flood: ReturnType<typeof getFloodWaitTime> = getFloodWaitTime(error);
+        if(flood.hasWaitTime) {
+          this.nextPasswordAttemptAt = Date.now() + flood.waitTime * 1000;
         }
-
-        return auth;
-      });
-    });
+      }
+      throw error;
+    }
   }
 
   public confirmPasswordEmail(code: string) {

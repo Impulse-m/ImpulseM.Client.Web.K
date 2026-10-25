@@ -1,58 +1,65 @@
 /*
- * Realtime push subscriber.
+ * The update socket of each account slot.
  *
- * gRPC-web is unary-only, so it cannot deliver server-initiated updates. This
- * module opens a Centrifugo WebSocket, listens on the per-user channel
- * `user:{id}`, decodes each envelope into a TL update and hands it to the
- * updates manager — the same entry point the MTProto updates loop used, so pts
- * gating, gap detection and getDifference all keep working unchanged.
+ * One Centrifugo client per slot, speaking protobuf. It carries the server-initiated updates on the per-user channel
+ * `user:{id}`, the session lane, and the channels of the dialogs on screen; and it carries every regular TL call of the
+ * slot as an rpc (callUpdateSocket). The socket connects with the identity of its slot, which the session registers
+ * (fleetIdentityOf): an in-memory identity while signed out, the access JWT while
+ * signed in. The slot's identity moves only through startImpulseRealtime and the session transitions (rekeyUpdateSocket);
+ * a call never replaces the socket. The replaced socket closes once the calls it carries have settled.
  *
- * It runs in the worker, next to the updates manager, so there is no cross-thread
- * hop and no second pts cursor to keep in sync.
+ * Decoded updates go to the updates manager through the same entry point the MTProto updates loop used, so pts gating,
+ * gap detection and getDifference keep working unchanged. It runs in the worker, next to the updates manager.
  *
- * Token policy: the short-lived JWT is minted by the backend
- * (Sync.GetCentrifugoToken). The browser must never mint one locally.
- *
- * Wire envelope: {type, pts, ptsCount, date, data}, where `data` is a binary
- * `v1.Update`.
+ * Wire envelope: {type, pts, ptsCount, date, data}, where `data` is a binary `v1.Update`. The protobuf codec delivers
+ * the envelope as the UTF-8 JSON the server published.
  */
 
+import pause from '@helpers/schedulers/pause';
+import {checkSocketMethod} from '@lib/impulse/grpc/methodClasses';
 import Schema, {MTProtoConstructor} from '@lib/mtproto/schema';
-import {Centrifuge, UnauthorizedError, type Subscription} from '@impulsem/centrifuge';
+import {Centrifuge, type RpcOptions, type RpcResult, type Subscription} from '@impulsem/centrifuge/build/protobuf';
 import {fromBinary} from '@bufbuild/protobuf';
-import {Code, ConnectError, createClient} from '@connectrpc/connect';
 
-import {backendWsOrigin} from '@config/backendOrigin';
+import {backendUpdateWsOrigin} from '@config/backendOrigin';
 import {getLogger} from '@lib/impulseLogger';
+import makeError from '@helpers/makeError';
 import type {TabState} from '@lib/apiManagerProxy';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {refreshImpulseSession, whenImpulseSessionReady} from './session';
+import {isTokenRefusalCode, TOKEN_EXPIRED_CODE} from './centrifugoCodes';
+import {countSocketCall, fleetFailure, fleetIdentityOf} from './fleet/fleet';
+import type {FleetIdentity} from './fleet/fleet';
+import {Drainable} from './fleet/drainable';
+import {CENTRIFUGO_CONNECTION_PATH} from './fleet/fleetPath';
+import {isFleetRpcError, replyDataOf} from './fleet/fleetError';
+import {reportDifferenceFailure} from './backgroundFailures';
 import {RealtimeSubscriptions} from './realtimeSubscriptions';
 import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
 import {getReconnectJitterMaxMs, ReconnectFloorMs} from './realtimeDiscipline';
-import {protoToTL} from './grpc/adapter';
+import {protoToTL} from './grpc/protoToTL';
 import {UpdatesSchema} from './grpc/gen/v1/types_pb';
-import {SyncService} from './grpc/gen/v1/internal/impulse/sync/sync_service_pb';
-import {getGrpcTransport, requireGrpcSessionToken} from './grpc/transport';
 
 const logger = getLogger('impulse-realtime');
 
-const CENTRIFUGO_WS = `${backendWsOrigin()}/connection/websocket`;
-const TOKEN_EXPIRED_CODE = 109;
-// Guards against a re-spin storm if module state is ever transiently reset.
-const SPIN_UP_COOLDOWN_MS = 30_000;
-// The exponential CAP on a reconnect delay, not a spread window -- the comment that used to
-// stand here said "reconnects spread across 20 seconds" and nothing spread anything.
+const CENTRIFUGO_WS = `${backendUpdateWsOrigin()}${CENTRIFUGO_CONNECTION_PATH}`;
+// Every regular call is an rpc on this client, and an rpc deadline may not exceed the client timeout.
+const UPDATE_SOCKET_TIMEOUT_MS: number = 30_000;
+const NO_CONNECTION_TOKEN: string = '';
+// The exponential CAP on a reconnect delay, not a spread window.
 // Development keeps a much lower cap so a local reconnect stays responsive.
 export const ReconnectJitterMaxMs = getReconnectJitterMaxMs(import.meta.env.DEV);
-// The FLOOR, and it is the number that decides a herd. The SDK grows its random range from
-// the floor, so the ladder starts wherever this does; at the 1 ms it used to hold, every
-// socket the server hung up on came back inside 2 ms (#445).
+// The floor of the first reconnect: the SDK grows its random range from here.
 export const ReconnectJitterMinMs = ReconnectFloorMs;
 
-export type RealtimeUpdateSink = (updates: any, channelId?: ChatId) => void;
+type RealtimeUpdateSink = (updates: any, channelId?: ChatId) => void;
+type RealtimeRecovery = (channelId: ChatId | undefined) => Promise<void>;
 
-export type Envelope = {
+type RealtimeDispatch = {
+  sink: RealtimeUpdateSink,
+  recovery: RealtimeRecovery
+};
+
+type Envelope = {
   type?: number,
   pts?: number | string,
   ptsCount?: number | string,
@@ -63,25 +70,31 @@ export type Envelope = {
   oversize?: boolean
 };
 
+type RealtimeCall = {
+  callId: string,
+  channelId: ChatId | undefined
+};
+
+type UpdateSocketCall = {
+  accountNumber: ActiveAccountNumber,
+  method: string,
+  request: Uint8Array,
+  signal?: AbortSignal
+};
+
+type UpdateSocket = {
+  client: Centrifuge,
+  identity: FleetIdentity,
+  drain: Drainable
+};
+
 /*
- * One live realtime connection per account slot.
- *
- * The connection LIFECYCLE was the last piece of per-account state left as a SharedWorker-wide
- * singleton after #436 moved credentials, the session gate and the gRPC transport to per-account
- * maps (grpc/transport.ts credentialsByAccount, session.ts gatesByAccount). A single SharedWorker
- * hosts all four account slots side by side (createManagers builds one manager set per slot), and
- * the Centrifugo token is already minted per account (fetchCentrifugoToken(accountNumber) below) --
- * so keeping ONE `connection`/`activeUserId` cell meant bringing up account B tore down account A's
- * socket, leaving only one account with a live `user:{id}` subscription while the other went silent.
- *
- * Each slot now owns its own record here, and every function reads only the slot it was handed --
- * so there is deliberately no module-level "current account" (mirrors the module comment at
- * grpc/transport.ts:17-19). `connectionFor(accountNumber)` is the exact analogue of
- * transport.ts's `credentialsFor(accountNumber)`.
+ * One update socket per account slot: a slot's socket is torn down by its own identity change only, so bringing up one
+ * account never stops another account's push channel.
  */
 type RealtimeConnection = {
   activeUserId: string | undefined,
-  connection: Centrifuge | undefined,
+  socket: UpdateSocket | undefined,
   subscriptionSet: RealtimeSubscriptions | undefined,
   openChannelId: ChatId | undefined,
   // The group call this slot is joined to, if any: its `call:{id}` lane carries the in-call messages,
@@ -89,14 +102,7 @@ type RealtimeConnection = {
   call: RealtimeCall | undefined,
   latestTabStates: TabState[],
   subscriptions: Map<string, Subscription>,
-  sink: RealtimeUpdateSink | undefined,
-  spinUpInProgress: boolean,
-  lastSpinUpAt: number | undefined
-};
-
-export type RealtimeCall = {
-  callId: string,
-  channelId: ChatId | undefined
+  dispatch: RealtimeDispatch | undefined
 };
 
 const connectionsByAccount = new Map<ActiveAccountNumber, RealtimeConnection>();
@@ -106,15 +112,13 @@ function connectionFor(accountNumber: ActiveAccountNumber): RealtimeConnection {
   if(!record) {
     record = {
       activeUserId: undefined,
-      connection: undefined,
+      socket: undefined,
       subscriptionSet: undefined,
       openChannelId: undefined,
       call: undefined,
       latestTabStates: [],
       subscriptions: new Map<string, Subscription>(),
-      sink: undefined,
-      spinUpInProgress: false,
-      lastSpinUpAt: undefined
+      dispatch: undefined
     };
     connectionsByAccount.set(accountNumber, record);
   }
@@ -122,58 +126,40 @@ function connectionFor(accountNumber: ActiveAccountNumber): RealtimeConnection {
   return record;
 }
 
-export function setRealtimeSink(accountNumber: ActiveAccountNumber, fn: RealtimeUpdateSink): void {
-  connectionFor(accountNumber).sink = fn;
+/** Registers how a slot's publications are dispatched, and how its lanes ask for the difference when a dispatch fails. */
+export function setRealtimeDispatch(accountNumber: ActiveAccountNumber, dispatch: RealtimeDispatch): void {
+  connectionFor(accountNumber).dispatch = dispatch;
 }
 
-export function startImpulseRealtime(userId: string | undefined, accountNumber: ActiveAccountNumber | undefined): void {
-  // Every downstream call (the token mint, the transport it travels on) is
-  // account-scoped now -- see grpc/transport.ts. There is no account-less
-  // identity to fall back to, so refuse rather than spin up a connection nobody
-  // can authenticate.
-  if(accountNumber === undefined) {
-    logger.warn('Realtime spin-up requested with no account number', {userId});
-    return;
-  }
-
+/**
+ * Brings the slot's update socket up for a signed-in user under the identity the slot holds, and subscribes its lanes.
+ * Without a user the slot's socket is stopped.
+ */
+export function startImpulseRealtime(userId: string | undefined, accountNumber: ActiveAccountNumber): void {
   if(!userId) {
     stopImpulseRealtime(accountNumber);
     return;
   }
 
   const record = connectionFor(accountNumber);
-
-  // Already live (or spinning up) for THIS slot's user -- nothing to do. Scoped to the slot:
-  // another account being live must never short-circuit this one (#436).
-  if(record.activeUserId === userId && (record.connection || record.spinUpInProgress)) {
+  const identity = fleetIdentityOf(accountNumber);
+  if(record.activeUserId === userId && record.socket?.identity.key === identity.key) {
     return;
   }
 
-  // Per-slot cooldown against a re-spin storm, keyed by this slot's own last attempt rather than
-  // a shared userId map -- two accounts spinning up close together are two independent attempts.
-  if(record.lastSpinUpAt !== undefined && Date.now() - record.lastSpinUpAt < SPIN_UP_COOLDOWN_MS && record.connection) {
-    return;
+  if(record.activeUserId !== userId) {
+    unsubscribeAll(record);
   }
 
-  // A DIFFERENT user on the SAME slot (a sign-out/sign-in within this slot) tears down this slot's
-  // own socket before opening the new one. This only ever touches its own slot -- deleting the old
-  // singleton `activeUserId !== userId -> stopImpulseRealtime()` branch is the whole fix for the
-  // cross-account teardown: bringing up account B must leave account A's socket alone (#436).
-  if(record.activeUserId && record.activeUserId !== userId) {
-    stopImpulseRealtime(accountNumber);
-  }
-
-  record.lastSpinUpAt = Date.now();
   record.activeUserId = userId;
   record.subscriptionSet = new RealtimeSubscriptions(userId);
   record.subscriptionSet.pin(record.call?.channelId);
-  record.spinUpInProgress = true;
+  if(record.socket && record.socket.identity.key !== identity.key) {
+    retireSocket(record, record.socket);
+  }
 
-  spinUp(accountNumber, userId).catch((err: unknown) => {
-    logger.warn('Realtime spin-up failed', {userId}, err);
-  }).finally(() => {
-    connectionFor(accountNumber).spinUpInProgress = false;
-  });
+  socketOf(accountNumber);
+  applySubscriptions(accountNumber);
 }
 
 export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
@@ -183,22 +169,88 @@ export function stopImpulseRealtime(accountNumber: ActiveAccountNumber): void {
   }
 
   try {
-    for(const subscription of record.subscriptions.values()) {
-      subscription.unsubscribe();
+    if(record.socket) {
+      retireSocket(record, record.socket);
     }
-    record.connection?.disconnect();
-  } catch(err) {
-    logger.warn('Realtime teardown failed', {accountNumber}, err);
+  } finally {
+    record.subscriptionSet = undefined;
+    record.activeUserId = undefined;
+  }
+  // call, dispatch and latestTabStates deliberately survive teardown: apiManager re-arms the dispatch
+  // on the next bring-up, and a reconnect for the same slot keeps the tab lanes it already knew.
+}
+
+/** Why a slot's socket moves to the identity its credentials now hold. */
+export type RekeyCause = 'renewal' | 'refusal' | 'transition';
+
+/**
+ * Moves the slot's socket to the identity its credentials hold now; a socket that already presents it stays.
+ * A signed-in slot reconnects at once, with its subscriptions. An identity slot reconnects at once only after a renewal;
+ * after a refusal or a sign-out it connects with its next call, so a refused identity cannot drive a reconnect loop.
+ */
+export function rekeyUpdateSocket(accountNumber: ActiveAccountNumber, cause: RekeyCause): void {
+  const record = connectionFor(accountNumber);
+  const current = record.socket;
+  if(!current || current.identity.key === fleetIdentityOf(accountNumber).key) {
+    return;
   }
 
-  record.subscriptions.clear();
-  record.subscriptionSet = undefined;
-  record.openChannelId = undefined;
-  record.connection = undefined;
-  record.activeUserId = undefined;
-  // call, sink and latestTabStates deliberately survive teardown: apiManager re-arms the sink on the
-  // next bring-up (startRealtimeBringUp), and a reconnect for the same slot should keep the tab
-  // lanes it already knew -- exactly as the singleton did before it went per-account.
+  retireSocket(record, current);
+  if(fleetIdentityOf(accountNumber).kind === 'identity') {
+    record.activeUserId = undefined;
+    record.subscriptionSet = undefined;
+    if(cause !== 'renewal') {
+      return;
+    }
+  }
+  socketOf(accountNumber);
+}
+
+/**
+ * Sends one regular TL call as an rpc on the slot's update socket. The socket is the slot's own: it is opened here only
+ * when the slot has none, under the identity the slot holds. Rejects with an ApiError.
+ */
+export async function callUpdateSocket(call: UpdateSocketCall): Promise<Uint8Array> {
+  const identity: FleetIdentity = fleetIdentityOf(call.accountNumber);
+  checkSocketMethod({kind: identity.kind, method: call.method});
+  const socket = socketOf(call.accountNumber);
+  socket.drain.begin();
+
+  let reply: RpcResult;
+  try {
+    reply = await sendSocketRpc(socket, call);
+  } catch(err: unknown) {
+    const error: ApiError = fleetFailure(call.method, err, socket.identity);
+    if(error.type === 'AUTH_KEY_UNREGISTERED' || (isFleetRpcError(err) && isTokenRefusalCode(err.code))) {
+      socket.identity.onRefused?.(error);
+    }
+    throw error;
+  } finally {
+    socket.drain.end();
+  }
+
+  countSocketCall(call.accountNumber);
+  return replyDataOf(reply);
+}
+
+async function sendSocketRpc(socket: UpdateSocket, call: UpdateSocketCall): Promise<RpcResult> {
+  try {
+    return await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
+  } catch(error: unknown) {
+    if(socket.identity.kind !== 'identity' || !isFleetRpcError(error) || error.code !== 111) {
+      throw error;
+    }
+    const seconds: number = Number(error.metadata?.['x-centrifugo-retry-after'] ?? 1);
+    await pause((Number.isFinite(seconds) && seconds > 0 ? seconds : 1) * 1000);
+    if(socket.drain.isRetired() || call.signal?.aborted) {
+      throw error;
+    }
+    return await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
+  }
+}
+
+function rpcOptionsOf(call: UpdateSocketCall): RpcOptions {
+  return {signal: call.signal};
 }
 
 /**
@@ -216,7 +268,7 @@ export function setImpulseRealtimeCall(accountNumber: ActiveAccountNumber, call:
   if(previous && previous.callId !== call?.callId) {
     applySubscriptionDiff(accountNumber, {subscribe: [], unsubscribe: [callLaneName(previous.callId)]});
   }
-  if(call && record.connection) {
+  if(call && record.socket) {
     createSubscription(accountNumber, callLaneName(call.callId));
   }
   if(record.subscriptionSet) {
@@ -232,7 +284,7 @@ export function setImpulseRealtimeTabs(states: TabState[]): void {
   // The tab feed carries EVERY tab across EVERY account (index.worker.ts onTabStateChange), and
   // each tab names its own account. File each tab under its own account's connection and refresh
   // only the slots that actually hold a live socket -- no single "active" account decides which
-  // tab is heard any more (#436; this replaces the old filter-to-activeAccountNumber at :148).
+  // tab is heard any more.
   for(const [accountNumber, record] of connectionsByAccount) {
     record.latestTabStates = states.filter((state) => state.accountNumber === accountNumber);
     applyTabStates(accountNumber);
@@ -241,7 +293,9 @@ export function setImpulseRealtimeTabs(states: TabState[]): void {
 
 function applyTabStates(accountNumber: ActiveAccountNumber): void {
   const record = connectionFor(accountNumber);
-  if(!record.subscriptionSet) return;
+  if(!record.subscriptionSet) {
+    return;
+  }
 
   // record.latestTabStates already holds only this slot's tabs (setImpulseRealtimeTabs filed them).
   let nextOpenChannelId: ChatId | undefined;
@@ -264,137 +318,115 @@ function applyTabStates(accountNumber: ActiveAccountNumber): void {
   applySubscriptionDiff(accountNumber, record.subscriptionSet.showDialogs(visibleChannelIds));
 }
 
-export async function fetchCentrifugoToken(accountNumber: ActiveAccountNumber): Promise<string> {
-  await whenImpulseSessionReady(accountNumber);
-  requireGrpcSessionToken(accountNumber);
-
-  const client = createClient(SyncService, getGrpcTransport(accountNumber));
-
-  // This call goes straight through the generated client, so it never passes the
-  // 401-retry in grpcInvoke -- on a restored-but-expired session it just failed
-  // with AUTH_KEY_UNREGISTERED and the push channel stayed down for the whole
-  // tab. Renew and try once more, the same way every other call does.
-  const response = await client.getCentrifugoToken({}).catch(async(err: unknown) => {
-    if(!isUnauthenticated(err) || !await refreshImpulseSession(accountNumber)) {
-      throw err;
-    }
-
-    logger.info('Retrying the Centrifugo token after a session refresh');
-    return client.getCentrifugoToken({});
-  });
-
-  if(!response?.token) {
-    throw new Error('Sync.GetCentrifugoToken returned no token');
-  }
-
-  return response.token;
-}
-
-/**
- * The token callback of the SDK. A 401 or 403 from the token RPC means this session may not hold a
- * realtime connection; the SDK retries every other failure forever and stops only on its
- * UnauthorizedError.
- */
-async function fetchCentrifugoTokenForSdk(accountNumber: ActiveAccountNumber): Promise<string> {
-  try {
-    return await fetchCentrifugoToken(accountNumber);
-  } catch(err: unknown) {
-    const code: Code = ConnectError.from(err).code;
-    if(code === Code.Unauthenticated || code === Code.PermissionDenied) {
-      logger.warn('Centrifugo token refused; the connection stops', {code});
-      throw new UnauthorizedError(ConnectError.from(err).rawMessage);
-    }
-
-    throw err;
-  }
-}
-
-function isUnauthenticated(err: unknown): boolean {
-  return ConnectError.from(err).code === Code.Unauthenticated;
-}
-
-async function spinUp(accountNumber: ActiveAccountNumber, userId: string): Promise<void> {
-  const token = await fetchCentrifugoToken(accountNumber);
-
+/** The socket of the slot: the one it has, else a new one under the identity the slot holds. */
+function socketOf(accountNumber: ActiveAccountNumber): UpdateSocket {
   const record = connectionFor(accountNumber);
-  // This slot's user may have changed while the token was in flight.
-  if(record.activeUserId !== userId) {
-    return;
+  if(record.socket) {
+    return record.socket;
   }
 
+  const socket = openSocket(accountNumber, fleetIdentityOf(accountNumber));
+  record.socket = socket;
+  applySubscriptions(accountNumber);
+  return socket;
+}
+
+function openSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity): UpdateSocket {
   const centrifuge = new Centrifuge(CENTRIFUGO_WS, {
-    token,
-    getToken: () => fetchCentrifugoTokenForSdk(accountNumber),
-    // Centrifuge 5's ladder is min(max, min + randInt(0, min(max, min * 2^attempt))) --
-    // reproduced and asserted in realtimeDiscipline.sdkReconnectDelay. It is NOT full jitter:
-    // the random range grows from the floor rather than covering the window, and
-    // _connectResponse resets the attempt counter, so a socket that was healthy when the
-    // server hung up on it always re-enters at attempt 0.
+    token: NO_CONNECTION_TOKEN,
+    getToken: identity.getToken,
+    // The SDK 1.6.0 blocks a token the server refused unless this is false: the renewal must be able to send the token it returns.
+    stopOnRefusedToken: false,
+    timeout: UPDATE_SOCKET_TIMEOUT_MS,
     minReconnectDelay: ReconnectJitterMinMs,
     maxReconnectDelay: ReconnectJitterMaxMs
   });
 
   centrifuge.on('error', (ctx: any) => {
-    if(ctx?.error?.code === TOKEN_EXPIRED_CODE) {
+    const code: number | undefined = ctx?.error?.code;
+    if(isTokenRefusalCode(code) || ctx?.error?.appType === 'AUTH_KEY_UNREGISTERED') {
+      identity.onRefused?.(fleetFailure('connect', ctx.error));
+    }
+
+    if(code === TOKEN_EXPIRED_CODE) {
       logger.info('Centrifugo token expired; refreshing');
       return;
     }
 
-    logger.warn('Centrifugo error', {code: ctx?.error?.code});
+    logger.warn('Centrifugo error', {code});
   });
 
-  const channel = `user:${userId}`;
-
-  // The connection's own lifecycle, logged from the events rather than from the call sites.
-  //
-  // What used to stand at the end of this function was `logger.info('Realtime connected')`,
-  // written immediately after calling connect() and subscribe(). Both are asynchronous and return
-  // nothing, so that line recorded an INTENTION as an OUTCOME: it appeared whether or not a socket
-  // was ever established. Reading the logs back, five "connected" lines in seventeen minutes looked
-  // like a connection that kept dropping and recovering, while the subscribe-proxy on the server
-  // had been called twice in forty minutes. The log agreed with itself and described something that
-  // had not happened.
-  //
-  // Nothing recorded the other edge at all -- no disconnect, no unsubscribe, no reason code -- so
-  // the one question worth asking ("what is killing it?") had no evidence anywhere. These handlers
-  // exist to answer exactly that: every transition, with the code and reason Centrifugo supplies.
+  // The lifecycle of the socket, logged from the events the SDK emits.
   centrifuge.on('connecting', (ctx: any) => {
-    logger.info('Realtime connecting', {channel, code: ctx?.code, reason: ctx?.reason});
+    logger.info('Realtime connecting', {identity: identity.kind, code: ctx?.code, reason: ctx?.reason});
   });
   centrifuge.on('connected', (ctx: any) => {
-    logger.info('Realtime connected', {channel, transport: ctx?.transport});
+    logger.info('Realtime connected', {identity: identity.kind, transport: ctx?.transport});
   });
   centrifuge.on('disconnected', (ctx: any) => {
-    logger.warn('Realtime disconnected', {channel, code: ctx?.code, reason: ctx?.reason});
+    if(identity.kind === 'identity' && ctx?.code === 4100) {
+      identity.onRefused?.();
+    }
+    logger.warn('Realtime disconnected', {identity: identity.kind, code: ctx?.code, reason: ctx?.reason});
   });
 
-  // The connection token subscribes the connection, server-side, to its own `session:{user}:{session}`
-  // lane: what is addressed to ONE session alone arrives there (a 1:1 call's phoneCallAccepted for the
-  // caller, the active phoneCall with its LiveKit coordinates for the callee). A Subscription object only
-  // sees the lanes this client asked for; publications of server-side subscriptions are delivered on the
-  // client itself, and with no handler here they were read off the socket and dropped, so a call never
-  // got past ringing.
+  // The connection token subscribes the connection, server-side, to its own `session:{user}:{session}` lane: what is
+  // addressed to ONE session alone arrives there (a 1:1 call's phoneCallAccepted for the caller, the active phoneCall with
+  // its LiveKit coordinates for the callee). Those publications are delivered on the client itself.
   centrifuge.on('publication', (ctx: any) => {
-    handleEnvelope(accountNumber, ctx?.data as Envelope, ctx?.channel ?? '');
+    handleEnvelope(accountNumber, ctx?.data, ctx?.channel ?? '');
   });
 
-  record.connection = centrifuge;
-  applyTabStates(accountNumber);
-  for(const selectedChannel of record.subscriptionSet?.getChannels() ?? [channel]) {
-    createSubscription(accountNumber, selectedChannel);
+  const socket: UpdateSocket = {
+    client: centrifuge,
+    identity,
+    drain: new Drainable((): void => {
+      centrifuge.disconnect();
+    })
+  };
+  centrifuge.connect();
+  logger.info('Realtime socket requested', {identity: identity.kind});
+  return socket;
+}
+
+/** Ends a socket: its subscriptions are dropped now, and the socket closes once the calls it carries have settled. */
+function retireSocket(record: RealtimeConnection, socket: UpdateSocket): void {
+  if(record.socket === socket) {
+    record.socket = undefined;
   }
 
+  unsubscribeAll(record);
+  socket.drain.retire();
+}
+
+function unsubscribeAll(record: RealtimeConnection): void {
+  for(const subscription of record.subscriptions.values()) {
+    subscription.unsubscribe();
+  }
+
+  record.subscriptions.clear();
+  record.openChannelId = undefined;
+}
+
+function applySubscriptions(accountNumber: ActiveAccountNumber): void {
+  const record = connectionFor(accountNumber);
+  if(!record.subscriptionSet) {
+    return;
+  }
+
+  for(const channel of record.subscriptionSet.getChannels()) {
+    createSubscription(accountNumber, channel);
+  }
   if(record.call) {
     createSubscription(accountNumber, callLaneName(record.call.callId));
   }
 
-  centrifuge.connect();
-  logger.info('Realtime spin-up requested', {channel});
+  applyTabStates(accountNumber);
 }
 
 function createSubscription(accountNumber: ActiveAccountNumber, channel: string): void {
   const record = connectionFor(accountNumber);
-  if(!record.connection || record.subscriptions.has(channel)) {
+  if(!record.socket || record.subscriptions.has(channel)) {
     return;
   }
 
@@ -403,20 +435,21 @@ function createSubscription(accountNumber: ActiveAccountNumber, channel: string)
 
 function openSubscription(accountNumber: ActiveAccountNumber, channel: string): void {
   const record = connectionFor(accountNumber);
-  if(!record.connection || record.subscriptions.has(channel)) return;
+  const socket = record.socket;
+  if(!socket || record.subscriptions.has(channel)) {
+    return;
+  }
 
-  const sub = record.connection.newSubscription(channel);
+  const sub = socket.client.newSubscription(channel);
   sub.on('publication', (ctx: any) => {
-    handleEnvelope(accountNumber, ctx?.data as Envelope, channel);
+    handleEnvelope(accountNumber, ctx?.data, channel);
   });
   sub.on('error', (ctx: any) => {
     logger.warn('Centrifugo subscription error', {channel, code: ctx?.error?.code});
   });
 
-  // Subscription state is tracked separately from connection state on purpose: a live socket
-  // carrying no subscription delivers nothing, and that is indistinguishable from a dead socket
-  // unless both are recorded. `recovered` is the field that says whether the messages missed while
-  // the subscription was down were replayed, or silently skipped.
+  // Subscription state is tracked separately from connection state: a live socket carrying no subscription delivers
+  // nothing. `recovered` says whether the messages missed while the subscription was down were replayed.
   sub.on('subscribing', (ctx: any) => {
     logger.info('Realtime subscribing', {channel, code: ctx?.code, reason: ctx?.reason});
   });
@@ -441,10 +474,12 @@ function applySubscriptionDiff(accountNumber: ActiveAccountNumber, diff: Realtim
   const record = connectionFor(accountNumber);
   for(const channel of diff.unsubscribe) {
     const subscription = record.subscriptions.get(channel);
-    if(!subscription) continue;
+    if(!subscription) {
+      continue;
+    }
 
     subscription.unsubscribe();
-    record.connection?.removeSubscription(subscription);
+    record.socket?.client.removeSubscription(subscription);
     record.subscriptions.delete(channel);
     logger.info('Realtime channel unsubscribe requested', {channel});
   }
@@ -455,29 +490,51 @@ function applySubscriptionDiff(accountNumber: ActiveAccountNumber, diff: Realtim
   }
 }
 
-function handleEnvelope(accountNumber: ActiveAccountNumber, envelope: Envelope | undefined, channel: string): void {
-  const sink = connectionFor(accountNumber).sink;
-  if(!envelope || !sink) {
+/** The protobuf codec delivers a publication as bytes: the UTF-8 JSON envelope the server published. */
+function envelopeOf(raw: unknown): Envelope | undefined {
+  if(ArrayBuffer.isView(raw)) {
+    return JSON.parse(new TextDecoder().decode(raw)) as Envelope;
+  }
+
+  return raw as Envelope | undefined;
+}
+
+function handleEnvelope(accountNumber: ActiveAccountNumber, raw: unknown, channel: string): void {
+  const dispatch = connectionFor(accountNumber).dispatch;
+  if(!dispatch) {
+    logger.warn('Realtime publication has no dispatch; dropped', {accountNumber, channel});
     return;
   }
 
-  // Too large to ride the push channel. Returning here used to be the whole of it, on the
-  // reasoning that the updates manager would pick the update up through getDifference. It cannot:
-  // the envelope never reaches the manager, so nothing creates the sequence gap that would make it
-  // ask. Nothing else is guaranteed to arrive either, so the chat simply stays as it was --
-  // missing that message, or that edit, or that read mark -- until some later event happens to
-  // expose a gap by coincidence.
-  //
-  // Canon has a constructor for exactly this situation and says what it obliges: updatesTooLong
-  // means "too many updates to deliver here, fetch the difference"
-  // (.demo/telegram-docs-text/constructor/updatesTooLong.md). The manager already answers it by
-  // forcing that fetch, beside new_session_created, and has done since long before this transport
-  // existed. So the honest move is to say the thing canon defines and let the path that was
-  // written for it do the work, rather than reach past it and call getDifference from here --
-  // a second recovery route beside a working one is how this file's other defect happened.
+  // The SDK disconnects a client whose publication handler throws, so a malformed frame is logged here and dropped.
+  let envelope: Envelope | undefined;
+  try {
+    envelope = envelopeOf(raw);
+  } catch(err) {
+    logger.warn('Realtime envelope is not JSON', {channel}, err);
+    return;
+  }
+
+  if(!envelope) {
+    return;
+  }
+
+  const isChannelLane: boolean = channel.startsWith('channel:');
+  const channelId: ChatId | undefined = isChannelLane ? parseChannelId(channel.slice('channel:'.length)) : undefined;
+  if(isChannelLane && channelId === undefined) {
+    logger.error(
+      'Realtime channel lane names no channel; dropped',
+      {channel},
+      makeError('UNKNOWN', 'The channel lane carries no channel id')
+    );
+    return;
+  }
+
+  // Too large to ride the push channel: canon's updatesTooLong means "too many updates to deliver here, fetch the
+  // difference" (.demo/telegram-docs-text/constructor/updatesTooLong.md). The lane of the publication asks for it.
   if(envelope.oversize) {
     logger.info('Oversize realtime update; asking for the difference', {type: envelope.type});
-    sink({_: 'updatesTooLong'});
+    requestDifference(dispatch, channelId);
     return;
   }
 
@@ -506,10 +563,6 @@ function handleEnvelope(accountNumber: ActiveAccountNumber, envelope: Envelope |
     updates.date = date;
   }
 
-  // Only failures were recorded here, so a channel that delivered nothing looked
-  // exactly like one that delivered everything -- and a response to sendMessage,
-  // which the updates manager also processes, was mistaken for a push. Record
-  // every publication that gets this far.
   logger.info('Realtime update received', {
     updates: (updates.updates ?? []).map((update: any) => update._),
     pts: asNumber(envelope.pts),
@@ -518,11 +571,18 @@ function handleEnvelope(accountNumber: ActiveAccountNumber, envelope: Envelope |
   });
 
   try {
-    const channelId = channel.startsWith('channel:') ? asNumber(channel.slice('channel:'.length)) : undefined;
-    sink(updates, channelId);
+    dispatch.sink(updates, channelId);
   } catch(err) {
-    logger.warn('Realtime update dispatch failed', {type: envelope.type}, err);
+    logger.warn('Realtime update dispatch failed; asking for the difference', {type: envelope.type, channel}, err);
+    requestDifference(dispatch, channelId);
   }
+}
+
+// Deferred: the SDK's publication handler must not run the recovery inline, and a throw there disconnects the socket.
+function requestDifference(dispatch: RealtimeDispatch, channelId: ChatId | undefined): void {
+  Promise.resolve().then(() => dispatch.recovery(channelId)).catch((error: unknown): void => {
+    reportDifferenceFailure(channelId, error);
+  });
 }
 
 export function decodeRealtimeEnvelope(envelope: Envelope): any | undefined {
@@ -558,23 +618,15 @@ function declaresField(predicate: string | undefined, field: string): boolean {
   return declared.has(field);
 }
 
-
 /**
  * Restores the sequence fields the envelope repeats out of band — ONLY onto updates whose own
  * constructor declares them.
  *
- * The guard is the whole point and its absence was issue #319. This used to stamp the envelope's
- * pts/pts_count onto every update in the container, and `updateMessageID#4e90bfd6 id:int
- * random_id:long = Update` declares neither (constructor/updateMessageID.md). The account's own
- * outgoing message travels in a container that carries BOTH updateMessageID and updateNewMessage
- * with one shared pts, so on every other device of that account the fabricated pair on the
- * updateMessageID advanced local pts first, and apiUpdatesManager then read the real
- * updateNewMessage as `pts <= curState.pts` and logged "duplicate update" — dropping it.
- *
- * Measured in e2e/live/twoDevicesOneAccount.live.spec.ts: the watcher's pipeline showed
- * `process 2 {_: updateMessageID, ..., pts: 3, pts_count: 1}` immediately followed by
- * `process 3 {_: updateNewMessage, ..., pts: 3}` and `duplicate update`. One account, two devices,
- * and the second one silently threw away every message the first one sent.
+ * `updateMessageID#4e90bfd6 id:int random_id:long = Update` declares neither pts nor pts_count
+ * (constructor/updateMessageID.md). The account's own outgoing message travels in a container that
+ * carries BOTH updateMessageID and updateNewMessage with one shared pts, so stamping the envelope's
+ * pts onto the updateMessageID would advance the local pts first and the real updateNewMessage would
+ * be read as a duplicate. Measured in e2e/live/twoDevicesOneAccount.live.spec.ts (issue #319).
  */
 function applyMetadata(update: any, envelope: Envelope): void {
   const predicate: string | undefined = update?._;
@@ -608,6 +660,12 @@ function asNumber(value: number | string | undefined): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+const DECIMAL_ID_PATTERN: RegExp = /^\d+$/;
+
+function parseChannelId(text: string): ChatId | undefined {
+  return DECIMAL_ID_PATTERN.test(text) ? Number(text) : undefined;
+}
+
 function readBytes(value: unknown): Uint8Array | undefined {
   if(value instanceof Uint8Array) {
     return value;
@@ -617,7 +675,7 @@ function readBytes(value: unknown): Uint8Array | undefined {
     return new Uint8Array(value);
   }
 
-  // Centrifugo delivers binary payloads as base64 when the transport is JSON.
+  // Centrifugo delivers binary payloads as base64 inside the JSON envelope.
   if(typeof value === 'string') {
     try {
       const binary = atob(value);

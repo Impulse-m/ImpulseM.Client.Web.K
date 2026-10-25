@@ -1,4 +1,11 @@
+vi.mock('@lib/accounts/accountController', () => ({default: {get: vi.fn(async() => ({userId: 42, impulse_session_token: 'fixture-session'}))}}));
 import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {fromBinary} from '@bufbuild/protobuf';
+
+import {getServiceAndMethod} from '@lib/impulse/grpc/serviceMap';
+
+import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
+import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 
 /**
  * Issue #179 / #260. `messages.getCustomEmojiDocuments` left the browser with an `undefined`
@@ -15,29 +22,23 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
  * element must never reach the transport.
  */
 
-const transportCall = vi.fn<(request: {documentId: bigint[]}) => Promise<{items: never[]}>>();
+const socketHarness = sharedUpdateSocketHarness();
+const GET_CUSTOM_EMOJI_DOCUMENTS = 'messages.getCustomEmojiDocuments';
 
-vi.mock('@connectrpc/connect', async(importOriginal) => {
-  const original = await importOriginal<typeof import('@connectrpc/connect')>();
-  return {
-    ...original,
-    createClient: vi.fn(() => ({
-      getCustomEmojiDocuments: transportCall
-    }))
-  };
+vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
+  const {sharedUpdateSocketHarness: harness} = await import('./helpers/updateSocketStub');
+  return {...actual, Centrifuge: harness().CentrifugeStub};
 });
-
-vi.mock('@lib/impulse/session', () => ({
-  captureImpulseSessionToken: vi.fn(() => Promise.resolve()),
-  refreshImpulseSession: vi.fn(() => Promise.resolve(false)),
-  whenImpulseSessionReady: vi.fn(() => Promise.resolve())
-}));
 
 
 describe('custom emoji document ids at the gRPC boundary', () => {
-  beforeEach(() => {
-    transportCall.mockReset();
-    transportCall.mockResolvedValue({items: []});
+  beforeEach(async() => {
+    socketHarness.reset();
+    await registerSessionIdentitySource();
+  const {restoreImpulseSession} = await import('@lib/impulse/session');
+  await restoreImpulseSession(1);
+    socketHarness.respond(GET_CUSTOM_EMOJI_DOCUMENTS, () => ({data: new Uint8Array(0)}));
   });
 
 
@@ -48,7 +49,7 @@ describe('custom emoji document ids at the gRPC boundary', () => {
       document_id: ['341952722011750787', undefined, 2578]
     }, 1)).rejects.toThrow('Invalid document_id list element for messages.getCustomEmojiDocuments at index 1: undefined');
 
-    expect(transportCall, 'a request that would desync the positional answer must never reach the transport').not.toHaveBeenCalled();
+    expect(socketHarness.calls, 'a request that would desync the positional answer must never reach the fleet').toHaveLength(0);
   });
 
 
@@ -59,8 +60,14 @@ describe('custom emoji document ids at the gRPC boundary', () => {
       document_id: ['341952722011750787', 2578]
     }, 1)).resolves.toEqual([]);
 
-    expect(transportCall).toHaveBeenCalledTimes(1);
-    expect(transportCall.mock.calls[0][0].documentId).toEqual([
+    expect(socketHarness.calls).toHaveLength(1);
+    const mapping = getServiceAndMethod(GET_CUSTOM_EMOJI_DOCUMENTS);
+    if(!mapping) {
+      throw new Error(`${GET_CUSTOM_EMOJI_DOCUMENTS} is not mapped`);
+    }
+
+    const sent = fromBinary(mapping.method.input, socketHarness.calls[0].data) as unknown as {documentId: bigint[]};
+    expect(sent.documentId).toEqual([
       BigInt('341952722011750787'),
       BigInt(2578)
     ]);

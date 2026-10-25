@@ -180,8 +180,8 @@ describeOrSkip('preview auth', () => {
 
       if(needsPassword) {
         console.log('[previewAuth] SESSION_PASSWORD_NEEDED — checking cloud password');
-        const passwordState = await fresh.managers.passwordManager.getState();
-        auth = await fresh.managers.passwordManager.check(CLOUD_PASSWORD, passwordState);
+        await fresh.managers.passwordManager.getState();
+        auth = await fresh.managers.passwordManager.check(CLOUD_PASSWORD);
       }
 
       expect(auth?._).toBe('auth.authorization');

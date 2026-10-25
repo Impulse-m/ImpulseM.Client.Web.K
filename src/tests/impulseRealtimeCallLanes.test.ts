@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import type {FleetIdentity} from '@lib/impulse/fleet/fleet';
 import {MaxChannelSubscriptions, RealtimeSubscriptions} from '@lib/impulse/realtimeSubscriptions';
 
 
@@ -64,8 +65,8 @@ const {MockCentrifuge, centrifugeInstances} = vi.hoisted(() => {
   return {MockCentrifuge, centrifugeInstances};
 });
 
-vi.mock('@impulsem/centrifuge', async(importActual) => {
-  const actual = await importActual<typeof import('@impulsem/centrifuge')>();
+vi.mock('@impulsem/centrifuge/build/protobuf', async(importActual) => {
+  const actual = await importActual<typeof import('@impulsem/centrifuge/build/protobuf')>();
   return {...actual, Centrifuge: MockCentrifuge};
 });
 
@@ -78,24 +79,7 @@ vi.mock('@lib/impulse/session', async(importActual) => {
   };
 });
 
-vi.mock('@lib/impulse/grpc/transport', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/impulse/grpc/transport')>();
-  return {
-    ...actual,
-    requireGrpcSessionToken: vi.fn(() => 'session-token'),
-    getGrpcTransport: vi.fn(() => ({} as any))
-  };
-});
-
-vi.mock('@connectrpc/connect', async(importActual) => {
-  const actual = await importActual<typeof import('@connectrpc/connect')>();
-  return {
-    ...actual,
-    createClient: vi.fn(() => ({
-      getCentrifugoToken: vi.fn(async() => ({token: 'centrifugo-token'}))
-    }))
-  };
-});
+const SESSION_IDENTITY: FleetIdentity = {kind: 'session', key: 'session:fixture', getToken: async(): Promise<string> => 'centrifugo-token'};
 
 
 async function waitForInstances(count: number): Promise<void> {
@@ -144,9 +128,11 @@ describe('RealtimeSubscriptions pin', () => {
 });
 
 describe('realtime lanes of a joined group call', () => {
-  beforeEach(() => {
+  beforeEach(async() => {
     vi.resetModules();
     centrifugeInstances.length = 0;
+    const {setFleetIdentitySource} = await import('@lib/impulse/fleet/fleet');
+    setFleetIdentitySource(() => SESSION_IDENTITY);
   });
 
   afterEach(async() => {

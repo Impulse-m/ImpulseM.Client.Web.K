@@ -7,18 +7,24 @@
  * (frontend -> gateway) is allowed by the gateway's CORS policy and by
  * Centrifugo's `allowed_origins`.
  *
- * Three consumers share this origin:
- *   - gRPC-web transport   -> `{origin}` (unary RPC)
- *   - Centrifugo WebSocket -> `{wsOrigin}/connection/websocket`
- *   - Loki log push        -> `{origin}/loki/api/v1/push`
+ * Two consumers share this origin:
+ *   - Centrifugo fleets (RPC and media) and the update socket -> `{wsOrigin}` + CENTRIFUGO_CONNECTION_PATH (fleet/fleetPath.ts)
+ *   - Loki log push                                           -> `{origin}/loki/api/v1/push`
  */
 
-const BACKEND_URL = import.meta.env.VITE_IMPULSE_BACKEND_URL || 'http://localhost:9045';
-
 export function backendHttpOrigin(): string {
-  return BACKEND_URL;
+  // Read at call time: e2e/live imports backendWsOrigin, and import.meta.env is undefined outside Vite.
+  return import.meta.env.VITE_IMPULSE_BACKEND_URL || 'http://localhost:9045';
 }
 
-export function backendWsOrigin(): string {
-  return BACKEND_URL.replace(/^http/, 'ws');
+export function backendWsOrigin(httpOrigin: string): string {
+  return httpOrigin.replace(/^http/, 'ws');
+}
+
+export function backendUpdateWsOrigin(): string {
+  return import.meta.env.VITE_IMPULSE_UPDATE_WS || backendWsOrigin(backendHttpOrigin());
+}
+
+export function backendPoolWsOrigin(): string | undefined {
+  return import.meta.env.VITE_IMPULSE_POOL_WS || undefined;
 }
