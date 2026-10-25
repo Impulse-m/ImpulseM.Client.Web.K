@@ -28,6 +28,17 @@ describe('RealtimeWireObserver on the protobuf transport', () => {
     expect(wire.hasSubscribeAck('user:42')).toBe(true);
   });
 
+  it('records a protobuf publication with its envelope decoded from the JSON bytes it carries', () => {
+    const codec = protobufWireCodec();
+    const wire: RealtimeWireObserver = new RealtimeWireObserver();
+    const correlation = newSocketCorrelation();
+    const envelopeBytes: Uint8Array = new TextEncoder().encode(JSON.stringify({type: 3, data: 'presence'}));
+
+    wire.recordIncoming(codec.encodeReplies([{push: {channel: 'user:42', pub: {data: envelopeBytes}}}]), correlation);
+
+    expect(wire.publicationsOn('user:42').map((record) => record.envelope)).toEqual([{type: 3, data: 'presence'}]);
+  });
+
   it('records a protobuf subscribe error with its code and message', () => {
     const codec = protobufWireCodec();
     const wire: RealtimeWireObserver = new RealtimeWireObserver();

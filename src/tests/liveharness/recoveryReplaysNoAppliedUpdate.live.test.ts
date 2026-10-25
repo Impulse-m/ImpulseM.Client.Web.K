@@ -7,6 +7,8 @@ import {bootLiveManagerStack, LiveStack} from './managerStack';
 import {ephemeralPersona, Persona} from './personas';
 import {MinimalRpcSession, openMinimalRpcSession} from './rpcDriver';
 import {waitUntil} from './wait';
+import {protobufWireCodec} from './realtimeWire';
+import type {WireCodec} from './realtimeWire';
 
 
 /*
@@ -92,6 +94,7 @@ class ResubscribeWireRecorder {
   public readonly timeline: TimelineEvent[] = [];
 
   private wrappedWebSocket: any;
+  private readonly codec: WireCodec = protobufWireCodec();
 
 
   public install(): void {
@@ -112,7 +115,7 @@ class ResubscribeWireRecorder {
         const pendingSubscribes = new Map<number, string>();
 
         this.addEventListener('message', (event: any) => {
-          recorder.onIncoming(socket, rawFrameToString(event?.data), pendingSubscribes);
+          recorder.onIncoming(socket, event?.data, pendingSubscribes);
         });
         this.addEventListener('close', (event: any) => {
           socket.closedAtMs = Date.now();
@@ -121,7 +124,7 @@ class ResubscribeWireRecorder {
 
         const originalSend = this.send;
         this.send = function(data: any) {
-          recorder.onOutgoing(socket, rawFrameToString(data), pendingSubscribes);
+          recorder.onOutgoing(socket, data, pendingSubscribes);
           return originalSend.call(this, data);
         };
       }
@@ -163,8 +166,8 @@ class ResubscribeWireRecorder {
   }
 
 
-  private onOutgoing(socket: SocketRecord, frame: string | undefined, pendingSubscribes: Map<number, string>): void {
-    for(const command of parseFrameLines(frame)) {
+  private onOutgoing(socket: SocketRecord, frame: unknown, pendingSubscribes: Map<number, string>): void {
+    for(const command of this.codec.decodeCommands(frame)) {
       const subscribe = command?.subscribe;
       if(typeof command?.id !== 'number' || !subscribe?.channel) {
         continue;
@@ -182,8 +185,8 @@ class ResubscribeWireRecorder {
   }
 
 
-  private onIncoming(socket: SocketRecord, frame: string | undefined, pendingSubscribes: Map<number, string>): void {
-    for(const reply of parseFrameLines(frame)) {
+  private onIncoming(socket: SocketRecord, frame: unknown, pendingSubscribes: Map<number, string>): void {
+    for(const reply of this.codec.decodeReplies(frame)) {
       if(typeof reply?.id === 'number') {
         const channel = pendingSubscribes.get(reply.id);
         if(channel === undefined) {
@@ -232,46 +235,6 @@ class ResubscribeWireRecorder {
       }
     }
   }
-}
-
-
-function rawFrameToString(data: unknown): string | undefined {
-  if(typeof data === 'string') {
-    return data;
-  }
-
-  if(data instanceof ArrayBuffer) {
-    return Buffer.from(data).toString('utf8');
-  }
-
-  if(Buffer.isBuffer(data)) {
-    return data.toString('utf8');
-  }
-
-  return undefined;
-}
-
-
-function parseFrameLines(frame: string | undefined): any[] {
-  if(!frame) {
-    return [];
-  }
-
-  const parsed: any[] = [];
-  for(const line of frame.split('\n')) {
-    const trimmed = line.trim();
-    if(!trimmed) {
-      continue;
-    }
-
-    try {
-      parsed.push(JSON.parse(trimmed));
-    } catch{
-      // Not a Centrifugo JSON frame; the production client handles it on its own path.
-    }
-  }
-
-  return parsed;
 }
 
 

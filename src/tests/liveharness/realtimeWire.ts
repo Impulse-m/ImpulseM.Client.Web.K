@@ -45,6 +45,15 @@ export function protobufWireCodec(): WireCodec {
   return Reflect.get(client, '_codec');
 }
 
+// The protobuf codec delivers a publication's data as the UTF-8 JSON the server published, as the client reads it.
+function envelopeOf(raw: unknown): any {
+  if(ArrayBuffer.isView(raw)) {
+    return JSON.parse(new TextDecoder().decode(raw));
+  }
+
+  return raw;
+}
+
 // Command ids are per-connection in the Centrifugo protocol.
 export function newSocketCorrelation(): SocketCorrelation {
   return {pendingConnects: new Set<number>(), pendingSubscribes: new Map<number, string>()};
@@ -71,7 +80,7 @@ export type WireCommand = {
   id?: number,
   connect?: {token?: string},
   rpc?: {method?: string},
-  subscribe?: {channel?: string}
+  subscribe?: {channel?: string, recover?: boolean, offset?: unknown, epoch?: unknown}
 };
 
 
@@ -176,7 +185,7 @@ export class RealtimeWireObserver {
         if(reply.push.pub && reply.push.channel) {
           this.publications.push({
             channel: String(reply.push.channel),
-            envelope: reply.push.pub.data,
+            envelope: envelopeOf(reply.push.pub.data),
             receivedAtMs: Date.now()
           });
         }
