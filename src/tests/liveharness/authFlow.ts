@@ -1,8 +1,8 @@
 import type {LiveAccountSlot, LiveStack} from './managerStack';
-import {AuthMethod, signInWithReuseRetries} from './signInCore';
-import {Persona} from './personas';
-
-import {clearImpulseSession} from '@lib/impulse/session';
+import {liveLane} from './liveGate';
+import {ephemeralLastName, Persona} from './personas';
+import {claimFreshNumber} from './rpcDriver';
+import {AuthMethod, signInOnce} from './signInCore';
 
 
 /**
@@ -24,18 +24,21 @@ export type SignInTarget = Pick<LiveStack, 'managers' | 'helpers'> | LiveAccount
  * auth service returns auth.authorizationSignUpRequired for an unregistered phone — the
  * canonical Telegram success variant — so an ephemeral persona registers via auth.signUp on
  * first contact and signs in on every later one.
+ *
+ * The stack never signs in to an account that is not its persona's own new one: an ephemeral
+ * persona's number is probed over a throwaway socket first, and only then signed in on this stack.
  */
 export async function signInHeadless(stack: SignInTarget, persona: Persona): Promise<{userId: UserId}> {
   const apiManager = stack.managers.apiManager;
-  const auth: any = await signInWithReuseRetries(
+  if(persona.lastName === ephemeralLastName) {
+    // Every reserved number allows 3 codes an hour (backend src/ImpulseM.Sms.Common/Configuration/SmsAdmissionOptions.cs:42), and the probe plus the sign-in spend 2.
+    await claimFreshNumber(liveLane.gatewayOrigin, persona);
+  }
+
+  const auth: any = await signInOnce(
     (method: AuthMethod, params: any): Promise<any> => apiManager.invokeApi(method, params),
     persona,
-    stack.helpers.appConfig,
-    async(): Promise<void> => {
-      // The spent session is dropped here only: auth.logOut revokes it and the server closes its socket under the call,
-      // and the AUTH_KEY_UNREGISTERED that follows runs the app's one-shot apiManager.logOut, which wipes this stack.
-      await clearImpulseSession(await apiManager.getAccountNumber());
-    }
+    stack.helpers.appConfig
   );
 
   await apiManager.setUser(auth.user);

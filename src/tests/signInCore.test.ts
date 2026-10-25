@@ -5,10 +5,12 @@ import {
   answerTypeOf,
   AppCredentials,
   AuthInvoke,
+  findFreshNumber,
   isSendCodeReuseAnswer,
   isSignInReuseAnswer,
   isSignUpReuseAnswer,
   maxSignInAttempts,
+  signInOnce,
   signInWithReuseRetries
 } from './liveharness/signInCore';
 
@@ -46,6 +48,171 @@ describe('reuse answers that spend a number', () => {
   it('reads the canon type of an ApiError and nothing from a plain Error', () => {
     expect(answerTypeOf(apiError('FLOOD_WAIT_30'))).toBe('FLOOD_WAIT_30');
     expect(answerTypeOf(new Error('transport'))).toBeUndefined();
+  });
+});
+
+describe('the fresh-number probe against a stub transport', () => {
+  it('returns without signing up when the number is free, and abandons its attempt once', async() => {
+    const persona: Persona = ephemeralPersona('probe-free');
+    const abandon: () => Promise<void> = vi.fn(async(): Promise<void> => undefined);
+    const signUpPhones: string[] = [];
+    const invoke: AuthInvoke = async(method, params): Promise<any> => {
+      if(method === 'auth.sendCode') {
+        return {phone_code_hash: 'hash'};
+      }
+
+      if(method === 'auth.signIn') {
+        return {_: 'auth.authorizationSignUpRequired'};
+      }
+
+      signUpPhones.push(params.phone_number);
+
+      return {_: 'auth.authorization', user: {id: 5}};
+    };
+
+    await findFreshNumber(invoke, persona, app, abandon);
+
+    expect(signUpPhones).toEqual([]);
+    expect(abandon).toHaveBeenCalledTimes(1);
+  });
+
+  it('abandons an authorization, redraws, and probes the next number', async() => {
+    const persona: Persona = ephemeralPersona('probe-taken');
+    const takenPhone: string = persona.phone;
+    const abandon: () => Promise<void> = vi.fn(async(): Promise<void> => undefined);
+    const signInPhones: string[] = [];
+    const invoke: AuthInvoke = async(method, params): Promise<any> => {
+      if(method === 'auth.sendCode') {
+        return {phone_code_hash: 'hash'};
+      }
+
+      signInPhones.push(params.phone_number);
+
+      return params.phone_number === takenPhone
+        ? {_: 'auth.authorization', user: {id: 6}}
+        : {_: 'auth.authorizationSignUpRequired'};
+    };
+
+    await findFreshNumber(invoke, persona, app, abandon);
+
+    expect(abandon).toHaveBeenCalledTimes(2);
+    expect(persona.phone).not.toBe(takenPhone);
+    expect(signInPhones).toEqual([takenPhone, persona.phone]);
+  });
+
+  it('redraws on PHONE_NUMBER_FLOOD from sendCode and probes the next number', async() => {
+    const persona: Persona = ephemeralPersona('probe-flood');
+    const floodedPhone: string = persona.phone;
+    const abandon: () => Promise<void> = vi.fn(async(): Promise<void> => undefined);
+    const signInPhones: string[] = [];
+    const invoke: AuthInvoke = async(method, params): Promise<any> => {
+      if(method === 'auth.sendCode' && params.phone_number === floodedPhone) {
+        throw apiError('PHONE_NUMBER_FLOOD');
+      }
+
+      if(method === 'auth.sendCode') {
+        return {phone_code_hash: 'hash'};
+      }
+
+      signInPhones.push(params.phone_number);
+
+      return {_: 'auth.authorizationSignUpRequired'};
+    };
+
+    await findFreshNumber(invoke, persona, app, abandon);
+
+    expect(persona.phone).not.toBe(floodedPhone);
+    expect(signInPhones).toEqual([persona.phone]);
+    expect(abandon).toHaveBeenCalledTimes(1);
+  });
+
+  it('rethrows FLOOD_WAIT_30 from sendCode unchanged, without redrawing the number', async() => {
+    const persona: Persona = ephemeralPersona('probe-flood-wait');
+    const before: string = persona.phone;
+    const rejection: unknown = apiError('FLOOD_WAIT_30');
+    const abandon: () => Promise<void> = vi.fn(async(): Promise<void> => undefined);
+    const invoke: AuthInvoke = async(): Promise<any> => {
+      throw rejection;
+    };
+
+    const error: unknown = await findFreshNumber(invoke, persona, app, abandon).catch((err: unknown) => err);
+
+    expect(error).toBe(rejection);
+    expect(persona.phone).toBe(before);
+    expect(abandon).not.toHaveBeenCalled();
+  });
+
+  it('throws after 64 spent numbers, naming 64 numbers that were each tried', async() => {
+    const persona: Persona = ephemeralPersona('probe-exhaust');
+    const abandon: () => Promise<void> = vi.fn(async(): Promise<void> => undefined);
+    const sentPhones: string[] = [];
+    const invoke: AuthInvoke = async(method, params): Promise<any> => {
+      if(method === 'auth.sendCode') {
+        sentPhones.push(params.phone_number);
+
+        return {phone_code_hash: 'hash'};
+      }
+
+      return {_: 'auth.authorization', user: {id: 9}};
+    };
+
+    const error: unknown = await findFreshNumber(invoke, persona, app, abandon).catch((err: unknown) => err);
+
+    expect(error).toBeInstanceOf(Error);
+    const named: string[] = (error as Error).message.match(reservedNumberShape) ?? [];
+    expect(named).toHaveLength(64);
+    expect(new Set(named)).toEqual(new Set(sentPhones));
+    expect(sentPhones).toHaveLength(64);
+    expect(abandon).toHaveBeenCalledTimes(64);
+  });
+});
+
+describe('the single plain sign-in pass', () => {
+  it('throws the race error for an authorization on an ephemeral persona, and never signs up', async() => {
+    const persona: Persona = ephemeralPersona('plain-race');
+    const signUpPhones: string[] = [];
+    const invoke: AuthInvoke = async(method, params): Promise<any> => {
+      if(method === 'auth.sendCode') {
+        return {phone_code_hash: 'hash'};
+      }
+
+      if(method === 'auth.signIn') {
+        return {_: 'auth.authorization', user: {id: 7}};
+      }
+
+      signUpPhones.push(params.phone_number);
+
+      return {_: 'auth.authorization', user: {id: 7}};
+    };
+
+    const error: unknown = await signInOnce(invoke, persona, app).catch((err: unknown) => err);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toMatch(/already holds an account/);
+    expect(signUpPhones).toEqual([]);
+  });
+
+  it('signs up when signIn answers authorizationSignUpRequired', async() => {
+    const persona: Persona = ephemeralPersona('plain-signup');
+    const signUpPhones: string[] = [];
+    const invoke: AuthInvoke = async(method, params): Promise<any> => {
+      if(method === 'auth.sendCode') {
+        return {phone_code_hash: 'hash'};
+      }
+
+      if(method === 'auth.signIn') {
+        return {_: 'auth.authorizationSignUpRequired'};
+      }
+
+      signUpPhones.push(params.phone_number);
+
+      return {_: 'auth.authorization', user: {id: 8}};
+    };
+
+    const auth: any = await signInOnce(invoke, persona, app);
+
+    expect(signUpPhones).toEqual([persona.phone]);
+    expect(auth.user.id).toBe(8);
   });
 });
 
