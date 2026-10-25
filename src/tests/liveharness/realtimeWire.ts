@@ -36,7 +36,8 @@ export type WireCodec = {
 
 export type SocketCorrelation = {
   pendingConnects: Set<number>,
-  pendingSubscribes: Map<number, string>
+  pendingSubscribes: Map<number, string>,
+  socket: string
 };
 
 /** The protobuf codec of the SDK, which the build does not export: it is read off a client instance. */
@@ -56,7 +57,19 @@ function envelopeOf(raw: unknown): any {
 
 // Command ids are per-connection in the Centrifugo protocol.
 export function newSocketCorrelation(): SocketCorrelation {
-  return {pendingConnects: new Set<number>(), pendingSubscribes: new Map<number, string>()};
+  return {pendingConnects: new Set<number>(), pendingSubscribes: new Map<number, string>(), socket: 'unknown'};
+}
+
+// A socket is named by the subject of the token it connected with: an identity (i:...), an account's access
+// subject, or an anonymous pool connection that presented no token.
+function socketLabelOf(token: string): string {
+  if(!token) {
+    return 'anonymous';
+  }
+
+  const payload: {sub?: string} = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+  const subject: string = String(payload.sub);
+  return subject.startsWith('i:') ? `identity:${subject}` : `access:${subject}`;
 }
 
 export type SubscribeAck = {
@@ -73,7 +86,8 @@ export type PublicationRecord = {
 
 export type SocketClose = {
   code?: number,
-  reason?: string
+  reason?: string,
+  socket: string
 };
 
 export type WireCommand = {
@@ -119,7 +133,7 @@ export class RealtimeWireObserver {
           observer.recordIncoming(event?.data, correlation);
         });
         this.addEventListener('close', (event: any) => {
-          observer.closes.push({code: event?.code, reason: event?.reason});
+          observer.recordClose({code: event?.code, reason: event?.reason}, correlation);
         });
 
         const originalSend = this.send;
@@ -169,12 +183,18 @@ export class RealtimeWireObserver {
       this.commands.push({endpoint, command});
       if(command.connect) {
         correlation.pendingConnects.add(command.id);
+        correlation.socket = socketLabelOf(command.connect.token ?? '');
       }
 
       if(command.subscribe?.channel) {
         correlation.pendingSubscribes.set(command.id, String(command.subscribe.channel));
       }
     }
+  }
+
+
+  public recordClose(event: {code?: number, reason?: string}, correlation: SocketCorrelation): void {
+    this.closes.push({code: event.code, reason: event.reason, socket: correlation.socket});
   }
 
 
