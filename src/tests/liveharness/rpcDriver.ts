@@ -26,7 +26,8 @@ import {findFreshNumber, signInWithReuseRetries} from './signInCore';
 export type MinimalRpcSession = {
   persona: Persona,
   userId: string,
-  invoke(method: string, params?: any): Promise<any>
+  invoke(method: string, params?: any): Promise<any>,
+  close(): void
 };
 
 type DriverSocket = {
@@ -65,7 +66,8 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
     return {
       persona,
       userId: socket.identity.userId,
-      invoke: socket.invoke
+      invoke: socket.invoke,
+      close: socket.close
     };
   } catch(err: unknown) {
     socket.close();

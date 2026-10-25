@@ -12,7 +12,7 @@ import {describeLive, liveLane} from './liveGate';
 import {bootLiveManagerStack, LiveStack} from './managerStack';
 import {ephemeralPersona, Persona} from './personas';
 import {AnonymousRpcSession, claimFreshNumber, openAnonymousRpcSession, openMinimalRpcSession, MinimalRpcSession} from './rpcDriver';
-import {AuthMethod, signInOnce} from './signInCore';
+import {signInHeadless} from './authFlow';
 
 
 type AuthorizationRow = Authorization.authorization;
@@ -47,6 +47,7 @@ describeLive('a new login is confirmed from a session that is itself unconfirmed
   afterAll(async() => {
     rejections.uninstall();
     newLogin?.close();
+    first?.close();
     await approver?.dispose();
   });
 
@@ -58,14 +59,8 @@ describeLive('a new login is confirmed from a session that is itself unconfirmed
     // signInOnce refuses an account found under an ephemeral persona, so B signs in under the same number with another last name.
     const approverPersona: Persona = {...persona, lastName: 'Approver'};
     approver = await bootLiveManagerStack(liveLane.gatewayOrigin);
-    const approverApi: any = approver.managers.apiManager;
-    const approverAuth: any = await signInOnce(
-      (method: AuthMethod, params: any): Promise<any> => approverApi.invokeApi(method, params),
-      approverPersona,
-      approver.helpers.appConfig
-    );
-    await approverApi.setUser(approverAuth.user);
-    expect(String(approverAuth.user.id), 'the approver must sign in to the same account as A').toBe(first.userId);
+    const {userId: approverUserId} = await signInHeadless(approver, approverPersona);
+    expect(String(approverUserId), 'the approver must sign in to the same account as A').toBe(first.userId);
 
     const app = approver.helpers.appConfig;
     newLogin = openAnonymousRpcSession(liveLane.gatewayOrigin);
@@ -78,7 +73,7 @@ describeLive('a new login is confirmed from a session that is itself unconfirmed
       throw new Error(`auth.exportLoginToken answered ${exported._}, not an unaccepted login token`);
     }
 
-    const accepted: AuthorizationRow = await approverApi.invokeApi('auth.acceptLoginToken', {token: exported.token});
+    const accepted: AuthorizationRow = await approver.managers.apiManager.invokeApi('auth.acceptLoginToken', {token: exported.token});
     const newLoginHash: string = String(accepted.hash);
 
     const beforeRows: AuthorizationRow[] = (await first.invoke('account.getAuthorizations', {})).authorizations;
@@ -97,6 +92,7 @@ describeLive('a new login is confirmed from a session that is itself unconfirmed
     const approverHash: string = String(approverBefore.hash);
     expect(approverBefore.pFlags.unconfirmed, 'the approver session must be unconfirmed for this scenario to prove anything').toBe(true);
 
+    // The client holds the prompt back on a session younger than FRESH_AUTHORIZATION_PERIOD (appAccountManager.ts:221-224), and B signed in just now: the hash comes from the session list.
     const confirmed: boolean = await approver.managers.appAccountManager.confirmUnconfirmedAuthorization(newLoginHash);
     expect(confirmed, 'Yes from an unconfirmed session must confirm the new login (api/auth.md:937-949)').toBe(true);
 
