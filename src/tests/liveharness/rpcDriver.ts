@@ -2,7 +2,8 @@ import {liveLane} from './liveGate';
 import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
 
 import {socketUrlOf} from '../../../e2e/live/carriers';
-import {loginCodeFor, Persona} from './personas';
+import {answerTypeOf, isSendCodeReuseAnswer, isSignUpReuseAnswer, maxSignInAttempts, SignInPass} from './authFlow';
+import {ephemeralLastName, loginCodeFor, Persona, redrawAfterReuse} from './personas';
 
 
 /*
@@ -86,52 +87,117 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
   // The same auth sequence the client's login page drives (see ./authFlow.ts), issued
   // through this driver's own socket so the primary stack's identity stays untouched.
   const app = (await import('@config/app')).default;
+  const mustBeNew: boolean = persona.lastName === ephemeralLastName;
+  const attemptLimit: number = mustBeNew ? maxSignInAttempts : 1;
+  const tried: string[] = [];
 
-  const sentCode = await invoke('auth.sendCode', {
-    phone_number: persona.phone,
-    api_id: app.id,
-    api_hash: app.hash,
-    settings: {_: 'codeSettings', pFlags: {}}
-  });
+  const sessionTokenOf = (auth: any): string => {
+    if(typeof auth.session_token !== 'string' || !auth.session_token) {
+      throw new Error(
+        'minimal RPC session: auth.authorization carried no session_token — every later call of this ' +
+        'driver would travel unauthenticated'
+      );
+    }
 
-  if(!sentCode?.phone_code_hash) {
-    throw new Error(
-      `minimal RPC session: auth.sendCode returned no phone_code_hash (got ${JSON.stringify(sentCode?._)}) — ` +
-      `is the dev stack up, and is "${persona.phone}" still a number of canon's reserved test ` +
-      'block? The code is derived from the number itself (personas.ts), not configured.'
-    );
-  }
+    return auth.session_token;
+  };
 
-  let auth = await invoke('auth.signIn', {
-    phone_number: persona.phone,
-    phone_code_hash: sentCode.phone_code_hash,
-    phone_code: loginCodeFor(persona)
-  });
+  const signOutSession = async(sessionToken: string): Promise<void> => {
+    identity.sessionToken = sessionToken;
+    try {
+      await invoke('auth.logOut', {});
+    } finally {
+      identity.sessionToken = undefined;
+    }
+  };
 
-  if(auth?._ === 'auth.authorizationSignUpRequired') {
-    auth = await invoke('auth.signUp', {
+  const signInPass = async(): Promise<SignInPass> => {
+    let sentCode: any;
+    try {
+      sentCode = await invoke('auth.sendCode', {
+        phone_number: persona.phone,
+        api_id: app.id,
+        api_hash: app.hash,
+        settings: {_: 'codeSettings', pFlags: {}}
+      });
+    } catch(err: unknown) {
+      const type: string | undefined = answerTypeOf(err);
+      if(mustBeNew && isSendCodeReuseAnswer(type)) {
+        return {kind: 'spent', answer: `auth.sendCode ${type}`};
+      }
+
+      throw err;
+    }
+
+    if(!sentCode?.phone_code_hash) {
+      throw new Error(
+        `minimal RPC session: auth.sendCode returned no phone_code_hash (got ${JSON.stringify(sentCode?._)}) — ` +
+        `is the dev stack up, and is "${persona.phone}" still a number of canon's reserved test ` +
+        'block? The code is derived from the number itself (personas.ts), not configured.'
+      );
+    }
+
+    let auth: any = await invoke('auth.signIn', {
       phone_number: persona.phone,
       phone_code_hash: sentCode.phone_code_hash,
-      first_name: persona.firstName,
-      last_name: persona.lastName
+      phone_code: loginCodeFor(persona)
     });
+
+    if(auth?._ === 'auth.authorization' && mustBeNew) {
+      await signOutSession(sessionTokenOf(auth));
+
+      return {kind: 'spent', answer: 'auth.signIn auth.authorization'};
+    }
+
+    if(auth?._ === 'auth.authorizationSignUpRequired') {
+      try {
+        auth = await invoke('auth.signUp', {
+          phone_number: persona.phone,
+          phone_code_hash: sentCode.phone_code_hash,
+          first_name: persona.firstName,
+          last_name: persona.lastName
+        });
+      } catch(err: unknown) {
+        const type: string | undefined = answerTypeOf(err);
+        if(mustBeNew && isSignUpReuseAnswer(type)) {
+          return {kind: 'spent', answer: `auth.signUp ${type}`};
+        }
+
+        throw err;
+      }
+    }
+
+    if(auth?._ !== 'auth.authorization') {
+      throw new Error(
+        `minimal RPC session: auth flow did not end in auth.authorization (got ${JSON.stringify(auth?._)})`
+      );
+    }
+
+    return {kind: 'signedIn', auth};
+  };
+
+  let signedIn: any = undefined;
+  for(let attempt: number = 1; attempt <= attemptLimit; ++attempt) {
+    const phoneTried: string = persona.phone;
+    const pass: SignInPass = await signInPass();
+    if(pass.kind === 'signedIn') {
+      signedIn = pass.auth;
+      break;
+    }
+
+    tried.push(`${phoneTried}: ${pass.answer}`);
+    redrawAfterReuse(persona);
   }
 
-  if(auth?._ !== 'auth.authorization') {
+  if(signedIn === undefined) {
     throw new Error(
-      `minimal RPC session: auth flow did not end in auth.authorization (got ${JSON.stringify(auth?._)})`
+      `minimal RPC session: no number drawn from canon's reserved test block took a new account in ` +
+      `${attemptLimit} attempts. Tried: ${tried.join('; ')}`
     );
   }
 
-  if(typeof auth.session_token !== 'string' || !auth.session_token) {
-    throw new Error(
-      'minimal RPC session: auth.authorization carried no session_token — every later call of this ' +
-      'driver would travel unauthenticated'
-    );
-  }
-
-  identity.userId = String(auth.user.id);
-  identity.sessionToken = auth.session_token;
+  identity.userId = String(signedIn.user.id);
+  identity.sessionToken = sessionTokenOf(signedIn);
 
   return {
     persona,
