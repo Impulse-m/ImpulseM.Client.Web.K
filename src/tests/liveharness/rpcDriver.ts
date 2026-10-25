@@ -36,12 +36,13 @@ export async function openMinimalRpcSession(gatewayOrigin: string, persona: Pers
   let socketToken: string | undefined;
 
   const mintIdentity = async(): Promise<string> => {
-    const [{create, fromBinary, toBinary}, {callPool}, schemas] = await Promise.all([
+    const [{fromBinary}, {callPool}, {connectionIdentityRequest}, schemas] = await Promise.all([
       import('@bufbuild/protobuf'),
       import('@lib/impulse/fleet/fleet'),
+      import('@lib/impulse/identity'),
       import('@lib/impulse/grpc/gen/v1/internal/impulse/auth/auth_service_pb')
     ]);
-    const request: Uint8Array = toBinary(schemas.ConnectionIdentityRequestSchema, create(schemas.ConnectionIdentityRequestSchema));
+    const request: Uint8Array = connectionIdentityRequest('');
     const reply: Uint8Array = await callPool({accountNumber: 1, method: 'connectionIdentity', request});
     return fromBinary(schemas.ConnectionIdentityResponseSchema, reply).identityToken;
   };

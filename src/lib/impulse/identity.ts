@@ -71,7 +71,7 @@ export function identityTokenFor(account: ActiveAccountNumber): Promise<string> 
   const mint: Promise<string> = callPool({
     accountNumber: account,
     method: CONNECTION_IDENTITY_METHOD,
-    request: identityRequest('')
+    request: connectionIdentityRequest('')
   }).then((reply: Uint8Array): string => {
     if(slot.epoch !== epoch) {
       throw new UnauthorizedError('Identity was discarded during mint');
@@ -88,7 +88,7 @@ export function identityTokenFor(account: ActiveAccountNumber): Promise<string> 
   return mint;
 }
 
-function identityRequest(token: string): Uint8Array {
+export function connectionIdentityRequest(token: string): Uint8Array {
   return toBinary(ConnectionIdentityRequestSchema, create(ConnectionIdentityRequestSchema, {
     identityToken: token,
     apiId: App.id
@@ -122,7 +122,7 @@ async function renewIdentity(account: ActiveAccountNumber): Promise<void | boole
     const reply: Uint8Array = await callUpdateSocket({
       accountNumber: account,
       method: CONNECTION_IDENTITY_METHOD,
-      request: identityRequest(current.token)
+      request: connectionIdentityRequest(current.token)
     });
     if(slot.epoch !== epoch || slot.value !== current) {
       return;
