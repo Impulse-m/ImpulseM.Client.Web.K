@@ -17,6 +17,7 @@ const POOL_CALL_TIMEOUT_MS: number = 30_000;
 const MEDIA_INFLIGHT_PER_CONNECTION: number = 2;
 const MEDIA_CONNECTIONS_PER_ENDPOINT: number = 3;
 const MEDIA_WINDOW: number = MEDIA_CONNECTIONS_PER_ENDPOINT * MEDIA_INFLIGHT_PER_CONNECTION;
+const MEDIA_POOL_RESENDS: number = 2;
 const POOL_INFLIGHT_PER_CONNECTION: number = 1;
 const POOL_CONNECTIONS_PER_ENDPOINT: number = 1;
 const MAX_QUEUED_CALLS_PER_POOL: number = 64;
@@ -249,6 +250,7 @@ function laneFor(fleet: AccountFleet, target: LaneTarget, identity: FleetIdentit
       inflightPerConnection: isMedia ? MEDIA_INFLIGHT_PER_CONNECTION : POOL_INFLIGHT_PER_CONNECTION,
       queuedCalls: MAX_QUEUED_CALLS_PER_POOL,
       localWindow: isMedia ? MEDIA_WINDOW : undefined,
+      resends: isMedia ? MEDIA_POOL_RESENDS : undefined,
       getToken: identity?.getToken
     });
     fleet.lanes.set(key, lane);

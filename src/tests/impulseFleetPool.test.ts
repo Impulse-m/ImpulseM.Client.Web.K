@@ -39,6 +39,7 @@ const MEDIA_CALL_TIMEOUT_MS: number = 40_000;
 const MEDIA_CONNECTIONS_PER_ENDPOINT: number = 3;
 const MEDIA_INFLIGHT_PER_CONNECTION: number = 2;
 const MEDIA_SERVER_CLIENT_CONCURRENCY: number = 3;
+const MEDIA_POOL_RESENDS: number = 2;
 
 const IDENTITY: FleetIdentity = {kind: 'identity', key: 'identity:0', getToken: async(): Promise<string> => IDENTITY_TOKEN};
 
@@ -358,5 +359,15 @@ describe('the media pool is sized to the server rule', () => {
     await callMediaFleet(fileCall());
 
     expect(fleetHarness.pools[0].options.connection.timeout, 'a call queued in the local window does not spend its deadline').toBe(MEDIA_CALL_TIMEOUT_MS);
+  });
+
+  it('the media pool resends a call twice, and the pool lane keeps the SDK default of resends', async() => {
+    fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
+    await callMediaFleet(fileCall());
+    fleetHarness.respondOnce(CONNECTION_IDENTITY_METHOD, () => ({data: REPLY_BYTES}));
+    await callPool(poolCall());
+
+    expect(fleetHarness.pools[0].options.retries, 'the media pool resends a call twice, not the SDK default of 3').toBe(MEDIA_POOL_RESENDS);
+    expect(fleetHarness.pools[1].options.retries, 'the pool lane passes no resends and keeps the SDK default').toBeUndefined();
   });
 });

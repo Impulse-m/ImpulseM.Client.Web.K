@@ -42,6 +42,7 @@ import insertInDescendSortedArray from '@helpers/array/insertInDescendSortedArra
 import {ActiveAccountNumber} from '@lib/accounts/types';
 import assumeType from '@helpers/assumeType';
 import pause from '@helpers/schedulers/pause';
+import {MAX_UPLOAD_FILE_PART_SIZE} from '@config/fileParts';
 
 export type DownloadOptions = {
   dcId: DcId,
@@ -84,9 +85,7 @@ export type MyUploadFile = UploadFile.uploadFile | UploadWebFile.uploadWebFile;
 const DO_NOT_UPLOAD_FILES = false;
 const PREPARE_CACHE = false;
 
-export const MAX_UPLOAD_FILE_PART_SIZE = 512 * 1024;
 const MIN_PART_SIZE = 64 * 1024;
-const AVG_PART_SIZE = 512 * 1024;
 const TGS_MAX_DECOMPRESSED_SIZE = 8 * 1024 * 1024;
 // .tgv is a gzipped SVG wallpaper pattern — a few hundred KB in practice. Without a
 // cap a sender-supplied gzip bomb (deflate reaches ~1032:1) expands unbounded inside
@@ -537,7 +536,7 @@ export class ApiFileManager extends AppManager {
 
   private getLimitPart(size: number): number {
     if(!size) { // * sometimes size can be 0 (e.g. avatars, webDocuments)
-      return AVG_PART_SIZE;
+      return MAX_UPLOAD_FILE_PART_SIZE;
     }
 
     return Math.min(size, MAX_UPLOAD_FILE_PART_SIZE);

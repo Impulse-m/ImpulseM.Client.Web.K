@@ -1,11 +1,13 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import {isTransientError} from '@appManagers/utils/transientRetry';
 import {callMediaFleet, resetFleetIdentity, setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
 import type {FleetCall, FleetIdentity} from '@lib/impulse/fleet/fleet';
+import {isApiError} from '@lib/impulse/fleet/fleetError';
 import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
 import {installFakeRpcSocket} from './helpers/fakeRpcSocket';
-import type {FakeRpcSocketServer, ReceivedRpc} from './helpers/fakeRpcSocket';
+import type {FakeRpcSocketServer, ReceivedRpc, RpcError} from './helpers/fakeRpcSocket';
 
 const warn = vi.hoisted(() => vi.fn());
 
@@ -31,6 +33,7 @@ const WINDOW_REPLY_DELAY_MS: number = 150;
 const WINDOW_CALL_COUNT: number = 30;
 const SCENARIO_TIMEOUT_MS: number = 60_000;
 const IDENTITY_TOKEN: string = 'identity-token-current';
+const TEMPORARY_ERROR_CODE: number = 500;
 
 const IDENTITY: FleetIdentity = {kind: 'identity', key: 'identity:0', getToken: async(): Promise<string> => IDENTITY_TOKEN};
 
@@ -182,5 +185,27 @@ describe('the media window of the real SDK pool', () => {
     const outcomes = await Promise.allSettled(calls);
     expect(rejectionsOf(outcomes), 'the calls queued on the retired lane are answered before it closes').toEqual([]);
     expect(server.received, 'every queued call reaches the fleet').toHaveLength(WINDOW_CALL_COUNT);
+  }, SCENARIO_TIMEOUT_MS);
+});
+
+describe('a temporary error of the real SDK pool is a transient failure', () => {
+  it('a reply that carries temporary: true rejects the call with an ApiError the transient retry takes', async() => {
+    const server: FakeRpcSocketServer = installFakeRpcSocket(
+      (): number => REPLY_DELAY_MS,
+      (): RpcError => ({code: TEMPORARY_ERROR_CODE, message: 'temporarily unavailable', temporary: true})
+    );
+    socketServer = server;
+
+    const error: unknown = await callMediaFleet(saveFilePartCall()).catch((reason: unknown): unknown => reason);
+
+    expect(isApiError(error), 'the rejection of the call is an ApiError').toBe(true);
+    expect(
+      (error as ApiError).originalError,
+      'the ApiError keeps the SDK error, and the SDK error still says it is temporary'
+    ).toMatchObject({temporary: true});
+    expect(
+      isTransientError(error as ApiError),
+      'a temporary error is retried by the transient retry, whatever its code'
+    ).toBe(true);
   }, SCENARIO_TIMEOUT_MS);
 });

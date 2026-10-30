@@ -212,7 +212,7 @@ describe('invokeWithTransientRetry wraps only the media-lane file methods', () =
   });
 });
 
-describe('invokeWithTransientRetry retries a media-lane part through the SDK pool', () => {
+describe('invokeWithTransientRetry retries a media-lane part through a stubbed SDK pool', () => {
   const fleetHarness = sharedFleetPoolHarness();
   const socketHarness = sharedUpdateSocketHarness();
 

@@ -1,11 +1,5 @@
 import {Centrifuge} from '@impulsem/centrifuge/build/protobuf';
 
-/*
- * An in-process Centrifugo socket for the SDK's real RpcPool. It answers the connect command at once, and each rpc command
- * with a successful reply after the delay the test gives for it, speaking the SDK's own protobuf codec. The fleet lane builds
- * its pool without a socket option, so the SDK reads the socket from globalThis.WebSocket: installFakeRpcSocket replaces it.
- */
-
 const CODEC_HOST_URL: string = 'wss://codec.invalid/connection/websocket';
 const FAKE_CLIENT_ID: string = 'fake-centrifugo-client';
 const FAKE_CLIENT_VERSION: string = '1';
@@ -20,8 +14,17 @@ export type ReceivedRpc = {
   repliedAt?: number
 };
 
+export type RpcError = {
+  code: number,
+  message: string,
+  temporary: boolean
+};
+
+export type RpcErrorOf = (method: string) => RpcError | undefined;
+
 export type FakeRpcSocketServer = {
   replyDelayMs: RpcReplyDelay,
+  replyErrorOf: RpcErrorOf,
   received: ReceivedRpc[],
   restore: () => void
 };
@@ -35,7 +38,8 @@ type WireCommand = {
 type WireReply = {
   id: number,
   connect?: {client: string, version: string},
-  rpc?: {data: Uint8Array}
+  rpc?: {data: Uint8Array},
+  error?: RpcError
 };
 
 type ProtobufCodec = {
@@ -52,7 +56,6 @@ const codec: ProtobufCodec = (new Centrifuge(CODEC_HOST_URL, {}) as unknown as P
 let activeServer: FakeRpcSocketServer | undefined;
 let socketsOpened: number = 0;
 
-// The SDK's decoder leaves the fields of the other commands null, not undefined.
 function isSet(field: unknown): boolean {
   return field !== undefined && field !== null;
 }
@@ -100,7 +103,11 @@ class FakeRpcSocket {
       const received: ReceivedRpc = {method: command.rpc.method, arrivedAt: Date.now(), socketIndex: this.index};
       server.received.push(received);
       const rpcNumber: number = server.received.length;
-      this.deliver(server.replyDelayMs(rpcNumber), {id: command.id, rpc: {data: REPLY_DATA}}, received);
+      const replyError: RpcError | undefined = server.replyErrorOf(command.rpc.method);
+      const reply: WireReply = replyError === undefined
+        ? {id: command.id, rpc: {data: REPLY_DATA}}
+        : {id: command.id, error: replyError};
+      this.deliver(server.replyDelayMs(rpcNumber), reply, received);
     }
   }
 
@@ -116,10 +123,13 @@ class FakeRpcSocket {
   }
 }
 
-export function installFakeRpcSocket(replyDelayMs: RpcReplyDelay): FakeRpcSocketServer {
+const noReplyError: RpcErrorOf = (): undefined => undefined;
+
+export function installFakeRpcSocket(replyDelayMs: RpcReplyDelay, replyErrorOf: RpcErrorOf = noReplyError): FakeRpcSocketServer {
   const originalDescriptor: PropertyDescriptor | undefined = Object.getOwnPropertyDescriptor(globalThis, 'WebSocket');
   const server: FakeRpcSocketServer = {
     replyDelayMs,
+    replyErrorOf,
     received: [],
     restore: (): void => {
       activeServer = undefined;

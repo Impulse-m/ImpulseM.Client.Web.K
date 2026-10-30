@@ -1,6 +1,6 @@
 import {MAX_EDITABLE_VIDEO_SIZE} from '@components/mediaEditor/support';
 import getFileMimeType from '@helpers/files/getFileMimeType';
-import {MAX_UPLOAD_FILE_PART_SIZE} from '@appManagers/apiFileManager';
+import {MAX_UPLOAD_FILE_PART_SIZE} from '@config/fileParts';
 import apiManagerProxy from '@lib/apiManagerProxy';
 import rootScope from '@lib/rootScope';
 

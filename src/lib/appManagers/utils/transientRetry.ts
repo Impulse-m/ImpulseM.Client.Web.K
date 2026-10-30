@@ -2,7 +2,7 @@ import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 
 import {getFloodWaitTime} from '@appManagers/utils/getFloodWaitTime';
 import pause from '@helpers/schedulers/pause';
-import {TOKEN_EXPIRED_CODE} from '@lib/impulse/centrifugoCodes';
+import {OVERLOADED_CODE, TOKEN_EXPIRED_CODE} from '@lib/impulse/centrifugoCodes';
 import {isApiError, isFleetRpcError} from '@lib/impulse/fleet/fleetError';
 import {routesToMediaFleet} from '@lib/impulse/fleet/fleetRoute';
 import {CONNECTION_NOT_INITED} from '@lib/impulse/session';
@@ -15,7 +15,6 @@ const BACKOFF_GROWTH: number = 2;
 const BACKOFF_CAP_MS: number = 8_000;
 const FLOOD_WAIT_CAP_MS: number = 60_000;
 const MS_PER_SECOND: number = 1_000;
-const OVERLOADED_CODE: number = 111;
 const TRANSIENT_SDK_CODES: ReadonlySet<number> = new Set<number>([
   errorCodes.timeout,
   errorCodes.transportClosed,

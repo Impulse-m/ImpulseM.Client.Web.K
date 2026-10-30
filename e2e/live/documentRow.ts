@@ -257,7 +257,7 @@ const refusalMarker = 'be played on ImpulseM Web';
  */
 export async function attachAsFileThroughUi(
   session: PersonaSession,
-  files: MediaPayload[],
+  files: MediaPayload[] | string[],
   settleTimeoutMs = 120_000
 ): Promise<void> {
   const page = session.page;

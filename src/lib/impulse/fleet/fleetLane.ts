@@ -12,7 +12,8 @@ type FleetPoolOptions = {
   connection: {getToken?: () => Promise<string>, timeout: number},
   maxConnectionsPerEndpoint: number,
   maxInflightPerConnection: number,
-  maxQueued: number
+  maxQueued: number,
+  retries?: number
 };
 
 export type FleetPoolReply = {data?: Uint8Array};
@@ -40,6 +41,7 @@ type FleetLaneOptions = {
   inflightPerConnection: number,
   queuedCalls: number,
   localWindow: number | undefined,
+  resends: number | undefined,
   getToken: (() => Promise<string>) | undefined
 };
 
@@ -59,7 +61,7 @@ export class FleetLane {
     this.kind = options.kind;
     this.endpoint = options.endpoint;
     this.localQueue = options.localWindow === undefined ? undefined : new ConcurrentTaskQueue(options.localWindow);
-    this.pool = new RpcPool({
+    const poolOptions: FleetPoolOptions = {
       endpoints: (): string[] => [options.endpoint],
       connection: options.getToken === undefined
         ? {timeout: options.timeoutMs}
@@ -67,7 +69,11 @@ export class FleetLane {
       maxConnectionsPerEndpoint: options.connectionsPerEndpoint,
       maxInflightPerConnection: options.inflightPerConnection,
       maxQueued: options.queuedCalls
-    });
+    };
+    if(options.resends !== undefined) {
+      poolOptions.retries = options.resends;
+    }
+    this.pool = new RpcPool(poolOptions);
     this.drain = new Drainable((): void => {
       this.pool.close();
     });

@@ -1,4 +1,5 @@
 import {createHash, randomBytes} from 'crypto';
+import {writeFileSync} from 'fs';
 
 import {expect, test} from '@playwright/test';
 
@@ -63,9 +64,13 @@ async function waitForCompleteOwnRow(session: PersonaSession): Promise<void> {
   await expect(documentRow(session.page, ownDocumentRow)).toBeVisible();
 }
 
-async function sendAndMeasure(session: PersonaSession, payload: MediaPayload): Promise<TransferResult> {
+async function sendAndMeasure(
+  session: PersonaSession,
+  payload: MediaPayload,
+  files: MediaPayload[] | string[] = [payload]
+): Promise<TransferResult> {
   const startedAt = Date.now();
-  await attachAsFileThroughUi(session, [payload], transferSettleTimeoutMs);
+  await attachAsFileThroughUi(session, files, transferSettleTimeoutMs);
   await waitForCompleteOwnRow(session).catch((error: Error) => {
     throw new Error(
       `${payload.name} (${payload.buffer.length} bytes) never became a complete file row on the sender's page; ` +
@@ -106,7 +111,9 @@ test('a 20 MiB and a 100 MiB document sent to Saved Messages complete, and the 2
     const smallSha256: string = sha256Hex(smallPayload.buffer);
 
     await sendAndMeasure(session, smallPayload);
-    await sendAndMeasure(session, largePayload);
+    const largePath: string = testInfo.outputPath(largeName);
+    writeFileSync(largePath, largePayload.buffer);
+    await sendAndMeasure(session, largePayload, [largePath]);
 
     const downloadStartedAt: number = Date.now();
     const received: {size: number, sha256: string} = await downloadedDigest(session, smallName);
