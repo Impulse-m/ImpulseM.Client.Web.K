@@ -26,7 +26,7 @@ import {getLogger} from '@lib/impulseLogger';
 import makeError from '@helpers/makeError';
 import type {TabState} from '@lib/apiManagerProxy';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {isTokenRefusalCode, TOKEN_EXPIRED_CODE} from './centrifugoCodes';
+import {isTokenRefusalCode, OVERLOADED_CODE, TOKEN_EXPIRED_CODE} from './centrifugoCodes';
 import {countSocketCall, fleetFailure, fleetIdentityOf} from './fleet/fleet';
 import type {FleetIdentity} from './fleet/fleet';
 import {Drainable} from './fleet/drainable';
@@ -241,7 +241,7 @@ async function sendSocketRpc(socket: UpdateSocket, call: UpdateSocketCall): Prom
   try {
     return await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
   } catch(error: unknown) {
-    if(socket.identity.kind !== 'identity' || !isFleetRpcError(error) || error.code !== 111) {
+    if(socket.identity.kind !== 'identity' || !isFleetRpcError(error) || error.code !== OVERLOADED_CODE) {
       throw error;
     }
     const seconds: number = Number(error.metadata?.['x-centrifugo-retry-after'] ?? 1);

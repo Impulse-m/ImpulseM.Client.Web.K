@@ -53,6 +53,7 @@ import TempAuthKeys from '@lib/mtproto/tempAuthKeys';
 import globalRootScope from '@lib/rootScope';
 import RepayRequestHandler from '@appManagers/utils/repayRequestHandler';
 import {isNotModifiedError, makeApiNotModified} from '@appManagers/utils/apiNotModified';
+import {invokeWithTransientRetry} from '@appManagers/utils/transientRetry';
 
 const PREMIUM_FILE_NETWORKERS_COUNT = 6;
 const REGULAR_FILE_NETWORKERS_COUNT = 3;
@@ -839,7 +840,7 @@ export class ApiManager extends ApiManagerMethods {
       // deferred.resolve/reject read `this`, so they must be called on the deferred
       // rather than passed as bare references — an unbound resolve throws inside the
       // promise chain and the deferred never settles.
-      grpcInvoke(method, params, this.getAccountNumber()).then(
+      invokeWithTransientRetry(method, () => grpcInvoke(method, params, this.getAccountNumber())).then(
         (result) => deferred.resolve(result),
         (error: ApiError) => {
           rejectPromise(error).then(
