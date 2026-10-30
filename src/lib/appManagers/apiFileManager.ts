@@ -924,7 +924,7 @@ export class ApiFileManager extends AppManager {
       let _writePromise: CancellablePromise<void> = Promise.resolve(),
         _offset = 0;
       const superpuper = async() => {
-        if(_offset && _offset > size) {
+        if(_offset > 0 && _offset >= size) {
           return;
         }
 
@@ -978,6 +978,9 @@ export class ApiFileManager extends AppManager {
             await Promise.all(prepared.map(({writer}) => writer?.write(bytes, offset)));
             checkCancel();
             downloadId && log('write time', performance.now() - perf, 'request time', requestTime, 'queue time', writeQueueTime);
+          } else {
+            await writePromise;
+            checkCancel();
           }
 
           if(isFinal) {
