@@ -30,6 +30,8 @@ export type LiveLane = {
   enabled: boolean,
   /** The origin the client bundle's fleets and update socket point at. */
   gatewayOrigin: string,
+  /** The loopback test pool the bundle's pool fleet points at; empty disables it. */
+  poolWsOrigin: string,
   skipReason: string
 };
 
@@ -44,11 +46,13 @@ export const clientPort = 8199;
 export function resolveLiveLane(): LiveLane {
   const marker = process.env.IMPULSE_LIVE_GATEWAY;
   const gatewayOrigin = process.env.IMPULSE_LIVE_WS_GATEWAY || 'http://localhost:5100';
+  const poolWsOrigin: string = process.env.IMPULSE_LIVE_POOL_WS ?? 'ws://localhost:5312';
 
   if(!marker) {
     return {
       enabled: false,
       gatewayOrigin,
+      poolWsOrigin,
       skipReason: 'IMPULSE_LIVE_GATEWAY is not set — the B2 lane drives the REAL built web client ' +
         'in a real browser against the LIVE dev backend and cannot run without one. Start the stack ' +
         '(scripts/dev-up.ps1 in the backend repo) and run: ' +
@@ -56,7 +60,7 @@ export function resolveLiveLane(): LiveLane {
     };
   }
 
-  return {enabled: true, gatewayOrigin, skipReason: ''};
+  return {enabled: true, gatewayOrigin, poolWsOrigin, skipReason: ''};
 }
 
 
