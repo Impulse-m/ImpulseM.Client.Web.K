@@ -1,5 +1,6 @@
 import showPickUserPopup from '@components/popups/pickUser';
 import showSendGiftPopup from '@components/popups/sendGift';
+import {giftsBlocked} from '@stores/appState';
 
 type PickUserOptions = Parameters<typeof showPickUserPopup>[0];
 
@@ -9,6 +10,10 @@ type PickUserOptions = Parameters<typeof showPickUserPopup>[0];
  * pass only what is their own (the birthdays it puts on top, for instance).
  */
 export default function showSendGiftPicker(options?: Partial<PickUserOptions>) {
+  if(giftsBlocked()) {
+    return;
+  }
+
   return showPickUserPopup({
     titleLangKey: 'SendGiftTo',
     placeholder: 'Chat.Menu.SendGift',

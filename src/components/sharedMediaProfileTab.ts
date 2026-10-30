@@ -36,7 +36,8 @@ export function getMediaTypeForProfileTab(tab?: ProfileTab): ProfileTabMediaType
 export function canSetMainProfileTabForMediaType(type: string, options: {
   isSelf: boolean,
   isSavedMessages: boolean,
-  isEditableBroadcast: boolean
+  isEditableBroadcast: boolean,
+  ownGiftsShown?: boolean
 }) {
   if(!getProfileTabForMediaType(type)) {
     return false;
@@ -44,7 +45,7 @@ export function canSetMainProfileTabForMediaType(type: string, options: {
 
   return options.isEditableBroadcast ||
     options.isSavedMessages ||
-    (options.isSelf && (type === 'stories' || type === 'gifts'));
+    (options.isSelf && (type === 'stories' || (type === 'gifts' && (options.ownGiftsShown ?? true))));
 }
 
 export function orderMediaTabsByMain<T extends {type: string}>(

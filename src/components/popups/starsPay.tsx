@@ -40,6 +40,8 @@ import makeError from '@helpers/makeError';
 import bigInt from 'big-integer';
 import paymentsWrapCurrencyAmount, {formatNanoton} from '@helpers/paymentsWrapCurrencyAmount';
 import confirmationPopup from '@components/confirmationPopup';
+import {showStarsNotAvailable} from '@components/starsNotAvailable';
+import {starsUiBlocked} from '@stores/appState';
 import EventListenerBase from '@helpers/eventListenerBase';
 import {getMiddleware} from '@helpers/middleware';
 
@@ -59,6 +61,11 @@ export type StarsPayHandle = EventListenerBase<{
 
 export default function showStarsPayPopup(options: StarsPayOptions): StarsPayHandle {
   const emitter: StarsPayHandle = new EventListenerBase();
+  if(starsUiBlocked()) {
+    showStarsNotAvailable().then(() => emitter.dispatchEvent('finish', 'cancelled'));
+    return emitter;
+  }
+
   const managers = rootScope.managers;
   const middlewareHelper = getMiddleware();
   const middleware = middlewareHelper.get();

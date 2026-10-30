@@ -33,6 +33,12 @@ describe('shared media main profile tab', () => {
     expect(canSetMainProfileTabForMediaType('media', options)).toBe(false);
   });
 
+  test('keeps the own gifts tab out of the main tab choice while gifts are blocked', () => {
+    const options = {isSelf: true, isSavedMessages: false, isEditableBroadcast: false, ownGiftsShown: false};
+    expect(canSetMainProfileTabForMediaType('gifts', options)).toBe(false);
+    expect(canSetMainProfileTabForMediaType('stories', options)).toBe(true);
+  });
+
   test('allows every mapped tab in Saved Messages', () => {
     const options = {isSelf: true, isSavedMessages: true, isEditableBroadcast: false};
     expect(canSetMainProfileTabForMediaType('media', options)).toBe(true);

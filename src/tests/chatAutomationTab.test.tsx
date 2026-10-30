@@ -7,6 +7,7 @@ import {simulateClickEvent} from '@helpers/dom/clickEvent';
 import getTextWidth from '@helpers/canvas/getTextWidth';
 import {ConnectedBot, User} from '@layer';
 import ListenerSetter from '@helpers/listenerSetter';
+import {setAppStateSilent} from '@stores/appState';
 
 const mocks = vi.hoisted(() => ({
   tab: undefined as any,
@@ -327,6 +328,7 @@ afterEach(() => {
   dispose?.();
   dispose = undefined;
   mocks.saveButtonProps = undefined;
+  setAppStateSilent('appConfig', {});
   document.body.replaceChildren();
   vi.useRealTimers();
   vi.clearAllMocks();
@@ -476,6 +478,7 @@ describe('ChatAutomationTab bot input', () => {
   });
 
   it('applies grouped permissions atomically and keeps fixed permissions enabled', async() => {
+    setAppStateSilent('appConfig', {stargifts_blocked: false, stars_gifts_enabled: true, stars_purchase_blocked: false});
     const connectedBot = makeConnectedBot();
     Object.assign(connectedBot.rights.pFlags, {
       delete_sent_messages: true,
@@ -547,6 +550,41 @@ describe('ChatAutomationTab bot input', () => {
     expect(confirmationPopup).toHaveBeenCalledTimes(2);
     expect([...giftsAccordion.querySelectorAll<HTMLInputElement>('input')].every((input) => input.checked)).toBe(true);
     expect(giftsGroup.textContent).toContain('5/5');
+  });
+
+  it('lists no gift or Stars permission while the switches block them', () => {
+    setAppStateSilent('appConfig', {stargifts_blocked: true, stars_purchase_blocked: true});
+    const container = document.createElement('div');
+    document.body.append(container);
+    mocks.tab = {
+      payload: {connectedBot: makeConnectedBot()},
+      header: document.createElement('div'),
+      listenerSetter: new ListenerSetter(),
+      middlewareHelper: {get: vi.fn()},
+      managers: {
+        appUsersManager: {
+          getUser: vi.fn().mockResolvedValue({
+            _: 'user',
+            pFlags: {},
+            id: 42,
+            access_hash: 'hash',
+            first_name: 'Automation',
+            username: 'automation_bot'
+          })
+        },
+        appBusinessManager: {
+          searchBusinessBots: vi.fn(),
+          updateConnectedBot: vi.fn()
+        }
+      },
+      slider: {createTab: vi.fn()},
+      close: vi.fn()
+    };
+
+    dispose = render(() => <ChatAutomationTab />, container);
+    expect(container.textContent).toContain('ManageMessages');
+    expect(container.textContent).not.toContain('ManageGifts');
+    expect(container.textContent).not.toContain('TransferStars');
   });
 
   it('keeps edits made during a save dirty and saves them in a follow-up request', async() => {
