@@ -84,8 +84,7 @@ export type MyUploadFile = UploadFile.uploadFile | UploadWebFile.uploadWebFile;
 const DO_NOT_UPLOAD_FILES = false;
 const PREPARE_CACHE = false;
 
-const MAX_DOWNLOAD_FILE_PART_SIZE = 1 * 1024 * 1024;
-const MAX_UPLOAD_FILE_PART_SIZE = 512 * 1024;
+export const MAX_UPLOAD_FILE_PART_SIZE = 512 * 1024;
 const MIN_PART_SIZE = 64 * 1024;
 const AVG_PART_SIZE = 512 * 1024;
 const TGS_MAX_DECOMPRESSED_SIZE = 8 * 1024 * 1024;
@@ -179,7 +178,6 @@ export class ApiFileManager extends AppManager {
   private debug = Modes.debug;
 
   private maxUploadParts = 4000;
-  private maxDownloadParts = 8000;
   private webFileDcId: DcId;
 
   constructor() {
@@ -204,7 +202,6 @@ export class ApiFileManager extends AppManager {
 
     this.rootScope.addEventListener('app_config', (appConfig) => {
       this.maxUploadParts = this.rootScope.premium ? appConfig.upload_max_fileparts_premium : appConfig.upload_max_fileparts_default;
-      this.maxDownloadParts = appConfig.upload_max_fileparts_premium;
     });
 
     if(PREPARE_CACHE) {
@@ -538,26 +535,12 @@ export class ApiFileManager extends AppManager {
     return bytes / MIN_PART_SIZE;
   }
 
-  private getLimitPart(size: number, isUpload: boolean): number {
+  private getLimitPart(size: number): number {
     if(!size) { // * sometimes size can be 0 (e.g. avatars, webDocuments)
       return AVG_PART_SIZE;
     }
 
-    // return 1 * 1024 * 1024;
-
-    let bytes = MIN_PART_SIZE;
-
-    const maxParts = isUpload ? this.maxUploadParts : this.maxDownloadParts;
-    const maxPartSize = isUpload ? MAX_UPLOAD_FILE_PART_SIZE : MAX_DOWNLOAD_FILE_PART_SIZE;
-    // usually it will stick to 512Kb size if the file is too big
-    while((size / bytes) > maxParts && bytes < maxPartSize) {
-      bytes *= 2;
-    }
-    /* if(size < 1e6 || !size) bytes = 512;
-    else if(size < 3e6) bytes = 256;
-    else bytes = 128; */
-
-    return bytes;
+    return Math.min(size, MAX_UPLOAD_FILE_PART_SIZE);
   }
 
   private uncompressTGS = (bytes: Uint8Array, fileName: string) => {
@@ -807,7 +790,7 @@ export class ApiFileManager extends AppManager {
     const id = this.tempId++;
     const limitPart = isLocalWebFile ?
       size :
-      options.limitPart || this.getLimitPart(size, false);
+      options.limitPart || this.getLimitPart(size);
 
     let getFile: FileStorage['getFile'] = cacheStorage.getFile.bind(cacheStorage);
 
@@ -1119,7 +1102,7 @@ export class ApiFileManager extends AppManager {
 
     const fileSize = file.size;
     const isBigFile = fileSize >= 10485760;
-    const partSize = this.getLimitPart(fileSize, true);
+    const partSize = this.getLimitPart(fileSize);
     const activeDelta = this.getDelta(partSize);
     const totalParts = DO_NOT_UPLOAD_FILES ? 0 : Math.ceil(fileSize / partSize);
     const fileId = randomLong();
