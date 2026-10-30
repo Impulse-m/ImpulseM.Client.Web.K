@@ -1,6 +1,6 @@
 import {MAX_EDITABLE_VIDEO_SIZE} from '@components/mediaEditor/support';
 import getFileMimeType from '@helpers/files/getFileMimeType';
-import {MAX_UPLOAD_FILE_PART_SIZE} from '@config/fileParts';
+import {FILE_PART_SIZE} from '@config/fileParts';
 import apiManagerProxy from '@lib/apiManagerProxy';
 import rootScope from '@lib/rootScope';
 
@@ -24,7 +24,7 @@ function getMaxUploadSize() {
   const parts = appConfig instanceof Promise ?
     FALLBACK_MAX_FILEPARTS :
     (rootScope.premium ? appConfig.upload_max_fileparts_premium : appConfig.upload_max_fileparts_default) ?? FALLBACK_MAX_FILEPARTS;
-  return parts * MAX_UPLOAD_FILE_PART_SIZE;
+  return parts * FILE_PART_SIZE;
 }
 
 // 'in-memory' fastStart holds the media twice at finalization (the muxer's

@@ -42,7 +42,7 @@ import insertInDescendSortedArray from '@helpers/array/insertInDescendSortedArra
 import {ActiveAccountNumber} from '@lib/accounts/types';
 import assumeType from '@helpers/assumeType';
 import pause from '@helpers/schedulers/pause';
-import {MAX_UPLOAD_FILE_PART_SIZE} from '@config/fileParts';
+import {FILE_PART_SIZE} from '@config/fileParts';
 
 export type DownloadOptions = {
   dcId: DcId,
@@ -534,14 +534,6 @@ export class ApiFileManager extends AppManager {
     return bytes / MIN_PART_SIZE;
   }
 
-  private getLimitPart(size: number): number {
-    if(!size) { // * sometimes size can be 0 (e.g. avatars, webDocuments)
-      return MAX_UPLOAD_FILE_PART_SIZE;
-    }
-
-    return Math.min(size, MAX_UPLOAD_FILE_PART_SIZE);
-  }
-
   private uncompressTGS = (bytes: Uint8Array, fileName: string) => {
     // this.log('uncompressTGS', bytes, bytes.slice().buffer);
     // slice нужен потому что в uint8array - 5053 length, в arraybuffer - 5084
@@ -789,7 +781,7 @@ export class ApiFileManager extends AppManager {
     const id = this.tempId++;
     const limitPart = isLocalWebFile ?
       size :
-      options.limitPart || this.getLimitPart(size);
+      options.limitPart || FILE_PART_SIZE;
 
     let getFile: FileStorage['getFile'] = cacheStorage.getFile.bind(cacheStorage);
 
@@ -1104,7 +1096,7 @@ export class ApiFileManager extends AppManager {
 
     const fileSize = file.size;
     const isBigFile = fileSize >= 10485760;
-    const partSize = this.getLimitPart(fileSize);
+    const partSize = FILE_PART_SIZE;
     const activeDelta = this.getDelta(partSize);
     const totalParts = DO_NOT_UPLOAD_FILES ? 0 : Math.ceil(fileSize / partSize);
     const fileId = randomLong();

@@ -13,10 +13,6 @@ function makeManager(): ApiFileManager {
   return manager;
 }
 
-function getLimitPart(manager: ApiFileManager, size: number): number {
-  return (manager as any).getLimitPart(size);
-}
-
 function startUpload(manager: ApiFileManager, file: Blob): number {
   const downloadRequest = vi.spyOn(manager as any, 'downloadRequest').mockReturnValue(new Promise(() => {}));
   manager.upload({file, fileName: 'document.bin'});
@@ -24,23 +20,6 @@ function startUpload(manager: ApiFileManager, file: Blob): number {
 }
 
 describe('ApiFileManager part size', () => {
-  it.each([
-    ['1 MiB', MIB],
-    ['20 MiB', 20 * MIB],
-    ['100 MiB', 100 * MIB],
-    ['1.9 GiB', Math.floor(1.9 * GIB)]
-  ])('uses 512 KiB parts for a %s file', (_label: string, size: number) => {
-    const manager = makeManager();
-
-    expect(getLimitPart(manager, size)).toBe(CANON_PART_SIZE);
-  });
-
-  it('keeps a file below 512 KiB in one part of its own length', () => {
-    const manager = makeManager();
-
-    expect(getLimitPart(manager, 300 * KIB)).toBe(300 * KIB);
-  });
-
   it('sends a 300 KiB upload as a single part', () => {
     const manager = makeManager();
     const file = new Blob([new Uint8Array(300 * KIB)]);

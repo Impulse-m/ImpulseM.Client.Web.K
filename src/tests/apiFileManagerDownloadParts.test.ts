@@ -14,7 +14,8 @@ type RunDownloadOptions = {
 
 type RunDownloadResult = {
   blob: Blob,
-  requestedOffsets: number[]
+  requestedOffsets: number[],
+  requestedLimits: number[]
 };
 
 function makeSource(length: number): Uint8Array {
@@ -73,6 +74,7 @@ async function runDownload({
   heldOffsets
 }: RunDownloadOptions): Promise<RunDownloadResult> {
   const requestedOffsets: number[] = [];
+  const requestedLimits: number[] = [];
   const releases: Array<() => void> = [];
 
   const manager = Object.create(ApiFileManager.prototype) as ApiFileManager;
@@ -93,6 +95,7 @@ async function runDownload({
   };
   (manager as any).requestFilePart = vi.fn(({offset, limit}: {offset: number, limit: number}) => {
     requestedOffsets.push(offset);
+    requestedLimits.push(limit);
     const bytes = new Uint8Array(source.subarray(
       Math.min(offset, source.byteLength),
       Math.min(offset + limit, source.byteLength)
@@ -125,7 +128,7 @@ async function runDownload({
   }
 
   const blob = await download;
-  return {blob, requestedOffsets};
+  return {blob, requestedOffsets, requestedLimits};
 }
 
 describe('ApiFileManager download parts', () => {
@@ -145,6 +148,19 @@ describe('ApiFileManager download parts', () => {
 
     expect([...requestedOffsets].sort((a: number, b: number): number => a - b)).toEqual(expectedOffsets);
     expect(requestedOffsets.filter((offset: number): boolean => offset >= source.byteLength)).toEqual([]);
+  });
+
+  it.each([
+    ['300 KiB', 300 * KIB],
+    ['1 MiB', MIB],
+    ['20 MiB and 12345 bytes', 20 * MIB + 12345]
+  ])('requests every part of a %s download with a 512 KiB limit, a multiple of 4 KiB that divides 1 MiB', async(_label: string, size: number) => {
+    const source = makeSource(size);
+    const {blob, requestedLimits} = await runDownload({source, size, heldOffsets: new Set()});
+    const bytes = await readBlobAsUint8Array(blob);
+
+    expect(requestedLimits).toEqual(Array.from({length: Math.ceil(size / PART_SIZE)}, (): number => PART_SIZE));
+    expect(bytes.byteLength).toBe(size);
   });
 
   it('keeps a size-0 download answered by one 300 KiB part to a single request of those 300 KiB', async() => {
