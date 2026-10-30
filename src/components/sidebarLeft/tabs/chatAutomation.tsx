@@ -2,7 +2,7 @@ import Button from '@components/buttonTsx';
 import createButton from '@components/button';
 import CheckboxFields, {CheckboxFieldsField} from '@components/checkboxFields';
 import confirmationPopup from '@components/confirmationPopup';
-import {giftsBlocked, starsUiBlocked} from '@stores/appState';
+import {canPostStories, giftsBlocked, starsUiBlocked} from '@stores/appState';
 import {IconTsx} from '@components/iconTsx';
 import {InputFieldTsx} from '@components/inputFieldTsx';
 import MediaHeader from '@components/mediaHeader';
@@ -160,6 +160,7 @@ const GIFT_RIGHT_KEYS: RightKey[] = ['view_gifts', 'sell_gifts', 'change_gift_se
 const isRightVisible = (key: RightKey): boolean => {
   if(key === 'transfer_stars') return !starsUiBlocked();
   if(GIFT_RIGHT_KEYS.includes(key)) return !giftsBlocked();
+  if(key === 'manage_stories') return canPostStories();
   return true;
 };
 

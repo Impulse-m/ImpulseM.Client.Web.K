@@ -17,7 +17,8 @@ import addChatUsers from '@components/addChatUsers';
 import getPeerId from '@appManagers/utils/peers/getPeerId';
 import wrapPeerTitle from '@components/wrappers/peerTitle';
 import ButtonMenuToggle, {createButtonMenuVisibility} from '@components/buttonMenuToggle';
-import {giftsBlocked, useIsFrozen} from '@stores/appState';
+import {giftsBlocked, ownStoriesShown, useIsFrozen} from '@stores/appState';
+import hasOwnStories from '@appManagers/utils/stories/hasOwnStories';
 import {profileStarGiftsButtonMenu} from '@components/stargifts/profileList';
 import {profileStoriesButtonMenu} from '@components/stories/profileList';
 import namedPromises from '@helpers/namedPromises';
@@ -838,6 +839,7 @@ const SharedMedia: Component = () => {
       isSelf: tab.peerId === rootScope.myId,
       isSavedMessages: tab.noProfile && tab.peerId === rootScope.myId,
       isEditableBroadcast,
+      ownStoriesShown: ownStoriesShown(hasOwnStories()),
       ownGiftsShown: !giftsBlocked()
     });
   };

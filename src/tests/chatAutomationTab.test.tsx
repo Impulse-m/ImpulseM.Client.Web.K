@@ -587,6 +587,40 @@ describe('ChatAutomationTab bot input', () => {
     expect(container.textContent).not.toContain('TransferStars');
   });
 
+  it('lists no stories permission while posting is disabled', () => {
+    setAppStateSilent('appConfig', {stories_posting: 'disabled'});
+    const container = document.createElement('div');
+    document.body.append(container);
+    mocks.tab = {
+      payload: {connectedBot: makeConnectedBot()},
+      header: document.createElement('div'),
+      listenerSetter: new ListenerSetter(),
+      middlewareHelper: {get: vi.fn()},
+      managers: {
+        appUsersManager: {
+          getUser: vi.fn().mockResolvedValue({
+            _: 'user',
+            pFlags: {},
+            id: 42,
+            access_hash: 'hash',
+            first_name: 'Automation',
+            username: 'automation_bot'
+          })
+        },
+        appBusinessManager: {
+          searchBusinessBots: vi.fn(),
+          updateConnectedBot: vi.fn()
+        }
+      },
+      slider: {createTab: vi.fn()},
+      close: vi.fn()
+    };
+
+    dispose = render(() => <ChatAutomationTab />, container);
+    expect(container.textContent).toContain('ManageMessages');
+    expect(container.textContent).not.toContain('ManageStories');
+  });
+
   it('keeps edits made during a save dirty and saves them in a follow-up request', async() => {
     let resolveFirstSave: () => void;
     const firstSave = new Promise<void>((resolve) => resolveFirstSave = resolve);

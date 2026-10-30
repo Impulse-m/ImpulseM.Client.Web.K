@@ -33,6 +33,9 @@ import showSendGiftPopup from '@components/popups/sendGift';
 import showSendGiftPicker from '@components/popups/sendGiftPicker';
 import type {RequestWebViewOptions} from '@appManagers/appAttachMenuBotsManager';
 import {prefetchStars} from '@stores/stars';
+import {giftsBlocked, ownStoriesShown, starsUiBlocked, walletShown} from '@stores/appState';
+import hasOwnStories from '@appManagers/utils/stories/hasOwnStories';
+import apiManagerProxy from '@lib/apiManagerProxy';
 import {getMiddleware} from '@helpers/middleware';
 import anchorCallback from '@helpers/dom/anchorCallback';
 import showStarGiftInfoPopup from '@components/popups/starGiftInfo';
@@ -66,6 +69,14 @@ import searchByTag from '@lib/richTextProcessor/searchByTag';
  */
 const showUnsupportedLinkToast = () => {
   toastNew({langPackKey: 'Link.NotSupported'});
+};
+
+const refuseHiddenDestination = (hidden: boolean): boolean => {
+  if(hidden) {
+    showUnsupportedLinkToast();
+  }
+
+  return hidden;
 };
 
 export class InternalLinkProcessor {
@@ -882,32 +893,67 @@ export class InternalLinkProcessor {
           case 'premium':
             return showPremiumPopup();
           case 'stars':
+            if(refuseHiddenDestination(starsUiBlocked())) {
+              return;
+            }
+
             return showStarsPopup();
           case 'stars/gift':
+            if(refuseHiddenDestination(starsUiBlocked() || giftsBlocked())) {
+              return;
+            }
+
             return showGiftStarsPicker();
           case 'send-gift':
+            if(refuseHiddenDestination(giftsBlocked())) {
+              return;
+            }
+
             return showSendGiftPicker();
           case 'send-gift/self':
+            if(refuseHiddenDestination(giftsBlocked())) {
+              return;
+            }
+
             return showSendGiftPopup({peerId: rootScope.myId});
 
           // destinations outside Settings, which the section table cannot address
           case 'saved-messages':
             return appImManager.setPeer({peerId: appImManager.myId});
           case 'my-profile/posts/all-stories':
+            if(refuseHiddenDestination(!ownStoriesShown(hasOwnStories()))) {
+              return;
+            }
+
             return appSidebarLeft.createTab(AppMyStoriesTab).open(AppMyStoriesTab.getInitArgs());
           case 'my-profile/archived-posts':
+            if(refuseHiddenDestination(!ownStoriesShown(hasOwnStories()))) {
+              return;
+            }
+
             return appSidebarLeft.createTab(AppMyStoriesTab).open({
               ...AppMyStoriesTab.getInitArgs(),
               isArchive: true
             });
           case 'ton':
+            if(refuseHiddenDestination(!walletShown())) {
+              return;
+            }
+
             return showStarsPopup({ton: true});
 
           default:
             // Every section the settings search indexes is addressable — see
             // @lib/settingsSearch/link. Imported lazily to keep the index out of
             // the startup bundle.
-            return import('@lib/settingsSearch/navigate').then(async({openSettingsDeepLink}) => {
+            return Promise.all([
+              import('@lib/settingsSearch/navigate'),
+              import('@lib/settingsSearch/gates')
+            ]).then(async([{openSettingsDeepLink}, {isSettingsLinkShown}]) => {
+              if(refuseHiddenDestination(!isSettingsLinkShown(path, uriParams.highlight))) {
+                return;
+              }
+
               if(!await openSettingsDeepLink(path, uriParams.highlight, appSidebarLeft)) {
                 showUnsupportedLinkToast();
               }
@@ -1514,7 +1560,11 @@ export class InternalLinkProcessor {
     showPremiumPopup();
   };
 
-  public processGiftCodeLink = (link: InternalLink.InternalLinkGiftCode) => {
+  public processGiftCodeLink = async(link: InternalLink.InternalLinkGiftCode) => {
+    if(refuseHiddenDestination(await apiManagerProxy.isPremiumPurchaseBlocked())) {
+      return;
+    }
+
     showGiftLinkPopup(link.slug, link.stack);
   };
 
@@ -1576,6 +1626,10 @@ export class InternalLinkProcessor {
   };
 
   public processUniqueStarGiftLink = async(link: InternalLink.InternalLinkUniqueStarGift) => {
+    if(refuseHiddenDestination(giftsBlocked())) {
+      return;
+    }
+
     const gift = await this.managers.appGiftsManager.getGiftBySlug(link.slug).catch(noop);
     if(!gift) {
       toastNew({langPackKey: 'Error.AnError'});
@@ -1586,6 +1640,10 @@ export class InternalLinkProcessor {
   };
 
   public processStarGiftCollectionLink = async(link: InternalLink.InternalLinkStarGiftCollection) => {
+    if(refuseHiddenDestination(giftsBlocked())) {
+      return;
+    }
+
     const peer = await this.managers.appUsersManager.resolveUsername(link.domain);
     const peerId = peer.id.toPeerId(peer._ !== 'user');
     if(appImManager.chat.peerId !== peerId) {
