@@ -1,4 +1,5 @@
 import PopupElement, {createPopup} from '@components/popups/indexTsx';
+import {impulsemShareLink} from '@config/impulsemConfig';
 import {copyTextToClipboard} from '@helpers/clipboard';
 import {formatFullSentTime} from '@helpers/date';
 import {renderImageFromUrlPromise} from '@helpers/dom/renderImageFromUrl';
@@ -299,7 +300,7 @@ export default function showStarsPayPopup(options: StarsPayOptions): StarsPayHan
         const mid = transaction.giveaway_post_id || transaction.msg_id;
         if(!peerId || !mid) return;
         const serverMsgId = getServerMessageId(mid);
-        return peerId.isUser() ? undefined : `https://t.me/c/${peerId.toChatId()}/${serverMsgId}`;
+        return peerId.isUser() ? undefined : impulsemShareLink(`/c/${peerId.toChatId()}/${serverMsgId}`);
       })()
     ]);
 
@@ -534,8 +535,9 @@ export default function showStarsPayPopup(options: StarsPayOptions): StarsPayHan
           const gift = transaction.stargift;
           if(gift) {
             const giftTitle = gift._ === 'starGiftUnique' ? `${gift.title} #${gift.num}` : gift.title || i18n('StarGiftTitle');
-            const giftAnchor = gift._ === 'starGiftUnique' && anchorCallback(() => {
-              hidePopupsWithCallback(() => appImManager.openUrl(`https://t.me/nft/${gift.slug}`));
+            const giftLink: string | undefined = gift._ === 'starGiftUnique' ? impulsemShareLink(`/nft/${gift.slug}`) : undefined;
+            const giftAnchor = giftLink && anchorCallback(() => {
+              hidePopupsWithCallback(() => appImManager.openUrl(giftLink));
             });
             if(giftAnchor) giftAnchor.append(giftTitle);
             tableContent.push(['StarGiftTitle', giftAnchor || giftTitle]);

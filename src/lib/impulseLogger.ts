@@ -18,7 +18,7 @@
 
 import {IS_SERVICE_WORKER, IS_WEB_WORKER} from '@helpers/context';
 import {setLogSink} from '@lib/debug/logsBuffer';
-import {backendHttpOrigin} from '@config/backendOrigin';
+import {backendHttpOrigin} from '@config/impulsemConfig';
 
 const FLUSH_BATCH_SIZE = 20;
 const FLUSH_INTERVAL_MS = 2_000;
@@ -33,7 +33,6 @@ const KEEPALIVE_BODY_BUDGET_BYTES = 65_536;
 const MAX_ERROR_MESSAGE_LENGTH = 2_048;
 const MAX_ERROR_NAME_LENGTH = 128;
 const MAX_ERROR_STACK_LENGTH = 32_768;
-const LOKI_PUSH_URL = `${backendHttpOrigin()}/loki/api/v1/push`;
 const LOKI_SERVICE_NAME = 'ImpulseM.Web';
 const MAX_ENTRIES_PER_PUSH = 500;
 const HTTP_BAD_REQUEST = 400;
@@ -309,9 +308,15 @@ function requeue(batch: LokiEntry[]): void {
   boundBufferToKeepaliveBudget();
 }
 
+function lokiPushUrl(): string {
+  const origin: string = backendHttpOrigin();
+  return origin ? `${origin}/loki/api/v1/push` : '';
+}
+
 function flush(): void {
   flushTimer = undefined;
-  if(isFlushing || !buffer.length) {
+  // No transport host configured: nothing is pushed, the bounded buffer keeps the newest entries.
+  if(isFlushing || !buffer.length || !lokiPushUrl()) {
     return;
   }
 
@@ -335,7 +340,7 @@ function flush(): void {
   isFlushing = true;
   const push: PushHeaders = buildPushHeaders();
 
-  fetch(LOKI_PUSH_URL, {
+  fetch(lokiPushUrl(), {
     method: 'POST',
     headers: push.headers,
     body: buildPayload(batch),
@@ -395,7 +400,7 @@ function warnRefusedStatusOnce(status: number): void {
  * request credential-free, like the normal flush above.
  */
 function flushOnHide(): void {
-  if(!buffer.length) {
+  if(!buffer.length || !lokiPushUrl()) {
     return;
   }
 
@@ -412,7 +417,7 @@ function flushOnHide(): void {
 
   buffer = buffer.slice(0, firstEntryIndex + 1);
   try {
-    fetch(LOKI_PUSH_URL, {
+    fetch(lokiPushUrl(), {
       method: 'POST',
       headers: buildPushHeaders().headers,
       body: buildPayload(batch),

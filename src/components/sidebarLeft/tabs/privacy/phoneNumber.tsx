@@ -22,12 +22,15 @@ const PrivacyPhoneNumber: Component = () => {
       i18n('PrivacyPhoneInfo'),
       document.createElement('br'),
       document.createElement('br'),
-      i18n('PrivacyPhoneInfo4'),
-      document.createElement('br'),
-      anchorCopy({
-        mePath: formatted
-      })
+      i18n('PrivacyPhoneInfo4')
     );
+
+    const phoneLink = anchorCopy({
+      mePath: formatted
+    });
+    if(phoneLink) {
+      captionEl.append(document.createElement('br'), phoneLink);
+    }
 
     const phoneSection = new PrivacySection({
       tab,

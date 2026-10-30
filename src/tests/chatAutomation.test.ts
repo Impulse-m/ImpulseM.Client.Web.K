@@ -25,7 +25,7 @@ describe('chat automation helpers', () => {
     ['  example_bot  ', 'example_bot'],
     ['not a username', undefined]
   ])('normalizes bot username %s', (input, expected) => {
-    // 9d8e493f5 branded supported deep links as impulsem.me; Telegram links are external here.
+    // 9d8e493f5 branded supported deep links with the link host; Telegram links are external here.
     expect(normalizeBusinessBotUsername(input)).toBe(expected);
   });
 

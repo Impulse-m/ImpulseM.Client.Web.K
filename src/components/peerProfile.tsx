@@ -19,6 +19,7 @@ import formatUserPhone from '@components/wrappers/formatUserPhone';
 import {copyTextToClipboard} from '@helpers/clipboard';
 import safeWindowOpen from '@helpers/dom/safeWindowOpen';
 import anchorCopy from '@helpers/dom/anchorCopy';
+import {impulsemLinkHost, impulsemShareLink} from '@config/impulsemConfig';
 import getServerMessageId from '@appManagers/utils/messageId/getServerMessageId';
 import getPeerActiveUsernames from '@appManagers/utils/peers/getPeerActiveUsernames';
 import {appState, useAppConfig} from '@stores/appState';
@@ -95,8 +96,8 @@ const PeerProfileContext = createContext<PeerProfileContextValue>();
 function getUsernamesAlso(usernames: string[]) {
   const {i18n, join} = useHotReloadGuard();
   const also = usernames.slice(1);
-  if(also.length) {
-    const a = also.map((username) => anchorCopy({username}));
+  const a = also.map((username) => anchorCopy({username})).filter(Boolean);
+  if(a.length) {
     const i = i18n('UsernameAlso', [join(a, false)]);
     return i;
   }
@@ -747,7 +748,7 @@ PeerProfile.QrButton = () => {
   const context = useContext(PeerProfileContext);
   const {I18n, showMyQrCodePopup, rootScope} = useHotReloadGuard();
   return (
-    <Show when={context.peerId !== rootScope.myId}>
+    <Show when={context.peerId !== rootScope.myId && impulsemLinkHost()}>
       <Row.RightContent>
         <Button.Icon
           icon="qr"
@@ -993,21 +994,15 @@ PeerProfile.Link = () => {
 
     const usernames = getPeerActiveUsernames(context.peer as Chat.channel);
     if(context.isTopic) {
-      let url = 't.me/';
       const threadId = getServerMessageId(context.threadId);
       const username = usernames[0];
-      if(username) {
-        url += `${username}/${threadId}`;
-      } else {
-        url += `c/${context.peerId.toChatId()}/${threadId}`;
-      }
-
-      return {url};
+      const path = username ? `/${username}/${threadId}` : `/c/${context.peerId.toChatId()}/${threadId}`;
+      return {url: impulsemShareLink(path)};
     }
 
     if(usernames.length) {
       return {
-        url: 't.me/' + usernames[0],
+        url: impulsemShareLink('/' + usernames[0]),
         also: getUsernamesAlso(usernames)
       };
     }
@@ -1015,13 +1010,13 @@ PeerProfile.Link = () => {
     const exportedInvite = (context.fullPeer as ChatFull.channelFull)?.exported_invite;
     if(exportedInvite?._ === 'chatInviteExported') {
       return {
-        url: exportedInvite.link.slice(exportedInvite.link.indexOf('t.me/'))
+        url: impulsemShareLink(new URL(exportedInvite.link).pathname)
       };
     }
   });
 
   const onClick = () => {
-    const url = 'https://' + toFill().url;
+    const url = toFill().url;
     copyTextToClipboard(url);
     // Promise.resolve(appProfileManager.getChatFull(this.peerId.toChatId())).then((chatFull) => {
     // copyTextToClipboard(chatFull.exported_invite.link);
@@ -1031,7 +1026,7 @@ PeerProfile.Link = () => {
   };
 
   return (
-    <Show when={toFill()}>
+    <Show when={toFill()?.url}>
       <Row
         clickable={onClick}
         contextMenu={{

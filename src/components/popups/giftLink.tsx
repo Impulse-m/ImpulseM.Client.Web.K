@@ -1,4 +1,5 @@
 import PopupElement, {createPopup} from '@components/popups/indexTsx';
+import {impulsemShareLink} from '@config/impulsemConfig';
 import {PaymentsCheckedGiftCode} from '@layer';
 import renderImageFromUrl from '@helpers/dom/renderImageFromUrl';
 import {LangPackKey, i18n} from '@lib/langPack';
@@ -54,11 +55,12 @@ export async function applyGiftCode(slug: string, button: HTMLElement, hide: () 
         descriptionLangKey: 'GiftCode.Activation.After',
         descriptionLangArgs: [
           formatFullSentTime(timestamp),
-          anchorCallback(() => {
+          // no link host configured: the share action is not offered
+          impulsemShareLink('/giftcode/' + slug) ? anchorCallback(() => {
             simulateClickEvent(button.element);
             hide();
-            shareGiftLink('https://t.me/giftcode/' + slug);
-          })
+            shareGiftLink(impulsemShareLink('/giftcode/' + slug));
+          }) : ''
         ],
         button
       });
@@ -110,7 +112,7 @@ export default async function showGiftLinkPopup(
 
   const isUsed = !!giftCode.used_date;
   const titleLangKey: LangPackKey = isUsed ? 'BoostingUsedGiftLink' : 'BoostingGiftLink';
-  const url = isInChat && !isUsed ? '' : 'https://t.me/giftcode/' + slug;
+  const url = isInChat && !isUsed ? '' : impulsemShareLink('/giftcode/' + slug) ?? '';
   const canUseLink = !isInChat && !isUsed;
 
   createPopup(() => {

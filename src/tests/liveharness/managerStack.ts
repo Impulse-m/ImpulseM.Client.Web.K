@@ -112,9 +112,9 @@ async function installBootPrelude(gatewayOrigin: string, options?: BootOptions):
   // A boot IS a page load: fresh module graph over the same persisted client state.
   vi.resetModules();
 
-  // The transport reads this at module init (src/config/backendOrigin.ts). Must be stubbed
+  // The transport reads this at module init (src/config/impulsemConfig.ts). Must be stubbed
   // before ANY src import below pulls the config in.
-  vi.stubEnv('VITE_IMPULSE_BACKEND_URL', gatewayOrigin);
+  vi.stubEnv('IMPULSEM_RPC_URL', gatewayOrigin);
   vi.stubEnv('VITE_IMPULSE_UPDATE_WS', liveLane.updateWsOrigin ?? '');
   vi.stubEnv('VITE_IMPULSE_POOL_WS', liveLane.poolWsOrigin ?? '');
 

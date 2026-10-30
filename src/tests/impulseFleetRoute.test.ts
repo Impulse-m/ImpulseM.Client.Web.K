@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 
-import {backendHttpOrigin, backendWsOrigin} from '@config/backendOrigin';
+import {backendHttpOrigin, backendWsOrigin} from '@config/impulsemConfig';
 import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import {
   poolRpcEndpoint,
@@ -59,9 +59,9 @@ describe('the refresh endpoint is the host of the update socket', () => {
   it('is the wss URL of the configured host under /pool with the protobuf query', () => {
     expect(
       poolRpcEndpoint(),
-      'the stand names rpc.impulsem.io in VITE_IMPULSE_BACKEND_URL; the anonymous refresh pool connects to that host'
-    ).toBe(`wss://rpc.impulsem.io/pool${FLEET_CONNECTION_PATH}`);
-    expect(backendWsOrigin(backendHttpOrigin())).toBe('wss://rpc.impulsem.io');
+      'the stand names rpc.example.org in IMPULSEM_RPC_URL; the anonymous refresh pool connects to that host'
+    ).toBe(`wss://rpc.example.org/pool${FLEET_CONNECTION_PATH}`);
+    expect(backendWsOrigin(backendHttpOrigin())).toBe('wss://rpc.example.org');
   });
 });
 
@@ -71,7 +71,7 @@ describe('the endpoint the media option names', () => {
       thisDc: CURRENT_DC,
       dcOptions: [
         create(DcOptionSchema, {id: CURRENT_DC, ipAddress: MAIN_HOST, port: 443}),
-        create(DcOptionSchema, {id: CURRENT_DC, ipAddress: 'media.impulsem.io', port: 443, mediaOnly: true})
+        create(DcOptionSchema, {id: CURRENT_DC, ipAddress: 'media.example.org', port: 443, mediaOnly: true})
       ]
     }));
     const config = protoToTL(fromBinary(ConfigSchema, encoded), ConfigSchema);
@@ -79,7 +79,7 @@ describe('the endpoint the media option names', () => {
     expect(
       mediaEndpointOf(config),
       'media_only is a TL flag (constructor/dcOption.md flags.1?true): the decoded reply keeps it in pFlags, and the endpoint must be read from there'
-    ).toBe(`wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`);
+    ).toBe(`wss://media.example.org:443${FLEET_CONNECTION_PATH}`);
   });
 
   it('is the wss URL of the media_only entry for the current DC', () => {
@@ -87,14 +87,14 @@ describe('the endpoint the media option names', () => {
       this_dc: CURRENT_DC,
       dc_options: [
         {id: CURRENT_DC, ip_address: MAIN_HOST, port: 443},
-        {id: CURRENT_DC, ip_address: 'media.impulsem.io', port: 443, pFlags: {media_only: true}}
+        {id: CURRENT_DC, ip_address: 'media.example.org', port: 443, pFlags: {media_only: true}}
       ]
     };
 
     expect(
       mediaEndpointOf(config),
       'the media_only entry of this_dc must become wss://{host}:{port} with the fleet connection path and its protobuf query'
-    ).toBe(`wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`);
+    ).toBe(`wss://media.example.org:443${FLEET_CONNECTION_PATH}`);
   });
 
   it('is undefined when the server publishes no media option', () => {
@@ -105,7 +105,7 @@ describe('the endpoint the media option names', () => {
     expect(
       mediaEndpointOf({
         this_dc: CURRENT_DC,
-        dc_options: [{id: 3, ip_address: 'media.impulsem.io', port: 443, pFlags: {media_only: true}}]
+        dc_options: [{id: 3, ip_address: 'media.example.org', port: 443, pFlags: {media_only: true}}]
       }),
       'a media plane of DC 3 does not serve the DC this client is on'
     ).toBeUndefined();

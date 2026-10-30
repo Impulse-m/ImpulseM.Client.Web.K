@@ -1,4 +1,5 @@
 import type {AppStickersManager} from '@appManagers/appStickersManager';
+import {impulsemLinkHost, impulsemShareLink} from '@config/impulsemConfig';
 import type ChatInput from '@components/chat/input';
 import PopupElement, {createPopup, PopupContext} from '@components/popups/indexTsx';
 import wrapSticker from '@components/wrappers/sticker';
@@ -279,10 +280,11 @@ export default function showStickersPopup(
         icon: 'copy',
         text: 'CopyLink',
         onClick: () => {
-          const prefix = `https://t.me/${isEmojis ? 'addemoji' : 'addstickers'}/`;
-          const text = rawSets.map((set) => prefix + set.set.short_name).join('\n');
+          const prefix = `/${isEmojis ? 'addemoji' : 'addstickers'}/`;
+          const text = rawSets.map((set) => impulsemShareLink(prefix + set.set.short_name)).join('\n');
           copyTextToClipboard(text);
-        }
+        },
+        verify: () => !!impulsemLinkHost()
       }];
 
       // one set only: several at once are the custom emoji of a message, and emoji packs don't go to the archive

@@ -29,7 +29,6 @@ function join(...arr: string[]) {
   return arr.join(', ');
 }
 
-// https://core.impulsem.net/bots/api#html-style
 export const markdownTags: {[type in MarkdownType]: MarkdownTag} = {
   bold: {
     match: join(

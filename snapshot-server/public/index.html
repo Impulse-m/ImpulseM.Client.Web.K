@@ -170,7 +170,7 @@
     const snapshotComment = document.getElementById('snapshotComment');
     const saveAuthorization = document.getElementById('saveAuthorization');
 
-    const IS_PRODUCTION = new URL(location.href).hostname === 'web.impulsem.net';
+    const IS_PRODUCTION = !['localhost', '127.0.0.1'].includes(new URL(location.href).hostname);
 
     snapshotBtn.addEventListener('click', async() => {
       const snapshot = await takeSnapshot();

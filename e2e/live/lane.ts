@@ -16,7 +16,7 @@
  *   IMPULSE_LIVE_WS_GATEWAY  the HTTP/1.1-capable gateway endpoint (default
  *                            http://localhost:5100). The browser speaks Centrifugo over WebSocket,
  *                            which requires HTTP/1.1, so THIS is the origin baked into the client bundle via
- *                            VITE_IMPULSE_BACKEND_URL (src/config/backendOrigin.ts).
+ *                            IMPULSEM_RPC_URL (src/config/impulsemConfig.ts).
  *
  * Run against the local dev stack (deploy/docker-compose.dev.yaml in the backend repo):
  *

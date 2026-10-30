@@ -1,5 +1,6 @@
 import {createEffect, createRoot, createSignal, on} from 'solid-js';
 import appImManager from '@lib/appImManager';
+import setBlankToAnchor from '@lib/richTextProcessor/setBlankToAnchor';
 import rootScope from '@lib/rootScope';
 import {createSearchGroup, SearchGroup} from '@components/searchGroup';
 import DialogsContextMenu from '@components/dialogsContextMenu';
@@ -67,7 +68,6 @@ import {Middleware, MiddlewareHelper} from '@helpers/middleware';
 import wrapEmojiStatus from '@components/wrappers/emojiStatus';
 import {makeMediaSize} from '@helpers/mediaSize';
 import ReactionElement from '@components/chat/reaction';
-import setBlankToAnchor from '@lib/richTextProcessor/setBlankToAnchor';
 import AccountController from '@lib/accounts/accountController';
 import {ActiveAccountNumber} from '@lib/accounts/types';
 import {MAX_ACCOUNTS, MAX_ACCOUNTS_FREE} from '@lib/accounts/constants';
@@ -955,40 +955,6 @@ export class AppSidebarLeft extends SidebarSlider {
         });
       },
       verify: () => liteMode.isEnabled()
-    }, {
-      icon: 'aversion',
-      text: 'ChatList.Menu.SwitchTo.A',
-      onClick: () => {
-        Promise.all([
-          sessionStorage.set({kz_version: 'Z'}),
-          sessionStorage.delete('tgme_sync')
-        ]).then(() => {
-          appNavigationController.navigateToUrl('https://web.impulsem.net/a/');
-        });
-      },
-      separator: App.isMainDomain,
-      verify: () => App.isMainDomain
-    }, {
-      icon: 'help',
-      text: 'ImpulseMFeatures',
-      onClick: () => {
-        const url = I18n.format('ImpulseMFeaturesUrl', true);
-        appImManager.openUrl(url);
-      },
-      separator: !App.isMainDomain
-    }, {
-      icon: 'bug',
-      text: 'ReportBug',
-      onClick: () => {
-        const a = document.createElement('a');
-        setBlankToAnchor(a);
-        a.href = 'https://bugs.impulsem.net/?tag_ids=40&sort=time';
-        document.body.append(a);
-        a.click();
-        setTimeout(() => {
-          a.remove();
-        }, 0);
-      }
     }, {
       icon: 'plusround',
       text: 'PWA.Install',

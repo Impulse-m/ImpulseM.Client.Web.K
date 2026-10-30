@@ -6,10 +6,14 @@
 
 import {BotInfo} from '@layer';
 import safeWindowOpen from '@helpers/dom/safeWindowOpen';
+import {impulsemSiteLink} from '@config/impulsemConfig';
 
-// Hardcoded default URL, matching tdesktop (lng_profile_bot_privacy_url) and
-// Android (BotDefaultPrivacyPolicy). Not an appConfig key.
-export const BOT_DEFAULT_PRIVACY_POLICY_URL = 'https://impulsem.net/privacy-tpa';
+// Default URL, matching tdesktop (lng_profile_bot_privacy_url) and
+// Android (BotDefaultPrivacyPolicy): a page of the project website. Not an appConfig key.
+// Empty when IMPULSEM_SITE_URL is not configured, and then nothing is opened.
+export function botDefaultPrivacyPolicyUrl(): string {
+  return impulsemSiteLink('/privacy-tpa') ?? '';
+}
 
 export function botHasPrivacyCommand(botInfo: BotInfo.botInfo) {
   return botInfo.commands?.some((c) => c.command === 'privacy') ?? false;
@@ -23,7 +27,7 @@ export function botHasPrivacyCommand(botInfo: BotInfo.botInfo) {
  */
 export function resolveBotPrivacyPolicy(botInfo: BotInfo.botInfo): {url: string} | {sendCommand: true} {
   if(botInfo.privacy_policy_url) return {url: botInfo.privacy_policy_url};
-  if(!botHasPrivacyCommand(botInfo)) return {url: BOT_DEFAULT_PRIVACY_POLICY_URL};
+  if(!botHasPrivacyCommand(botInfo)) return {url: botDefaultPrivacyPolicyUrl()};
   return {sendCommand: true};
 }
 
@@ -35,7 +39,10 @@ export function resolveBotPrivacyPolicy(botInfo: BotInfo.botInfo): {url: string}
 export function openBotPrivacyPolicy(botInfo: BotInfo.botInfo, sendPrivacyCommand: () => void) {
   const resolved = resolveBotPrivacyPolicy(botInfo);
   if('url' in resolved) {
-    safeWindowOpen(resolved.url);
+    if(resolved.url) {
+      safeWindowOpen(resolved.url);
+    }
+
     return;
   }
 

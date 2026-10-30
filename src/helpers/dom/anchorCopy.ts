@@ -3,25 +3,26 @@ import {LangPackKey} from '@lib/langPack';
 import {copyTextToClipboard} from '@helpers/clipboard';
 import cancelEvent from '@helpers/dom/cancelEvent';
 import {attachClickEvent} from '@helpers/dom/clickEvent';
+import {impulsemShareLink} from '@config/impulsemConfig';
 
-const T_ME = 'https://t.me/';
+/** A copyable share link on the configured link host; undefined (no anchor) when no link host is set. */
 export default function anchorCopy(options: Partial<{
   // href: string,
   mePath: string,
   username: string
-}> = {}) {
+}> = {}): HTMLAnchorElement | undefined {
+  const href: string | undefined = impulsemShareLink('/' + (options.mePath || options.username || ''));
+  if(!href) {
+    return;
+  }
+
   const anchor = document.createElement('a');
   anchor.classList.add('anchor-copy');
 
-  let copyWhat: string, copyText: LangPackKey = 'LinkCopied';
-  if(options.mePath) {
-    const href = T_ME + options.mePath;
-    copyWhat = anchor.href = anchor.innerText = href;
-  }
+  let copyWhat: string = href, copyText: LangPackKey = 'LinkCopied';
+  anchor.href = anchor.innerText = href;
 
   if(options.username) {
-    const href = T_ME + options.username;
-    anchor.href = href;
     copyWhat = anchor.innerText = '@' + options.username;
     copyText = 'UsernameCopied';
   }

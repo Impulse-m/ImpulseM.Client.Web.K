@@ -1,6 +1,8 @@
 import {createMemo, createSignal, Index, JSX, Match, onMount, Show, Switch, untrack, useContext} from 'solid-js';
+import {impulsemLinkHost, impulsemShareLink} from '@config/impulsemConfig';
 import PopupElement, {createPopup, PopupContext} from './indexTsx';
 import {Peer, PaymentsUniqueStarGiftValueInfo, StarGift, StarGiftAttribute, StarGiftAttributeRarity} from '@layer';
+import {impulsemSiteLink} from '@config/impulsemConfig';
 import {MyDocument} from '@appManagers/appDocsManager';
 import I18n, {i18n, LangPackKey} from '@lib/langPack';
 import {StarsStar} from '@components/popups/stars';
@@ -953,7 +955,7 @@ export default function showStarGiftInfoPopup(options: {
 
     const handleShare = () => {
       showSharingPicker2Popup().then(({peerId, threadId, monoforumThreadId}) => {
-        rootScope.managers.appMessagesManager.sendText({peerId, threadId, replyToMonoforumPeerId: monoforumThreadId, text: 'https://t.me/nft/' + (gift as StarGift.starGiftUnique).slug});
+        rootScope.managers.appMessagesManager.sendText({peerId, threadId, replyToMonoforumPeerId: monoforumThreadId, text: impulsemShareLink('/nft/' + (gift as StarGift.starGiftUnique).slug)});
         appImManager.setInnerPeer({peerId, threadId, monoforumThreadId});
         context.hide();
       });
@@ -1113,15 +1115,17 @@ export default function showStarGiftInfoPopup(options: {
               {
                 icon: 'forward',
                 text: 'ShareFile',
-                onClick: handleShare
+                onClick: handleShare,
+                verify: () => !!impulsemLinkHost()
               },
               {
                 icon: 'link',
                 text: 'CopyLink',
                 onClick: () => {
-                  copyTextToClipboard('https://t.me/nft/' + (gift as StarGift.starGiftUnique).slug);
+                  copyTextToClipboard(impulsemShareLink('/nft/' + (gift as StarGift.starGiftUnique).slug));
                   toastNew({langPackKey: 'LinkCopied'});
-                }
+                },
+                verify: () => !!impulsemLinkHost()
               }
             ]}
           />
@@ -1148,7 +1152,7 @@ export default function showStarGiftInfoPopup(options: {
               <MediaHeader.Subtitle>
                 {i18n('StarGiftReceivedSubtitle', [saved.convert_stars])}
                 {' '}
-                <a href="https://impulsem.net/blog/impulsem-stars" target="_blank">
+                <a href={impulsemSiteLink('/blog/impulsem-stars')} target="_blank">
                   {i18n('StarGiftReceivedSubtitleLink')}
                 </a>
               </MediaHeader.Subtitle>

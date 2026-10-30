@@ -6,7 +6,7 @@ file — edit AGENTS.md, never CLAUDE.md.
 
 ## Project Overview
 
-**tweb** is a full-featured ImpulseM web client (https://web.impulsem.net/k/) built with Solid.js and TypeScript. It implements ImpulseM's MTProto protocol directly in the browser (no third-party API wrappers). The codebase is large (~100k+ lines excluding vendor), mature, and highly performance-oriented.
+**tweb** is a full-featured ImpulseM web client (the URL is the build variable IMPULSEM_WEB_URL) built with Solid.js and TypeScript. It implements ImpulseM's MTProto protocol directly in the browser (no third-party API wrappers). The codebase is large (~100k+ lines excluding vendor), mature, and highly performance-oriented.
 
 Author: Eduard Kuzmenko. License: GPL v3.
 

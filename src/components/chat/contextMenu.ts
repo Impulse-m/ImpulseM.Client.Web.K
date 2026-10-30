@@ -1,4 +1,5 @@
 import type {MyDocument} from '@appManagers/appDocsManager';
+import {impulsemShareLink} from '@config/impulsemConfig';
 import type Chat from '@components/chat/chat';
 import IS_TOUCH_SUPPORTED from '@environment/touchSupport';
 import Modes from '@config/modes';
@@ -1217,7 +1218,8 @@ export default class ChatContextMenu {
       icon: 'link',
       text: 'MessageContext.CopyMessageLink1',
       onClick: this.onCopyLinkClick,
-      verify: async() => !isEphemeralMessage(this.message) &&
+      verify: async() => !!this.linkToMessage &&
+        !isEphemeralMessage(this.message) &&
         !isAnchoredEphemeralMessage(this.message) &&
         !this.isLegacy &&
         await this.managers.appPeersManager.isChannel(this.peerId) &&
@@ -1989,17 +1991,23 @@ export default class ChatContextMenu {
     const isDiscussionFromChannel = !!(threadMessage?.fwd_from?.channel_post && threadMessage.fwd_from.saved_from_msg_id);
     const username = await this.managers.appPeersManager.getPeerUsername(isDiscussionFromChannel ? threadMessage.fromId : peerId);
     const msgId = getServerMessageId(mid);
-    let url = 'https://t.me/';
+    let path = '/';
     if(username) {
-      url += username;
-      if(isDiscussionFromChannel) url += `/${getServerMessageId(threadMessage.fwd_from.channel_post)}?comment=${msgId}`;
-      else if(threadId) url += `/${getServerMessageId(threadId)}/${msgId}`;
-      else url += '/' + msgId;
+      path += username;
+      if(isDiscussionFromChannel) path += `/${getServerMessageId(threadMessage.fwd_from.channel_post)}?comment=${msgId}`;
+      else if(threadId) path += `/${getServerMessageId(threadId)}/${msgId}`;
+      else path += '/' + msgId;
     } else {
-      url += 'c/' + peerId.toChatId();
-      if(threadMessage) url += `/${msgId}?thread=${getServerMessageId(threadMessage.mid)}`;
-      else if(threadId) url += `/${getServerMessageId(threadId)}/${msgId}`;
-      else url += '/' + msgId;
+      path += 'c/' + peerId.toChatId();
+      if(threadMessage) path += `/${msgId}?thread=${getServerMessageId(threadMessage.mid)}`;
+      else if(threadId) path += `/${getServerMessageId(threadId)}/${msgId}`;
+      else path += '/' + msgId;
+    }
+
+    // no link host configured: there is no link to copy (canCopyLink reads this as absent)
+    const url: string | undefined = impulsemShareLink(path);
+    if(!url) {
+      return;
     }
 
     return {url, isPrivate: !username};

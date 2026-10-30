@@ -117,7 +117,7 @@ expansion frame; without it the component creates its own layout.
 | Media and map node views | `extensions/media.ts`, `map.ts` |
 | Upload preparation and history | `prepareRichMediaUpload.ts`, `mediaUploadHistory.ts`, `reconcileUploads.ts` |
 | Shared preview URL ownership | `mediaPreviewUrl.ts` |
-| Document and Telegram conversion | `model.ts`, `richMessage.ts` |
+| Document and message-entity conversion | `model.ts`, `richMessage.ts` |
 | Remote draft application | `ChatInput` in `../input.ts` |
 
 `extensions.ts` lists the upstream extensions and composes them with this
@@ -146,7 +146,7 @@ from becoming a link while still admitting the relative hrefs upstream allowed;
 - Backspace after media enters its caption. An authored empty paragraph is
   removed; the technical final placeholder remains. Keyboard, `beforeinput`
   and the virtual keyboard must agree, including caret and Undo/Redo.
-- Plain-compatible text uses Telegram text/entities. Rich-only blocks and
+- Plain-compatible text uses plain text/message entities. Rich-only blocks and
   marks use the native rich-message representation. Mode changes preserve
   authored quotes, offsets and history.
 - Tables have an explicit title/wrapper and preserve rectangular selections.

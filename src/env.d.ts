@@ -3,7 +3,12 @@
 /// <reference types="vitest" />
 
 interface ImportMetaEnv {
-  readonly VITE_IMPULSE_BACKEND_URL: string;
+  readonly IMPULSEM_RPC_URL?: string;
+  readonly IMPULSEM_SITE_URL?: string;
+  readonly IMPULSEM_LINK_HOST?: string;
+  readonly IMPULSEM_WEB_URL?: string;
+  readonly VITE_IMPULSE_UPDATE_WS?: string;
+  readonly VITE_IMPULSE_POOL_WS?: string;
   readonly VITE_API_ID: string;
   readonly VITE_API_HASH: string;
   readonly VITE_VERSION: string;

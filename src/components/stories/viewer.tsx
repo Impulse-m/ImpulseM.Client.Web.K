@@ -1,4 +1,5 @@
 import {shouldPreserveKeyboardFocus} from '@helpers/dom/isKeyboardControl';
+import {impulsemLinkHost, impulsemShareLink} from '@config/impulsemConfig';
 import createFocusTrap, {FocusTrap} from '@helpers/dom/focusTrap';
 /* @refresh reload */
 
@@ -1011,7 +1012,8 @@ const Stories = (props: {
         buttons: [{
           icon: 'link',
           text: 'CopyLink',
-          onClick: copyLink
+          onClick: copyLink,
+          verify: () => !!impulsemLinkHost() && !!getPeerActiveUsernames(peer)[0]
         }],
         listenTo: listenTo,
         ...topMenuOptions
@@ -1894,7 +1896,7 @@ const Stories = (props: {
   );
 
   const copyLink = () => {
-    copyTextToClipboard(`https://t.me/${getPeerActiveUsernames(peer)[0]}/s/${currentStory().id}`);
+    copyTextToClipboard(impulsemShareLink(`/${getPeerActiveUsernames(peer)[0]}/s/${currentStory().id}`));
     toastNew({
       langPackKey: 'LinkCopied'
     });
@@ -2235,7 +2237,7 @@ const Stories = (props: {
         }
 
         // const appConfig = await rootScope.managers.apiManager.getAppConfig();
-        return (story.pFlags.public/*  || appConfig.stories_export_nopublic_link */) && !!getPeerActiveUsernames(peer)[0];
+        return (story.pFlags.public/*  || appConfig.stories_export_nopublic_link */) && !!getPeerActiveUsernames(peer)[0] && !!impulsemLinkHost();
       }
     }, {
       icon: 'download',

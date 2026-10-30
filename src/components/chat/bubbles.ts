@@ -844,7 +844,7 @@ export default class ChatBubbles {
   private attachPlaceholderOnRender: () => void;
 
   // viewer's own country calling code (e.g. '7'), used to format a shared contact's
-  // phone that is stored without its country code (bugs.impulsem.net #30681)
+  // phone that is stored without its country code (issue #30681)
   private myCountryCode: string;
 
   // An entry exists only while `candidate` is uncommitted. `source` is always the ultimate

@@ -21,7 +21,7 @@ import Schema, {MTProtoConstructor} from '@lib/mtproto/schema';
 import {Centrifuge, type RpcOptions, type RpcResult, type Subscription} from '@impulsem/centrifuge/build/protobuf';
 import {fromBinary} from '@bufbuild/protobuf';
 
-import {backendUpdateWsOrigin} from '@config/backendOrigin';
+import {backendUpdateWsOrigin} from '@config/impulsemConfig';
 import {getLogger} from '@lib/impulseLogger';
 import makeError from '@helpers/makeError';
 import type {TabState} from '@lib/apiManagerProxy';
@@ -41,7 +41,6 @@ import {UpdatesSchema} from './grpc/gen/v1/types_pb';
 
 const logger = getLogger('impulse-realtime');
 
-const CENTRIFUGO_WS = `${backendUpdateWsOrigin()}${CENTRIFUGO_CONNECTION_PATH}`;
 // Every regular call is an rpc on this client, and an rpc deadline may not exceed the client timeout.
 const UPDATE_SOCKET_TIMEOUT_MS: number = 30_000;
 const NO_CONNECTION_TOKEN: string = '';
@@ -138,6 +137,11 @@ export function setRealtimeDispatch(accountNumber: ActiveAccountNumber, dispatch
 export function startImpulseRealtime(userId: string | undefined, accountNumber: ActiveAccountNumber): void {
   if(!userId) {
     stopImpulseRealtime(accountNumber);
+    return;
+  }
+
+  // No transport host configured (IMPULSEM_RPC_URL): the app stays not connected.
+  if(!backendUpdateWsOrigin()) {
     return;
   }
 
@@ -332,7 +336,12 @@ function socketOf(accountNumber: ActiveAccountNumber): UpdateSocket {
 }
 
 function openSocket(accountNumber: ActiveAccountNumber, identity: FleetIdentity): UpdateSocket {
-  const centrifuge = new Centrifuge(CENTRIFUGO_WS, {
+  const updateOrigin: string = backendUpdateWsOrigin();
+  if(!updateOrigin) {
+    throw new Error('IMPULSEM_RPC_URL is not set: the update socket cannot be opened');
+  }
+
+  const centrifuge = new Centrifuge(`${updateOrigin}${CENTRIFUGO_CONNECTION_PATH}`, {
     token: NO_CONNECTION_TOKEN,
     getToken: identity.getToken,
     // The SDK 1.6.0 blocks a token the server refused unless this is false: the renewal must be able to send the token it returns.

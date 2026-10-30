@@ -1,4 +1,5 @@
 import {Component, createSignal} from 'solid-js';
+import {impulsemLinkHost} from '@config/impulsemConfig';
 import {copyTextToClipboard} from '@helpers/clipboard';
 import {wrapSolidComponent} from '@helpers/solid/wrapSolidComponent';
 import {Chat, ChatFull, ExportedChatInvite} from '@layer';
@@ -138,7 +139,8 @@ const ChatType: Component = () => {
     const inputWrapper = document.createElement('div');
     inputWrapper.classList.add('input-wrapper');
 
-    const placeholder = 't.me/';
+    // the link host as the input prefix; empty when no link host is configured
+    const placeholder = impulsemLinkHost() ? impulsemLinkHost() + '/' : '';
 
     let changedPrivacy: boolean, changedJoinToSend: boolean, changedJoinRequest: boolean;
     onChange = () => {

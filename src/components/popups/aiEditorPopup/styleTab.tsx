@@ -1,4 +1,5 @@
 import fieldSectionStyles from '@/scss/modulePartials/fieldSectionCaption.module.scss';
+import {impulsemShareLink} from '@config/impulsemConfig';
 import {IconTsx} from '@components/iconTsx';
 import Scrollable from '@components/scrollable2';
 import {Skeleton} from '@components/skeleton';
@@ -382,6 +383,10 @@ const useShareTone = ({tone}: UseShareToneArgs) => {
       onSelect: async([peer]) => {
         if(!peer) return;
 
+        // no link host configured: there is no link to share
+        const link: string | undefined = impulsemShareLink('/addstyle/' + tone.slug);
+        if(!link) return;
+
         const preparedPaymentResult = await PaidMessagesInterceptor.prepareStarsForPayment({
           peerId: peer.peerId,
           messageCount: 1
@@ -389,7 +394,6 @@ const useShareTone = ({tone}: UseShareToneArgs) => {
 
         if(preparedPaymentResult === PaidMessagesInterceptor.PaymentRejectedSymbol) throw new Error();
 
-        const link = 'https://t.me/addstyle/' + tone.slug;
         rootScope.managers.appMessagesManager.sendText({
           peerId: peer.peerId,
           threadId: peer.threadId,

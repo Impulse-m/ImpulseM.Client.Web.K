@@ -12,11 +12,9 @@ export default async function wrapTopicNameButton(
   const loadPromise: Promise<any> = Promise.resolve();
   let element: HTMLElement;
 
-  if(options.noAvatarAndLink) {
-    element = document.createElement('span');
-  } else {
-    element = wrapTopicThreadAnchor({peerId, threadId, lastMsgId});
-  }
+  // no link host configured: the topic name stays plain text
+  element = options.noAvatarAndLink ? undefined : wrapTopicThreadAnchor({peerId, threadId, lastMsgId});
+  element ??= document.createElement('span');
 
   element.classList.add('topic-name', 'topic-name-button');
   // if(threadId) {

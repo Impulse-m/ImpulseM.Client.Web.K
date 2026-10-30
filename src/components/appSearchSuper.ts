@@ -1507,7 +1507,6 @@ export default class AppSearchSuper {
 
     let processCallback: (options: ProcessSearchSuperResult) => any;
 
-    // https://core.impulsem.net/type/MessagesFilter
     switch(inputFilter) {
       case 'inputMessagesFilterEmpty': {
         processCallback = this.processEmptyFilter;

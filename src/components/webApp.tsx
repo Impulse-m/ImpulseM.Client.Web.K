@@ -1100,7 +1100,11 @@ export default class WebApp {
         })
       },
       web_app_open_tg_link: ({path_full}) => {
-        appImManager.openUrl(getWebViewTgLink(path_full));
+        const link: string | undefined = getWebViewTgLink(path_full);
+        if(link) {
+          appImManager.openUrl(link);
+        }
+
         // this.forceHide();
       },
       web_app_open_invoice: ({slug}) => {

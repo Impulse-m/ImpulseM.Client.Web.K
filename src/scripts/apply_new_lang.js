@@ -82,7 +82,13 @@ const onResponse = (response) => {
 };
 
 const applyNewLang = () => {
-  https.get('https://translations.impulsem.net/en/webk/export?mode=prod', onResponse).on("error", (err) => {
+  // The translations export is not part of the repository: its base URL comes from IMPULSEM_TRANSLATIONS_URL.
+  const translationsUrl = process.env.IMPULSEM_TRANSLATIONS_URL;
+  if(!translationsUrl) {
+    throw new Error('IMPULSEM_TRANSLATIONS_URL is not set: give the base URL of the translations export and run again.');
+  }
+
+  https.get(`${translationsUrl.replace(/\/+$/, '')}/en/webk/export?mode=prod`, onResponse).on("error", (err) => {
     throw new Error('Failed to fetch translations: ' + err.message);
   });
 };

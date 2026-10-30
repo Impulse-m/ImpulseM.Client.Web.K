@@ -1,4 +1,5 @@
 import type {ChatRights} from '@appManagers/appChatsManager';
+import {impulsemLinkHost, impulsemShareLink} from '@config/impulsemConfig';
 import flatten from '@helpers/array/flatten';
 import appImManager from '@lib/appImManager';
 import rootScope from '@lib/rootScope';
@@ -112,7 +113,7 @@ export default async function showForwardPopup(
     const fromPeerId = fromPeerIdStr.toPeerId();
     const mid = peerIdMids[fromPeerIdStr as any as number][0];
     const firstMessage = await rootScope.managers.appMessagesManager.getMessageByPeer(fromPeerId, mid) as Message.message;
-    canCopyLink = !!firstMessage?.pFlags?.post;
+    canCopyLink = !!firstMessage?.pFlags?.post && !!impulsemLinkHost();
   }
 
   const {message_length_max: MAX_MESSAGE_LENGTH} = await rootScope.managers.apiManager.getConfig();
@@ -171,11 +172,9 @@ export default async function showForwardPopup(
     const mid = peerIdMids[fromPeerIdStr as any as number][0];
     const username = await rootScope.managers.appPeersManager.getPeerUsername(fromPeerId);
     const msgId = getServerMessageId(mid);
-    let url = 'https://t.me/';
-    if(username) {
-      url += username + '/' + msgId;
-    } else {
-      url += 'c/' + fromPeerId.toChatId() + '/' + msgId;
+    const url: string | undefined = impulsemShareLink(username ? `/${username}/${msgId}` : `/c/${fromPeerId.toChatId()}/${msgId}`);
+    if(!url) {
+      return;
     }
 
     copyTextToClipboard(url);

@@ -4,6 +4,7 @@ import type {State} from '@config/state';
 import {IS_BETA, MOUNT_CLASS_TO} from '@config/debug';
 import {HelpCountry, LangPackDifference, LangPackString} from '@layer';
 import App from '@config/app';
+import {resolveSiteLinkTokens} from '@config/impulsemConfig';
 import rootScope from '@lib/rootScope';
 import {IS_MOBILE} from '@environment/userAgent';
 import deepEqual from '@helpers/object/deepEqual';
@@ -551,7 +552,7 @@ namespace I18n {
       input = key;
     }
 
-    const result = superFormatter(input, args);
+    const result = superFormatter(resolveSiteLinkTokens(input), args);
     if(plain) { // * let's try a hack now... (don't want to replace []() entity)
       return result.map((item) => item instanceof HTMLBRElement ? '\n' : (item instanceof Node ? item.textContent : item)).join('') as any;
     } else {

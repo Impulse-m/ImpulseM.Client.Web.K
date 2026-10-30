@@ -27,8 +27,8 @@ const fleetHarness = sharedFleetPoolHarness();
 const ACCOUNT: ActiveAccountNumber = 1;
 const OTHER_ACCOUNT: ActiveAccountNumber = 2;
 const CURRENT_DC: number = 2;
-const MEDIA_URL: string = `wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`;
-const OTHER_MEDIA_URL: string = `wss://media-2.impulsem.io:443${FLEET_CONNECTION_PATH}`;
+const MEDIA_URL: string = `wss://media.example.org:443${FLEET_CONNECTION_PATH}`;
+const OTHER_MEDIA_URL: string = `wss://media-2.example.org:443${FLEET_CONNECTION_PATH}`;
 const REQUEST_BYTES: Uint8Array = new Uint8Array([1, 2, 3]);
 const REPLY_BYTES: Uint8Array = new Uint8Array([4, 5, 6]);
 const SESSION_TOKEN: string = 'session-token-current';
@@ -76,7 +76,7 @@ beforeEach(() => {
 
 describe('the media fleet is built from the media option of the current DC', () => {
   it('a published media option carries the file calls on its own pool', async() => {
-    setFleetConfig(ACCOUNT, withMediaOption('media.impulsem.io'));
+    setFleetConfig(ACCOUNT, withMediaOption('media.example.org'));
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
 
     await callMediaFleet(fileCall());
@@ -95,15 +95,15 @@ describe('the media fleet is built from the media option of the current DC', () 
   });
 
   it('a repeated publication of the same endpoint keeps the pool, and a new endpoint retires the old one', async() => {
-    setFleetConfig(ACCOUNT, withMediaOption('media.impulsem.io'));
+    setFleetConfig(ACCOUNT, withMediaOption('media.example.org'));
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
     await callMediaFleet(fileCall());
     const first = fleetHarness.pools[0];
 
-    setFleetConfig(ACCOUNT, withMediaOption('media.impulsem.io'));
+    setFleetConfig(ACCOUNT, withMediaOption('media.example.org'));
     expect(first.close, 'the same endpoint must not drop the connections of the pool').not.toHaveBeenCalled();
 
-    setFleetConfig(ACCOUNT, withMediaOption('media-2.impulsem.io'));
+    setFleetConfig(ACCOUNT, withMediaOption('media-2.example.org'));
     expect(first.close, 'a withdrawn endpoint closes its pool once it has no call in flight').toHaveBeenCalledTimes(1);
 
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
@@ -112,8 +112,8 @@ describe('the media fleet is built from the media option of the current DC', () 
   });
 
   it('resetting the identity of an account closes its pools and keeps the other account\'s', async() => {
-    setFleetConfig(ACCOUNT, withMediaOption('media.impulsem.io'));
-    setFleetConfig(OTHER_ACCOUNT, withMediaOption('media.impulsem.io'));
+    setFleetConfig(ACCOUNT, withMediaOption('media.example.org'));
+    setFleetConfig(OTHER_ACCOUNT, withMediaOption('media.example.org'));
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
     await callMediaFleet(fileCall({accountNumber: ACCOUNT}));
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
@@ -127,7 +127,7 @@ describe('the media fleet is built from the media option of the current DC', () 
   });
 
   it('a call under a new identity retires the pool of the identity it replaces', async() => {
-    setFleetConfig(ACCOUNT, withMediaOption('media.impulsem.io'));
+    setFleetConfig(ACCOUNT, withMediaOption('media.example.org'));
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
     fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
     presentIdentity(sessionIdentity('session-token-old'));
@@ -144,7 +144,7 @@ describe('the media fleet is built from the media option of the current DC', () 
 
 describe('a call is answered by the reply bytes of its pool', () => {
   beforeEach(() => {
-    setFleetConfig(ACCOUNT, withMediaOption('media.impulsem.io'));
+    setFleetConfig(ACCOUNT, withMediaOption('media.example.org'));
   });
 
   it('sends the request bytes under the canon method name and returns the reply bytes', async() => {
@@ -238,7 +238,7 @@ describe('a call is answered by the reply bytes of its pool', () => {
 
 describe('the identity a call presents decides the connection token of its pool', () => {
   beforeEach(() => {
-    setFleetConfig(ACCOUNT, withMediaOption('media.impulsem.io'));
+    setFleetConfig(ACCOUNT, withMediaOption('media.example.org'));
   });
 
   it('an identity call presents the identity token its identity hands out', async() => {
@@ -274,7 +274,7 @@ describe('the identity a call presents decides the connection token of its pool'
 
 describe('a server error is mapped by the one error mapper, and the registry codes are traced remotely', () => {
   beforeEach(() => {
-    setFleetConfig(ACCOUNT, withMediaOption('media.impulsem.io'));
+    setFleetConfig(ACCOUNT, withMediaOption('media.example.org'));
   });
 
   it('104 METHOD_INVALID reaches the caller with its catalog type and is written to the remote trace with the method', async() => {

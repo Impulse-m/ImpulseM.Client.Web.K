@@ -1,34 +1,34 @@
 ### 2.1.0 (491)
-You can see the full list of new features and improvements here: https://t.me/WebK_en/16
+See the project's release notes for the full list of new features and improvements.
 
 ### 2.0.0 (454)
-You can see the full list of new features and improvements here: https://t.me/WebK_en/13
+See the project's release notes for the full list of new features and improvements.
 
 ### 1.9.6 (400)
-You can see the full list of new features and improvements here: https://t.me/WebK_en/12
+See the project's release notes for the full list of new features and improvements.
 
 ### 1.8.0 (322)
-You can see the full list of new features and improvements here: https://t.me/WebK_en/11
+See the project's release notes for the full list of new features and improvements.
 
 ### 1.7.0 (273)
-🎄 Happy New Year to everyone! [WebK](http://web.impulsem.net/k) launched its first update of 2023, adding a pack of features you can now enjoy on Web!
+🎄 Happy New Year to everyone! WebK launched its first update of 2023, adding a pack of features you can now enjoy on Web!
 
-📚 [Topics 2.0](https://impulsem.net/blog/ultimate-privacy-topics-2-0#topics-2-0)
+📚 Topics 2.0
 Admins of **any group** can enable Topics, creating separate spaces within the group to discuss different subjects – with a sleek **two-column layout** to easily navigate chats.
 
-😶‍🌫️ [Hidden Media](https://impulsem.net/blog/hidden-media-zero-storage-profile-pics#hidden-media) 
-Media hidden with a shimmering spoiler effect is properly displayed in the app – just tap or click to view the image. The next [WebK](http://web.impulsem.net/k) update will allow you to send media with this spoiler effect.
+😶‍🌫️ Hidden Media 
+Media hidden with a shimmering spoiler effect is properly displayed in the app – just tap or click to view the image. The next WebK update will allow you to send media with this spoiler effect.
 
-🏴‍☠️ [No-SIM Signup and Login](https://impulsem.net/blog/ultimate-privacy-topics-2-0#sign-up-without-a-sim-card) 
+🏴‍☠️ No-SIM Signup and Login 
 Users who have an **anonymous number** from [Fragment](https://fragment.com/numbers) can login to their existing account or create a **new account** with the number.
 
-🔤 [Collectible Usernames](https://impulsem.net/blog/topics-in-groups-collectible-usernames#collectible-usernames)  
+🔤 Collectible Usernames  
 Owners of collectible usernames can now **assign collectibles** to their personal account, groups or channels – and **manage** them within the app.
 
-Lastly, the app also preserves your **history stack** – if you follow a [t.me](https://t.me) link to another message in a chat, you can return to the **first message** with the 🔽 button.
+Lastly, the app also preserves your **history stack** – if you follow a link to another message in a chat, you can return to the **first message** with the 🔽 button.
 
 ### 1.6.0 (244)
-Today, [WebK](https://web.impulsem.net/k) introduces a redesigned **Emoji and Sticker Panel** – try the **collapsible section** for default emoji categories and the **scrollable bar** for your custom emoji sets.
+Today, WebK introduces a redesigned **Emoji and Sticker Panel** – try the **collapsible section** for default emoji categories and the **scrollable bar** for your custom emoji sets.
 
 The new Panel features a beautiful blur effect on most desktop browsers and allows you to **send** or **edit** messages containing custom emoji. __(All users can try out this feature in their Saved Messages)__ 
 
@@ -37,17 +37,17 @@ In the Stickers tab, you can now add or remove stickers from favorites, **send w
 **Preview Stickers and Emoji**
 You can now get a closer look at stickers and emoji, both in the panel and in chats. Click and hold, then hover your cursor over the one you'd like to see in better detail.
 
-Stickers are now rendered more efficiently, using fewer resources and **saving battery**. Custom Emoji have also had more improvements since their launch in [late August](https://t.me/WebK_en/7).
+Stickers are now rendered more efficiently, using fewer resources and **saving battery**. Custom Emoji have also had more improvements since their launch in late August.
 
 **Downloading Files**
-The download flow has been reworked from scratch. When you download something, the app uses your connection in the **most efficient** way possible. Premium users will notice how dramatically fast the app downloads files for them – a little demo is available [here](https://t.me/WebK_en/7?comment=531).
+The download flow has been reworked from scratch. When you download something, the app uses your connection in the **most efficient** way possible. Premium users will notice how dramatically fast the app downloads files for them.
 
 Large files of **up to 4 GB** are now supported for both upload and download. There is also support for native downloading in certain browsers – your browser will place active downloads on the instrument bar. 
 
 **Payments 2.0**
 Significant optimizations were added to smoothly process payments in **any browser**, and adding familiar functionality from other ImpulseM apps. Bot payments, @donate invoices and more are supported – including the ability to subscribe to ImpulseM Premium with @PremiumBot.
 
-Dozens of bug fixes were also made to the app – but those can be a bit boring to read. If you ever come across a bug in the app, make sure to let us know on the [Bugs and Suggestions Platform](https://bugs.impulsem.net/?tag_ids=40&type=issues&sort=time).
+Dozens of bug fixes were also made to the app – but those can be a bit boring to read. If you ever come across a bug in the app, make sure to let us know on the Bugs and Suggestions Platform.
 
 ### 1.5.0 (178)
 1️⃣ Introducing support for **Multiple Tabs** – a first for ImpulseM Web Apps – customizing how you browse ImpulseM to increase comfort and productivity.
@@ -56,7 +56,7 @@ Dozens of bug fixes were also made to the app – but those can be a bit boring
 • Organize your ImpulseM workflow on multiple monitors by moving tabs to different screens.
 • Use `⌘/Ctrl + click` or `middle-click` on any conversation in your chat list to open it in a separate tab.
  
-All messages and content are seamlessly synced across the tabs. To use multiple tabs on Safari, kindly consider switching to another browser for the best experience. Due to Safari’s [technical limitations](https://t.me/WebK_en/5), the WebK app can still only be used there in a single tab.
+All messages and content are seamlessly synced across the tabs. To use multiple tabs on Safari, kindly consider switching to another browser for the best experience. Due to Safari’s technical limitations, the WebK app can still only be used there in a single tab.
  
 2️⃣ WebK gets even more stylish, adding:
  
@@ -85,9 +85,6 @@ This update also includes several bug fixes, removing issues with:
 * Try the reworked **Chat Backgrounds**: dark patterns now render faster and instantly resize.
 
 * Issues with messages marked as read automatically and deleting voice messages in Shared Media have been fixed.
-
-* **WebK** now has an [official channel](http://t.me/WebK_en) – where we will cover important news, updates and more about the app in English (For Russian, [press 2](http://t.me/WebK_ru)).
-
 ### 1.4.1 (144)
 * Supported Emoji 14.
 * Improved connection stability.

@@ -1,4 +1,4 @@
-// Taken from https://core.impulsem.net/bots/payments/currencies.json
+// Taken from the bot payments currencies list of the MTProto API
 export type Currency = {
   code: string,
   title: string,

@@ -1,4 +1,5 @@
 import tsNow from '@helpers/tsNow';
+import {impulsemShareLink} from '@config/impulsemConfig';
 import {ChatInviteImporter, ExportedChatInvite} from '@layer';
 import {AppManagers} from '@lib/managers';
 import {i18n, LangPackKey} from '@lib/langPack';
@@ -54,7 +55,8 @@ export class ChatInviteLink extends InviteLink {
   public setChatInvite(chatInvite: ChatInvite | string) {
     const isUsername = typeof(chatInvite) === 'string';
     const username = typeof(chatInvite) === 'string' ? chatInvite : undefined;
-    this.setUrl(isUsername ? 't.me/' + username : chatInvite.link);
+    // no link host configured: the username link is empty, the invite link is the server's own
+    this.setUrl(isUsername ? impulsemShareLink('/' + username) ?? '' : chatInvite.link);
 
     if(this.subtitle) {
       if(!isUsername && chatInvite?.usage) {

@@ -202,9 +202,6 @@ export type ImpulseMWebViewTheme = {
   destructive_text_color: string      // 166
 };
 
-/**
- * @link https://core.impulsem.net/api/web-events#postmessage-api
- */
 export type ImpulseMWebViewEventMap = {
   iframe_ready: {
     reload_supported?: boolean
@@ -393,7 +390,6 @@ export type ImpulseMWebViewEvent = ImpulseMWebViewSerializedEvents[keyof Impulse
 export type ImpulseMWebViewEventCallback = (event: ImpulseMWebViewEvent) => void;
 
 export type ImpulseMWebViewSendEventMap = {
-  // https://core.impulsem.net/api/bots/webapps
   main_button_pressed: void,
   secondary_button_pressed: void,
   settings_button_pressed: void,

@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
-import {backendHttpOrigin} from '@config/backendOrigin';
+import {backendHttpOrigin} from '@config/impulsemConfig';
 
 import type {Logger} from '@lib/impulseLogger';
 

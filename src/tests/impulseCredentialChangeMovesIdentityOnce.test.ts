@@ -47,7 +47,7 @@ function withMediaOption(): FleetConfig {
     this_dc: CURRENT_DC,
     dc_options: [
       {id: CURRENT_DC, ip_address: '149.154.167.50', port: 443},
-      {id: CURRENT_DC, ip_address: 'media.impulsem.io', port: 443, pFlags: {media_only: true}}
+      {id: CURRENT_DC, ip_address: 'media.example.org', port: 443, pFlags: {media_only: true}}
     ]
   };
 }

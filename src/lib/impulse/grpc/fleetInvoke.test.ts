@@ -1,7 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {create, fromBinary, toBinary} from '@bufbuild/protobuf';
 
-import {backendHttpOrigin, backendWsOrigin} from '@config/backendOrigin';
+import {backendHttpOrigin, backendWsOrigin} from '@config/impulsemConfig';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
 import {CENTRIFUGO_CONNECTION_PATH, FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import {BoolResponseSchema, ConfigSchema, UploadFileSchema, UploadFileValueSchema} from './gen/v1/types_pb';
@@ -37,7 +37,7 @@ const GET_FILE_PARAMS = {offset: 0, limit: 1024};
 const GET_CONFIG = 'help.getConfig';
 const STALE_SESSION_TOKEN: string = 'session-token-stale';
 const RENEWED_TOKEN: string = 'session-token-renewed';
-const MEDIA_URL: string = `wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`;
+const MEDIA_URL: string = `wss://media.example.org:443${FLEET_CONNECTION_PATH}`;
 const SOCKET_URL: string = `${backendWsOrigin(backendHttpOrigin())}${CENTRIFUGO_CONNECTION_PATH}`;
 const TOKEN_EXPIRED: number = 109;
 
@@ -61,7 +61,7 @@ describe('grpcInvoke sends the TL call to the carrier that serves it', () => {
       this_dc: 2,
       dc_options: [
         {id: 2, ip_address: '149.154.167.50', port: 443},
-        {id: 2, ip_address: 'media.impulsem.io', port: 443, pFlags: {media_only: true}}
+        {id: 2, ip_address: 'media.example.org', port: 443, pFlags: {media_only: true}}
       ]
     });
   });

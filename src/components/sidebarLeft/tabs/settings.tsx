@@ -30,6 +30,7 @@ import showStarsPopup from '@components/popups/stars';
 import {renderPeerProfile} from '@components/peerProfile';
 import SolidJSHotReloadGuardProvider from '@lib/solidjs/hotReloadGuardProvider';
 import showMyQrCodePopup from '@components/popups/myQrCode';
+import {impulsemLinkHost} from '@config/impulsemConfig';
 import showSendGiftPicker from '@components/popups/sendGiftPicker';
 import {formatNanoton} from '@helpers/paymentsWrapCurrencyAmount';
 import showLogOutPopup from '@components/popups/logOut';
@@ -107,7 +108,8 @@ const Settings = () => {
     }, {
       icon: 'qr',
       text: 'QRCode.Title',
-      onClick: () => showMyQrCodePopup()
+      onClick: () => showMyQrCodePopup(),
+      verify: () => !!impulsemLinkHost()
     }, {
       icon: 'logout',
       text: 'EditAccount.Logout',

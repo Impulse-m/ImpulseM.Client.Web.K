@@ -16,6 +16,7 @@ import I18n, {i18n} from '@lib/langPack';
 import rootScope from '@lib/rootScope';
 import themeController from '@helpers/themeController';
 import {paintQrCode, buildImpulseMUserQrUrl} from '@helpers/qrCode/paintQrCode';
+import {impulsemLinkHost, impulsemShareLink} from '@config/impulsemConfig';
 import {getWallPaperColors, darkenToMaxLuminance} from '@helpers/color';
 import roundRect from '@helpers/canvas/roundRect';
 import getPeerActiveUsernames from '@appManagers/utils/peers/getPeerActiveUsernames';
@@ -112,8 +113,8 @@ function createSharedState(self: User.user, peerId: PeerId = rootScope.myId, ove
     const tokenUrl = contactTokenUrl();
     if(tokenUrl) return tokenUrl;
     if(username()) return buildImpulseMUserQrUrl(username());
-    if(peerId.isUser()) return `https://t.me/+${(self as User.user).phone ?? ''}`;
-    return `https://t.me/c/${peerId.toChatId()}`;
+    if(peerId.isUser()) return impulsemShareLink('/+' + ((self as User.user).phone ?? ''));
+    return impulsemShareLink('/c/' + peerId.toChatId());
   });
 
   // The fallback brightness must stay reactive to a GLOBAL theme change while the
@@ -969,7 +970,8 @@ export default async function showMyQrCodePopup(peerId: PeerId = rootScope.myId,
   const self = peerId === rootScope.myId ?
     await rootScope.managers.appUsersManager.getSelf() :
     await rootScope.managers.appPeersManager.getPeer(peerId);
-  if(!self) return;
+  // every QR encodes a link on the link host; without one there is nothing to show
+  if(!self || !impulsemLinkHost()) return;
 
   createPopup(() => {
     const shared = createSharedState(self as User.user, peerId, options?.url);

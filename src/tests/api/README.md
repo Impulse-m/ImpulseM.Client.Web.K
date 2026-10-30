@@ -18,7 +18,7 @@ auth keys, and feed them to the harness as a JSON seed.
 
 ## Producing a seed
 
-Open `https://web.impulsem.net/k/?test=1` (test DC) or `https://web.impulsem.net/k/`,
+Open `$IMPULSEM_WEB_URL?test=1` (test DC) or `$IMPULSEM_WEB_URL`,
 log in, then run this snippet in DevTools console:
 
 ```js

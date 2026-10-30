@@ -1,4 +1,5 @@
 import {T_ME_PREFIXES} from '@appManagers/constants';
+import {impulsemLinkHost} from '@config/impulsemConfig';
 
 const TELEGRAM_LINK_HOSTS = ['t.me', 'telegram.me'];
 export const TELESCOPE_LINK_HOST = 'telesco.pe';
@@ -36,7 +37,9 @@ export function matchUrlHost(url: URL, hosts: string[]) {
  * tests `match?.prefix` instead of `match` treats every non-subdomain link as external.
  */
 export default function matchTelegramUrlHost(url: URL): {prefix?: string} | undefined {
-  const match = matchUrlHost(url, TELEGRAM_LINK_HOSTS);
+  // The configured link host (IMPULSEM_LINK_HOST) is recognised beside the Telegram hosts.
+  const linkHost: string = impulsemLinkHost();
+  const match = matchUrlHost(url, linkHost ? [...TELEGRAM_LINK_HOSTS, linkHost] : TELEGRAM_LINK_HOSTS);
   if(!match) {
     return;
   }

@@ -6,7 +6,7 @@ import {clientPort, liveLane} from './e2e/live/lane';
 // driven in real chromium against the LIVE dev backend (see e2e/live/lane.ts for the env gate
 // and endpoint discipline). Never points at — or reuses — an interactively running dev server:
 // the CEO's session must survive a test run untouched, and a stale server carrying a different
-// VITE_IMPULSE_BACKEND_URL would poison every scenario, so reuseExistingServer stays off.
+// IMPULSEM_RPC_URL would poison every scenario, so reuseExistingServer stays off.
 //
 // Without IMPULSE_LIVE_GATEWAY the webServer block is omitted entirely and every scenario
 // skips at collection time — the gated run costs milliseconds, not a Vite boot.
@@ -101,10 +101,10 @@ export default defineConfig({
     env: {
       // Same knob the lottie e2e lane uses: plain-HTTP/1.1 dev server, dev-checks off.
       TWEB_PREVIEW: '1',
-      // Bakes the live gateway into the served bundle (src/config/backendOrigin.ts). A real
+      // Bakes the live gateway into the served bundle (src/config/impulsemConfig.ts). A real
       // process-env value takes precedence over the repo's .env, so the lane always points at
       // the stack the gate named, not at whatever .env happens to contain.
-      VITE_IMPULSE_BACKEND_URL: liveLane.gatewayOrigin
+      IMPULSEM_RPC_URL: liveLane.gatewayOrigin
     },
     reuseExistingServer: false,
     timeout: 180_000

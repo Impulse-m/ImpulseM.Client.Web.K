@@ -1,3 +1,4 @@
+import {impulsemSiteLink} from '@config/impulsemConfig';
 import Button from '@components/buttonTsx';
 import createButton from '@components/button';
 import CheckboxFields, {CheckboxFieldsField} from '@components/checkboxFields';
@@ -763,7 +764,11 @@ export default function ChatAutomationTab() {
   };
 
   const learnMoreAnchor = document.createElement('a');
-  learnMoreAnchor.href = 'https://impulsem.net';
+  const siteUrl: string | undefined = impulsemSiteLink('/');
+  if(siteUrl) {
+    learnMoreAnchor.href = siteUrl;
+  }
+
   learnMoreAnchor.target = '_blank';
   learnMoreAnchor.rel = 'noopener noreferrer';
 

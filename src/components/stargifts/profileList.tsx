@@ -1,4 +1,5 @@
 import {createMemo, createSignal, For, Match, onMount, Show, Switch, untrack} from 'solid-js';
+import {impulsemLinkHost, impulsemShareLink} from '@config/impulsemConfig';
 import rootScope from '@lib/rootScope';
 import {PreloaderTsx} from '@components/putPreloader';
 import showStarGiftInfoPopup from '@components/popups/starGiftInfo';
@@ -338,12 +339,12 @@ export function StarGiftsProfileTab(props: {
                 text: 'CopyLink',
                 onClick: async() => {
                   const username = await rootScope.managers.appPeersManager.getPeerUsername(props.peerId)
-                  copyTextToClipboard(`https://t.me/${username}/c/${id}`)
+                  copyTextToClipboard(impulsemShareLink(`/${username}/c/${id}`))
                   toastNew({langPackKey: 'LinkCopied'})
                 },
                 verify: async() => {
                   const username = await rootScope.managers.appPeersManager.getPeerUsername(props.peerId)
-                  return !!username
+                  return !!username && !!impulsemLinkHost()
                 }
               }
             ]

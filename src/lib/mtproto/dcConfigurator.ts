@@ -8,6 +8,7 @@
 import MTTransport, {MTConnectionConstructable} from '@lib/mtproto/transports/transport';
 import Modes from '@config/modes';
 import App from '@config/app';
+import {impulsemWebHostname} from '@config/impulsemConfig';
 import indexOfAndSplice from '@helpers/array/indexOfAndSplice';
 import HTTP from '@lib/mtproto/transports/http';
 import Socket from '@lib/mtproto/transports/websocket';
@@ -38,7 +39,7 @@ export function getImpulseMConnectionSuffix(connectionType: ConnectionType) {
 
 // A dcId can arrive from the service worker's `stream/` route, i.e. from a URL any page
 // can craft: interpolated unchecked it turns the endpoint into an attacker-chosen host
-// (`1.evil.com/` -> wss://kws1.evil.com/-1.web.impulsem.net/apiws). ImpulseM has exactly
+// (`1.evil.com/` -> wss://kws1.evil.com/-1.<web host>/apiws). ImpulseM has exactly
 // five DCs, so validate here, before the value can reach a URL or a storage key.
 export function assertValidDcId(dcId: DcId): DcId {
   const id = +dcId;
@@ -50,14 +51,15 @@ export function assertValidDcId(dcId: DcId): DcId {
 }
 
 export function constructImpulseMWebSocketUrl(_dcId: DcId, connectionType: ConnectionType, premium?: boolean) {
-  if(!import.meta.env.VITE_MTPROTO_HAS_WS) {
+  const webHost: string = impulsemWebHostname();
+  if(!import.meta.env.VITE_MTPROTO_HAS_WS || !webHost) {
     return;
   }
 
   const dcId = assertValidDcId(_dcId);
   const suffix = getImpulseMConnectionSuffix(connectionType);
   const path = connectionType !== 'client' ? 'apiws' + TEST_SUFFIX + (premium ? PREMIUM_SUFFIX : '') : ('apiws' + TEST_SUFFIX);
-  const chosenServer = `wss://${App.suffix.toLowerCase()}ws${dcId}${suffix}.web.impulsem.net/${path}`;
+  const chosenServer = `wss://${App.suffix.toLowerCase()}ws${dcId}${suffix}.${webHost}/${path}`;
 
   return chosenServer;
 }
@@ -82,7 +84,7 @@ export class DcConfigurator {
   public chosenServers: Servers = {} as any;
 
   private transportSocket = (dcId: DcId, connectionType: ConnectionType, premium?: boolean) => {
-    if(!import.meta.env.VITE_MTPROTO_HAS_WS) {
+    if(!import.meta.env.VITE_MTPROTO_HAS_WS || !impulsemWebHostname()) {
       return;
     }
 
@@ -108,10 +110,15 @@ export class DcConfigurator {
 
     let chosenServer: string;
     if(Modes.ssl || !Modes.http) {
+      const webHost: string = impulsemWebHostname();
+      if(!webHost) {
+        return;
+      }
+
       const suffix = getImpulseMConnectionSuffix(connectionType);
       const subdomain = this.sslSubdomains[dcId - 1] + suffix;
       const path = Modes.test ? 'apiw_test1' : 'apiw1';
-      chosenServer = 'https://' + subdomain + '.web.impulsem.net/' + path;
+      chosenServer = 'https://' + subdomain + '.' + webHost + '/' + path;
     } else {
       for(const dcOption of this.dcOptions) {
         if(dcOption.id === dcId) {

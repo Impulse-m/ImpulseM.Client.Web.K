@@ -1,3 +1,4 @@
+import {impulsemShareLink} from '@config/impulsemConfig';
 import {
   Component,
   createMemo,
@@ -287,8 +288,12 @@ function BotFatherButton(props: {
   icon: Icon,
   text: LangPackKey
 }) {
-  const url = 't.me/botfather?start=' + props.username +
-    (props.suffix ? '-' + props.suffix : '');
+  const url: string | undefined = impulsemShareLink('/botfather?start=' + props.username +
+    (props.suffix ? '-' + props.suffix : ''));
+  if(!url) {
+    return;
+  }
+
   const wrapped = wrapUrl(url);
 
   return (

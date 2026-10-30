@@ -1,4 +1,5 @@
 import {createEffect, createSignal, For, JSX, createMemo, onCleanup, untrack, createReaction, Show, Switch, Match} from 'solid-js';
+import {impulsemLinkHost, impulsemShareLink} from '@config/impulsemConfig';
 import {getOverlayRoot} from '@helpers/appWindow';
 import {Portal} from 'solid-js/web';
 import {createStoriesViewer, createStoriesViewerWithPeer} from '@components/stories/viewer';
@@ -218,12 +219,12 @@ class StoriesContextMenu {
       text: 'CopyLink',
       onClick: async() => {
         const username = await rootScope.managers.appPeersManager.getPeerUsername(this.peerId);
-        copyTextToClipboard(`https://t.me/${username}/s/${this.storyItem.id}`);
+        copyTextToClipboard(impulsemShareLink(`/${username}/s/${this.storyItem.id}`));
         toastNew({langPackKey: 'LinkCopied'});
       },
       verify: async() => {
         const username = await rootScope.managers.appPeersManager.getPeerUsername(this.peerId);
-        return !!username;
+        return !!username && !!impulsemLinkHost();
       }
     }, {
       icon: 'forward',
@@ -350,12 +351,12 @@ function StoriesAlbums(props: {
               text: 'CopyLink',
               onClick: async() => {
                 const username = await rootScope.managers.appPeersManager.getPeerUsername(props.peerId);
-                copyTextToClipboard(`https://t.me/${username}/a/${id}`);
+                copyTextToClipboard(impulsemShareLink(`/${username}/a/${id}`));
                 toastNew({langPackKey: 'LinkCopied'});
               },
               verify: async() => {
                 const username = await rootScope.managers.appPeersManager.getPeerUsername(props.peerId);
-                return !!username;
+                return !!username && !!impulsemLinkHost();
               }
             },
             {
