@@ -12,16 +12,14 @@ import type {FleetConfig} from './fleetRoute';
 
 const logger = getLogger('fleet');
 
-// The registry's timeout for the four file-transfer calls (deploy/centrifugo/media/registry.json).
-const MEDIA_CALL_TIMEOUT_MS: number = 10_000;
+const MEDIA_CALL_TIMEOUT_MS: number = 40_000;
 const POOL_CALL_TIMEOUT_MS: number = 30_000;
-// Calls in flight per connection: the media registry needs client.concurrency >= window + 1 on the server
-// (deploy/centrifugo/media/config.json: 3).
 const MEDIA_INFLIGHT_PER_CONNECTION: number = 2;
-const MEDIA_CONNECTIONS_PER_ENDPOINT: number = 2;
+const MEDIA_CONNECTIONS_PER_ENDPOINT: number = 3;
+const MEDIA_WINDOW: number = MEDIA_CONNECTIONS_PER_ENDPOINT * MEDIA_INFLIGHT_PER_CONNECTION;
+const MEDIA_POOL_RESENDS: number = 2;
 const POOL_INFLIGHT_PER_CONNECTION: number = 1;
 const POOL_CONNECTIONS_PER_ENDPOINT: number = 1;
-// The calls a pool holds waiting for one of its slots, beyond which the pool refuses at once (the SDK's default).
 const MAX_QUEUED_CALLS_PER_POOL: number = 64;
 const INTERNAL_ERROR_CODE: number = 500;
 
@@ -251,6 +249,8 @@ function laneFor(fleet: AccountFleet, target: LaneTarget, identity: FleetIdentit
       connectionsPerEndpoint: isMedia ? MEDIA_CONNECTIONS_PER_ENDPOINT : POOL_CONNECTIONS_PER_ENDPOINT,
       inflightPerConnection: isMedia ? MEDIA_INFLIGHT_PER_CONNECTION : POOL_INFLIGHT_PER_CONNECTION,
       queuedCalls: MAX_QUEUED_CALLS_PER_POOL,
+      localWindow: isMedia ? MEDIA_WINDOW : undefined,
+      resends: isMedia ? MEDIA_POOL_RESENDS : undefined,
       getToken: identity?.getToken
     });
     fleet.lanes.set(key, lane);

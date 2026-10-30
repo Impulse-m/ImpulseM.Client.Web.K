@@ -15,7 +15,8 @@ export type SdkRpcPoolOptions = {
   connection: {getToken?: () => Promise<string>, token?: string, timeout?: number},
   maxConnectionsPerEndpoint?: number,
   maxInflightPerConnection?: number,
-  maxQueued?: number
+  maxQueued?: number,
+  retries?: number
 };
 
 // The SDK's defaults (rpc_pool.d.ts): 2 connections, 1 call in flight per connection, 64 calls waiting for a slot.
