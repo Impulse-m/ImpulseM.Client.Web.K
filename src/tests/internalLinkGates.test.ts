@@ -1,39 +1,13 @@
 import {afterEach, beforeAll, describe, expect, test, vi} from 'vitest';
+import './mocks/popupEntryStubs';
 import {setAppStateSilent} from '@stores/appState';
-
-vi.hoisted(() => {
-  class IntersectionObserverMock {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-
-  vi.stubGlobal('IntersectionObserver', IntersectionObserverMock);
-  vi.stubGlobal('matchMedia', () => ({matches: false, addEventListener() {}, removeEventListener() {}}));
-  vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(null, {status: 204}))));
-});
 
 vi.mock('@environment/webpSupport', () => ({default: true}));
 vi.mock('@components/sidebarRight', () => ({default: {}}));
 vi.mock('@components/sidebarLeft', () => ({default: {}}));
 vi.mock('@lib/logger', async(importActual) => {
-  const actual = await importActual<typeof import('@lib/logger')>();
-  const silent = (): void => {};
-  const silentLogger = Object.assign(silent, {
-    warn: silent,
-    info: silent,
-    error: silent,
-    trace: silent,
-    debug: silent,
-    assert: silent,
-    group: silent,
-    groupCollapsed: silent,
-    groupEnd: silent,
-    setPrefix: silent,
-    setLevel: silent,
-    bindPrefix: () => silentLogger
-  });
-  return {...actual, logger: () => silentLogger};
+  const {silentLoggerModule} = await import('./mocks/popupEntryStubs');
+  return silentLoggerModule(await importActual<Record<string, unknown>>());
 });
 
 const mocks = vi.hoisted(() => ({

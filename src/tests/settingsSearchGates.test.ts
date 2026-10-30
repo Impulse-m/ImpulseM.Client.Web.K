@@ -2,6 +2,7 @@ import {afterEach, beforeAll, describe, expect, test, vi} from 'vitest';
 import I18n, {LangPackKey} from '@lib/langPack';
 import type {LangPackString} from '@layer';
 import generated from '@lib/settingsSearch/generated';
+import {isSettingsLinkShown} from '@lib/settingsSearch/gates';
 import {getSettingsSearchSuggestions, searchSettings, SettingsSearchItem} from '@lib/settingsSearch';
 import {setAppStateSilent} from '@stores/appState';
 import lang from '../lang';
@@ -154,5 +155,13 @@ describe('settings search offers no row the switches hide', () => {
 
     setAppConfig(BLOCKED_CONFIG);
     expect(getSettingsSearchSuggestions(['AppSettingsTab:MenuImpulseMStars'])).toEqual([]);
+  });
+
+  test('the Paid messages link is not followed while Stars are blocked', () => {
+    setAppConfig(BLOCKED_CONFIG);
+    expect(isSettingsLinkShown('privacy/messages/set-price')).toBe(false);
+
+    setAppConfig(OPEN_CONFIG);
+    expect(isSettingsLinkShown('privacy/messages/set-price')).toBe(true);
   });
 });

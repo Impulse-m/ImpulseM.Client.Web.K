@@ -37,8 +37,8 @@ export function canSetMainProfileTabForMediaType(type: string, options: {
   isSelf: boolean,
   isSavedMessages: boolean,
   isEditableBroadcast: boolean,
-  ownStoriesShown?: boolean,
-  ownGiftsShown?: boolean
+  ownStoriesShown: boolean,
+  ownGiftsShown: boolean
 }) {
   if(!getProfileTabForMediaType(type)) {
     return false;
@@ -47,8 +47,8 @@ export function canSetMainProfileTabForMediaType(type: string, options: {
   return options.isEditableBroadcast ||
     options.isSavedMessages ||
     (options.isSelf && (
-      (type === 'stories' && (options.ownStoriesShown ?? true)) ||
-      (type === 'gifts' && (options.ownGiftsShown ?? true))
+      (type === 'stories' && options.ownStoriesShown) ||
+      (type === 'gifts' && options.ownGiftsShown)
     ));
 }
 

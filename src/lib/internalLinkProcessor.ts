@@ -79,6 +79,16 @@ const refuseHiddenDestination = (hidden: boolean): boolean => {
   return hidden;
 };
 
+const HIDDEN_SETTINGS_DESTINATIONS: ReadonlyMap<string, () => boolean> = new Map<string, () => boolean>([
+  ['stars', starsUiBlocked],
+  ['stars/gift', () => starsUiBlocked() || giftsBlocked()],
+  ['send-gift', giftsBlocked],
+  ['send-gift/self', giftsBlocked],
+  ['my-profile/posts/all-stories', () => !ownStoriesShown(hasOwnStories())],
+  ['my-profile/archived-posts', () => !ownStoriesShown(hasOwnStories())],
+  ['ton', () => !walletShown()]
+]);
+
 export class InternalLinkProcessor {
   protected managers: AppManagers;
   private processingAddAiStyleSlugs: Set<string> = new Set();
@@ -801,6 +811,11 @@ export class InternalLinkProcessor {
         // (`tg://settings/privacy/phone-number/`) and the generated index strips
         // them, so a path has to arrive here the same way it was addressed there
         const path = pathnameParams.join('/').replace(/\/$/, '');
+        const hidden = HIDDEN_SETTINGS_DESTINATIONS.get(path);
+        if(hidden && refuseHiddenDestination(hidden())) {
+          return;
+        }
+
         switch(path) {
           case '':
             // reuse the open Settings instead of stacking a second one
@@ -893,53 +908,25 @@ export class InternalLinkProcessor {
           case 'premium':
             return showPremiumPopup();
           case 'stars':
-            if(refuseHiddenDestination(starsUiBlocked())) {
-              return;
-            }
-
             return showStarsPopup();
           case 'stars/gift':
-            if(refuseHiddenDestination(starsUiBlocked() || giftsBlocked())) {
-              return;
-            }
-
             return showGiftStarsPicker();
           case 'send-gift':
-            if(refuseHiddenDestination(giftsBlocked())) {
-              return;
-            }
-
             return showSendGiftPicker();
           case 'send-gift/self':
-            if(refuseHiddenDestination(giftsBlocked())) {
-              return;
-            }
-
             return showSendGiftPopup({peerId: rootScope.myId});
 
           // destinations outside Settings, which the section table cannot address
           case 'saved-messages':
             return appImManager.setPeer({peerId: appImManager.myId});
           case 'my-profile/posts/all-stories':
-            if(refuseHiddenDestination(!ownStoriesShown(hasOwnStories()))) {
-              return;
-            }
-
             return appSidebarLeft.createTab(AppMyStoriesTab).open(AppMyStoriesTab.getInitArgs());
           case 'my-profile/archived-posts':
-            if(refuseHiddenDestination(!ownStoriesShown(hasOwnStories()))) {
-              return;
-            }
-
             return appSidebarLeft.createTab(AppMyStoriesTab).open({
               ...AppMyStoriesTab.getInitArgs(),
               isArchive: true
             });
           case 'ton':
-            if(refuseHiddenDestination(!walletShown())) {
-              return;
-            }
-
             return showStarsPopup({ton: true});
 
           default:

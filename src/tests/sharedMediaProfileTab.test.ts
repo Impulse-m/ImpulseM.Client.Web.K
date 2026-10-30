@@ -27,33 +27,33 @@ describe('shared media main profile tab', () => {
   });
 
   test('allows only posts and gifts on the own user profile', () => {
-    const options = {isSelf: true, isSavedMessages: false, isEditableBroadcast: false};
+    const options = {isSelf: true, isSavedMessages: false, isEditableBroadcast: false, ownStoriesShown: true, ownGiftsShown: true};
     expect(canSetMainProfileTabForMediaType('stories', options)).toBe(true);
     expect(canSetMainProfileTabForMediaType('gifts', options)).toBe(true);
     expect(canSetMainProfileTabForMediaType('media', options)).toBe(false);
   });
 
   test('keeps the own gifts tab out of the main tab choice while gifts are blocked', () => {
-    const options = {isSelf: true, isSavedMessages: false, isEditableBroadcast: false, ownGiftsShown: false};
+    const options = {isSelf: true, isSavedMessages: false, isEditableBroadcast: false, ownStoriesShown: true, ownGiftsShown: false};
     expect(canSetMainProfileTabForMediaType('gifts', options)).toBe(false);
     expect(canSetMainProfileTabForMediaType('stories', options)).toBe(true);
   });
 
   test('keeps the own stories tab out of the main tab choice while stories are not shown', () => {
-    const options = {isSelf: true, isSavedMessages: false, isEditableBroadcast: false, ownStoriesShown: false};
+    const options = {isSelf: true, isSavedMessages: false, isEditableBroadcast: false, ownStoriesShown: false, ownGiftsShown: true};
     expect(canSetMainProfileTabForMediaType('stories', options)).toBe(false);
     expect(canSetMainProfileTabForMediaType('gifts', options)).toBe(true);
   });
 
   test('allows every mapped tab in Saved Messages', () => {
-    const options = {isSelf: true, isSavedMessages: true, isEditableBroadcast: false};
+    const options = {isSelf: true, isSavedMessages: true, isEditableBroadcast: false, ownStoriesShown: true, ownGiftsShown: true};
     expect(canSetMainProfileTabForMediaType('media', options)).toBe(true);
     expect(canSetMainProfileTabForMediaType('files', options)).toBe(true);
     expect(canSetMainProfileTabForMediaType('savedDialogs', options)).toBe(false);
   });
 
   test('allows every mapped tab on an editable broadcast channel', () => {
-    const options = {isSelf: false, isSavedMessages: false, isEditableBroadcast: true};
+    const options = {isSelf: false, isSavedMessages: false, isEditableBroadcast: true, ownStoriesShown: true, ownGiftsShown: true};
     expect(canSetMainProfileTabForMediaType('media', options)).toBe(true);
     expect(canSetMainProfileTabForMediaType('files', options)).toBe(true);
     expect(canSetMainProfileTabForMediaType('members', options)).toBe(false);

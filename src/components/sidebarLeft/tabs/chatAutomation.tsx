@@ -2,7 +2,7 @@ import Button from '@components/buttonTsx';
 import createButton from '@components/button';
 import CheckboxFields, {CheckboxFieldsField} from '@components/checkboxFields';
 import confirmationPopup from '@components/confirmationPopup';
-import {canPostStories, giftsBlocked, starsUiBlocked} from '@stores/appState';
+import {CHAT_AUTOMATION_RIGHT_GATES} from '@lib/settingsSearch/gates';
 import {IconTsx} from '@components/iconTsx';
 import {InputFieldTsx} from '@components/inputFieldTsx';
 import MediaHeader from '@components/mediaHeader';
@@ -155,13 +155,8 @@ function getWarningKey(key: RightKey): LangPackKey | undefined {
   if(key === 'transfer_and_upgrade_gifts') return 'ChatAutomation.GiftsWarning';
 }
 
-const GIFT_RIGHT_KEYS: RightKey[] = ['view_gifts', 'sell_gifts', 'change_gift_settings', 'transfer_and_upgrade_gifts'];
-
 const isRightVisible = (key: RightKey): boolean => {
-  if(key === 'transfer_stars') return !starsUiBlocked();
-  if(GIFT_RIGHT_KEYS.includes(key)) return !giftsBlocked();
-  if(key === 'manage_stories') return canPostStories();
-  return true;
+  return !CHAT_AUTOMATION_RIGHT_GATES.get(key)?.hidden();
 };
 
 function makeRights(connectedBot?: ConnectedBot.connectedBot) {

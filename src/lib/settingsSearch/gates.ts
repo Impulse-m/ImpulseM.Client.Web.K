@@ -3,29 +3,43 @@ import {findSettingsLink} from './link';
 import {getSectionChain} from './registry';
 import type {SettingsSearchItem} from './index';
 
+export type ChatAutomationRightGate = {
+  titleKey: string,
+  hidden: () => boolean
+};
+
+export const CHAT_AUTOMATION_RIGHT_GATES: ReadonlyMap<string, ChatAutomationRightGate> = new Map<string, ChatAutomationRightGate>([
+  ['transfer_stars', {titleKey: 'ChatAutomation.TransferStars', hidden: starsUiBlocked}],
+  ['view_gifts', {titleKey: 'ChatAutomation.ViewGifts', hidden: giftsBlocked}],
+  ['sell_gifts', {titleKey: 'ChatAutomation.SellGifts', hidden: giftsBlocked}],
+  ['change_gift_settings', {titleKey: 'ChatAutomation.ChangeGiftSettings', hidden: giftsBlocked}],
+  ['transfer_and_upgrade_gifts', {titleKey: 'ChatAutomation.TransferGifts', hidden: giftsBlocked}],
+  ['manage_stories', {titleKey: 'ChatAutomation.ManageStories', hidden: () => !canPostStories()}]
+]);
+
 const HIDDEN_SECTIONS: Map<string, () => boolean> = new Map([
   ['AppPrivacyGiftsTab', giftsBlocked]
 ]);
 
-const HIDDEN_ROWS: Map<string, () => boolean> = new Map([
+const chatAutomationHiddenRows: [string, () => boolean][] = [...CHAT_AUTOMATION_RIGHT_GATES.values()].map(
+  ({titleKey, hidden}): [string, () => boolean] => ['AppChatAutomationTab:' + titleKey, hidden]
+);
+
+const HIDDEN_ROWS: Map<string, () => boolean> = new Map<string, () => boolean>([
   ['AppSettingsTab:MenuImpulseMStars', starsUiBlocked],
   ['AppSettingsTab:MenuImpulseMStarsTon', () => !walletShown()],
   ['AppSettingsTab:Chat.Menu.SendGift', giftsBlocked],
   ['AppPrivacyAndSecurityTab:Privacy.GiftsRow', giftsBlocked],
-  ['AppChatAutomationTab:ChatAutomation.TransferStars', starsUiBlocked],
+  ['AppPrivacyMessagesTab:PaidMessages.SetPrice', starsUiBlocked],
   ['AppChatAutomationTab:ChatAutomation.ManageGifts', giftsBlocked],
-  ['AppChatAutomationTab:ChatAutomation.ViewGifts', giftsBlocked],
-  ['AppChatAutomationTab:ChatAutomation.SellGifts', giftsBlocked],
-  ['AppChatAutomationTab:ChatAutomation.TransferGifts', giftsBlocked],
-  ['AppChatAutomationTab:ChatAutomation.ChangeGiftSettings', giftsBlocked],
-  ['AppChatAutomationTab:ChatAutomation.ManageStories', () => !canPostStories()]
+  ...chatAutomationHiddenRows
 ]);
 
-export const isSettingsSectionShown = (sectionId: string): boolean => {
+const isSettingsSectionShown = (sectionId: string): boolean => {
   return !getSectionChain(sectionId).some((id) => HIDDEN_SECTIONS.get(id)?.());
 };
 
-export const isSettingsRowShown = (rowId: string): boolean => {
+const isSettingsRowShown = (rowId: string): boolean => {
   return !HIDDEN_ROWS.get(rowId)?.();
 };
 
