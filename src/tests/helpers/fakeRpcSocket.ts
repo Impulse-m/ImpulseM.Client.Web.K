@@ -15,7 +15,9 @@ export type RpcReplyDelay = (rpcNumber: number) => number;
 
 export type ReceivedRpc = {
   method: string,
-  arrivedAt: number
+  arrivedAt: number,
+  socketIndex: number,
+  repliedAt?: number
 };
 
 export type FakeRpcSocketServer = {
@@ -48,6 +50,7 @@ type ProtobufClientHost = {
 const codec: ProtobufCodec = (new Centrifuge(CODEC_HOST_URL, {}) as unknown as ProtobufClientHost)._codec;
 
 let activeServer: FakeRpcSocketServer | undefined;
+let socketsOpened: number = 0;
 
 // The SDK's decoder leaves the fields of the other commands null, not undefined.
 function isSet(field: unknown): boolean {
@@ -61,8 +64,10 @@ class FakeRpcSocket {
   public onerror: ((event: unknown) => void) | null = null;
   public onmessage: ((event: {data: Uint8Array}) => void) | null = null;
   private closed: boolean = false;
+  private readonly index: number;
 
   public constructor(url: string, protocol?: string) {
+    this.index = ++socketsOpened;
     setTimeout((): void => {
       if(!this.closed) {
         this.onopen?.({type: 'open', url, protocol});
@@ -92,15 +97,19 @@ class FakeRpcSocket {
     }
 
     if(isSet(command.rpc)) {
-      server.received.push({method: command.rpc.method, arrivedAt: Date.now()});
+      const received: ReceivedRpc = {method: command.rpc.method, arrivedAt: Date.now(), socketIndex: this.index};
+      server.received.push(received);
       const rpcNumber: number = server.received.length;
-      this.deliver(server.replyDelayMs(rpcNumber), {id: command.id, rpc: {data: REPLY_DATA}});
+      this.deliver(server.replyDelayMs(rpcNumber), {id: command.id, rpc: {data: REPLY_DATA}}, received);
     }
   }
 
-  private deliver(delayMs: number, reply: WireReply): void {
+  private deliver(delayMs: number, reply: WireReply, rpc?: ReceivedRpc): void {
     setTimeout((): void => {
       if(!this.closed) {
+        if(rpc !== undefined) {
+          rpc.repliedAt = Date.now();
+        }
         this.onmessage?.({data: codec.encodeReplies([reply])});
       }
     }, delayMs);
@@ -124,6 +133,7 @@ export function installFakeRpcSocket(replyDelayMs: RpcReplyDelay): FakeRpcSocket
   };
 
   activeServer = server;
+  socketsOpened = 0;
   Object.defineProperty(globalThis, 'WebSocket', {value: FakeRpcSocket, writable: true, configurable: true});
   return server;
 }

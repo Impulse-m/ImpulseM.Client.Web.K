@@ -2,9 +2,10 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {errorCodes} from '@impulsem/centrifuge/build/protobuf';
 
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {callMediaFleet, fleetCounters, resetFleetIdentity, setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
+import {callMediaFleet, callPool, fleetCounters, resetFleetIdentity, setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
 import type {FleetCall, FleetIdentity} from '@lib/impulse/fleet/fleet';
 import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
+import {CONNECTION_IDENTITY_METHOD} from '@lib/impulse/fleet/fleetRoute';
 import type {FleetConfig} from '@lib/impulse/fleet/fleetRoute';
 import {sharedFleetPoolHarness} from './helpers/fleetPoolStub';
 
@@ -34,6 +35,10 @@ const REPLY_BYTES: Uint8Array = new Uint8Array([4, 5, 6]);
 const SESSION_TOKEN: string = 'session-token-current';
 const IDENTITY_TOKEN: string = 'identity-token-current';
 const GET_FILE: string = 'upload.getFile';
+const MEDIA_CALL_TIMEOUT_MS: number = 40_000;
+const MEDIA_CONNECTIONS_PER_ENDPOINT: number = 3;
+const MEDIA_INFLIGHT_PER_CONNECTION: number = 2;
+const MEDIA_SERVER_CLIENT_CONCURRENCY: number = 3;
 
 const IDENTITY: FleetIdentity = {kind: 'identity', key: 'identity:0', getToken: async(): Promise<string> => IDENTITY_TOKEN};
 
@@ -57,6 +62,10 @@ function withMediaOption(host: string): FleetConfig {
 
 function fileCall(overrides: Partial<FleetCall> = {}): FleetCall {
   return {accountNumber: ACCOUNT, method: GET_FILE, request: REQUEST_BYTES, ...overrides};
+}
+
+function poolCall(): FleetCall {
+  return {accountNumber: ACCOUNT, method: CONNECTION_IDENTITY_METHOD, request: REQUEST_BYTES};
 }
 
 let presentedIdentity: FleetIdentity = IDENTITY;
@@ -192,20 +201,20 @@ describe('a call is answered by the reply bytes of its pool', () => {
     await expect(Promise.all(calls)).resolves.toEqual(calls.map(() => REPLY_BYTES));
   });
 
-  it('a call beyond the queue bound is refused at once with limitExceeded, and is not held or sent again', async() => {
-    fleetHarness.respond(GET_FILE, () => new Promise(() => {}));
-    void callMediaFleet(fileCall());
+  it('a pool call beyond the queue bound is refused at once with limitExceeded, and is not held or sent again', async() => {
+    fleetHarness.respond(CONNECTION_IDENTITY_METHOD, () => new Promise(() => {}));
+    void callPool(poolCall());
     const pool = fleetHarness.pools[0];
     const slots = (pool.options.maxConnectionsPerEndpoint ?? 1) * (pool.options.maxInflightPerConnection ?? 1);
     const bound = pool.options.maxQueued ?? 0;
     for(let i = 0; i < slots - 1 + bound; ++i) {
-      void callMediaFleet(fileCall());
+      void callPool(poolCall());
     }
     await vi.waitFor(() => expect(fleetHarness.calls).toHaveLength(slots));
     const callsBeforeRefusal = fleetHarness.calls.length;
 
     const outcome: {settled?: {answered: boolean, error?: unknown}} = {};
-    void callMediaFleet(fileCall()).then(
+    void callPool(poolCall()).then(
       (): void => {
         outcome.settled = {answered: true};
       },
@@ -223,6 +232,24 @@ describe('a call is answered by the reply bytes of its pool', () => {
       'a call over the queue bound must be refused with the SDK\'s limitExceeded at once, as a typed transport fault'
     ).toMatchObject({type: 'NETWORK_BAD_RESPONSE', code: 500});
     expect(fleetHarness.calls.length, 'the refused call is never sent').toBe(callsBeforeRefusal);
+  });
+
+  it('a media call beyond the window and beyond the pool queue bound waits in the local queue and is answered, never refused', async() => {
+    fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
+    await callMediaFleet(fileCall());
+    const pool = fleetHarness.pools[0];
+    const windowSize: number = (pool.options.maxConnectionsPerEndpoint ?? 1) * (pool.options.maxInflightPerConnection ?? 1);
+    const bound: number = pool.options.maxQueued ?? 0;
+    const callCount: number = windowSize + bound + 1;
+    fleetHarness.respond(GET_FILE, () => ({data: REPLY_BYTES}));
+
+    const outcomes = await Promise.allSettled(Array.from({length: callCount}, () => callMediaFleet(fileCall())));
+
+    expect(
+      outcomes.filter((outcome: PromiseSettledResult<Uint8Array>): boolean => outcome.status === 'rejected'),
+      'every call beyond the window waits for its slot in the local queue: none is refused'
+    ).toEqual([]);
+    expect(fleetHarness.calls, 'every call of the burst reaches the fleet, the first one included').toHaveLength(callCount + 1);
   });
 
   it('counts the calls the media fleet answered', async() => {
@@ -305,5 +332,31 @@ describe('a server error is mapped by the one error mapper, and the registry cod
 
     await expect(callMediaFleet(fileCall())).rejects.toMatchObject({type: 'NETWORK_BAD_RESPONSE', code: 500});
     expect(fleetHarness.calls, 'the call is not replayed over another path').toHaveLength(1);
+  });
+});
+
+describe('the media pool is sized to the server rule', () => {
+  beforeEach(() => {
+    setFleetConfig(ACCOUNT, withMediaOption('media.impulsem.io'));
+  });
+
+  it('client.concurrency of the media fleet is the window per connection plus one: 3 connections of 2 calls in flight', async() => {
+    fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
+    await callMediaFleet(fileCall());
+
+    const options = fleetHarness.pools[0].options;
+    expect(options.maxConnectionsPerEndpoint, 'the media pool opens 3 connections').toBe(MEDIA_CONNECTIONS_PER_ENDPOINT);
+    expect(options.maxInflightPerConnection, 'each media connection carries 2 calls in flight').toBe(MEDIA_INFLIGHT_PER_CONNECTION);
+    expect(
+      (options.maxInflightPerConnection ?? 0) + 1,
+      'the server client.concurrency of the media fleet is the window per connection plus one'
+    ).toBe(MEDIA_SERVER_CLIENT_CONCURRENCY);
+  });
+
+  it('the media deadline is 40 000 ms, and the pool starts it when the call is submitted', async() => {
+    fleetHarness.respondOnce(GET_FILE, () => ({data: REPLY_BYTES}));
+    await callMediaFleet(fileCall());
+
+    expect(fleetHarness.pools[0].options.connection.timeout, 'a call queued in the local window does not spend its deadline').toBe(MEDIA_CALL_TIMEOUT_MS);
   });
 });

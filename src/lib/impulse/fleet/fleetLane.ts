@@ -1,4 +1,5 @@
 import * as centrifugeProtobuf from '@impulsem/centrifuge/build/protobuf';
+import {ConcurrentTaskQueue} from '@lib/impulse/realtimeDiscipline';
 import {Drainable} from './drainable';
 
 /*
@@ -6,8 +7,6 @@ import {Drainable} from './drainable';
  * A lane is retired when its endpoint or its identity changes; it closes once the calls it carries have settled.
  */
 
-// @impulsem/centrifuge 1.6.0's protobuf entry declares no RpcPool (build/protobuf/index.d.ts exports the codes and
-// the protobuf client only), though its runtime exports it. This is the subset of the pool the fleet uses.
 type FleetPoolOptions = {
   endpoints: (endpointKey: string) => string[],
   connection: {getToken?: () => Promise<string>, timeout: number},
@@ -40,6 +39,7 @@ type FleetLaneOptions = {
   connectionsPerEndpoint: number,
   inflightPerConnection: number,
   queuedCalls: number,
+  localWindow: number | undefined,
   getToken: (() => Promise<string>) | undefined
 };
 
@@ -51,12 +51,14 @@ export class FleetLane {
 
   private readonly pool: FleetPool;
   private readonly drain: Drainable;
+  private readonly localQueue: ConcurrentTaskQueue | undefined;
 
   public constructor(options: FleetLaneOptions) {
     this.key = options.key;
     this.identityKey = options.identityKey;
     this.kind = options.kind;
     this.endpoint = options.endpoint;
+    this.localQueue = options.localWindow === undefined ? undefined : new ConcurrentTaskQueue(options.localWindow);
     this.pool = new RpcPool({
       endpoints: (): string[] => [options.endpoint],
       connection: options.getToken === undefined
@@ -71,18 +73,31 @@ export class FleetLane {
     });
   }
 
-  /** Sends one call on this lane. A call beyond the pool's slots waits in the pool's queue for a settled call of the pool. */
   public async send(method: string, data: Uint8Array, signal?: AbortSignal): Promise<FleetPoolReply> {
     this.drain.begin();
     try {
-      return await this.pool.rpc(method, data, {signal});
+      return await this.admit(method, data, signal);
     } finally {
       this.drain.end();
     }
   }
 
-  /** Stops new calls on this lane. The lane closes now, or when its calls in flight have settled. */
   public retire(): void {
     this.drain.retire();
+  }
+
+  private admit(method: string, data: Uint8Array, signal?: AbortSignal): Promise<FleetPoolReply> {
+    const rpc = (): Promise<FleetPoolReply> => this.pool.rpc(method, data, {signal});
+    if(this.localQueue === undefined) {
+      return rpc();
+    }
+
+    return this.localQueue.run(rpc, signal).catch((err: unknown): never => {
+      if(signal?.aborted === true && err === signal.reason) {
+        throw {code: centrifugeProtobuf.errorCodes.cancelled, message: 'cancelled'};
+      }
+
+      throw err;
+    });
   }
 }
