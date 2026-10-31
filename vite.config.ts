@@ -121,7 +121,11 @@ const USE_DEV_HTTP2 = !USE_SSL && !process.env.TWEB_PREVIEW && !process.env.VITE
 const serverOptions: ServerOptions = {
   host: bindHost,
   port: USE_SSL ? 443 : 1234,
-  allowedHosts: ['localhost', ...(PUBLIC_HOST ? [PUBLIC_HOST, '.' + PUBLIC_HOST] : [])],
+  allowedHosts: [
+    'localhost',
+    ...(IMPULSEM_WEB_HOST ? [IMPULSEM_WEB_HOST] : []),
+    ...(PUBLIC_HOST ? [PUBLIC_HOST, '.' + PUBLIC_HOST] : [])
+  ],
   hmr: PUBLIC_HOST ? {host: PUBLIC_HOST, protocol: 'wss', clientPort: 443} : undefined,
   fs: {
     allow: [...SERVER_FS_ALLOW]
