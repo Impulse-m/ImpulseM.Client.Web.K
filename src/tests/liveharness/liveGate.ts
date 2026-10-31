@@ -39,7 +39,7 @@ export function resolveLiveLane(): LiveLane {
   const marker = process.env.IMPULSE_LIVE_GATEWAY;
   const gatewayOrigin = process.env.IMPULSE_LIVE_WS_GATEWAY || 'http://localhost:5100';
   const updateWsOrigin: string | undefined = process.env.IMPULSE_LIVE_UPDATE_WS;
-  const poolWsOrigin: string | undefined = process.env.IMPULSE_LIVE_POOL_WS;
+  const poolWsOrigin: string = process.env.IMPULSE_LIVE_POOL_WS ?? 'ws://localhost:5312';
 
   if(!marker) {
     return {
