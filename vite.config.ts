@@ -34,19 +34,20 @@ const isDEV = process.env.NODE_ENV === 'development';
 // IMPULSEM_* settings (RPC, site, link host, web URL, translations): the same values Vite exposes to the
 // app through envPrefix. Process env wins over the files, so CI variables override .env.local.
 const impulsemEnv: Record<string, string> = loadEnv(isDEV ? 'development' : 'production', rootDir, 'IMPULSEM_');
-const IMPULSEM_WEB_HOST: string = impulsemWebHost(impulsemEnv.IMPULSEM_WEB_URL);
+const IMPULSEM_WEB_HOST: string = hostnameOf(impulsemEnv.IMPULSEM_WEB_URL);
+const IMPULSEM_SITE_HOST: string = hostnameOf(impulsemEnv.IMPULSEM_SITE_URL);
 
 if(process.env.CI && !process.env.VITEST && !impulsemEnv.IMPULSEM_RPC_URL) {
   throw new Error('IMPULSEM_RPC_URL is empty: the CI build needs the IMPULSEM_RPC_URL build variable (the transport host). Set it in the organisation variables.');
 }
 
-function impulsemWebHost(webUrl: string | undefined): string {
-  if(!webUrl) {
+function hostnameOf(url: string | undefined): string {
+  if(!url) {
     return '';
   }
 
   try {
-    return new URL(webUrl).hostname;
+    return new URL(url).hostname;
   } catch{
     return '';
   }
@@ -124,6 +125,7 @@ const serverOptions: ServerOptions = {
   allowedHosts: [
     'localhost',
     ...(IMPULSEM_WEB_HOST ? [IMPULSEM_WEB_HOST] : []),
+    ...(IMPULSEM_SITE_HOST ? [IMPULSEM_SITE_HOST, '.' + IMPULSEM_SITE_HOST] : []),
     ...(PUBLIC_HOST ? [PUBLIC_HOST, '.' + PUBLIC_HOST] : [])
   ],
   hmr: PUBLIC_HOST ? {host: PUBLIC_HOST, protocol: 'wss', clientPort: 443} : undefined,
