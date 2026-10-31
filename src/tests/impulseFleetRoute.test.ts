@@ -6,7 +6,7 @@ import {FLEET_CONNECTION_PATH} from '@lib/impulse/fleet/fleetPath';
 import {
   poolRpcEndpoint,
   INIT_CONNECTION_METHOD,
-  mediaEndpointOf,
+  mediaEndpointsOf,
   REFRESH_SESSION_METHOD,
   routesToMediaFleet
 } from '@lib/impulse/fleet/fleetRoute';
@@ -77,7 +77,7 @@ describe('the endpoint the media option names', () => {
     const config = protoToTL(fromBinary(ConfigSchema, encoded), ConfigSchema);
 
     expect(
-      mediaEndpointOf(config),
+      mediaEndpointsOf(config).get(config.this_dc),
       'media_only is a TL flag (constructor/dcOption.md flags.1?true): the decoded reply keeps it in pFlags, and the endpoint must be read from there'
     ).toBe(`wss://media.example.org:443${FLEET_CONNECTION_PATH}`);
   });
@@ -92,41 +92,57 @@ describe('the endpoint the media option names', () => {
     };
 
     expect(
-      mediaEndpointOf(config),
+      mediaEndpointsOf(config).get(config.this_dc),
       'the media_only entry of this_dc must become wss://{host}:{port} with the fleet connection path and its protobuf query'
     ).toBe(`wss://media.example.org:443${FLEET_CONNECTION_PATH}`);
   });
 
+  it('with an explicit dcId returns that DC\'s media_only endpoint', () => {
+    const config: FleetConfig = {
+      this_dc: 1,
+      dc_options: [
+        {id: 1, ip_address: 'media-1.example.org', port: 443, pFlags: {media_only: true}},
+        {id: 2, ip_address: 'media-2.example.org', port: 443, pFlags: {media_only: true}}
+      ]
+    };
+
+    expect(
+      mediaEndpointsOf(config).get(2),
+      'a file call routed to DC 2 travels that DC\'s media_only endpoint, not this_dc\'s'
+    ).toBe(`wss://media-2.example.org:443${FLEET_CONNECTION_PATH}`);
+    expect(mediaEndpointsOf(config).size, 'every media_only option of the config is routable').toBe(2);
+  });
+
   it('is undefined when the server publishes no media option', () => {
-    expect(mediaEndpointOf(WITHOUT_MEDIA_OPTION)).toBeUndefined();
+    expect(mediaEndpointsOf(WITHOUT_MEDIA_OPTION).get(CURRENT_DC)).toBeUndefined();
   });
 
   it('ignores a media option of another DC', () => {
     expect(
-      mediaEndpointOf({
+      mediaEndpointsOf({
         this_dc: CURRENT_DC,
         dc_options: [{id: 3, ip_address: 'media.example.org', port: 443, pFlags: {media_only: true}}]
-      }),
+      }).get(CURRENT_DC),
       'a media plane of DC 3 does not serve the DC this client is on'
     ).toBeUndefined();
   });
 
   it('ignores the main entry of the current DC', () => {
     expect(
-      mediaEndpointOf({
+      mediaEndpointsOf({
         this_dc: CURRENT_DC,
         dc_options: [{id: CURRENT_DC, ip_address: MAIN_HOST, port: 443, pFlags: {media_only: false}}]
-      }),
+      }).get(CURRENT_DC),
       'an entry without media_only is the main connection, not the file-transfer plane'
     ).toBeUndefined();
   });
 
   it('brackets an IPv6 address', () => {
     expect(
-      mediaEndpointOf({
+      mediaEndpointsOf({
         this_dc: CURRENT_DC,
         dc_options: [{id: CURRENT_DC, ip_address: '2001:db8::1', port: 443, pFlags: {ipv6: true, media_only: true}}]
-      }),
+      }).get(CURRENT_DC),
       'an IPv6 host must be bracketed in a URL'
     ).toBe(`wss://[2001:db8::1]:443${FLEET_CONNECTION_PATH}`);
   });

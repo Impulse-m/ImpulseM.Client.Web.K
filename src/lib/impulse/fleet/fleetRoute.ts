@@ -8,7 +8,7 @@
 
 import {backendUpdateWsOrigin, backendPoolWsOrigin} from '@config/impulsemConfig';
 import type {FleetConfig} from './fleetEndpoint';
-import {endpointOf, mediaOptionOf} from './fleetEndpoint';
+import {endpointOf} from './fleetEndpoint';
 import {FLEET_CONNECTION_PATH, POOL_CONNECTION_PATH} from './fleetPath';
 
 export type {FleetConfig, FleetDcOption} from './fleetEndpoint';
@@ -30,9 +30,15 @@ export function routesToMediaFleet(method: string): boolean {
   return MEDIA_FLEET_METHODS.has(method);
 }
 
-export function mediaEndpointOf(config: FleetConfig): string | undefined {
-  const option = mediaOptionOf(config);
-  return option === undefined ? undefined : endpointOf(option);
+export function mediaEndpointsOf(config: FleetConfig): Map<number, string> {
+  const endpoints = new Map<number, string>();
+  for(const option of config.dc_options) {
+    if(option.pFlags?.media_only === true && !endpoints.has(option.id)) {
+      endpoints.set(option.id, endpointOf(option));
+    }
+  }
+
+  return endpoints;
 }
 
 export function poolRpcEndpoint(): string {

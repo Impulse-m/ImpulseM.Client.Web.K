@@ -364,7 +364,8 @@ export class ApiFileManager extends AppManager {
     limit,
     id,
     queueId,
-    checkCancel
+    checkCancel,
+    inFlightInvokes
   }: {
     dcId: DcId,
     location: InputWebFileLocation,
@@ -372,7 +373,8 @@ export class ApiFileManager extends AppManager {
     limit: number,
     id?: number,
     queueId?: number,
-    checkCancel?: () => void
+    checkCancel?: () => void,
+    inFlightInvokes?: Set<CancellablePromise<any>>
   }) {
     return this.downloadRequest({
       dcId: this.webFileDcId,
@@ -439,14 +441,14 @@ export class ApiFileManager extends AppManager {
           }
         }
 
-        return this.apiManager.invokeApi('upload.getWebFile', {
+        return this.trackInvoke(inFlightInvokes, this.apiManager.invokeApi('upload.getWebFile', {
           location,
           offset,
           limit
         }, {
           dcId: this.webFileDcId,
           fileDownload: true
-        });
+        }));
       },
       activeDelta: this.getDelta(limit),
       queueId
@@ -462,7 +464,8 @@ export class ApiFileManager extends AppManager {
     queueId,
     checkCancel,
     floodMaxTimeout,
-    priority
+    priority,
+    inFlightInvokes
   }: {
     dcId: DcId,
     location: InputFileLocation,
@@ -472,7 +475,8 @@ export class ApiFileManager extends AppManager {
     queueId?: number,
     checkCancel?: () => void,
     floodMaxTimeout?: number,
-    priority?: number
+    priority?: number,
+    inFlightInvokes?: Set<CancellablePromise<any>>
   }) {
     if(location._ === 'inputDocumentFileLocation' && !(
       (typeof location.id === 'string' && /^-?\d+$/.test(location.id)) ||
@@ -486,7 +490,7 @@ export class ApiFileManager extends AppManager {
     const cb = () => this.invokeApiWithReference({
       context: location as InputFileLocation.inputDocumentFileLocation,
       callback: () => {
-        return (this.apiManager.invokeApi('upload.getFile', {
+        const invoke: CancellablePromise<MyUploadFile> = this.trackInvoke(inFlightInvokes, this.apiManager.invokeApi('upload.getFile', {
           location,
           offset,
           limit
@@ -494,13 +498,9 @@ export class ApiFileManager extends AppManager {
           dcId,
           fileDownload: true,
           floodMaxTimeout
-        }) as Promise<MyUploadFile>).then((result) => {
-          // "Image corrupt or truncated" means the assembled bytes are not the
-          // picture. Downloads are sliced by offset/limit and, for avatars, the
-          // total size is unknown -- so a part that comes back longer or shorter
-          // than asked, or of the wrong type, silently corrupts the whole file.
-          // Compare what was requested with what arrived; the upload side failed
-          // exactly this way today by handing over an ArrayBuffer.
+        }) as CancellablePromise<MyUploadFile>);
+
+        return invoke.then((result) => {
           const bytes = (result as any)?.bytes;
           this.log('getFile part', {
             offset,
@@ -532,6 +532,15 @@ export class ApiFileManager extends AppManager {
 
   private getDelta(bytes: number) {
     return bytes / MIN_PART_SIZE;
+  }
+
+  private trackInvoke<R>(inFlightInvokes: Set<CancellablePromise<any>> | undefined, invoke: CancellablePromise<R>): CancellablePromise<R> {
+    inFlightInvokes?.add(invoke);
+    const forget = (): void => {
+      inFlightInvokes?.delete(invoke);
+    };
+    invoke.then(forget, forget);
+    return invoke;
   }
 
   private uncompressTGS = (bytes: Uint8Array, fileName: string) => {
@@ -788,6 +797,7 @@ export class ApiFileManager extends AppManager {
     let cachePrepared: ReturnType<FileStorage['prepareWriting']> & {writer?: StreamWriter, error?: ApiError},
       downloadPrepared: typeof cachePrepared;
     const prepared: (typeof cachePrepared)[] = [];
+    const inFlightInvokes: Set<CancellablePromise<any>> = new Set();
     const possibleSize = size || limitPart;
 
     const getErrorsCount = () => prepared.reduce((acc, item) => acc + +!!item.error, 0);
@@ -796,7 +806,13 @@ export class ApiFileManager extends AppManager {
       const {deferred} = item;
       const _errorHandler = errorHandler.bind(null, item);
 
-      deferred.cancel = () => deferred.reject(makeError('DOWNLOAD_CANCELED'));
+      deferred.cancel = () => {
+        deferred.reject(makeError('DOWNLOAD_CANCELED'));
+        for(const invoke of inFlightInvokes) {
+          invoke.cancel?.();
+        }
+        inFlightInvokes.clear();
+      };
       deferred.catch((error) => {
         _errorHandler(error);
         item.writer?.truncate?.();
@@ -936,7 +952,8 @@ export class ApiFileManager extends AppManager {
             limit: limitPart,
             id,
             queueId: options.queueId,
-            checkCancel
+            checkCancel,
+            inFlightInvokes
           });
           checkCancel();
           const requestTime = performance.now() - requestPerf;
@@ -1115,6 +1132,7 @@ export class ApiFileManager extends AppManager {
     }
 
     let canceled = false, resolved = false;
+    const inFlightInvokes: Set<CancellablePromise<any>> = new Set();
     let errorHandler = (error: ApiError) => {
       if(error?.type !== 'UPLOAD_CANCELED') {
         this.log.error('up error', error);
@@ -1170,7 +1188,7 @@ export class ApiFileManager extends AppManager {
               }
             );
 
-            return self.apiManager.invokeApi(method, {
+            const invoke: CancellablePromise<any> = self.trackInvoke(inFlightInvokes, self.apiManager.invokeApi(method, {
               file_id: fileId,
               file_part: part,
               file_total_parts: totalParts,
@@ -1178,7 +1196,9 @@ export class ApiFileManager extends AppManager {
             } as any, {
               fileUpload: true,
               gzipCompress: isAlreadyCompressed(file.type) ? undefined : true
-            }).then(() => {
+            }));
+
+            return invoke.then(() => {
               if(canceled) {
                 return;
               }
@@ -1192,6 +1212,10 @@ export class ApiFileManager extends AppManager {
                 resolved = true;
               }
             }, (error: ApiError) => {
+              if(canceled) {
+                return;
+              }
+
               self.log.error('UPLOAD part failed', {
                 method,
                 fileId: String(fileId),
@@ -1216,6 +1240,10 @@ export class ApiFileManager extends AppManager {
     deferred.cancel = () => {
       if(!canceled && !resolved) {
         canceled = true;
+        for(const invoke of inFlightInvokes) {
+          invoke.cancel?.();
+        }
+        inFlightInvokes.clear();
         errorHandler(makeError('UPLOAD_CANCELED'));
       }
     };
@@ -1224,11 +1252,12 @@ export class ApiFileManager extends AppManager {
       this.rootScope.dispatchEvent('download_progress', progress);
     };
 
-    deferred.finally(() => {
+    const forgetUpload = (): void => {
       if(this.uploadPromises[fileName] === deferred) {
         delete this.uploadPromises[fileName];
       }
-    });
+    };
+    deferred.then(forgetUpload, forgetUpload);
 
     this.uploadPromises[fileName] = deferred;
 

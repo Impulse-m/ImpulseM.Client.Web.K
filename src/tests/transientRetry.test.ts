@@ -34,13 +34,9 @@ const CONNECTION_NOT_INITED_TYPE: ErrorType = 'CONNECTION_NOT_INITED';
 const SDK_UNAVAILABLE_CODE: number = 100;
 const REQUEST_TOO_LARGE_CODE: number = 106;
 const OVERLOADED_CODE: number = 111;
-const FLOOD_WAIT_SECONDS: number = 2;
-const FLOOD_WAIT_CAP_SECONDS: number = 100;
-const FLOOD_CODE: number = 420;
 const MAX_BACKOFF_MS: number = 8_000;
 const FIRST_BACKOFF_MS: number = 500;
 const SECOND_BACKOFF_MS: number = 1_000;
-const FLOOD_WAIT_CAP_MS: number = 60_000;
 const ZERO_RANDOM: () => number = (): number => 0;
 const HALF_RANDOM: () => number = (): number => 0.5;
 const CEILING_RANDOM: () => number = (): number => 1;
@@ -62,10 +58,6 @@ function temporaryServerError(): ApiError {
     appCode: 500,
     appType: 'INTERNAL_SERVER_ERROR'
   });
-}
-
-function floodWaitError(seconds: number): ApiError {
-  return apiErrorOf(`FLOOD_WAIT_${seconds}`, FLOOD_CODE, undefined);
 }
 
 describe('withTransientRetry retries a transient media-lane error on the fake clock', () => {
@@ -139,36 +131,6 @@ describe('withTransientRetry retries a transient media-lane error on the fake cl
     expect(operation).toHaveBeenCalledTimes(2);
   });
 
-  it('waits a FLOOD_WAIT_2 for 2 s plus its jitter, at least 2 s and at most 4 s', async() => {
-    const operation = vi.fn<() => Promise<string>>()
-      .mockRejectedValueOnce(floodWaitError(FLOOD_WAIT_SECONDS))
-      .mockResolvedValueOnce(SUCCESS);
-
-    const settled = withTransientRetry(operation, HALF_RANDOM);
-
-    await vi.advanceTimersByTimeAsync(2_999);
-    expect(operation).toHaveBeenCalledTimes(1);
-
-    await vi.advanceTimersByTimeAsync(1);
-    expect(operation).toHaveBeenCalledTimes(2);
-    await expect(settled).resolves.toBe(SUCCESS);
-  });
-
-  it('caps a long FLOOD_WAIT at 60 s', async() => {
-    const operation = vi.fn<() => Promise<string>>()
-      .mockRejectedValueOnce(floodWaitError(FLOOD_WAIT_CAP_SECONDS))
-      .mockResolvedValueOnce(SUCCESS);
-
-    const settled = withTransientRetry(operation, ZERO_RANDOM);
-
-    await vi.advanceTimersByTimeAsync(FLOOD_WAIT_CAP_MS - 1);
-    expect(operation).toHaveBeenCalledTimes(1);
-
-    await vi.advanceTimersByTimeAsync(1);
-    expect(operation).toHaveBeenCalledTimes(2);
-    await expect(settled).resolves.toBe(SUCCESS);
-  });
-
   it('backs off within 500 ms before the first retry and within 1 s before the second', async() => {
     const operation = vi.fn<() => Promise<string>>()
       .mockRejectedValueOnce(temporaryError())
@@ -194,11 +156,7 @@ describe('withTransientRetry retries a transient media-lane error on the fake cl
 
 describe('retryDelayMs follows the budget of the transient retry', () => {
   it('caps the backoff at 8 s', () => {
-    expect(retryDelayMs(temporaryError(), 10, CEILING_RANDOM)).toBe(MAX_BACKOFF_MS);
-  });
-
-  it('adds the jitter of a FLOOD_WAIT to its wait, capped at 60 s', () => {
-    expect(retryDelayMs(floodWaitError(FLOOD_WAIT_CAP_SECONDS), 0, ZERO_RANDOM)).toBe(FLOOD_WAIT_CAP_MS);
+    expect(retryDelayMs(10, CEILING_RANDOM)).toBe(MAX_BACKOFF_MS);
   });
 });
 

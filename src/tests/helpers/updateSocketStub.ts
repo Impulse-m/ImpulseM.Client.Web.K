@@ -1,4 +1,7 @@
 import {vi} from 'vitest';
+import {errorCodes} from '@impulsem/centrifuge';
+
+import settleUnlessAborted from '@helpers/schedulers/settleUnlessAborted';
 
 /*
  * A stand-in for the protobuf Centrifuge client of @impulsem/centrifuge 1.6.0 (the update socket). Each socket the client
@@ -68,6 +71,20 @@ export type UpdateSocketHarness = {
   CentrifugeStub: new (url: string, options: UpdateSocketOptions) => UpdateSocketStub
 };
 
+function untilAborted(reply: Promise<UpdateSocketReply>, signal: AbortSignal | undefined): Promise<UpdateSocketReply> {
+  if(signal === undefined) {
+    return reply;
+  }
+
+  return settleUnlessAborted<UpdateSocketReply>(
+    signal,
+    {code: errorCodes.cancelled, message: 'cancelled'},
+    (resolve: (value: UpdateSocketReply) => void, reject: (reason: unknown) => void): void => {
+      reply.then(resolve, reject);
+    }
+  );
+}
+
 export function createUpdateSocketHarness(): UpdateSocketHarness {
   const sockets: UpdateSocketStub[] = [];
   const calls: UpdateSocketCallRecord[] = [];
@@ -100,7 +117,7 @@ export function createUpdateSocketHarness(): UpdateSocketHarness {
         throw new Error(`no update socket responder registered for ${method}`);
       }
 
-      return responder(data);
+      return untilAborted(Promise.resolve(responder(data)), options?.signal);
     });
 
     private readonly handlers = new Map<string, (ctx: unknown) => void>();

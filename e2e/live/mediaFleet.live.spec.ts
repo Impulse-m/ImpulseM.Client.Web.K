@@ -42,7 +42,7 @@ test('a two-part file crosses the media fleet whole while the update socket deli
   const expectedSha256 = createHash('sha256').update(payload).digest('hex');
 
   const senderConfig = await configOf(sender.page);
-  const mediaOption = mediaOptionOf(senderConfig);
+  const mediaOption = mediaOptionOf(senderConfig, senderConfig.this_dc);
   expect(
     mediaOption,
     'the dev stack must publish a media_only dcOption for this DC: the file calls have no media fleet to travel without it'

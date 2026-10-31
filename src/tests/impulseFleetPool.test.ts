@@ -99,8 +99,8 @@ describe('the media fleet is built from the media option of the current DC', () 
 
     await expect(
       callMediaFleet(fileCall()),
-      'a config that publishes no media option fails the call with the typed transport error'
-    ).rejects.toMatchObject({type: 'NETWORK_BAD_RESPONSE', code: 500});
+      'a config that publishes no media option fails the call with the typed client error'
+    ).rejects.toMatchObject({type: 'FLEET_MEDIA_OPTION_MISSING', code: 0});
     expect(fleetHarness.pools, 'no pool is opened for a call the media fleet cannot carry').toHaveLength(0);
   });
 

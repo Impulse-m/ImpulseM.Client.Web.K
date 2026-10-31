@@ -101,7 +101,7 @@ describe('a file query issued before the config publishes its media option', () 
     expect(socketHarness.calls, 'a file query issued before the config must not travel the update socket').toHaveLength(0);
   });
 
-  it('is refused with the typed transport error when the config publishes no media option, and touches no carrier', async() => {
+  it('is refused with the typed client error when the config publishes no media option, and touches no carrier', async() => {
     socketHarness.respondOnce(GET_FILE, uploadedFile);
     const {grpcInvoke} = await import('@lib/impulse/grpc/adapter');
     const {fleetConfigWaiters, setFleetConfig} = await import('@lib/impulse/fleet/fleet');
@@ -111,8 +111,8 @@ describe('a file query issued before the config publishes its media option', () 
     setFleetConfig(ACCOUNT, withoutMediaOption());
 
     await expect(reply, 'a config without a media_only option fails the waiting file query with the typed error').resolves.toMatchObject({
-      type: 'NETWORK_BAD_RESPONSE',
-      code: 500
+      type: 'FLEET_MEDIA_OPTION_MISSING',
+      code: 0
     });
     expect(socketHarness.calls, 'the file query never falls back to the update socket').toHaveLength(0);
     expect(fleetHarness.pools, 'no media pool is opened for a config that publishes none').toHaveLength(0);

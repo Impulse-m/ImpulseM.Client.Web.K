@@ -2,6 +2,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 
 import App from '@config/app';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
+import {apiManagerStub} from './helpers/apiManagerStub';
 
 /*
  * A sign-out the server forces (SESSION_REVOKED) has no caller to return to: a failed wipe is recorded with the error that
@@ -89,13 +90,14 @@ beforeEach(() => {
 
 describe('an automatic sign-out from the request path', () => {
   it('records a failed wipe, fails the request with the server error, and leaves no unhandled rejection', async() => {
-    const {ApiManager} = await import('@appManagers/apiManager');
     accountClearFields.mockRejectedValue(STORAGE_FAILURE);
-    const manager = Object.assign(Object.create(ApiManager.prototype), {
+    const fields: Record<string, unknown> = {
       getAccountNumber: (): ActiveAccountNumber => ACCOUNT,
+      log: Object.assign(vi.fn(), {error: vi.fn()}),
       rootScope: {dispatchEvent: vi.fn()},
       baseDcId: App.baseDcId
-    });
+    };
+    const manager = await apiManagerStub(fields);
     const unhandled: unknown[] = [];
     const recordUnhandled = (reason: unknown): void => {
       unhandled.push(reason);
