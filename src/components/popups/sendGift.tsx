@@ -38,7 +38,7 @@ import {I18nTsx} from '@helpers/solid/i18n';
 import {StarGiftBadge} from '@components/stargifts/stargiftBadge';
 import Scrollable from '@components/scrollable2';
 import {approxEquals} from '@helpers/number/approxEquals';
-import {useAppState} from '@stores/appState';
+import {giftsBlocked, useAppState} from '@stores/appState';
 import anchorCallback from '@helpers/dom/anchorCallback';
 import {getOverlayRoot} from '@helpers/appWindow';
 import {PeerTitleTsx} from '@components/peerTitleTsx';
@@ -1103,6 +1103,10 @@ export default async function showSendGiftPopup(options: {
     filter?: StarGiftAttribute;
   };
 }) {
+  if(giftsBlocked()) {
+    return;
+  }
+
   const {peerId, birthday, resaleParams} = options;
   const [show, setShow] = createSignal(true);
   let containerEl!: HTMLDivElement;

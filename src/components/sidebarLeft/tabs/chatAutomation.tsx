@@ -2,6 +2,7 @@ import Button from '@components/buttonTsx';
 import createButton from '@components/button';
 import CheckboxFields, {CheckboxFieldsField} from '@components/checkboxFields';
 import confirmationPopup from '@components/confirmationPopup';
+import {CHAT_AUTOMATION_RIGHT_GATES} from '@lib/settingsSearch/gates';
 import {IconTsx} from '@components/iconTsx';
 import {InputFieldTsx} from '@components/inputFieldTsx';
 import MediaHeader from '@components/mediaHeader';
@@ -154,6 +155,10 @@ function getWarningKey(key: RightKey): LangPackKey | undefined {
   if(key === 'transfer_and_upgrade_gifts') return 'ChatAutomation.GiftsWarning';
 }
 
+const isRightVisible = (key: RightKey): boolean => {
+  return !CHAT_AUTOMATION_RIGHT_GATES.get(key)?.hidden();
+};
+
 function makeRights(connectedBot?: ConnectedBot.connectedBot) {
   return Object.fromEntries(RIGHT_KEYS.map((key) => [
     key,
@@ -256,8 +261,11 @@ function BotPermissions(props: {
   const rightFields = new Map<RightKey, BotPermissionField>();
 
   RIGHT_GROUPS.forEach((group) => {
+    const rights = group.rights.filter(({key}) => isRightVisible(key));
+    if(!rights.length) return;
+
     if(group.standalone) {
-      const {key, title} = group.rights[0];
+      const {key, title} = rights[0];
       const field: BotPermissionField = {
         text: title,
         checked: props.rights[key],
@@ -277,7 +285,7 @@ function BotPermissions(props: {
         fixed: true,
         group
       })),
-      ...group.rights.map(({key, title}): BotPermissionField => {
+      ...rights.map(({key, title}): BotPermissionField => {
         const field = {
           text: title,
           checked: props.rights[key],
@@ -311,13 +319,13 @@ function BotPermissions(props: {
 
   const readRights = () => {
     const rights = {} as Record<RightKey, boolean>;
-    RIGHT_KEYS.forEach((key) => rights[key] = rightFields.get(key).checkboxField.checked);
+    RIGHT_KEYS.forEach((key) => rights[key] = rightFields.get(key)?.checkboxField.checked ?? props.rights[key]);
     return rights;
   };
 
   const syncRights = (rights: Record<RightKey, boolean>) => {
     RIGHT_KEYS.forEach((key) => {
-      rightFields.get(key).checkboxField.setValueSilently(rights[key]);
+      rightFields.get(key)?.checkboxField.setValueSilently(rights[key]);
     });
     fields.forEach((field) => {
       if(field.fixed) field.checkboxField.setValueSilently(true);

@@ -25,7 +25,8 @@ import Section from '@components/section';
 import {AppStickersAndEmojiTab} from '@components/solidJsTabs/tabs';
 import showPremiumPopup from '@components/popups/premium';
 import apiManagerProxy from '@lib/apiManagerProxy';
-import useStars, {hasTonTransactions} from '@stores/stars';
+import useStars from '@stores/stars';
+import {giftsBlocked, starsUiBlocked, walletShown} from '@stores/appState';
 import showStarsPopup from '@components/popups/stars';
 import {renderPeerProfile} from '@components/peerProfile';
 import SolidJSHotReloadGuardProvider from '@lib/solidjs/hotReloadGuardProvider';
@@ -422,7 +423,7 @@ const Settings = () => {
             <Row.Icon icon="premium_badge" />
             <Row.Title>{i18n('Premium.Boarding.Title')}</Row.Title>
           </Row>
-          <Show when={!!stars()}>
+          <Show when={!!stars() && !starsUiBlocked()}>
             <Row clickable={() => showStarsPopup()}>
               <Row.Icon icon="star_circle_filled" />
               <Row.Title titleRight={'' + stars()} titleRightSecondary>
@@ -430,7 +431,7 @@ const Settings = () => {
               </Row.Title>
             </Row>
           </Show>
-          <Show when={hasTonTransactions() || String(starsTon()) !== '0'}>
+          <Show when={walletShown()}>
             <Row clickable={() => showStarsPopup({ton: true})}>
               <Row.Icon icon="gram_filled" />
               <Row.Title titleRight={formatNanoton(starsTon())} titleRightSecondary>
@@ -438,10 +439,12 @@ const Settings = () => {
               </Row.Title>
             </Row>
           </Show>
-          <Row clickable={() => showSendGiftPicker()}>
-            <Row.Icon icon="gift_filled" />
-            <Row.Title>{i18n('Chat.Menu.SendGift')}</Row.Title>
-          </Row>
+          <Show when={!giftsBlocked()}>
+            <Row clickable={() => showSendGiftPicker()}>
+              <Row.Icon icon="gift_filled" />
+              <Row.Title>{i18n('Chat.Menu.SendGift')}</Row.Title>
+            </Row>
+          </Show>
         </Section>
       </Show>
     </>

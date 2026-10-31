@@ -17,7 +17,8 @@ import addChatUsers from '@components/addChatUsers';
 import getPeerId from '@appManagers/utils/peers/getPeerId';
 import wrapPeerTitle from '@components/wrappers/peerTitle';
 import ButtonMenuToggle, {createButtonMenuVisibility} from '@components/buttonMenuToggle';
-import {useIsFrozen} from '@stores/appState';
+import {giftsBlocked, ownStoriesShown, useIsFrozen} from '@stores/appState';
+import hasOwnStories from '@appManagers/utils/stories/hasOwnStories';
 import {profileStarGiftsButtonMenu} from '@components/stargifts/profileList';
 import {profileStoriesButtonMenu} from '@components/stories/profileList';
 import namedPromises from '@helpers/namedPromises';
@@ -723,6 +724,11 @@ const SharedMedia: Component = () => {
     deleteDeletedMessages(peerId, msgs);
   });
 
+  const giftsMediaTabs: SearchSuperMediaTab[] = giftsBlocked() ? [] : [{
+    name: 'SharedMedia.Gifts',
+    type: 'gifts'
+  }];
+
   tab.searchSuper = new AppSearchSuper({
     mediaTabs: [{
       name: 'SharedMedia.SavedDialogs',
@@ -741,10 +747,7 @@ const SharedMedia: Component = () => {
       inputFilter: 'inputMessagesFilterGif',
       name: 'GIFs',
       type: 'gifs'
-    }, {
-      name: 'SharedMedia.Gifts',
-      type: 'gifts'
-    }, {
+    }, ...giftsMediaTabs, {
       inputFilter: 'inputMessagesFilterEmpty',
       name: 'SharedMedia.Saved',
       type: 'saved'
@@ -835,7 +838,9 @@ const SharedMedia: Component = () => {
     return canSetMainProfileTabForMediaType(mediaTab.type, {
       isSelf: tab.peerId === rootScope.myId,
       isSavedMessages: tab.noProfile && tab.peerId === rootScope.myId,
-      isEditableBroadcast
+      isEditableBroadcast,
+      ownStoriesShown: ownStoriesShown(hasOwnStories()),
+      ownGiftsShown: !giftsBlocked()
     });
   };
   const setMainProfileTab = async() => {
