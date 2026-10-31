@@ -95,6 +95,7 @@ import {makeDateFromTimestamp} from '@helpers/date/makeDateFromTimestamp';
 import Section from '@components/section';
 import {canAddMultipleRichMessageMedia, isVisualRichMessageMimeType} from '@helpers/files/richMessageMediaInsertPolicy';
 import classNames from '@helpers/string/classNames';
+import {starsUiBlocked} from '@stores/appState';
 import {ScrollableContextValue} from '@components/scrollable2';
 
 type SendFileParams = SendFileDetails & {
@@ -418,7 +419,7 @@ export default function showNewMediaPopup(
             setPaidMedia(value);
           }, willAttach.stars);
         },
-        verify: () => !!willAttach.stars && canSendPaidMedia()
+        verify: () => !!willAttach.stars && canSendPaidMedia() && !starsUiBlocked()
       }, {
         icon: 'cash_circle',
         text: 'PaidMedia.Menu',
@@ -427,7 +428,7 @@ export default function showNewMediaPopup(
             setPaidMedia(value);
           });
         },
-        verify: () => !willAttach.stars && canSendPaidMedia()
+        verify: () => !willAttach.stars && canSendPaidMedia() && !starsUiBlocked()
       }]
     });
 

@@ -7,6 +7,7 @@ import {LangPackKey} from '@lib/langPack';
 import RadioFieldTsx from '@components/radioFieldTsx';
 import Section from '@components/section';
 import {MessagesPrivacyOption, MessagesTabStateStore, TRANSITION_TIME} from '@components/sidebarLeft/tabs/privacy/messages/config';
+import {starsUiBlocked} from '@stores/appState';
 
 
 const DEFAULT_STARS_AMOUNT = 10;
@@ -116,18 +117,20 @@ const OptionsSection: Component<{
         premium
         value={MessagesPrivacyOption.ContactsAndPremium}
       />
-      <OptionRow
-        checked={props.isPaid}
-        langKey="PaidMessages.ChargeForMessages"
-        onSelect={() => {
-          props.setStore(prev => ({
-            option: MessagesPrivacyOption.Paid,
-            stars: prev.stars || DEFAULT_STARS_AMOUNT
-          }));
-        }}
-        premium
-        value={MessagesPrivacyOption.Paid}
-      />
+      <Show when={!starsUiBlocked()}>
+        <OptionRow
+          checked={props.isPaid}
+          langKey="PaidMessages.ChargeForMessages"
+          onSelect={() => {
+            props.setStore(prev => ({
+              option: MessagesPrivacyOption.Paid,
+              stars: prev.stars || DEFAULT_STARS_AMOUNT
+            }));
+          }}
+          premium
+          value={MessagesPrivacyOption.Paid}
+        />
+      </Show>
     </Section>
   );
 };

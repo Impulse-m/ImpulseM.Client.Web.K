@@ -42,6 +42,7 @@ import insertInDescendSortedArray from '@helpers/array/insertInDescendSortedArra
 import {ActiveAccountNumber} from '@lib/accounts/types';
 import assumeType from '@helpers/assumeType';
 import pause from '@helpers/schedulers/pause';
+import {FILE_PART_SIZE} from '@config/fileParts';
 
 export type DownloadOptions = {
   dcId: DcId,
@@ -84,10 +85,7 @@ export type MyUploadFile = UploadFile.uploadFile | UploadWebFile.uploadWebFile;
 const DO_NOT_UPLOAD_FILES = false;
 const PREPARE_CACHE = false;
 
-const MAX_DOWNLOAD_FILE_PART_SIZE = 1 * 1024 * 1024;
-const MAX_UPLOAD_FILE_PART_SIZE = 512 * 1024;
 const MIN_PART_SIZE = 64 * 1024;
-const AVG_PART_SIZE = 512 * 1024;
 const TGS_MAX_DECOMPRESSED_SIZE = 8 * 1024 * 1024;
 // .tgv is a gzipped SVG wallpaper pattern — a few hundred KB in practice. Without a
 // cap a sender-supplied gzip bomb (deflate reaches ~1032:1) expands unbounded inside
@@ -179,7 +177,6 @@ export class ApiFileManager extends AppManager {
   private debug = Modes.debug;
 
   private maxUploadParts = 4000;
-  private maxDownloadParts = 8000;
   private webFileDcId: DcId;
 
   constructor() {
@@ -204,7 +201,6 @@ export class ApiFileManager extends AppManager {
 
     this.rootScope.addEventListener('app_config', (appConfig) => {
       this.maxUploadParts = this.rootScope.premium ? appConfig.upload_max_fileparts_premium : appConfig.upload_max_fileparts_default;
-      this.maxDownloadParts = appConfig.upload_max_fileparts_premium;
     });
 
     if(PREPARE_CACHE) {
@@ -538,28 +534,6 @@ export class ApiFileManager extends AppManager {
     return bytes / MIN_PART_SIZE;
   }
 
-  private getLimitPart(size: number, isUpload: boolean): number {
-    if(!size) { // * sometimes size can be 0 (e.g. avatars, webDocuments)
-      return AVG_PART_SIZE;
-    }
-
-    // return 1 * 1024 * 1024;
-
-    let bytes = MIN_PART_SIZE;
-
-    const maxParts = isUpload ? this.maxUploadParts : this.maxDownloadParts;
-    const maxPartSize = isUpload ? MAX_UPLOAD_FILE_PART_SIZE : MAX_DOWNLOAD_FILE_PART_SIZE;
-    // usually it will stick to 512Kb size if the file is too big
-    while((size / bytes) > maxParts && bytes < maxPartSize) {
-      bytes *= 2;
-    }
-    /* if(size < 1e6 || !size) bytes = 512;
-    else if(size < 3e6) bytes = 256;
-    else bytes = 128; */
-
-    return bytes;
-  }
-
   private uncompressTGS = (bytes: Uint8Array, fileName: string) => {
     // this.log('uncompressTGS', bytes, bytes.slice().buffer);
     // slice нужен потому что в uint8array - 5053 length, в arraybuffer - 5084
@@ -807,7 +781,7 @@ export class ApiFileManager extends AppManager {
     const id = this.tempId++;
     const limitPart = isLocalWebFile ?
       size :
-      options.limitPart || this.getLimitPart(size, false);
+      options.limitPart || FILE_PART_SIZE;
 
     let getFile: FileStorage['getFile'] = cacheStorage.getFile.bind(cacheStorage);
 
@@ -942,7 +916,7 @@ export class ApiFileManager extends AppManager {
       let _writePromise: CancellablePromise<void> = Promise.resolve(),
         _offset = 0;
       const superpuper = async() => {
-        if(_offset && _offset > size) {
+        if(_offset > 0 && _offset >= size) {
           return;
         }
 
@@ -996,6 +970,9 @@ export class ApiFileManager extends AppManager {
             await Promise.all(prepared.map(({writer}) => writer?.write(bytes, offset)));
             checkCancel();
             downloadId && log('write time', performance.now() - perf, 'request time', requestTime, 'queue time', writeQueueTime);
+          } else {
+            await writePromise;
+            checkCancel();
           }
 
           if(isFinal) {
@@ -1119,7 +1096,7 @@ export class ApiFileManager extends AppManager {
 
     const fileSize = file.size;
     const isBigFile = fileSize >= 10485760;
-    const partSize = this.getLimitPart(fileSize, true);
+    const partSize = FILE_PART_SIZE;
     const activeDelta = this.getDelta(partSize);
     const totalParts = DO_NOT_UPLOAD_FILES ? 0 : Math.ceil(fileSize / partSize);
     const fileId = randomLong();

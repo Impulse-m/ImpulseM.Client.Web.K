@@ -24,6 +24,7 @@ import {useSuperTab} from '@components/solidJsTabs/superTabProvider';
 import {usePromiseCollector} from '@components/solidJsTabs/promiseCollector';
 import type {AppEditChatInviteLinkTab} from '@components/solidJsTabs/tabs';
 import {wrapSolidComponent} from '@helpers/solid/wrapSolidComponent';
+import {starsUiBlocked} from '@stores/appState';
 
 export function findClosestDifference(array: Array<number>, difference: number) {
   const differences = array.map((value, idx) => {
@@ -339,7 +340,7 @@ const EditChatInviteLink: Component = () => {
           />
         </div>
       </Section>
-      <Show when={isBroadcast()}>
+      <Show when={isBroadcast() && !starsUiBlocked()}>
         <Section caption={invite ? 'InviteLink.Subscription.Edit' : 'InviteLink.Subscription.Caption'}>
           <Row>
             <Row.CheckboxFieldToggle>
@@ -354,6 +355,8 @@ const EditChatInviteLink: Component = () => {
           </Row>
           {paidWrapper()}
         </Section>
+      </Show>
+      <Show when={isBroadcast()}>
         <Section caption={approveCaption()}>
           <Row>
             <Row.CheckboxFieldToggle>

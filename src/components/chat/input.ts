@@ -165,6 +165,7 @@ import showChecklistPopup from '@components/popups/checklist';
 import assumeType from '@helpers/assumeType';
 import {formatFullSentTime} from '@helpers/date';
 import useStars from '@stores/stars';
+import {giftsBlocked} from '@stores/appState';
 import showStarsPopup from '@components/popups/stars';
 import SolidJSHotReloadGuardProvider from '@lib/solidjs/hotReloadGuardProvider';
 import {makeMessageMediaInputForSuggestedPost} from '@appManagers/utils/messages/makeMessageMediaInput';
@@ -2966,7 +2967,7 @@ export default class ChatInput {
         // Both are channel-only — a gigagroup or megagroup join just shows the
         // centre button.
         this.directControlBtn.classList.toggle('hide', !(good && channel?.linked_monoforum_id));
-        this.giftControlBtn.classList.toggle('hide', !(good && isBroadcast));
+        this.giftControlBtn.classList.toggle('hide', !(good && isBroadcast && !giftsBlocked()));
       }
 
       if(this.chat && this.welcomeLimitPlate) {
@@ -3131,7 +3132,8 @@ export default class ChatInput {
   }
 
   private giftButtonBasePeerEligible(peerId: PeerId | undefined) {
-    return !!peerId &&
+    return !giftsBlocked() &&
+      !!peerId &&
       peerId.isUser() &&
       peerId !== rootScope.myId &&
       peerId !== SERVICE_PEER_ID &&
@@ -4608,7 +4610,7 @@ export default class ChatInput {
     }
 
     if(this.btnSendGift) {
-      this.btnSendGift.classList.toggle('show', isInputEmpty && !this.isWelcomeComposer);
+      this.btnSendGift.classList.toggle('show', isInputEmpty && !this.isWelcomeComposer && !giftsBlocked());
     }
 
     // External listeners (e.g. star badge animation) want the icon family, not

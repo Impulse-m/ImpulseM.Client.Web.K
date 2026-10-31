@@ -51,7 +51,8 @@ import {IconTsx} from '@components/iconTsx';
 import Tabs from '@components/tabs';
 import {GrowHeightReveal} from '@helpers/solid/animations';
 import getStarsSpendPurposePeerId from '@helpers/getStarsSpendPurposePeerId';
-import confirmationPopup from '@components/confirmationPopup';
+import {refuseWhenStarsBlocked} from '@components/starsNotAvailable';
+import {giftsBlocked} from '@stores/appState';
 import {getMiddleware} from '@helpers/middleware';
 import ListenerSetter from '@helpers/listenerSetter';
 import {ScrollableContextValue} from '@components/scrollable2';
@@ -524,6 +525,11 @@ export type PopupStarsOptions = {
 };
 
 export default function showStarsPopup(options: PopupStarsOptions = {}) {
+  if(!options.ton && refuseWhenStarsBlocked()) {
+    options.onCancel?.();
+    return {hide: () => {}};
+  }
+
   const middlewareHelper = getMiddleware();
   const middleware = middlewareHelper.get();
   const listenerSetter = new ListenerSetter();
@@ -533,7 +539,6 @@ export default function showStarsPopup(options: PopupStarsOptions = {}) {
 
   let options$: (StarsTopupOption | StarsGiftOption)[];
   let appConfig$: MTAppConfig;
-  let purchaseBlocked: boolean;
   let toppedUp: boolean;
   let content: JSX.Element;
   let scrollableRef: ScrollableContextValue;
@@ -670,10 +675,10 @@ export default function showStarsPopup(options: PopupStarsOptions = {}) {
     } else if(options.itemPrice) {
       subtitle = i18n(options.paymentForm ? 'StarsNeededText' : 'Stars.Subscribe.Need', [peerTitle]);
     } else {
-      subtitle = i18n(purchaseBlocked ? 'StarsPurchaseUnavailable' : 'ImpulseMStarsInfo');
+      subtitle = i18n('ImpulseMStarsInfo');
     }
 
-    const firstSection = !purchaseBlocked && (
+    const firstSection = (
       <Section caption={options.ton ? 'Stars.Transaction.GramTOS' : 'Stars.TOS'}>
         <div class="popup-stars-options" style={{height: (displayingRows() * 79 + (displayingRows() - 1) * 8) + 'px'}}>
           <Show when={options.ton}>
@@ -820,7 +825,7 @@ export default function showStarsPopup(options: PopupStarsOptions = {}) {
 
     const restSection = (
       <>
-        {appConfig$.stars_gifts_enabled && !options.ton && !purchaseBlocked && (
+        {!giftsBlocked() && !options.ton && (
           <Section>
             <Button
               class="btn-primary btn-transparent primary"
@@ -846,9 +851,7 @@ export default function showStarsPopup(options: PopupStarsOptions = {}) {
       </>
     );
 
-    // Gifting stars is buying them for someone else, so it goes with the top-up
-    // options and is out when buying is blocked or this popup is already a gift.
-    const giftSection = !purchaseBlocked && !options.ton && !options.giftPeerId && !options.itemPrice && (
+    const giftSection = !giftsBlocked() && !options.ton && !options.giftPeerId && !options.itemPrice && (
       <Section>
         <Row clickable={showGiftStarsPicker}>
           <Row.Icon icon="gift" />
@@ -967,19 +970,6 @@ export default function showStarsPopup(options: PopupStarsOptions = {}) {
     ]);
     options$ = topupOptions;
     appConfig$ = appConfig;
-
-    // * stars can be unavailable for purchase at all, then only the balance and the history are left
-    purchaseBlocked = !options.ton && !!appConfig.stars_purchase_blocked;
-    if(purchaseBlocked && (options.itemPrice || options.giftPeerId)) {
-      confirmationPopup({
-        titleLangKey: 'StarsNotAvailableTitle',
-        descriptionLangKey: 'StarsNotAvailableText',
-        button: {langKey: 'OK', isCancel: true}
-      }).catch(() => {});
-      setShow(false);
-      options.onCancel?.();
-      return;
-    }
 
     // * topping up for a spend on a bot or a channel can be forbidden, then there's nothing to offer
     if(!options.ton && purposePeerId && appConfig.stars_spend_topup_invoice_disabled) {
