@@ -3,7 +3,6 @@ import matchTelegramUrlHost from '@lib/richTextProcessor/matchTelegramUrlHost';
 import cancelEvent from '@helpers/dom/cancelEvent';
 import parseUriParams from '@helpers/string/parseUriParams';
 
-// * https://core.impulsem.net/api/links
 
 type InternalLinkAnchorType =
   | 'showMaskedAlert'

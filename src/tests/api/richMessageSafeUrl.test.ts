@@ -58,11 +58,11 @@ describe('wrapUrl iv branch re-validates the decoded URL', () => {
   });
 
   test('a legitimate IV link is untouched', () => {
-    const [block] = makeProbeBlocks('https://impulsem.net/blog', '1');
+    const [block] = makeProbeBlocks('https://example.org/blog', '1');
     const verdict = renderVerdict(block);
 
     expect(verdict.safe).toBe(true);
-    expect(verdict.href).toBe('https://impulsem.net/blog');
+    expect(verdict.href).toBe('https://example.org/blog');
   });
 
   test('webpage_id 0 keeps the link out of the iv branch entirely', () => {

@@ -16,6 +16,13 @@ RUN pnpm install
 # install production depencancies
 RUN pnpm install --production
 
+# build-time ImpulseM settings (src/config/impulsemConfig.ts), passed with --build-arg
+ARG IMPULSEM_RPC_URL=
+ARG IMPULSEM_SITE_URL=
+ARG IMPULSEM_LINK_HOST=
+ARG IMPULSEM_WEB_URL=
+ARG IMPULSEM_TRANSLATIONS_URL=
+
 # build
 RUN node build
 

@@ -1,6 +1,6 @@
 import type {Browser, BrowserContext, Page, Route} from '@playwright/test';
 
-import {backendWsOrigin} from '../../src/config/backendOrigin';
+import {backendWsOrigin} from '../../src/config/impulsemConfig';
 import {CENTRIFUGO_CONNECTION_PATH} from '../../src/lib/impulse/fleet/fleetPath';
 
 /*

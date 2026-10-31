@@ -11,7 +11,7 @@ beforeEach((): void => {
 setupIdentityHarness();
 
 it('mints through the token-less pool and declares the identity socket before login', async() => {
-  vi.stubEnv('VITE_IMPULSE_BACKEND_URL', 'https://identity.example:9443');
+  vi.stubEnv('IMPULSEM_RPC_URL', 'https://identity.example:9443');
   const client = await loadIdentityHarness();
   client.setConnectionDeclaration(1, identityDeclaration);
   sockets.respond('initConnection', emptyReply);

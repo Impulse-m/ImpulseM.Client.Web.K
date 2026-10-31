@@ -12,6 +12,7 @@ import getPeerId from '@appManagers/utils/peers/getPeerId';
 import I18n, {i18n, LangPackKey} from '@lib/langPack';
 import wrapRichText from '@lib/richTextProcessor/wrapRichText';
 import wrapImpulseMUrlToAnchor from '@lib/richTextProcessor/wrapImpulseMUrlToAnchor';
+import {impulsemShareLink} from '@config/impulsemConfig';
 import {useHotReloadGuard} from '@lib/solidjs/hotReloadGuard';
 import {resolveAdminRightFlagI18n} from '@components/sidebarRight/tabs/adminRecentActions/adminRightsI18nResolver';
 import {participantRightsMap} from '@components/sidebarRight/tabs/adminRecentActions/participantRightsMap';
@@ -294,6 +295,7 @@ const adminLogsMap: {[Key in ChannelAdminLogEventAction['_']]: MapCallback<Key>}
     const key: LangPackKey = action.new_value ?
       (isBroadcast ? 'AdminLog.ChangeLinkChannel' : 'AdminLog.ChangeLinkGroup') :
       (isBroadcast ? 'AdminLog.RemovedLinkChannel' : 'AdminLog.RemovedLinkGroup');
+    const prevLink: string | undefined = action.prev_value ? impulsemShareLink('/' + action.prev_value) : undefined;
 
     return {
       type: 'regular' as const,
@@ -301,9 +303,12 @@ const adminLogsMap: {[Key in ChannelAdminLogEventAction['_']]: MapCallback<Key>}
       Content: () => {
         const anchor = (() => {
           if(!action.new_value) return;
-          const link = `t.me/${action.new_value}`;
+          const link = impulsemShareLink('/' + action.new_value);
           const anchor = wrapImpulseMUrlToAnchor(link);
-          anchor.textContent = link;
+          if(anchor) {
+            anchor.textContent = link;
+          }
+
           return anchor;
         })();
 
@@ -320,11 +325,11 @@ const adminLogsMap: {[Key in ChannelAdminLogEventAction['_']]: MapCallback<Key>}
                 {anchor}
                 <Space amount='0.5rem' />
               </Show>
-              <Show when={action.prev_value}>
+              <Show when={prevLink}>
                 <Reply
                   colorPeerId={peerId}
                   title={i18n('AdminRecentActions.PreviousLink')}
-                  text={`https://t.me/${action.prev_value}`}
+                  text={prevLink}
                 />
               </Show>
             </MinimalBubbleMessageContent>
@@ -337,11 +342,13 @@ const adminLogsMap: {[Key in ChannelAdminLogEventAction['_']]: MapCallback<Key>}
         (peerTitle, dateText) => {
           const previousLabel = I18n.format('AdminRecentActions.PreviousLink', true);
           const lines = [`${I18n.format(key, true, [peerTitle])} [${dateText}]`];
-          if(action.new_value) {
-            lines.push(`https://t.me/${action.new_value}`);
+          const newLink: string | undefined = action.new_value ? impulsemShareLink('/' + action.new_value) : undefined;
+          if(newLink) {
+            lines.push(newLink);
           }
-          if(action.prev_value) {
-            lines.push(`${previousLabel}: https://t.me/${action.prev_value}`);
+
+          if(prevLink) {
+            lines.push(`${previousLabel}: ${prevLink}`);
           }
           return lines;
         }

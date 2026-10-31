@@ -62,7 +62,7 @@ export default class ImpulseMWebView extends EventListenerBase<{
     weakMap.set(this.iframe.contentWindow, this);
     if(this.html) {
       // ! never write into contentWindow.document — a no-src iframe inherits this origin,
-      // ! which would run the embedded third-party scripts as web.impulsem.net
+      // ! which would run the embedded third-party scripts as the web client host
       this.iframe.srcdoc = this.html;
     }
   }

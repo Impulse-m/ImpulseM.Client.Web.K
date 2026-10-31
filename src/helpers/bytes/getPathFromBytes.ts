@@ -1,5 +1,4 @@
 /**
-  * https://core.impulsem.net/api/files#vector-thumbnails
   */
 export default function getPathFromBytes(bytes: Uint8Array) {
   const lookup = 'AACAAAAHAAALMAAAQASTAVAAAZaacaaaahaaalmaaaqastava.az0123456789-,';

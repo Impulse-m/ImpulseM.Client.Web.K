@@ -11,11 +11,9 @@ type WebManifest = {
   }>
 };
 
-const EXPECTED_SCOPE_EXTENSIONS = [
-  {type: 'origin', origin: 'https://t.me'},
-  {type: 'origin', origin: 'https://telegram.me'}
-];
-const EXPECTED_MANIFEST_ID = 'https://web.impulsem.net/k/';
+// no Telegram or owner origins: the scope stays inside the web client
+const EXPECTED_SCOPE_EXTENSIONS: Array<{type: string, origin: string}> = [];
+const EXPECTED_MANIFEST_ID = 'https://web.example.org/k/';
 
 const manifests = [
   'site.webmanifest',
@@ -28,7 +26,7 @@ const manifests = [
 describe('PWA web manifests', () => {
   test.each(manifests)('$fileName has a stable identity and ImpulseM link scopes', ({manifest}) => {
     expect(manifest.id).toBe('/k/');
-    expect(new URL(manifest.id, 'https://web.impulsem.net/').href).toBe(EXPECTED_MANIFEST_ID);
+    expect(new URL(manifest.id, 'https://web.example.org/').href).toBe(EXPECTED_MANIFEST_ID);
     expect(manifest.start_url).toBe('./');
     expect(manifest.scope).toBe('./');
     expect(manifest.scope_extensions).toEqual(EXPECTED_SCOPE_EXTENSIONS);

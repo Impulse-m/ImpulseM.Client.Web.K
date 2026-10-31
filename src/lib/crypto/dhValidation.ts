@@ -17,7 +17,7 @@ import {bigIntFromBytes} from '@helpers/bigInt/bigIntConversion';
 import bytesToHex from '@helpers/bytes/bytesToHex';
 
 // The well-known 2048-bit safe prime, from
-// https://core.impulsem.net/mtproto/security_guidelines — the same value
+// — the same value
 // pinned in authorizer.ts for the auth-key handshake.
 const KNOWN_DH_PRIME_HEX =
   'c71caeb9c6b1c9048e6c522f70f13f73980d40238e3e21c14934d037563d930f' +

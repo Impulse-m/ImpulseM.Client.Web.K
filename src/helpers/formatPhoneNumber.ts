@@ -77,7 +77,7 @@ export function formatPhoneNumber(originalStr: string, options?: {
   // code, the number is treated as a national number of the viewer's country and
   // grouped accordingly — instead of greedily matching the leading digits against a
   // foreign country code, which mis-rendered e.g. an Indonesian national "8123456789"
-  // as Japan (+81) in a shared-contact embed (bugs.impulsem.net #30681). Mirrors
+  // as Japan (+81) in a shared-contact embed (issue #30681). Mirrors
   // Android's PhoneFormat, which biases an unprefixed number to the user's own
   // country. `code` is then returned undefined, so the caller omits the '+' sign.
   defaultCountryCode?: string
@@ -109,7 +109,7 @@ export function formatPhoneNumber(originalStr: string, options?: {
   // The number does not carry an explicit '+' dialing prefix and the viewer's country
   // is known: unless the digits already begin with that country code, treat them as a
   // national number of the viewer's country rather than guessing a (possibly foreign)
-  // country from the leading digits (bugs.impulsem.net #30681).
+  // country from the leading digits (issue #30681).
   const defaultCountryCode = options?.defaultCountryCode;
   if(defaultCountryCode && !originalStr.trimStart().startsWith('+') && !str.startsWith(defaultCountryCode)) {
     const prefixCountry = byCountryCode.get(defaultCountryCode);

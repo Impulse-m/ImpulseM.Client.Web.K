@@ -37,11 +37,11 @@ function installDomShims() {
 
   if(typeof target.location === 'undefined') {
     target.location = {
-      href: 'https://web.impulsem.net/k/',
-      origin: 'https://web.impulsem.net',
+      href: 'https://web.example.org/k/',
+      origin: 'https://web.example.org',
       protocol: 'https:',
-      host: 'web.impulsem.net',
-      hostname: 'web.impulsem.net',
+      host: 'web.example.org',
+      hostname: 'web.example.org',
       port: '',
       pathname: '/k/',
       search: '',

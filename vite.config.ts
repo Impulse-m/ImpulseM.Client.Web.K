@@ -1,5 +1,5 @@
 /// <reference types="vitest/config" />
-import {defineConfig, searchForWorkspaceRoot} from 'vite';
+import {defineConfig, loadEnv, searchForWorkspaceRoot} from 'vite';
 import solidPlugin from 'vite-plugin-solid';
 // @ts-ignore no type declarations
 import handlebars from 'vite-plugin-handlebars';
@@ -31,6 +31,26 @@ if(existsSync(NODE_MODULES_PATH)) {
 }
 
 const isDEV = process.env.NODE_ENV === 'development';
+// IMPULSEM_* settings (RPC, site, link host, web URL, translations): the same values Vite exposes to the
+// app through envPrefix. Process env wins over the files, so CI variables override .env.local.
+const impulsemEnv: Record<string, string> = loadEnv(isDEV ? 'development' : 'production', rootDir, 'IMPULSEM_');
+const IMPULSEM_WEB_HOST: string = impulsemWebHost(impulsemEnv.IMPULSEM_WEB_URL);
+
+if(process.env.CI && !process.env.VITEST && !impulsemEnv.IMPULSEM_RPC_URL) {
+  throw new Error('IMPULSEM_RPC_URL is empty: the CI build needs the IMPULSEM_RPC_URL build variable (the transport host). Set it in the organisation variables.');
+}
+
+function impulsemWebHost(webUrl: string | undefined): string {
+  if(!webUrl) {
+    return '';
+  }
+
+  try {
+    return new URL(webUrl).hostname;
+  } catch{
+    return '';
+  }
+}
 const generateDevCssModuleScopedName = (name: string, filename: string) => {
   const relativePath = path.relative(rootDir, filename).split(path.sep).join('/');
   const fileHash = createHash('sha1').update(relativePath).digest('hex').slice(0, 10);
@@ -57,8 +77,8 @@ const handlebarsPlugin = handlebars({
   context: {
     title: 'ImpulseM Web',
     description: 'ImpulseM is a cloud-based mobile and desktop messaging app with a focus on security and speed.',
-    url: 'https://web.impulsem.net/k/',
-    origin: 'https://web.impulsem.net/'
+    url: impulsemEnv.IMPULSEM_WEB_URL ?? '',
+    origin: impulsemEnv.IMPULSEM_WEB_URL ? new URL(impulsemEnv.IMPULSEM_WEB_URL).origin + '/' : ''
   }
 });
 
@@ -67,18 +87,18 @@ const USE_SIGNED_CERTS = USE_SSL && true;
 const USE_SELF_SIGNED_CERTS = USE_SSL && false;
 
 // * mkdir certs; cd certs
-// * mkcert web.impulsem.net
-// * chmod 644 web.impulsem.net-key.pem
+// * mkcert <IMPULSEM_WEB_URL host>
+// * chmod 644 <host>-key.pem
 // * nano /etc/hosts
-// * 127.0.0.1 web.impulsem.net
-// The dev server sits behind an external nginx that fronts impulsem.net. That
+// * 127.0.0.1 <IMPULSEM_WEB_URL host>
+// The dev server sits behind an external nginx that fronts the public site. That
 // proxy reaches this box over the network, not the loopback, so binding to
 // 'localhost' makes it unreachable (nginx answers 502). Bind every interface and
 // accept the proxied Host header, which Vite would otherwise reject outright.
-// Set PUBLIC_HOST=impulsem.net so the HMR socket targets the public TLS port
+// Set PUBLIC_HOST=<public host> so the HMR socket targets the public TLS port
 // instead of 1234.
 const PUBLIC_HOST = process.env.PUBLIC_HOST;
-const host = USE_SSL ? 'web.impulsem.net' : 'localhost';
+const host = USE_SSL && IMPULSEM_WEB_HOST ? IMPULSEM_WEB_HOST : 'localhost';
 // What the server actually binds to. `host` stays a plain string because the
 // self-signed cert plugin names the certificate after it; the bind target is a
 // separate concern.
@@ -101,7 +121,7 @@ const USE_DEV_HTTP2 = !USE_SSL && !process.env.TWEB_PREVIEW && !process.env.VITE
 const serverOptions: ServerOptions = {
   host: bindHost,
   port: USE_SSL ? 443 : 1234,
-  allowedHosts: ['impulsem.net', '.impulsem.net', 'localhost'],
+  allowedHosts: ['localhost', ...(PUBLIC_HOST ? [PUBLIC_HOST, '.' + PUBLIC_HOST] : [])],
   hmr: PUBLIC_HOST ? {host: PUBLIC_HOST, protocol: 'wss', clientPort: 443} : undefined,
   fs: {
     allow: [...SERVER_FS_ALLOW]
@@ -247,6 +267,8 @@ export default defineConfig({
   },
   server: serverOptions,
   base: '',
+  // Only IMPULSEM_* (and the VITE_* defaults) reach import.meta.env; see src/config/impulsemConfig.ts.
+  envPrefix: ['VITE_', 'IMPULSEM_'],
   // Pin the dep-optimizer's scan to the real entry (index.html → src/index.ts).
   // Otherwise Vite auto-globs every *.html (stats.html, public/*.html, the icomoon
   // demo.html) as scan entries, and a parse error in any of them (e.g. the stale

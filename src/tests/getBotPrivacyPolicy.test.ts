@@ -1,5 +1,5 @@
 import {BotInfo} from '@layer';
-import {BOT_DEFAULT_PRIVACY_POLICY_URL, botHasPrivacyCommand, resolveBotPrivacyPolicy} from '@helpers/getBotPrivacyPolicy';
+import {botDefaultPrivacyPolicyUrl, botHasPrivacyCommand, resolveBotPrivacyPolicy} from '@helpers/getBotPrivacyPolicy';
 
 function makeBotInfo(partial: Partial<BotInfo.botInfo> = {}): BotInfo.botInfo {
   return {
@@ -15,7 +15,7 @@ const privacySettingsCommand = {_: 'botCommand', pFlags: {}, command: 'privacy_s
 
 describe('getBotPrivacyPolicy', () => {
   test('default URL constant matches tdesktop/Android', () => {
-    expect(BOT_DEFAULT_PRIVACY_POLICY_URL).toBe('https://impulsem.net/privacy-tpa');
+    expect(botDefaultPrivacyPolicyUrl()).toBe('https://example.org/privacy-tpa');
   });
 
   describe('botHasPrivacyCommand', () => {
@@ -53,11 +53,11 @@ describe('getBotPrivacyPolicy', () => {
     });
 
     test('no url + no privacy command (empty) -> default URL', () => {
-      expect(resolveBotPrivacyPolicy(makeBotInfo({commands: []}))).toEqual({url: BOT_DEFAULT_PRIVACY_POLICY_URL});
+      expect(resolveBotPrivacyPolicy(makeBotInfo({commands: []}))).toEqual({url: botDefaultPrivacyPolicyUrl()});
     });
 
     test('no url + no commands at all -> default URL', () => {
-      expect(resolveBotPrivacyPolicy(makeBotInfo())).toEqual({url: BOT_DEFAULT_PRIVACY_POLICY_URL});
+      expect(resolveBotPrivacyPolicy(makeBotInfo())).toEqual({url: botDefaultPrivacyPolicyUrl()});
     });
   });
 });

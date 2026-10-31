@@ -1,5 +1,6 @@
 import pause from '@helpers/schedulers/pause';
 import textToSvgURL from '@helpers/textToSvgURL';
+import {impulsemShareLink} from '@config/impulsemConfig';
 
 /**
  * Builds an ImpulseM-styled QR canvas for `data` using the supplied palette.
@@ -102,10 +103,10 @@ export async function paintQrCode(options: PaintQrOptions) {
 }
 
 /**
- * Builds the public `t.me/<username>` link encoded in a user's QR code (the
+ * Builds the public `<link host>/<username>` link encoded in a user's QR code (the
  * "My QR code" popup). Kept beside `paintQrCode` so the QR callers share one
  * place for the link shape.
  */
-export function buildImpulseMUserQrUrl(username: string) {
-  return `https://t.me/${username}`;
+export function buildImpulseMUserQrUrl(username: string): string | undefined {
+  return impulsemShareLink('/' + username);
 }

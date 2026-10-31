@@ -1,6 +1,5 @@
 import type {ChatSetPeerOptions} from '@lib/appImManager';
 
-// * https://core.impulsem.net/api/links
 
 export enum INTERNAL_LINK_TYPE {
   MESSAGE,

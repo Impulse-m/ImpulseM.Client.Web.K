@@ -42,7 +42,7 @@ const socketHarness = sharedUpdateSocketHarness();
 
 const ACCOUNT: ActiveAccountNumber = 1;
 const CURRENT_DC: number = 2;
-const MEDIA_URL: string = `wss://media.impulsem.io:443${FLEET_CONNECTION_PATH}`;
+const MEDIA_URL: string = `wss://media.example.org:443${FLEET_CONNECTION_PATH}`;
 const GET_FILE: string = 'upload.getFile';
 const GET_CONFIG: string = 'help.getConfig';
 const FILE_PAYLOAD: Uint8Array = new Uint8Array([7, 7, 7]);
@@ -52,7 +52,7 @@ function withMediaOption(): FleetConfig {
     this_dc: CURRENT_DC,
     dc_options: [
       {id: CURRENT_DC, ip_address: '149.154.167.50', port: 443},
-      {id: CURRENT_DC, ip_address: 'media.impulsem.io', port: 443, pFlags: {media_only: true}}
+      {id: CURRENT_DC, ip_address: 'media.example.org', port: 443, pFlags: {media_only: true}}
     ]
   };
 }

@@ -30,8 +30,9 @@ export default function showPaymentVerificationPopup(options: {
   impulsemWebView.addEventListener('web_app_open_tg_link', (e) => {
     options.onFinish?.();
     setShow(false);
-    if(options.openPathAfter) {
-      appImManager.openUrl(getWebViewTgLink(e.path_full));
+    const link: string | undefined = getWebViewTgLink(e.path_full);
+    if(options.openPathAfter && link) {
+      appImManager.openUrl(link);
     }
   });
 

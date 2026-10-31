@@ -39,7 +39,6 @@ import DEBUG, {IS_BETA, IS_POPUP_SANDBOX} from '@config/debug';
 import IS_INSTALL_PROMPT_SUPPORTED from '@environment/installPrompt';
 import cacheInstallPrompt from '@helpers/dom/installPrompt';
 import {fillLocalizedDates} from '@helpers/date';
-import {nextRandomUint} from '@helpers/random';
 import {createEffect} from 'solid-js';
 import {IS_OVERLAY_SCROLL_SUPPORTED, USE_CUSTOM_SCROLL, USE_NATIVE_SCROLL} from '@environment/overlayScrollSupport';
 import IMAGE_MIME_TYPES_SUPPORTED, {IMAGE_MIME_TYPES_SUPPORTED_PROMISE} from '@environment/imageMimeTypesSupport';
@@ -62,6 +61,7 @@ import {isUserCollapsedLeft} from '@helpers/updateColumnWidths';
 import {useMediaSizes} from '@helpers/mediaSizes';
 import useHasFoldersSidebar, {useIsSidebarCollapsed} from '@stores/foldersSidebar';
 import appNavigationController from '@components/appNavigationController';
+import {impulsemLinkHost} from '@config/impulsemConfig';
 import {preventCrossTabDynamicImportDeadlock} from '@helpers/preventDeadlock';
 import appChatBackground from '@components/chat/bubbles/chatBackground';
 
@@ -87,34 +87,14 @@ IMAGE_MIME_TYPES_SUPPORTED_PROMISE.then((mimeTypes) => {
   apiManagerProxy.sendEnvironment();
 });
 
-// * Upstream randomly redirected search-engine visitors to the other web build
-// * (web.impulsem.net/a/). ImpulseM ships a single build, so the experiment is
-// * disabled — leaving it on would navigate our users away to ImpulseM.
-function randomlyChooseVersionFromSearch() {
-  try {
-    if(
-      false &&
-      App.isMainDomain &&
-      document.referrer &&
-      /(^|\.)(google|bing|duckduckgo|ya|yandex)\./i.test(new URL(document.referrer).host)
-    ) {
-      const version = localStorage.getItem('kz_version');
-      if(version === 'Z' || nextRandomUint(8) > 127) {
-        localStorage.setItem('kz_version', 'Z');
-        appNavigationController.navigateToUrl('https://web.impulsem.net/a/');
-      } else {
-        localStorage.setItem('kz_version', 'K');
-      }
-    }
-  } catch(err) {}
-}
-
 async function checkLastActiveAccountFromTMe() {
   try {
+    const referrerHost: string = document.referrer ? new URL(document.referrer).host : '';
+    const linkHost: string = impulsemLinkHost();
     if(
       App.isMainDomain &&
-      document.referrer &&
-      /^(t|impulsem)\.me/i.test(new URL(document.referrer).host)
+      referrerHost &&
+      (/^t\.me/i.test(referrerHost) || (!!linkHost && referrerHost === linkHost))
     ) {
       const [totalAccounts, {accountNumber}] = await Promise.all([
         AccountController.getUnencryptedTotalAccounts(),
@@ -428,7 +408,6 @@ if(import.meta.env.DEV) {
 
 /* false &&  */document.addEventListener('DOMContentLoaded', async() => {
   const perf = performance.now();
-  randomlyChooseVersionFromSearch();
   setSidebarLeftWidth();
   toggleAttributePolyfill();
   replaceChildrenPolyfill();

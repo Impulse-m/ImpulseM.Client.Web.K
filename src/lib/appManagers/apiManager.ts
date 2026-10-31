@@ -101,7 +101,6 @@ export class ApiManager extends ApiManagerMethods {
     this.transportType = Modes.transport;
 
     // * Make sure that the used autologin_token is no more than 10000 seconds old
-    // * https://core.impulsem.net/api/url-authorization
     const REFRESH_CONFIG_INTERVAL = (10000 - 30) * 1000;
     setInterval(() => {
       this.getConfig(true);

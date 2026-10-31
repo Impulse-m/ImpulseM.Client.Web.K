@@ -16,6 +16,7 @@ import {CLICK_EVENT_NAME} from '@helpers/dom/clickEvent';
 import IS_CUSTOM_EMOJI_SUPPORTED from '@environment/customEmojiSupport';
 import BOM from '@helpers/string/bom';
 import wrapImpulseMUrlToAnchor from '@lib/richTextProcessor/wrapImpulseMUrlToAnchor';
+import {impulsemShareLink} from '@config/impulsemConfig';
 import {IS_FIREFOX} from '@environment/userAgent';
 import CustomEmojiElement, {CustomEmojiElements} from '@lib/customEmoji/element';
 import {CustomEmojiRendererElementOptions, CustomEmojiRendererElement} from '@lib/customEmoji/renderer';
@@ -707,7 +708,8 @@ export default function wrapRichText(text: string, options: WrapRichTextOptions 
         if(!options.noLinks) {
           const username = fullEntityText.slice(1);
 
-          element = wrapImpulseMUrlToAnchor('t.me/' + username);
+          // no link host configured: the mention stays plain text
+          element = wrapImpulseMUrlToAnchor(impulsemShareLink('/' + username));
           element.className = 'mention';
 
           // insertPart(entity, `<a class="mention" href="${contextUrl.replace('{1}', encodeURIComponent(username))}"${contextExternal ? ' target="_blank" rel="noopener noreferrer"' : ''}>`, '</a>');

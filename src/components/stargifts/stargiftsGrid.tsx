@@ -1,4 +1,5 @@
 import {createMemo, For, onCleanup, onMount} from 'solid-js';
+import {impulsemLinkHost, impulsemShareLink} from '@config/impulsemConfig';
 import {MyStarGift} from '@appManagers/appGiftsManager';
 import {StarsStar} from '@components/popups/stars';
 import {AvatarNewTsx} from '@components/avatarNew';
@@ -62,10 +63,10 @@ function StarGiftGridItem(props: {
         {
           icon: 'forward',
           text: 'ShareFile',
-          verify: () => raw._ === 'starGiftUnique',
+          verify: () => raw._ === 'starGiftUnique' && !!impulsemLinkHost(),
           onClick: () => {
             showSharingPicker2Popup().then(({peerId, threadId, monoforumThreadId}) => {
-              rootScope.managers.appMessagesManager.sendText({peerId, threadId, replyToMonoforumPeerId: monoforumThreadId, text: 'https://t.me/nft/' + (raw as StarGift.starGiftUnique).slug});
+              rootScope.managers.appMessagesManager.sendText({peerId, threadId, replyToMonoforumPeerId: monoforumThreadId, text: impulsemShareLink('/nft/' + (raw as StarGift.starGiftUnique).slug)});
               appImManager.setInnerPeer({peerId, threadId, monoforumThreadId});
             });
           }
@@ -81,9 +82,9 @@ function StarGiftGridItem(props: {
         {
           icon: 'link',
           text: 'CopyLink',
-          verify: () => raw._ === 'starGiftUnique',
+          verify: () => raw._ === 'starGiftUnique' && !!impulsemLinkHost(),
           onClick: () => {
-            copyTextToClipboard('https://t.me/nft/' + (raw as StarGift.starGiftUnique).slug);
+            copyTextToClipboard(impulsemShareLink('/nft/' + (raw as StarGift.starGiftUnique).slug));
             toastNew({langPackKey: 'LinkCopied'});
           }
         },

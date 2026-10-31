@@ -1,38 +1,34 @@
-## ImpulseM Web K
-Based on Webogram, patched and improved. Available for everyone here: https://web.impulsem.net/k/
+# ImpulseM Web K
 
+ImpulseM Web K is the web client of the ImpulseM platform, built with Solid.js and TypeScript.
+Based on Webogram, patched and improved.
 
-### Developing
-Install dependencies with:
-```lang=bash
+## Build
+
+Requirements: Node.js `^22.18.0 || >=24.11.0` and pnpm.
+
+```bash
 pnpm install
+pnpm start        # dev server on http://localhost:8080/
+pnpm run build    # production build into dist/ (also runs tests and typecheck)
 ```
-This will install all the needed dependencies.
 
+Details for contributors are in [AGENTS.md](AGENTS.md). Docker targets are defined in [docker-compose.yaml](docker-compose.yaml).
 
-#### Running web-server
-Just run `pnpm start` to start the web server and the livereload task.
-Open http://localhost:8080/ in your browser.
+## Build variables
 
+The build reads these variables. Set them in `.env.local` (git-ignored, see `.env.local.example`) or as environment variables. CI takes them from the organisation variables `vars.IMPULSEM_*`.
 
-#### Running in production
+| Variable | What it does | When empty |
+|---|---|---|
+| `IMPULSEM_RPC_URL` | Base URL of the transport host, for example `https://rpc.example.org`. The websocket endpoints are derived from it. | CI app builds fail with a clear message. Local and test builds make no connection attempt and stay not connected. |
+| `IMPULSEM_SITE_URL` | Base URL of the project website, without trailing slash, for example `https://example.org`. Website, terms, privacy and download links are built from it. | Menu entries and buttons for website links are hidden; text is shown without links. |
+| `IMPULSEM_LINK_HOST` | Host without scheme of public share links (the t.me equivalent), for example `o.example.org`. | No host is recognised statically; link recognition relies on the server prefix and the app URL scheme. UI that needs a host to build a link is hidden. |
+| `IMPULSEM_WEB_URL` | URL of this web client, for example `https://web.example.org/k`. | "Open the web version" links are hidden. |
+| `IMPULSEM_TRANSLATIONS_URL` | Base URL of the translations export. Used only by `pnpm apply-new-lang`. | Only `pnpm apply-new-lang` needs it. The app build does not. |
 
-Run `node build` to build the minimized production version of the app. Copy `public` folder contents to your web server.
+## Dependencies
 
-### Running in docker
-
-#### Developing: 
-* Install dependencies `docker-compose up tweb.dependencies`.
-* Run develop container `docker-compose up tweb.develop `.
-* Open http://localhost:8080/ in your browser. 
-
-#### Production:
-* Run `docker-compose up tweb.production -d` nginx image and container to serve the build
-* Open http://localhost:80/ in your browser.
-
-You can use `docker build -f ./.docker/Dockerfile_production -t {dockerhub-username}/{imageName}:{latest} .` to build your production ready image.
-
-### Dependencies
 * [BigInteger.js](https://github.com/peterolson/BigInteger.js) ([Unlicense](https://github.com/peterolson/BigInteger.js/blob/master/LICENSE))
 * [fflate](https://github.com/101arrowz/fflate) ([MIT License](https://github.com/101arrowz/fflate/blob/master/LICENSE))
 * [cryptography](https://github.com/spalt08/cryptography) ([Apache License 2.0](https://github.com/spalt08/cryptography/blob/master/LICENSE))
@@ -49,28 +45,6 @@ You can use `docker build -f ./.docker/Dockerfile_production -t {dockerhub-usern
 * [Mediabunny](https://github.com/Vanilagy/mediabunny) ([Mozilla Public License 2.0](https://github.com/Vanilagy/mediabunny/blob/main/LICENSE))
 * [Temml](https://github.com/ronkok/Temml) ([MIT License](https://github.com/ronkok/Temml/blob/main/LICENSE))
 
-### Debugging
-You are welcome in helping to minimize the impact of bugs. There are classes, binded to global context. Look through the code for certain one and just get it by its name in developer tools.
-Source maps are included in production build for your convenience.
+## License
 
-#### Additional query parameters
-* **test=1**: to use test DCs
-* **debug=1**: to enable additional logging
-* **noSharedWorker=1**: to disable Shared Worker, can be useful for debugging
-* **http=1**: to force the use of HTTPS transport when connecting to ImpulseM servers
-
-Should be applied like that: http://localhost:8080/?test=1
-
-#### Taking local storage snapshots
-You can also take and load snapshots of the local storage and indexed DB using the `./snapshot-server` [mini-app](/snapshot-server/README.md). Check the `README.md` under this folder for more details.
-
-#### Preview all icons
-You can see all the available svg icons by calling the `showIconLibrary()` global function in the browser's console.
-
-### Troubleshooting & Suggesting
-
-If you find an issue with this app or wish something to be added, let ImpulseM know using the [Suggestions Platform](https://bugs.impulsem.net/c/4002).
-
-### Licensing
-
-The source code is licensed under GPL v3. License is available [here](/LICENSE).
+The source code is licensed under GPL v3. See [LICENSE](LICENSE).

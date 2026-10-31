@@ -245,10 +245,7 @@ for(const type in types) {
   });
 
 
-  out += `/**
- * @link https://core.impulsem.net/type/${type}
- */
-export type ${camelizedType} = ${unionConstructors.map(name => camelizedType + '.' + camelizeName(name, false)).join(' | ')};
+  out += `export type ${camelizedType} = ${unionConstructors.map(name => camelizedType + '.' + camelizeName(name, false)).join(' | ')};
 
 export namespace ${camelizedType} {
   ${csTypes.join(`${NEW_LINE}${NEW_LINE}${TABULATION}`)}

@@ -7,8 +7,9 @@
 
 import type {TrueDcId} from '@types';
 import langPackLocalVersion from '@/langPackLocalVersion';
+import {impulsemWebHostname} from '@config/impulsemConfig';
 
-export const MAIN_DOMAINS = ['web.impulsem.net', 'impulsem.net'];
+export const MAIN_DOMAINS: string[] = impulsemWebHostname() ? [impulsemWebHostname()] : [];
 export const DEFAULT_BACKGROUND_SLUG = 'pattern';
 
 const threads = Math.min(4, navigator.hardwareConcurrency ?? 4);

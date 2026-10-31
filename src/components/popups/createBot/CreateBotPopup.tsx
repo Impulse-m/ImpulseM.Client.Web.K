@@ -1,4 +1,5 @@
 import MediaHeader from '@components/mediaHeader';
+import {impulsemLinkHost} from '@config/impulsemConfig';
 import styles from '@components/popups/createBot/createBot.module.scss';
 import PopupElement from '@components/popups/indexTsx';
 import Section from '@components/section';
@@ -207,7 +208,7 @@ const CreateBotPopup = (props: CreateBotPopupProps) => {
               key="CreateBot.Link"
               args={[
                 <span class={styles.linkInfoLink}>
-                  t.me/{fullUsername()}
+                  {impulsemLinkHost() ? `${impulsemLinkHost()}/${fullUsername()}` : fullUsername()}
                 </span>
               ]}
             />

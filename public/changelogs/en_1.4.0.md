@@ -1,8 +1,8 @@
 WebK introduced Video Chats back in December. 
 
-And now we are proud to launch the first-ever version of Telegram P2P Calls on the Web – bringing native support for calls between two users, secured by end-to-end encryption.
+And now we are proud to launch the first-ever version of ImpulseM P2P Calls on the Web – bringing native support for calls between two users, secured by end-to-end encryption.
 
-Seamlessly call anyone, regardless of the app they are using – calls will work between the WebK app and any other stable Telegram app: Android, iOS, Desktop, and macOS. 
+Seamlessly call anyone, regardless of the app they are using – calls will work between the WebK app and any other stable ImpulseM app: Android, iOS, Desktop, and macOS. 
 
 To call someone, open your chat with that user and click or tap the Phone icon in the top right corner. 
 

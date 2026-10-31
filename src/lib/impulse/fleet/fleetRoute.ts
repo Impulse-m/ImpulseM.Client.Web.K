@@ -6,7 +6,7 @@
  * deploy/centrifugo/media/registry.json. Every other call is an rpc on the update socket (realtime.ts).
  */
 
-import {backendUpdateWsOrigin, backendPoolWsOrigin} from '@config/backendOrigin';
+import {backendUpdateWsOrigin, backendPoolWsOrigin} from '@config/impulsemConfig';
 import type {FleetConfig} from './fleetEndpoint';
 import {endpointOf, mediaOptionOf} from './fleetEndpoint';
 import {FLEET_CONNECTION_PATH, POOL_CONNECTION_PATH} from './fleetPath';
@@ -37,6 +37,10 @@ export function mediaEndpointOf(config: FleetConfig): string | undefined {
 
 export function poolRpcEndpoint(): string {
   const poolOrigin: string | undefined = backendPoolWsOrigin();
+  if(poolOrigin === undefined && !backendUpdateWsOrigin()) {
+    throw new Error('IMPULSEM_RPC_URL is not set: the pool cannot be reached');
+  }
+
   return poolOrigin === undefined
     ? `${backendUpdateWsOrigin()}${POOL_CONNECTION_PATH}`
     : `${poolOrigin}${FLEET_CONNECTION_PATH}`;

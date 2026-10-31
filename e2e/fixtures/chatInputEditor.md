@@ -7,7 +7,7 @@ pnpm test:editor:e2e
 ```
 
 The fixture mounts the production `createChatInputEditor` in a standalone page.
-It intentionally avoids the Telegram account/bootstrap layer, workers and
+It intentionally avoids the account/bootstrap layer, workers and
 storage so editor regressions can be reproduced deterministically with a real
 `contenteditable`, native DOM selection and browser keyboard events.
 

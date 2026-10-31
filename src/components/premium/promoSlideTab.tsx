@@ -1,4 +1,5 @@
 import {For} from 'solid-js';
+import {impulsemShareLink} from '@config/impulsemConfig';
 import {i18n} from '@lib/langPack';
 import {PREMIUM_FEATURES_COLORS, PremiumPromoFeature} from '@components/premium/featuresConfig';
 import TransitionSlider from '@components/transition';
@@ -152,7 +153,8 @@ export default class PromoSlideTab {
         if(gift._ === 'messageActionGiftPremium') {
           description = i18n('ImpulseMPremiumUserGiftedPremiumDialogSubtitle');
         } else {
-          const url = 'https://t.me/giftcode/' + gift.slug;
+          // an empty url is no link: InviteLink skips it when no link host is configured
+          const url: string = impulsemShareLink('/giftcode/' + gift.slug) ?? '';
 
           const inviteLink = new InviteLink({
             button: false,

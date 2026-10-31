@@ -13150,7 +13150,7 @@ export class AppMessagesManager extends AppManager {
   }
 
   /**
-   * * https://core.impulsem.net/api/offsets, offset_id is inclusive
+   * * offset_id is inclusive
    */
   public getHistory(options: RequestHistoryOptions & {
     backLimit?: number,

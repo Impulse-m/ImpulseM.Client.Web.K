@@ -111,7 +111,7 @@ if(!allowedChatIds.size && !businessConfig && !guardConfig) {
   );
 }
 
-const apiUrl = `https://api.impulsem.net/bot${token}/`;
+const apiUrl = `https://api.example.org/bot${token}/`;
 const businessStartedAt = Math.floor(Date.now() / 1000);
 const businessConnections = new Map();
 const handledBusinessMessages = new Set();
@@ -314,7 +314,7 @@ async function handleMessage(message) {
 
   if(command === 'media') {
     await sendEphemeral(context, 'sendPhoto', {
-      photo: 'https://impulsem.net/img/t_logo.png',
+      photo: 'https://example.org/img/t_logo.png',
       caption: 'Private media response'
     });
     return;
@@ -385,7 +385,7 @@ async function handleMessage(message) {
 
   if(command === 'link') {
     await sendEphemeral(context, 'sendMessage', {
-      text: 'Private link preview https://impulsem.net/'
+      text: 'Private link preview https://example.org/'
     });
     return;
   }
