@@ -1,11 +1,13 @@
+import {LINK_SCHEME_PROTOCOLS} from '@lib/richTextProcessor/linkSchemes';
+
 export const LINK_PROTOCOLS = new Set([
   'ftp:',
   'http:',
   'https:',
   'mailto:',
   'tel:',
-  'tg:',
-  'tonsite:'
+  'tonsite:',
+  ...LINK_SCHEME_PROTOCOLS
 ]);
 
 /**
@@ -46,7 +48,7 @@ export default function normalizeLinkUrl(value: string) {
       return;
     }
     if(
-      (url.protocol === 'mailto:' || url.protocol === 'tel:' || url.protocol === 'tg:') &&
+      (url.protocol === 'mailto:' || url.protocol === 'tel:' || LINK_SCHEME_PROTOCOLS.includes(url.protocol)) &&
       !raw.slice(url.protocol.length).trim()
     ) return;
     return normalized;

@@ -113,7 +113,7 @@ function processRichText(richText: RichText, options: Options): TextWithEntities
         offset,
         length,
         url: hasWebPage ?
-          'tg://iv?url=' + encodeURIComponent(richText.url) :
+          'im://iv?url=' + encodeURIComponent(richText.url) :
           richText.url,
         safe: hasWebPage
       }), options);

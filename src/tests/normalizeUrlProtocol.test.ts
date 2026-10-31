@@ -14,6 +14,7 @@ describe('normalizeUrlProtocol', () => {
     'http://example.com/',
     'tg://resolve?domain=durov',
     'tg:resolve?domain=durov',
+    'im://resolve?domain=durov',
     'mailto:durov@example.com',
     'data:text/plain,hi',
     'HTTPS://T.ME/durov'

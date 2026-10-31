@@ -571,7 +571,7 @@ describe('upstream editor behavior through the tweb schema', () => {
   test.each([
     'https://example.com', 'http://example.com', '/same-site/index.html', '../relative.html',
     'mailto:info@example.com', 'ftp://info@example.com', 'tel:+1234567890', '?query=1', '#anchor',
-    'tg://resolve?domain=telegram', 'tonsite://example.ton'
+    'tg://resolve?domain=telegram', 'im://resolve?domain=telegram', 'tonsite://example.ton'
   ])('retains allowed URL through HTML and JSON import: %s', (url) => {
     for(const input of ['html', 'json']) {
       const result = setup([paragraph()]);

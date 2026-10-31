@@ -435,7 +435,7 @@ export default function wrapRichText(text: string, options: WrapRichTextOptions 
           }
 
           element = document.createElement('a');
-          (element as HTMLAnchorElement).href = encodeEntities('tg://bot_command?command=' + encodeURIComponent(command) + (bot ? '&bot=' + encodeURIComponent(bot) : ''));
+          (element as HTMLAnchorElement).href = encodeEntities('im://bot_command?command=' + encodeURIComponent(command) + (bot ? '&bot=' + encodeURIComponent(bot) : ''));
           if(!contextExternal) {
             element.setAttribute('onclick', 'execBotCommand(this)');
           }

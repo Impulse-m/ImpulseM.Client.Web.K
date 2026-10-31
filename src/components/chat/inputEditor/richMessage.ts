@@ -136,7 +136,7 @@ function wrapRichTextMark(text: RichText, mark: NonNullable<JSONContent['marks']
         const phone = url.slice('tel:'.length);
         return phone ? {_: 'textPhone', text, phone} : text;
       }
-      if(url.startsWith('tg://user?')) {
+      if(url.startsWith('im://user?') || url.startsWith('tg://user?')) {
         const userId = new URLSearchParams(url.slice(url.indexOf('?') + 1)).get('id');
         if(userId) return {_: 'textMentionName', text, user_id: userId};
       }

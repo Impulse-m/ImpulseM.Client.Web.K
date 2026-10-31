@@ -1,6 +1,6 @@
 import type {InputRichMessage, PageBlock, RichMessage, RichText} from '@layer';
 
-const AUTOLINK_CANDIDATE = /(?:https?:\/\/|tg:\/\/|tonsite:\/\/|www\.)\S+|[\w.+-]+@[\w.-]+\.\w+/i;
+const AUTOLINK_CANDIDATE = /(?:https?:\/\/|im:\/\/|tg:\/\/|tonsite:\/\/|www\.)\S+|[\w.+-]+@[\w.-]+\.\w+/i;
 
 function inspectAutolinkRichText(
   text: RichText,

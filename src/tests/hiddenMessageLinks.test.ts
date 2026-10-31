@@ -222,7 +222,7 @@ describe('hidden message links', () => {
 
     expect(container.querySelector('.anchor-url')?.matches(MESSAGE_LINK_ENTITY_SELECTOR)).toBe(true);
     expect(container.querySelector('.phone-url')?.matches(MESSAGE_LINK_ENTITY_SELECTOR)).toBe(false);
-    expect(container.querySelector('a[href^="tg://bot_command"]')?.matches(MESSAGE_LINK_ENTITY_SELECTOR)).toBe(false);
+    expect(container.querySelector('a[href^="im://bot_command"]')?.matches(MESSAGE_LINK_ENTITY_SELECTOR)).toBe(false);
     expect(container.querySelector('.timestamp')?.matches(MESSAGE_LINK_ENTITY_SELECTOR)).toBe(false);
   });
 

@@ -8,6 +8,7 @@ describe('normalizeLinkUrl', () => {
     ['mailto:user@example.com', 'mailto:user@example.com'],
     ['tel:+971501234567', 'tel:+971501234567'],
     ['tg://resolve?domain=telegram', 'tg://resolve?domain=telegram'],
+    ['im://resolve?domain=telegram', 'im://resolve?domain=telegram'],
     ['tonsite://example.ton/path', 'tonsite://example.ton/path'],
     ['#section-name', '#section-name']
   ])('normalizes %s', (source, expected) => {
@@ -21,6 +22,7 @@ describe('normalizeLinkUrl', () => {
     'mailto:',
     'tel:',
     'tg:',
+    'im:',
     'tonsite:',
     'https://',
     '##section'

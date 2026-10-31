@@ -6,7 +6,7 @@ export default function wrapJoinVoiceChatAnchor(message: Message.messageService)
     | MessageAction.messageActionInviteToGroupCall
     | MessageAction.messageActionGroupCall;
 
-  // Legacy voice/video chat in a group/channel — the tg:// URL flow routes
+  // Legacy voice/video chat in a group/channel — the im:// URL flow routes
   // through appImManager.joinGroupCall. Only the messageActionGroupCall /
   // messageActionInviteToGroupCall variants carry an InputGroupCall on their
   // `call` field, and both only ever appear for a chat peer. Conference calls
@@ -18,7 +18,7 @@ export default function wrapJoinVoiceChatAnchor(message: Message.messageService)
   }
 
   const {onclick, url} = wrapUrl(
-    `tg://voicechat?chat_id=${message.peerId.toChatId()}&id=${call.id}&access_hash=${call.access_hash}`
+    `im://voicechat?chat_id=${message.peerId.toChatId()}&id=${call.id}&access_hash=${call.access_hash}`
   );
   if(!onclick) {
     return document.createElement('span');

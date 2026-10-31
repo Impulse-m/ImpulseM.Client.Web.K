@@ -39,7 +39,7 @@ describe('wrapRichText tags', () => {
     const anchor = wrapTag('#news@telegram', 'messageEntityHashtag');
 
     expect(anchor.textContent).toBe('#news@telegram');
-    expect(anchor.getAttribute('href')).toBe('tg://search_hashtag?hashtag=news%40telegram');
+    expect(anchor.getAttribute('href')).toBe('im://search_hashtag?hashtag=news%40telegram');
     expect(anchor.getAttribute('onclick')).toBe('searchByHashtag(this)');
   });
 
@@ -47,7 +47,7 @@ describe('wrapRichText tags', () => {
     const anchor = wrapTag('$TON@telegram', 'messageEntityCashtag');
 
     expect(anchor.textContent).toBe('$TON@telegram');
-    expect(anchor.getAttribute('href')).toBe('tg://search_hashtag?hashtag=%24TON%40telegram');
+    expect(anchor.getAttribute('href')).toBe('im://search_hashtag?hashtag=%24TON%40telegram');
     expect(anchor.getAttribute('onclick')).toBe('searchByHashtag(this)');
   });
 

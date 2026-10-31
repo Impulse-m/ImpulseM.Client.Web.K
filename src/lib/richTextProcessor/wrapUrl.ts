@@ -68,7 +68,7 @@ export default function wrapUrl(url: string, safe?: boolean) {
     /^\/[^/]+\/\d+/.test(parsedUrl.pathname)
   ) {
     onclick = 'im';
-  } else if((tgMatch = url.match(/^tg:(?:\/\/)?(.+?)(?:\?|$)/))) {
+  } else if((tgMatch = url.match(/^(?:im|tg):(?:\/\/)?(.+?)(?:\?|$)/))) {
     onclick = 'tg_' + tgMatch[1].split('/')[0] as any;
 
     switch(tgMatch[1]) {

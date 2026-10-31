@@ -777,7 +777,7 @@ async function onMediaClick({
         offset: string.length,
         length: url.length,
         url: webPageId ?
-          'tg://iv?url=' + encodeURIComponent(url) :
+          'im://iv?url=' + encodeURIComponent(url) :
           url,
         safe: !!webPageId
       });
@@ -1502,7 +1502,7 @@ function Block(props: {
           </div>
           <For each={block.articles}>{(article, idx) => {
             const context = useContext(InstantViewContext);
-            const wrapped = createMemo(() => wrapUrl('tg://iv?url=' + encodeURIComponent(article.url)));
+            const wrapped = createMemo(() => wrapUrl('im://iv?url=' + encodeURIComponent(article.url)));
             const photo = createMemo(() => article.photo_id ?
               findPagePhoto(context, article.photo_id) :
               undefined);

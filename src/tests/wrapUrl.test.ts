@@ -58,6 +58,14 @@ describe('wrapUrl Telegram links', () => {
     expect(wrapUrl(url).onclick).toBeUndefined();
   });
 
+  test.each([
+    'im://resolve?domain=durov',
+    'tg://resolve?domain=durov'
+  ])('routes the scheme link %s to the same handler', (url) => {
+    vi.stubGlobal('tg_resolve', vi.fn());
+    expect(wrapUrl(url).onclick).toBe('tg_resolve');
+  });
+
   test('does not treat tg: inside an external URL as a tg protocol link', () => {
     vi.stubGlobal('tg_resolve', vi.fn());
     expect(wrapUrl('https://evil.com/tg:resolve?domain=durov').onclick).toBeUndefined();

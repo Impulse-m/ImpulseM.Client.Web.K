@@ -4,12 +4,12 @@ import type {GeneratedSettingsLink} from './types';
 import type {SettingsSearchItem} from './index';
 
 /**
- * `tg://settings/<path>` — the vocabulary the other clients speak, kept in
+ * `im://settings/<path>` — the path vocabulary the other clients speak, kept in
  * `src/scripts/in/settings-links.csv` and resolved against the index at build
  * time. A row with no address of its own is reached through its section's,
  * `?highlight=<key>`, the way tdesktop falls back.
  */
-const PREFIX = 'tg://settings';
+const PREFIX = 'im://settings';
 
 let byTarget: Map<string, GeneratedSettingsLink>;
 let indexedVersion = -1;
