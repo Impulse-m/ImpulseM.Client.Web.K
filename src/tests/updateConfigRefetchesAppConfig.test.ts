@@ -33,7 +33,6 @@ type ConfigListener = (update: {_: 'updateConfig'}) => void;
 const socketHarness = sharedUpdateSocketHarness();
 const fleetHarness = sharedFleetPoolHarness();
 
-/** A receiver shaped as ApiManager is when after() runs, with the real getAppConfig and the server answer behind it. */
 function managerStub(
   listeners: {current: Record<string, ConfigListener>},
   serverAppConfig: Record<string, unknown>
