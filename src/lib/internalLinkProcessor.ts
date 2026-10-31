@@ -33,6 +33,9 @@ import showSendGiftPopup from '@components/popups/sendGift';
 import showSendGiftPicker from '@components/popups/sendGiftPicker';
 import type {RequestWebViewOptions} from '@appManagers/appAttachMenuBotsManager';
 import {prefetchStars} from '@stores/stars';
+import {giftsBlocked, ownStoriesShown, starsUiBlocked, walletShown} from '@stores/appState';
+import hasOwnStories from '@appManagers/utils/stories/hasOwnStories';
+import apiManagerProxy from '@lib/apiManagerProxy';
 import {getMiddleware} from '@helpers/middleware';
 import anchorCallback from '@helpers/dom/anchorCallback';
 import showStarGiftInfoPopup from '@components/popups/starGiftInfo';
@@ -67,6 +70,24 @@ import searchByTag from '@lib/richTextProcessor/searchByTag';
 const showUnsupportedLinkToast = () => {
   toastNew({langPackKey: 'Link.NotSupported'});
 };
+
+const refuseHiddenDestination = (hidden: boolean): boolean => {
+  if(hidden) {
+    showUnsupportedLinkToast();
+  }
+
+  return hidden;
+};
+
+const HIDDEN_SETTINGS_DESTINATIONS: ReadonlyMap<string, () => boolean> = new Map<string, () => boolean>([
+  ['stars', starsUiBlocked],
+  ['stars/gift', () => starsUiBlocked() || giftsBlocked()],
+  ['send-gift', giftsBlocked],
+  ['send-gift/self', giftsBlocked],
+  ['my-profile/posts/all-stories', () => !ownStoriesShown(hasOwnStories())],
+  ['my-profile/archived-posts', () => !ownStoriesShown(hasOwnStories())],
+  ['ton', () => !walletShown()]
+]);
 
 export class InternalLinkProcessor {
   protected managers: AppManagers;
@@ -790,6 +811,11 @@ export class InternalLinkProcessor {
         // (`tg://settings/privacy/phone-number/`) and the generated index strips
         // them, so a path has to arrive here the same way it was addressed there
         const path = pathnameParams.join('/').replace(/\/$/, '');
+        const hidden = HIDDEN_SETTINGS_DESTINATIONS.get(path);
+        if(hidden && refuseHiddenDestination(hidden())) {
+          return;
+        }
+
         switch(path) {
           case '':
             // reuse the open Settings instead of stacking a second one
@@ -907,7 +933,14 @@ export class InternalLinkProcessor {
             // Every section the settings search indexes is addressable — see
             // @lib/settingsSearch/link. Imported lazily to keep the index out of
             // the startup bundle.
-            return import('@lib/settingsSearch/navigate').then(async({openSettingsDeepLink}) => {
+            return Promise.all([
+              import('@lib/settingsSearch/navigate'),
+              import('@lib/settingsSearch/gates')
+            ]).then(async([{openSettingsDeepLink}, {isSettingsLinkShown}]) => {
+              if(refuseHiddenDestination(!isSettingsLinkShown(path, uriParams.highlight))) {
+                return;
+              }
+
               if(!await openSettingsDeepLink(path, uriParams.highlight, appSidebarLeft)) {
                 showUnsupportedLinkToast();
               }
@@ -1514,7 +1547,11 @@ export class InternalLinkProcessor {
     showPremiumPopup();
   };
 
-  public processGiftCodeLink = (link: InternalLink.InternalLinkGiftCode) => {
+  public processGiftCodeLink = async(link: InternalLink.InternalLinkGiftCode) => {
+    if(refuseHiddenDestination(await apiManagerProxy.isPremiumPurchaseBlocked())) {
+      return;
+    }
+
     showGiftLinkPopup(link.slug, link.stack);
   };
 
@@ -1576,6 +1613,10 @@ export class InternalLinkProcessor {
   };
 
   public processUniqueStarGiftLink = async(link: InternalLink.InternalLinkUniqueStarGift) => {
+    if(refuseHiddenDestination(giftsBlocked())) {
+      return;
+    }
+
     const gift = await this.managers.appGiftsManager.getGiftBySlug(link.slug).catch(noop);
     if(!gift) {
       toastNew({langPackKey: 'Error.AnError'});
@@ -1586,6 +1627,10 @@ export class InternalLinkProcessor {
   };
 
   public processStarGiftCollectionLink = async(link: InternalLink.InternalLinkStarGiftCollection) => {
+    if(refuseHiddenDestination(giftsBlocked())) {
+      return;
+    }
+
     const peer = await this.managers.appUsersManager.resolveUsername(link.domain);
     const peerId = peer.id.toPeerId(peer._ !== 'user');
     if(appImManager.chat.peerId !== peerId) {

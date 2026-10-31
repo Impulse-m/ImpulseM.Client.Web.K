@@ -41,6 +41,7 @@ import {joinDeepPath} from '@helpers/object/setDeepProperty';
 import createAgeVerification from '@components/popups/ageVerification';
 import {clearSensitiveSpoilers} from '@components/wrappers/mediaSpoiler';
 import useContentSettings from '@stores/contentSettings';
+import {giftsBlocked} from '@stores/appState';
 import ChangeLoginEmailTab from '@components/sidebarLeft/tabs/changeLoginEmail';
 import {wrapEmailPattern} from '@components/emailVerification';
 import IS_WEB_AUTHN_SUPPORTED from '@environment/webAuthn';
@@ -464,9 +465,11 @@ const PrivacyAndSecurity: Component = () => {
         addRow('inputPrivacyKeyBirthday', i18n('Privacy.BirthdayRow'), () => {
           tab.slider.createTab(AppPrivacyBirthdayTab).open();
         });
-        addRow('inputPrivacyKeyStarGiftsAutoSave', i18n('Privacy.GiftsRow'), () => {
-          openTabWithGlobalPrivacy(AppPrivacyGiftsTab, 'inputPrivacyKeyStarGiftsAutoSave');
-        });
+        if(!giftsBlocked()) {
+          addRow('inputPrivacyKeyStarGiftsAutoSave', i18n('Privacy.GiftsRow'), () => {
+            openTabWithGlobalPrivacy(AppPrivacyGiftsTab, 'inputPrivacyKeyStarGiftsAutoSave');
+          });
+        }
         addRow('inputPrivacyKeySavedMusic', i18n('Privacy.SavedMusicRow'), () => {
           tab.slider.createTab(AppPrivacySavedMusicTab).open();
         });

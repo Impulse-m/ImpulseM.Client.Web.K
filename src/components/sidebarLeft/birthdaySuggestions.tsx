@@ -16,7 +16,7 @@ import classNames from '@helpers/string/classNames';
 import {i18n} from '@lib/langPack';
 import wrapEmojiText from '@lib/richTextProcessor/wrapEmojiText';
 import rootScope from '@lib/rootScope';
-import {useAppState} from '@stores/appState';
+import {giftsBlocked, useAppState} from '@stores/appState';
 import {useIsSidebarCollapsed} from '@stores/foldersSidebar';
 import {useDismissedSuggestions, usePendingSuggestions, usePromoDataLoaded} from '@stores/promo';
 import {createEffect, createMemo, createResource, createSignal, onCleanup, onMount, Show} from 'solid-js';
@@ -280,7 +280,7 @@ export default function createBirthdaySuggestions() {
   });
 
   createEffect(() => {
-    if(canShowBirthdayContacts() && contactBirthdays()?.today.length) {
+    if(canShowBirthdayContacts() && !giftsBlocked() && contactBirthdays()?.today.length) {
       void rootScope.managers.appGiftsManager.getStarGiftOptions().catch(() => {});
     }
   });
@@ -301,7 +301,7 @@ export default function createBirthdaySuggestions() {
   );
 
   const contacts: PendingSuggestionController = {
-    available: () => canShowBirthdayContacts() && !!contactBirthdays()?.today.length,
+    available: () => canShowBirthdayContacts() && !giftsBlocked() && !!contactBirthdays()?.today.length,
     component: ContactsSuggestion
   };
   const setup: PendingSuggestionController = {

@@ -10,6 +10,7 @@ import {Message, SearchPostsFlood} from '../../layer';
 import Button from '../buttonTsx';
 import {i18n} from '../../lib/langPack';
 import showPremiumPopup from '../popups/premium';
+import {starsUiBlocked} from '../../stores/appState';
 import classNames from '../../helpers/string/classNames';
 import {IconTsx} from '../iconTsx';
 import wrapEmojiText from '../../lib/richTextProcessor/wrapEmojiText';
@@ -213,7 +214,7 @@ export function GlobalPostsSearch(props: {
 
     if(!props.query || !canShowButtonAfterEmpty()) return null
 
-    if(remainingUntilReset()) {
+    if(remainingUntilReset() && !starsUiBlocked()) {
       return (
         <Button
           class={classNames('btn-primary btn-color-primary', styles.button, styles.buttonPaidSearch)}

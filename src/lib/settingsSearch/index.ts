@@ -12,6 +12,7 @@ import {
   settingsSearchVersion
 } from './registry';
 import type {SettingsSearchEntryKind} from './types';
+import {isSettingsResultShown} from './gates';
 
 /**
  * Synonyms live in the language pack, not in the build-time index: a row titled
@@ -184,7 +185,7 @@ export function searchSettings(query: string): SettingsSearchItem[] {
   if(!trimmed) return [];
 
   const lowerCased = trimmed.toLowerCase();
-  const found = [...index.search(trimmed)];
+  const found = [...index.search(trimmed)].filter((id) => isSettingsResultShown(items.get(id)));
 
   const ranked = found
   .map((id) => {
@@ -223,7 +224,7 @@ export function searchSettings(query: string): SettingsSearchItem[] {
 /** What the list shows before anything is typed. */
 export function getSettingsSearchSuggestions(recentIds: string[]): SettingsSearchItem[] {
   ensureBuilt();
-  return recentIds.map((id) => items.get(id)).filter(Boolean);
+  return recentIds.map((id) => items.get(id)).filter(Boolean).filter(isSettingsResultShown);
 }
 
 export function getSettingsSearchTitle(item: SettingsSearchItem) {

@@ -22,7 +22,7 @@ import anchorCopy from '@helpers/dom/anchorCopy';
 import {impulsemLinkHost, impulsemShareLink} from '@config/impulsemConfig';
 import getServerMessageId from '@appManagers/utils/messageId/getServerMessageId';
 import getPeerActiveUsernames from '@appManagers/utils/peers/getPeerActiveUsernames';
-import {appState, useAppConfig} from '@stores/appState';
+import {appState, giftsBlocked, starsUiBlocked, useAppConfig} from '@stores/appState';
 import {useCommunity, useCommunityFull} from '@stores/communities';
 import detectLanguageForTranslation from '@helpers/detectLanguageForTranslation';
 import usePeerTranslation from '@hooks/usePeerTranslation';
@@ -315,7 +315,7 @@ PeerProfile.SubtitleRating = () => {
   const {showStarsRatingPopup} = useHotReloadGuard();
   const starsRating = createMemo(() => (context.fullPeer as UserFull.userFull)?.stars_rating);
   return (
-    <Show when={starsRating()}>
+    <Show when={starsRating() && !starsUiBlocked()}>
       <div
         class="profile-subtitle-rating"
         ref={attachClickEventRef((e) => {
@@ -814,7 +814,7 @@ PeerProfile.Birthday = () => {
       });
     }
 
-    if(isToday()) {
+    if(isToday() && !giftsBlocked()) {
       return () => showSendGiftPopup({
         peerId: context.peerId,
         birthday: true

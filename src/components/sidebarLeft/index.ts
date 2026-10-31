@@ -104,6 +104,8 @@ import useHasFoldersSidebar, {
 import isObject from '@helpers/object/isObject';
 import {useAppSettings} from '@stores/appSettings';
 import {useCollapsedCommunityDialogsKey} from '@stores/communities';
+import {ownStoriesShown} from '@stores/appState';
+import hasOwnStories from '@appManagers/utils/stories/hasOwnStories';
 import {openEmojiStatusPicker} from '@components/sidebarLeft/emojiStatusPicker';
 import IS_CONFERENCE_CALL_SUPPORTED from '@environment/conferenceCallSupport';
 import IS_CALL_SUPPORTED from '@environment/callSupport';
@@ -744,7 +746,7 @@ export class AppSidebarLeft extends SidebarSlider {
           this.createTab(AppMyStoriesTab).open(AppMyStoriesTab.getInitArgs());
         });
       },
-      verify: () => !TEST_NO_STORIES
+      verify: () => !TEST_NO_STORIES && ownStoriesShown(hasOwnStories())
     }, {
       icon: 'user',
       text: 'Contacts',

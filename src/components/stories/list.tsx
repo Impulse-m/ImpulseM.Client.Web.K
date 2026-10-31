@@ -4,6 +4,8 @@ import {createStoriesViewer} from '@components/stories/viewer';
 import styles from '@components/stories/list.module.scss';
 import mediaSizes from '@helpers/mediaSizes';
 import rootScope from '@lib/rootScope';
+import {ownStoriesShown} from '@stores/appState';
+import hasOwnStories from '@appManagers/utils/stories/hasOwnStories';
 import {fastSmoothScrollToStart} from '@helpers/fastSmoothScroll';
 import cancelEvent from '@helpers/dom/cancelEvent';
 import {AvatarNew} from '@components/avatarNew';
@@ -376,14 +378,14 @@ function _StoriesList(props: {
         onClick: () => {
           appSidebarLeft.createTab(AppMyStoriesTab).open(AppMyStoriesTab.getInitArgs());
         },
-        verify: () => isSelf
+        verify: () => isSelf && ownStoriesShown(hasOwnStories())
       }, {
         icon: 'archive',
         text: 'ArchivedStories',
         onClick: () => {
           appSidebarLeft.createTab(AppMyStoriesTab).open({...AppMyStoriesTab.getInitArgs(), isArchive: true});
         },
-        verify: () => isSelf
+        verify: () => isSelf && ownStoriesShown(hasOwnStories())
       }, {
         icon: 'message',
         text: 'SendMessage',
