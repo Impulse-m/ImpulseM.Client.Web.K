@@ -104,7 +104,9 @@ export default defineConfig({
       // Bakes the live gateway into the served bundle (src/config/backendOrigin.ts). A real
       // process-env value takes precedence over the repo's .env, so the lane always points at
       // the stack the gate named, not at whatever .env happens to contain.
-      VITE_IMPULSE_BACKEND_URL: liveLane.gatewayOrigin
+      VITE_IMPULSE_BACKEND_URL: liveLane.gatewayOrigin,
+      // The live lanes sign in with reserved numbers, which only the loopback test pool serves.
+      VITE_IMPULSE_POOL_WS: liveLane.poolWsOrigin
     },
     reuseExistingServer: false,
     timeout: 180_000
