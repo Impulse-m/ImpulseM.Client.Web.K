@@ -5,8 +5,9 @@ import {runInNewContext} from 'node:vm';
 import {getInvalidPluralKeys} from '@/scripts/lib/validatePluralStrings';
 
 const source = readFileSync('src/scripts/apply_new_lang.js', 'utf8');
+const TRANSLATIONS_URL: string = 'https://translations.example.org';
 
-function createImport() {
+function createImport(env: Record<string, string> = {IMPULSEM_TRANSLATIONS_URL: TRANSLATIONS_URL}) {
   const files = {
     'lang.ts': `const lang = {
   'Gift': {
@@ -24,9 +25,11 @@ function createImport() {
   const writeFileSync = vi.fn((file: string, text: string) => {
     files[path.basename(file) as keyof typeof files] = text;
   });
+  const requestedUrls: string[] = [];
   const modules = {
     https: {
-      get: (_url: string, callback: (response: EventEmitter) => void) => {
+      get: (url: string, callback: (response: EventEmitter) => void) => {
+        requestedUrls.push(url);
         callback(response);
         return new EventEmitter();
       }
@@ -38,12 +41,14 @@ function createImport() {
   runInNewContext(source, {
     __dirname: path.resolve('src/scripts'),
     require: (name: keyof typeof modules) => modules[name],
+    process: {env},
     console: {log: vi.fn()}
   });
 
   return {
     files,
     writeFileSync,
+    requestedUrls,
     apply: (text: string) => {
       response.emit('data', text);
       response.emit('end');
@@ -52,6 +57,16 @@ function createImport() {
 }
 
 describe('translation import', () => {
+  it('fetches the export from the configured translations host', () => {
+    const {requestedUrls} = createImport({IMPULSEM_TRANSLATIONS_URL: `${TRANSLATIONS_URL}/`});
+
+    expect(requestedUrls).toEqual([`${TRANSLATIONS_URL}/en/webk/export?mode=prod`]);
+  });
+
+  it('refuses to run without a translations host', () => {
+    expect(() => createImport({})).toThrow('IMPULSEM_TRANSLATIONS_URL is not set');
+  });
+
   it('rejects incompatible plural forms before writing either language file', () => {
     const {apply, files, writeFileSync} = createImport();
     const original = {...files};
