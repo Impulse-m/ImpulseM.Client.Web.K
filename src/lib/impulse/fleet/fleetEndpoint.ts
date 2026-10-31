@@ -15,9 +15,9 @@ export type FleetConfig = {
   dc_options: FleetDcOption[]
 };
 
-export function mediaOptionOf(config: FleetConfig): FleetDcOption | undefined {
+export function mediaOptionOf(config: FleetConfig, dcId: number): FleetDcOption | undefined {
   return config.dc_options.find((entry: FleetDcOption): boolean => {
-    return entry.id === config.this_dc && entry.pFlags?.media_only === true;
+    return entry.id === dcId && entry.pFlags?.media_only === true;
   });
 }
 

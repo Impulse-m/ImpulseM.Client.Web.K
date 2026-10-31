@@ -153,7 +153,7 @@ describe('a file-transfer method is refused with a typed error when the config p
     await expect(
       grpcInvoke(GET_FILE, {offset: 0, limit: 1024}, ACCOUNT),
       'a file query has no carrier without a media_only option: the update socket is not a fallback for it'
-    ).rejects.toMatchObject({type: 'NETWORK_BAD_RESPONSE', code: 500});
+    ).rejects.toMatchObject({type: 'FLEET_MEDIA_OPTION_MISSING', code: 0});
     expect(socketHarness.calls, 'the file query never travels the update socket').toHaveLength(0);
     expect(fleetHarness.pools, 'no media pool is opened without a published endpoint').toHaveLength(0);
   });

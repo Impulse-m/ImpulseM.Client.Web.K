@@ -8,7 +8,7 @@
 import {getGrpcSessionToken} from '@lib/impulse/grpc/credentials';
 import {grpcInvoke, isGrpcAvailable} from '@lib/impulse/grpc/adapter';
 import {clearImpulseSession, fleetIdentityFor, restoreImpulseSession, setImpulseSessionSignOutHandler} from '@lib/impulse/session';
-import {setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
+import {hasMediaRoute, setFleetConfig, setFleetIdentitySource} from '@lib/impulse/fleet/fleet';
 import {setRealtimeDispatch, startImpulseRealtime, stopImpulseRealtime} from '@lib/impulse/realtime';
 import {reportSignOutFailure} from '@lib/impulse/backgroundFailures';
 import type {UserAuth} from '@appManagers/constants';
@@ -29,7 +29,7 @@ import Modes from '@config/modes';
 import bytesFromHex from '@helpers/bytes/bytesFromHex';
 import bytesToHex from '@helpers/bytes/bytesToHex';
 import isObject from '@helpers/object/isObject';
-import pause from '@helpers/schedulers/pause';
+import pauseUnlessAborted from '@helpers/schedulers/pauseUnlessAborted';
 import ApiManagerMethods from '@appManagers/apiManagerMethods';
 import {getEnvironment} from '@environment/utils';
 import tsNow from '@helpers/tsNow';
@@ -58,6 +58,11 @@ import {invokeWithTransientRetry} from '@appManagers/utils/transientRetry';
 const PREMIUM_FILE_NETWORKERS_COUNT = 6;
 const REGULAR_FILE_NETWORKERS_COUNT = 3;
 const DESTROY_NETWORKERS = true;
+const FILE_MIGRATE_PATTERN: RegExp = /^FILE_MIGRATE_(\d+)$/;
+
+function fileMigrateDcIdOf(type: string): DcId {
+  return +FILE_MIGRATE_PATTERN.exec(type)[1] as DcId;
+}
 
 export class ApiManager extends ApiManagerMethods {
   private static fillTimeManagerOffsetPromise: Promise<void>;
@@ -746,14 +751,12 @@ export class ApiManager extends ApiManagerMethods {
   }
 
   public invokeApi<T extends keyof MethodDeclMap>(method: T, params: MethodDeclMap[T]['req'] = {}, options: InvokeApiOptions = {}): CancellablePromise<MethodDeclMap[T]['res']> {
-    // /////this.log('Invoke api', method, params, options);
-
-    /* if(!this.lol) {
-      networkerFactory.updatesProcessor({_: 'new_session_created'}, true);
-      this.lol = true;
-    } */
-
     const deferred = deferredPromise<MethodDeclMap[T]['res']>();
+    const onGrpc: boolean = isGrpcAvailable(method);
+    const abortController: AbortController = new AbortController();
+    deferred.cancel = (reason?: unknown): void => {
+      abortController.abort(reason);
+    };
 
     let {afterMessageId, prepareTempMessageId} = options;
     if(prepareTempMessageId) {
@@ -762,20 +765,14 @@ export class ApiManager extends ApiManagerMethods {
       });
     }
 
-    // Declared before the watchdog below, which reads it from a setInterval
-    // callback. Any early return between the two -- the gRPC branch takes one --
-    // leaves this binding in its temporal dead zone, and the interval then throws
-    // ReferenceError every 5s for the life of the request, uncaught, straight
-    // into the worker's error handler.
     let cachedNetworker: MTPNetworker;
 
     if(MOUNT_CLASS_TO) {
       const startTime = Date.now();
       const interval = ctx.setInterval(() => {
         if(!cachedNetworker || !cachedNetworker.isStopped()) {
-          this.log.error('Request is still processing:', method, params, options, 'time:', (Date.now() - startTime) / 1000);
+          this.log.error('Request is still processing:', method, 'time:', (Date.now() - startTime) / 1000);
         }
-        // this.cachedUploadNetworkers[2].requestMessageStatus();
       }, 5e3);
 
       deferred.catch(noop).finally(() => {
@@ -831,32 +828,17 @@ export class ApiManager extends ApiManagerMethods {
       throw error;
     };
 
-    // ImpulseM transport: every mapped method goes to the update socket
-    // instead of MTProto, so no networker (and therefore no auth-key handshake,
-    // no DC migration, no transport selection) is needed. Failures are still
-    // routed through rejectPromise so 401 -> logOut and the error-box policy
-    // behave exactly as they did on MTProto.
-    if(isGrpcAvailable(method)) {
-      // deferred.resolve/reject read `this`, so they must be called on the deferred
-      // rather than passed as bare references — an unbound resolve throws inside the
-      // promise chain and the deferred never settles.
-      invokeWithTransientRetry(method, () => grpcInvoke(method, params, this.getAccountNumber())).then(
-        (result) => deferred.resolve(result),
-        (error: ApiError) => {
-          rejectPromise(error).then(
-            (result) => deferred.resolve(result as MethodDeclMap[T]['res']),
-            (finalError: ApiError) => deferred.reject(finalError)
-          );
-        }
-      );
+    const resendAfter = (waitMs: number): Promise<any> => pauseUnlessAborted(waitMs, abortController.signal).then((): Promise<any> => performRequest());
 
-      return deferred;
-    }
+    const invokeGrpcAttempt = (): Promise<any> => invokeWithTransientRetry(
+      method,
+      (): Promise<any> => grpcInvoke(method, params, this.getAccountNumber(), abortController.signal, {}, options.dcId),
+      abortController.signal
+    );
 
     let dcId: DcId;
 
-    // const stack = (new Error()).stack || 'empty stack';
-    const performRequest = (): Promise<any> => {
+    const sendOverMtproto = (): Promise<any> => {
       if(afterMessageId) {
         const after = this.afterMessageTempIds[afterMessageId];
         if(after) {
@@ -873,18 +855,23 @@ export class ApiManager extends ApiManagerMethods {
         };
       }
 
+      return promise;
+    };
+
+    const performRequest = (): Promise<any> => {
+      const promise: Promise<any> = onGrpc ? invokeGrpcAttempt() : sendOverMtproto();
+
       return promise.catch((error: ApiError) => {
-        // if(!options.ignoreErrors) {
-        if(error.type !== 'FILE_REFERENCE_EXPIRED' && error.type !== 'FILE_REFERENCE_INVALID'/*  && error.type !== 'MSG_WAIT_FAILED' */) {
-          this.log.error('Error', error.code, error.type, this.baseDcId, dcId, method, params);
+        if(error.type !== 'FILE_REFERENCE_EXPIRED' && error.type !== 'FILE_REFERENCE_INVALID') {
+          this.log.error('Error', error.code, error.type, method);
         }
 
-        if(error.code === 401 && this.baseDcId === dcId) {
+        if(!onGrpc && error.code === 401 && this.baseDcId === dcId) {
           if(error.type !== 'SESSION_PASSWORD_NEEDED') {
             AccountController.clearFields(this.getAccountNumber(), ['dcId']);
           }
           throw error;
-        } else if(error.code === 401 && this.baseDcId && dcId !== this.baseDcId) {
+        } else if(!onGrpc && error.code === 401 && this.baseDcId && dcId !== this.baseDcId) {
           if(this.cachedExportPromise[dcId] === undefined) {
             const promise = new Promise((exportResolve, exportReject) => {
               this.invokeApi('auth.exportAuthorization', {dc_id: dcId}, {noErrorBox: true}).then((exportedAuth) => {
@@ -898,9 +885,31 @@ export class ApiManager extends ApiManagerMethods {
             this.cachedExportPromise[dcId] = promise;
           }
 
-          return this.cachedExportPromise[dcId].then(() => performRequest());
-        } else if(error.code === 303) {
-          const newDcId = +error.type.match(/^(PHONE_MIGRATE_|NETWORK_MIGRATE_|USER_MIGRATE_|STATS_MIGRATE_)(\d+)/)[2] as DcId;
+          return this.cachedExportPromise[dcId].then(() => resendAfter(0));
+        } else if(FILE_MIGRATE_PATTERN.test(error.type)) {
+          const newDcId: DcId = fileMigrateDcIdOf(error.type);
+          if(newDcId === options.dcId || (onGrpc && !hasMediaRoute(this.getAccountNumber(), newDcId))) {
+            throw error;
+          }
+
+          if(onGrpc) {
+            options.dcId = newDcId;
+            return resendAfter(0);
+          }
+
+          if(newDcId !== dcId) {
+            options.dcId = newDcId;
+            return this.invokeApi(method, params, options);
+          }
+
+          throw error;
+        } else if(!onGrpc && error.code === 303) {
+          const match: RegExpMatchArray | null = error.type.match(/^(PHONE_MIGRATE_|NETWORK_MIGRATE_|USER_MIGRATE_|STATS_MIGRATE_)(\d+)/);
+          if(match === null) {
+            throw error;
+          }
+
+          const newDcId = +match[2] as DcId;
           if(newDcId !== dcId) {
             if(options.dcId) {
               options.dcId = newDcId;
@@ -910,17 +919,9 @@ export class ApiManager extends ApiManagerMethods {
 
             return this.invokeApi(method, params, options);
           }
-        } else if(error.code === 400 && error.type.indexOf('FILE_MIGRATE') === 0) {
-          const newDcId = +error.type.match(/^(FILE_MIGRATE_)(\d+)/)[2] as DcId;
-          if(newDcId !== dcId) {
-            options.dcId = newDcId;
-            return this.invokeApi(method, params, options);
-          } else {
-            throw error;
-          }
-        } else if(error.code === 400 && error.type === 'CONNECTION_NOT_INITED') {
+        } else if(!onGrpc && error.code === 400 && error.type === 'CONNECTION_NOT_INITED') {
           this.networkerFactory.unsetConnectionInited();
-          return performRequest();
+          return resendAfter(0);
         } else if(!options.rawError && error.code === 420 && !error.type.includes('SLOWMODE_WAIT') && error.type !== 'FROZEN_METHOD_INVALID') {
           const match = error.type.match(/^FLOOD_WAIT_(\d+)/) || error.type.match(/_(\d+)_?/);
           let waitTime: number;
@@ -953,15 +954,15 @@ export class ApiManager extends ApiManagerMethods {
             throw error;
           }
 
-          return pause(waitTime/* (waitTime + 5) */ * 1000).then(() => performRequest());
-        } else if(!options.rawError && ['MSG_WAIT_FAILED', 'MSG_WAIT_TIMEOUT'].includes(error.type)) {
+          return resendAfter(waitTime * 1000);
+        } else if(!onGrpc && !options.rawError && ['MSG_WAIT_FAILED', 'MSG_WAIT_TIMEOUT'].includes(error.type)) {
           const after = this.afterMessageTempIds[afterMessageId];
 
           afterMessageId = undefined;
           delete options.afterMessageId;
 
-          if(after) return after.promise.then(() => performRequest());
-          else return performRequest();
+          if(after) return after.promise.then(() => resendAfter(0));
+          else return resendAfter(0);
         } else if(!options.rawError && error.code === 500) {
           const now = Date.now();
           if(options.stopTime) {
@@ -971,9 +972,9 @@ export class ApiManager extends ApiManagerMethods {
           }
 
           options.waitTime = options.waitTime ? Math.min(60, options.waitTime * 1.5) : 1;
-          return pause(options.waitTime * 1000).then(() => performRequest());
-        } else if(error.type === 'UNKNOWN' || error.type === 'MTPROTO_CLUSTER_INVALID') { // cluster invalid - request from regular user to premium endpoint
-          return pause(1000).then(() => performRequest());
+          return resendAfter(options.waitTime * 1000);
+        } else if(!onGrpc && (error.type === 'UNKNOWN' || error.type === 'MTPROTO_CLUSTER_INVALID')) {
+          return resendAfter(1000);
         } else {
           if(RepayRequestHandler.canHandleError(error))
             error = RepayRequestHandler.attachInvokeArgsToError(error, [method, params, options]);
@@ -983,20 +984,26 @@ export class ApiManager extends ApiManagerMethods {
       });
     }
 
-    let p: Promise<MTPNetworker>;
-    if(dcId = (options.dcId || this.baseDcId)) {
-      p = this.getNetworker(dcId, options);
+    let sent: Promise<any>;
+    if(onGrpc) {
+      sent = performRequest();
     } else {
-      p = this.getBaseDcId().then((baseDcId) => this.getNetworker(dcId = baseDcId, options));
+      let p: Promise<MTPNetworker>;
+      if(dcId = (options.dcId || this.baseDcId)) {
+        p = this.getNetworker(dcId, options);
+      } else {
+        p = this.getBaseDcId().then((baseDcId) => this.getNetworker(dcId = baseDcId, options));
+      }
+
+      sent = p.then((networker) => {
+        cachedNetworker = networker;
+        const promise = performRequest();
+        cachedNetworker.attachPromise(deferred, options as MTMessage);
+        return promise;
+      });
     }
 
-    p.then((networker) => {
-      cachedNetworker = networker;
-      const promise = performRequest();
-      cachedNetworker.attachPromise(deferred, options as MTMessage);
-      return promise;
-    })
-    .then((result) => result, rejectPromise)
+    sent.then((result) => result, rejectPromise)
     .then(deferred.resolve.bind(deferred))
     .catch(deferred.reject.bind(deferred));
 

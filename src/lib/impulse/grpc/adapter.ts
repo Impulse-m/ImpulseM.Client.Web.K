@@ -193,7 +193,8 @@ export async function grpcInvoke(
   params: any = {},
   accountNumber: ActiveAccountNumber,
   abortSignal?: AbortSignal,
-  retry: GrpcRetry = {}
+  retry: GrpcRetry = {},
+  dcId?: number
 ): Promise<any> {
   const mapping = getServiceAndMethod(method);
   if(!mapping) {
@@ -220,7 +221,7 @@ export async function grpcInvoke(
 
   try {
     assertCurrentIdentity();
-    const reply = await carry({accountNumber, method, request: requestBytes, signal: abortSignal});
+    const reply = await carry({accountNumber, method, request: requestBytes, signal: abortSignal, dcId});
     assertCurrentIdentity();
     const result = protoToTL(fromBinary(descMethod.output, reply), descMethod.output);
     if(method === 'help.getAppConfig' && result?._ === 'help.appConfig') {
@@ -241,7 +242,7 @@ export async function grpcInvoke(
         throw apiError;
       }
       logger.info('Retrying with the connection declaration', {method, accountNumber});
-      return grpcInvoke(method, params, accountNumber, abortSignal, {...retry, isReinitRetry: true});
+      return grpcInvoke(method, params, accountNumber, abortSignal, {...retry, isReinitRetry: true}, dcId);
     }
 
     // The access token was refused as expired: renew it once through the refresh token and replay the call on the update
@@ -250,7 +251,7 @@ export async function grpcInvoke(
     if(tokenExpired && identity.kind === 'session' && !retry.isRetry && isCurrentIdentity() &&
       await refreshImpulseSession(accountNumber) && isCurrentIdentity()) {
       logger.info('Retrying after session refresh', {method, accountNumber});
-      return grpcInvoke(method, params, accountNumber, abortSignal, {...retry, isRetry: true});
+      return grpcInvoke(method, params, accountNumber, abortSignal, {...retry, isRetry: true}, dcId);
     }
 
     logger.debug('gRPC invocation failed', {
