@@ -7,7 +7,7 @@ import {checkPoolMethod} from '@lib/impulse/grpc/methodClasses';
 import {apiErrorOf, fleetApiError, isFleetRpcError, replyDataOf, transportApiError} from './fleetError';
 import {FleetLane} from './fleetLane';
 import type {FleetKind, FleetPoolReply} from './fleetLane';
-import {poolRpcEndpoint, mediaEndpointsOf, routesToMediaFleet} from './fleetRoute';
+import {poolRpcEndpoint, mediaEndpointOf, routesToMediaFleet} from './fleetRoute';
 import type {FleetConfig} from './fleetRoute';
 
 const logger = getLogger('fleet');
@@ -36,8 +36,7 @@ export type FleetCall = {
   accountNumber: ActiveAccountNumber,
   method: string,
   request: Uint8Array,
-  signal?: AbortSignal,
-  dcId?: number
+  signal?: AbortSignal
 };
 
 type FleetIdentitySource = (accountNumber: ActiveAccountNumber) => FleetIdentity;
@@ -45,8 +44,7 @@ type FleetIdentitySource = (accountNumber: ActiveAccountNumber) => FleetIdentity
 export type FleetCounters = {media: number, socket: number};
 
 type AccountFleet = {
-  thisDc: number | undefined,
-  mediaEndpoints: Map<number, string>,
+  mediaEndpoint: string | undefined,
   configPublished: boolean,
   configWaiters: Array<() => void>,
   lanes: Map<string, FleetLane>,
@@ -79,8 +77,7 @@ function fleetOf(accountNumber: ActiveAccountNumber): AccountFleet {
   let fleet = fleetByAccount.get(accountNumber);
   if(!fleet) {
     fleet = {
-      thisDc: undefined,
-      mediaEndpoints: new Map<number, string>(),
+      mediaEndpoint: undefined,
       configPublished: false,
       configWaiters: [],
       lanes: new Map<string, FleetLane>(),
@@ -93,15 +90,17 @@ function fleetOf(accountNumber: ActiveAccountNumber): AccountFleet {
   return fleet;
 }
 
+/**
+ * Publishes the config of an account, the event a file-transfer call waits for. A media lane on an endpoint that changed
+ * is retired.
+ */
 export function setFleetConfig(accountNumber: ActiveAccountNumber, config: FleetConfig): void {
   const fleet = fleetOf(accountNumber);
-  fleet.thisDc = config.this_dc;
-  fleet.mediaEndpoints = mediaEndpointsOf(config);
+  fleet.mediaEndpoint = mediaEndpointOf(config);
   fleet.configPublished = true;
 
-  const mediaEndpoints: string[] = [...fleet.mediaEndpoints.values()];
   for(const lane of [...fleet.lanes.values()]) {
-    if(lane.kind === 'media' && !mediaEndpoints.includes(lane.endpoint)) {
+    if(lane.kind === 'media' && lane.endpoint !== fleet.mediaEndpoint) {
       retireLane(fleet, lane);
     }
   }
@@ -154,19 +153,13 @@ export function callMediaFleet(call: FleetCall): Promise<Uint8Array> {
 }
 
 async function sendMediaCall(fleet: AccountFleet, call: FleetCall): Promise<Uint8Array> {
-  const endpoint: string | undefined = fleet.mediaEndpoints.get(call.dcId ?? fleet.thisDc) ?? fleet.mediaEndpoints.get(fleet.thisDc);
-  if(endpoint === undefined) {
-    throw apiErrorOf(
-      'FLEET_MEDIA_OPTION_MISSING',
-      0,
-      undefined,
-      `${call.method} has no media_only dcOption in the published config to travel`
-    );
+  if(fleet.mediaEndpoint === undefined) {
+    throw transportApiError(new Error(`${call.method} has no media_only dcOption in the published config to travel`));
   }
 
   const reply = await sendOnLane(
     fleet,
-    {kind: 'media', endpoint},
+    {kind: 'media', endpoint: fleet.mediaEndpoint},
     fleetIdentityOf(call.accountNumber),
     call.method,
     call.request,
@@ -174,11 +167,6 @@ async function sendMediaCall(fleet: AccountFleet, call: FleetCall): Promise<Uint
   );
   fleet.counters.media++;
   return reply;
-}
-
-export function hasMediaRoute(accountNumber: ActiveAccountNumber, dcId: number): boolean {
-  const fleet: AccountFleet = fleetOf(accountNumber);
-  return !fleet.configPublished || fleet.mediaEndpoints.has(dcId);
 }
 
 function whenConfigPublished(fleet: AccountFleet, signal?: AbortSignal): Promise<void> {

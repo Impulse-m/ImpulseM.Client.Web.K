@@ -2,7 +2,6 @@ import {expect, it, vi} from 'vitest';
 import {create, toBinary} from '@bufbuild/protobuf';
 import {AccountPasswordSchema} from '@lib/impulse/grpc/gen/v1/types_pb';
 import {identityToken, loadIdentityHarness, setupIdentityHarness, sockets, storage} from '@/tests/helpers/identityHarness';
-import {apiManagerStub} from '@/tests/helpers/apiManagerStub';
 
 setupIdentityHarness();
 
@@ -19,12 +18,8 @@ it('SESSION_PASSWORD_NEEDED preserves the identity and ignores pending-token met
 it('fetches each SRP challenge on the same socket and waits FLOOD_WAIT before the next attempt', async() => {
   const client = await loadIdentityHarness();
   const {PasswordManager} = await import('@appManagers/passwordManager');
-  const apiManager = await apiManagerStub({
-    getAccountNumber: () => 1,
-    log: Object.assign(vi.fn(), {error: vi.fn()}),
-    setUser: vi.fn(),
-    logOut: vi.fn()
-  });
+  const {ApiManager} = await import('@appManagers/apiManager');
+  const apiManager = Object.assign(Object.create(ApiManager.prototype), {getAccountNumber: () => 1, setUser: vi.fn(), logOut: vi.fn()});
   const compute = vi.fn(async(method: string, password: string, state: {srp_id: number}) => ({_: 'inputCheckPasswordSRP', srp_id: state.srp_id}));
   const manager = Object.assign(Object.create(PasswordManager.prototype), {apiManager, cryptoWorker: {invokeCrypto: compute}});
   let srp: bigint = BigInt(0);

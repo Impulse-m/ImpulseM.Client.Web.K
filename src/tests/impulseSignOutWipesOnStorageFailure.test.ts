@@ -2,7 +2,6 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 
 import App from '@config/app';
 import type {ActiveAccountNumber} from '@lib/accounts/types';
-import {apiManagerStub} from './helpers/apiManagerStub';
 import {registerSessionIdentitySource} from './helpers/fleetIdentitySource';
 import {sharedUpdateSocketHarness} from './helpers/updateSocketStub';
 
@@ -79,10 +78,12 @@ type SignedInManager = {
   rootScope: {dispatchEvent: ReturnType<typeof vi.fn>}
 };
 
+/** An ApiManager of the real prototype, with the collaborators a sign-out of the slot reaches. */
 async function signedInManager(): Promise<SignedInManager> {
+  const {ApiManager} = await import('@appManagers/apiManager');
   const {setGrpcSessionToken} = await import('@lib/impulse/grpc/credentials');
   setGrpcSessionToken(ACCOUNT, SESSION_TOKEN);
-  return apiManagerStub({
+  return Object.assign(Object.create(ApiManager.prototype), {
     getAccountNumber: (): ActiveAccountNumber => ACCOUNT,
     invokeApi: vi.fn(async(): Promise<void> => undefined),
     rootScope: {dispatchEvent: vi.fn()}
