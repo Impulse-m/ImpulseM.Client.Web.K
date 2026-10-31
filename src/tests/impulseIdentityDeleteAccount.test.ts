@@ -6,6 +6,7 @@ import {DeleteAccountRequestSchema} from '@lib/impulse/grpc/gen/account_pb';
 import type {DeleteAccountRequest} from '@lib/impulse/grpc/gen/account_pb';
 import type {UpdateSocketCallRecord} from '@/tests/helpers/updateSocketStub';
 import {identityDeclaration} from '@/tests/helpers/identityFixtures';
+import {apiManagerStub} from '@/tests/helpers/apiManagerStub';
 import {
   emptyReply,
   identityToken,
@@ -20,11 +21,11 @@ setupIdentityHarness();
 
 it('resets an account on the pending 2FA identity without a password and preserves it on 2FA_CONFIRM_WAIT_5', async(): Promise<void> => {
   const client: Awaited<ReturnType<typeof loadIdentityHarness>> = await loadIdentityHarness();
-  const {ApiManager} = await import('@appManagers/apiManager');
   const {default: AppAccountManager} = await import('@appManagers/appAccountManager');
   const logOut = vi.fn(async(): Promise<void> => client.clearImpulseSession(1));
-  const apiManager: ApiManager = Object.assign(Object.create(ApiManager.prototype), {
+  const apiManager: ApiManager = await apiManagerStub({
     getAccountNumber: (): number => 1,
+    log: Object.assign(vi.fn(), {error: vi.fn()}),
     logOut
   });
   const manager: AppAccountManager = Object.assign(Object.create(AppAccountManager.prototype), {apiManager});

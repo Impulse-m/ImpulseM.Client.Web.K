@@ -1,13 +1,14 @@
 import {expect, it, vi} from 'vitest';
 import {accessToken, emptyReply, identityReply, jwt, loadIdentityHarness, now, pools, setupIdentityHarness, sockets, storage} from '@/tests/helpers/identityHarness';
+import {apiManagerStub} from '@/tests/helpers/apiManagerStub';
+import type {UploadGetFile} from '@layer';
 
 setupIdentityHarness();
 
 it('discards a refused identity, re-identifies and never logs out the login screen', async() => {
   const client = await loadIdentityHarness();
-  const {ApiManager} = await import('@appManagers/apiManager');
   const logOut = vi.fn().mockResolvedValue(undefined);
-  const manager = Object.assign(Object.create(ApiManager.prototype), {getAccountNumber: () => 1, logOut});
+  const manager = await apiManagerStub({getAccountNumber: () => 1, log: Object.assign(vi.fn(), {error: vi.fn()}), logOut});
   sockets.respondOnce('account.getPassword', () => {throw {code: 100, appCode: 401, appType: 'AUTH_KEY_UNREGISTERED'};});
   const key: string = client.fleetIdentityFor(1).key;
   await expect(manager.invokeApi('account.getPassword', {})).rejects.toMatchObject({type: 'AUTH_KEY_UNREGISTERED'});
@@ -22,9 +23,8 @@ it('discards a refused identity, re-identifies and never logs out the login scre
 it('an authorized AUTH_KEY_UNREGISTERED still logs out', async() => {
   storage.get.mockResolvedValue({userId: 42, impulse_session_token: accessToken, impulse_refresh_token: 'refresh'});
   await loadIdentityHarness();
-  const {ApiManager} = await import('@appManagers/apiManager');
   const logOut = vi.fn().mockResolvedValue(undefined);
-  const manager = Object.assign(Object.create(ApiManager.prototype), {getAccountNumber: () => 1, logOut});
+  const manager = await apiManagerStub({getAccountNumber: () => 1, log: Object.assign(vi.fn(), {error: vi.fn()}), logOut});
   sockets.respondOnce('account.getPassword', () => {throw {code: 100, appCode: 401, appType: 'AUTH_KEY_UNREGISTERED'};});
   await expect(manager.invokeApi('account.getPassword', {})).rejects.toMatchObject({type: 'AUTH_KEY_UNREGISTERED'});
   await vi.advanceTimersByTimeAsync(100);
@@ -74,9 +74,8 @@ it('an authorized socket error discards the session', async() => {
 it.each(['AUTH_KEY_UNREGISTERED', 'SESSION_REVOKED'])('a late %s from a retired session cannot log out its replacement', async(type: string) => {
   storage.get.mockResolvedValue({userId: 42, impulse_session_token: accessToken, impulse_refresh_token: 'refresh'});
   const client = await loadIdentityHarness();
-  const {ApiManager} = await import('@appManagers/apiManager');
   const logOut = vi.fn().mockResolvedValue(undefined);
-  const manager = Object.assign(Object.create(ApiManager.prototype), {getAccountNumber: () => 1, logOut});
+  const manager = await apiManagerStub({getAccountNumber: () => 1, log: Object.assign(vi.fn(), {error: vi.fn()}), logOut});
   let refuse: () => void;
   sockets.respond('account.getPassword', () => new Promise((resolve, reject) => {
     refuse = (): void => reject({code: 100, appCode: 401, appType: type});
@@ -97,14 +96,13 @@ it('a late media refusal cannot log out a replacement session', async() => {
   const client = await loadIdentityHarness();
   const {setFleetConfig} = await import('@lib/impulse/fleet/fleet');
   setFleetConfig(1, {this_dc: 2, dc_options: [{id: 2, ip_address: 'media.example', port: 443, pFlags: {media_only: true}}]});
-  const {ApiManager} = await import('@appManagers/apiManager');
   const logOut = vi.fn().mockResolvedValue(undefined);
-  const manager = Object.assign(Object.create(ApiManager.prototype), {getAccountNumber: () => 1, logOut});
+  const manager = await apiManagerStub({getAccountNumber: () => 1, log: Object.assign(vi.fn(), {error: vi.fn()}), logOut});
   let refuse: () => void;
   pools.respond('upload.getFile', () => new Promise((resolve, reject) => {
     refuse = (): void => reject({code: 100, appCode: 401, appType: 'AUTH_KEY_UNREGISTERED'});
   }));
-  const request: Promise<unknown> = manager.invokeApi('upload.getFile', {}).catch((error: unknown): unknown => error);
+  const request: Promise<unknown> = manager.invokeApi('upload.getFile', {} as UploadGetFile).catch((error: unknown): unknown => error);
   await vi.advanceTimersByTimeAsync(0);
   await client.captureImpulseSessionToken(1, {session_token: 'replacement', refresh_token: 'next'});
   refuse();
