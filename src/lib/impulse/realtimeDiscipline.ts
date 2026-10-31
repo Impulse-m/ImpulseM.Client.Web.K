@@ -51,26 +51,43 @@ export function sdkReconnectDelay(
   return Math.min(maxDelay, minDelay + Math.floor(random() * (window + 1)));
 }
 
+type PendingTask = {
+  start: () => void
+};
+
 export class ConcurrentTaskQueue {
-  private active = 0;
-  private pending: (() => void)[] = [];
+  private active: number = 0;
+  private pending: PendingTask[] = [];
 
   constructor(private readonly concurrency: number) {}
 
-  public run<T>(task: () => Promise<T>): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      const start = () => {
-        ++this.active;
-        Promise.resolve().then(task).then(resolve, reject).finally(() => {
-          --this.active;
-          this.pending.shift()?.();
-        });
+  public run<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+    return new Promise<T>((resolve: (value: T) => void, reject: (reason: unknown) => void): void => {
+      if(signal?.aborted === true) {
+        reject(signal.reason);
+        return;
+      }
+
+      const onAbort = (): void => {
+        this.pending.splice(this.pending.indexOf(entry), 1);
+        reject(signal?.reason);
+      };
+      const entry: PendingTask = {
+        start: (): void => {
+          signal?.removeEventListener('abort', onAbort);
+          ++this.active;
+          Promise.resolve().then(task).then(resolve, reject).finally((): void => {
+            --this.active;
+            this.pending.shift()?.start();
+          });
+        }
       };
 
       if(this.active < this.concurrency) {
-        start();
+        entry.start();
       } else {
-        this.pending.push(start);
+        this.pending.push(entry);
+        signal?.addEventListener('abort', onAbort, {once: true});
       }
     });
   }

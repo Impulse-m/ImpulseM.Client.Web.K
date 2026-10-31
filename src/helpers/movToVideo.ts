@@ -1,5 +1,6 @@
 import {MAX_EDITABLE_VIDEO_SIZE} from '@components/mediaEditor/support';
 import getFileMimeType from '@helpers/files/getFileMimeType';
+import {FILE_PART_SIZE} from '@config/fileParts';
 import apiManagerProxy from '@lib/apiManagerProxy';
 import rootScope from '@lib/rootScope';
 
@@ -15,7 +16,6 @@ export type MovVideoInfo = {
 // there the media-editor cap stays and bigger files fall back to documents.
 const MAX_TRANSCODABLE_SIZE = MAX_EDITABLE_VIDEO_SIZE;
 
-const UPLOAD_PART_SIZE = 512 * 1024;
 // upload_max_fileparts_default/premium, until the app config arrives
 const FALLBACK_MAX_FILEPARTS = 4000;
 
@@ -24,7 +24,7 @@ function getMaxUploadSize() {
   const parts = appConfig instanceof Promise ?
     FALLBACK_MAX_FILEPARTS :
     (rootScope.premium ? appConfig.upload_max_fileparts_premium : appConfig.upload_max_fileparts_default) ?? FALLBACK_MAX_FILEPARTS;
-  return parts * UPLOAD_PART_SIZE;
+  return parts * FILE_PART_SIZE;
 }
 
 // 'in-memory' fastStart holds the media twice at finalization (the muxer's
