@@ -30,7 +30,6 @@ export type LiveLane = {
   enabled: boolean,
   /** The origin the client bundle's fleets and update socket point at. */
   gatewayOrigin: string,
-  /** The loopback test pool the bundle's pool fleet points at; empty disables it. */
   poolWsOrigin: string,
   skipReason: string
 };
