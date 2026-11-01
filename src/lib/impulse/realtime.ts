@@ -16,9 +16,10 @@
  */
 
 import pause from '@helpers/schedulers/pause';
+import settleUnlessAborted from '@helpers/schedulers/settleUnlessAborted';
 import {checkSocketMethod} from '@lib/impulse/grpc/methodClasses';
 import Schema, {MTProtoConstructor} from '@lib/mtproto/schema';
-import {Centrifuge, type RpcOptions, type RpcResult, type Subscription} from '@impulsem/centrifuge/build/protobuf';
+import {Centrifuge, errorCodes, type RpcResult, type Subscription} from '@impulsem/centrifuge/build/protobuf';
 import {fromBinary} from '@bufbuild/protobuf';
 
 import {backendUpdateWsOrigin} from '@config/impulsemConfig';
@@ -31,7 +32,7 @@ import {countSocketCall, fleetFailure, fleetIdentityOf} from './fleet/fleet';
 import type {FleetIdentity} from './fleet/fleet';
 import {Drainable} from './fleet/drainable';
 import {CENTRIFUGO_CONNECTION_PATH} from './fleet/fleetPath';
-import {isFleetRpcError, replyDataOf} from './fleet/fleetError';
+import {apiErrorOf, isFleetRpcError, replyDataOf} from './fleet/fleetError';
 import {reportDifferenceFailure} from './backgroundFailures';
 import {RealtimeSubscriptions} from './realtimeSubscriptions';
 import type {RealtimeSubscriptionDiff} from './realtimeSubscriptions';
@@ -239,7 +240,7 @@ export async function callUpdateSocket(call: UpdateSocketCall): Promise<Uint8Arr
 
 async function sendSocketRpc(socket: UpdateSocket, call: UpdateSocketCall): Promise<RpcResult> {
   try {
-    return await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
+    return await rpcOn(socket, call);
   } catch(error: unknown) {
     if(socket.identity.kind !== 'identity' || !isFleetRpcError(error) || error.code !== OVERLOADED_CODE) {
       throw error;
@@ -249,12 +250,18 @@ async function sendSocketRpc(socket: UpdateSocket, call: UpdateSocketCall): Prom
     if(socket.drain.isRetired() || call.signal?.aborted) {
       throw error;
     }
-    return await socket.client.rpc(call.method, call.request, rpcOptionsOf(call));
+    return await rpcOn(socket, call);
   }
 }
 
-function rpcOptionsOf(call: UpdateSocketCall): RpcOptions {
-  return {signal: call.signal};
+function rpcOn(socket: UpdateSocket, call: UpdateSocketCall): Promise<RpcResult> {
+  return settleUnlessAborted<RpcResult>(
+    call.signal,
+    apiErrorOf('CANCELED', errorCodes.cancelled, call.signal?.reason),
+    (resolve: (value: RpcResult) => void, reject: (reason: unknown) => void): void => {
+      socket.client.rpc(call.method, call.request).then(resolve, reject);
+    }
+  );
 }
 
 /**
