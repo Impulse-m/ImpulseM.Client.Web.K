@@ -15,6 +15,7 @@ import {expect, test} from './pair';
  * The spec fails when the update socket of the dev stack does not answer.
  */
 test.skip(!liveLane.enabled, liveLane.skipReason);
+test.use({recordGateway: true});
 
 const MESSAGE_TEXT: string = 'carried by the update socket';
 const DOCUMENT_NAME: string = 'carried-by-the-update-socket.bin';

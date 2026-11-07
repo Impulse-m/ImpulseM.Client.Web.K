@@ -20,7 +20,8 @@ import {PersonaSession} from './personaSession';
 export type PersonaPair = {
   sender: PersonaSession,
   recipient: PersonaSession,
-  // The gateway gRPC-web requests of both sides, from before their sign-up.
+  // The gateway gRPC-web requests of both sides, from before their sign-up; empty unless the scenario set
+  // recordGateway.
   gateway: GatewayRecorder
 };
 
@@ -28,14 +29,20 @@ export type PersonaPair = {
 export const test = base.extend<{
   pair: PersonaPair,
   pairContextOptions: BrowserContextOptions,
-  recipientContextOptions: BrowserContextOptions | undefined
+  recipientContextOptions: BrowserContextOptions | undefined,
+  recordGateway: boolean
 }>({
   // Options of both personas' browser contexts; a scenario sets them with test.use({pairContextOptions}).
   pairContextOptions: [{}, {option: true}],
   // Overrides pairContextOptions for the recipient alone, when a scenario needs the two sides to differ.
   recipientContextOptions: [undefined, {option: true}],
+  // The gateway recorder attaches a debugger session to each page's workers, and an attached SharedWorker
+  // outlives its page: after a reload the new page binds to it and its MTProto port never answers ([STUCK]
+  // isLocked/environment, a blank page; #1199). So only a scenario that asserts the gateway calls installs
+  // it, with test.use({recordGateway: true}), and such a scenario must not reload.
+  recordGateway: [false, {option: true}],
 
-  pair: async({browser, pairContextOptions, recipientContextOptions}, use, testInfo) => {
+  pair: async({browser, pairContextOptions, recipientContextOptions, recordGateway}, use, testInfo) => {
     // The label doubles as the persona's first name and is typed into the sign-up UI, which
     // caps names at 70 chars — testId keeps it short while still unique per scenario.
     // Firefox has no `permissions` context option: its fake devices need none (the project's prefs).
@@ -49,8 +56,10 @@ export const test = base.extend<{
     const gateway: GatewayRecorder = {calls: [], workers: [], attachFailures: []};
 
     try {
-      await recordGatewayCalls(sender.page, gateway);
-      await recordGatewayCalls(recipient.page, gateway);
+      if(recordGateway) {
+        await recordGatewayCalls(sender.page, gateway);
+        await recordGatewayCalls(recipient.page, gateway);
+      }
       await Promise.all([
         sender.signUpThroughUi(),
         recipient.signUpThroughUi()

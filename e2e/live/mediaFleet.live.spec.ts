@@ -17,6 +17,7 @@ import {downloadedDigest, sendDocument} from './documentTransfer';
  * The spec fails when the dev stack publishes no media_only dcOption for this DC or a carrier does not answer on its endpoint.
  */
 test.skip(!liveLane.enabled, liveLane.skipReason);
+test.use({recordGateway: true});
 
 // A 512 KiB part is the client's minimum part size below 10 MiB (apiFileManager.getLimitPart), so this is two parts.
 const TWO_PART_BYTES: number = 700 * 1024;
