@@ -14,6 +14,8 @@
  * The derived Centrifugo endpoints keep the paths of the transport (fleet/fleetPath.ts).
  */
 
+import {backendWsOrigin} from './websocketOrigin';
+
 /** The text a site link carries in lang strings; resolved by resolveSiteLinkTokens. */
 export const SITE_URL_TOKEN: string = '{IMPULSEM_SITE_URL}';
 
@@ -84,17 +86,12 @@ export function resolveSiteLinkTokens(text: string): string {
   .split(SITE_URL_TOKEN).join(siteUrl);
 }
 
-/**
- * The HTTP origin of the transport host, or an empty string when IMPULSEM_RPC_URL is not set.
- * Read at call time: e2e/live imports backendWsOrigin, and import.meta.env is undefined outside Vite.
- */
+/** The HTTP origin of the transport host, or an empty string when IMPULSEM_RPC_URL is not set. */
 export function backendHttpOrigin(): string {
   return impulsemRpcUrl();
 }
 
-export function backendWsOrigin(httpOrigin: string): string {
-  return httpOrigin.replace(/^http/, 'ws');
-}
+export {backendWsOrigin};
 
 /** The websocket origin of the update socket, or an empty string when no transport host is configured. */
 export function backendUpdateWsOrigin(): string {
